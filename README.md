@@ -46,3 +46,12 @@
 - [ ] **RTTWP** UPF support of RTT measurements towards the UE Without PMF.
 - [ ] **QUASF** The UP function supports being provisioned in a URR with an Exempted Application ID for Quota Action or an Exempted SDF Filter for Quota Action which is to be used when the quota is exhausted.
 - [ ] **NSPOC** UP function supports notifying start of Pause of Charging via user plane.
+
+## Architecture
+
+### Eagle-eye overview
+![UPF-Arch2](https://user-images.githubusercontent.com/20152142/207142700-cc3f17a5-203f-4b43-b712-a518cb627968.png)
+
+### Packet forwarding pipeline
+![UPF-Forwarding](https://user-images.githubusercontent.com/20152142/207142725-0af400bb-8ff8-4f36-93bd-3c461c0e7ce4.png)
+
