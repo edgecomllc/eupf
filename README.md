@@ -67,12 +67,55 @@
 ### Eagle-eye overview
 ![UPF-Arch2](https://user-images.githubusercontent.com/20152142/207142700-cc3f17a5-203f-4b43-b712-a518cb627968.png)
 
-### Packet forwarding pipeline
-
 ### Current limitation
 
 - Only one PDR in PFCP session per direction
 - Only single FAR supported 
 
+### Packet forwarding pipeline
+
 ![UPF-Forwarding](https://user-images.githubusercontent.com/20152142/207142725-0af400bb-8ff8-4f36-93bd-3c461c0e7ce4.png)
 
+## Roadmap
+
+### Management Layer
+
+- [ ]  PFCP Association Setup/Release and Heartbeats
+- [ ]  Session Establishment/Modification with support for PFCP entities such as Packet Detection Rules (PDRs), Forwarding Action Rules (FARs), QoS Enforcement Rules (QERs).
+- [ ]  UPF-initiated PFCP association
+- [ ]  UPF-based UE IP address assignment
+- [ ]  Integration with Prometheus for exporting PFCP and data plane-level metrics.
+
+### Datapath Layer
+
+- [ ]  IPv4 support
+- [ ]  N3, N4, N6, N9 interfacing
+- [ ]  Single & Multi-port support
+- [ ]  Monitoring/Debugging capabilties using
+    - tcpdump on individual modules
+    - visualization web interface
+    - command line shell interface for displaying statistics
+- [ ]  Static IP routing
+- [ ]  I-UPF/A-UPF ULCL/Branching i.e., simultaneous N6/N9 support within PFCP session
+- [ ]  Basic QoS support, with per-slice and per-session rate limiting
+
+## Backlog
+
+### Management Layer
+
+- [ ]  Application filtering using SDF filters
+- [ ]  Generation of End Marker Packets
+- [ ]  Downlink Data Notification (DDN) using PFCP Session Report
+- [ ]  Application filtering using application PFDs
+
+### Datapath Layer
+
+- [ ]  IPv6 support
+- [ ]  Dynamic IP routing
+- [ ]  Support for IPv4 datagrams reassembly
+- [ ]  Support for IPv4 packets fragmentation
+- [ ]  Support for UE IP NAT
+- [ ]  Service Data Flow (SDF) configuration via N4/PFCP.
+- [ ]  Downlink Data Notification (DDN) - notification only (no buffering)
+- [ ]  Per-flow latency and throughput metrics
+- [ ]  Network Token Functions
