@@ -12,9 +12,9 @@ int upf_gtp_entrypoint_func(struct xdp_md *ctx)
 {
     bpf_printk("upf_gtp_entrypoint start\n");
 
-    bpf_debug("tail call to UPF_PROG_TYPE_MAIN key\n");
+    bpf_printk("tail call to UPF_PROG_TYPE_MAIN key\n");
     bpf_tail_call(ctx, &upf_program_array, UPF_PROG_TYPE_MAIN);
-    bpf_debug("tail call to UPF_PROG_TYPE_MAIN key failed\n");
+    bpf_printk("tail call to UPF_PROG_TYPE_MAIN key failed\n");
     return XDP_ABORTED;
 }
 
