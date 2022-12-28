@@ -1,7 +1,9 @@
 #pragma once
 
-#include <bpf/bpf_helpers.h>
-#include <linux/bpf.h>
+//#include <bpf/bpf_helpers.h>
+#include "bpf.h"
+#include "bpf_helpers.h"
+//#include <linux/bpf.h>
 //#include <bpf/types.h>
 
 #include <stdint.h>
@@ -12,8 +14,8 @@ enum upf_program_type {
     UPF_PROG_TYPE_QER,
 };
 
-struct bpf_map_def SEC("maps") upf_program_array = {
-    .type = BPF_MAP_TYPE_PROG_ARRAY,
+struct bpf_map_def SEC("maps") upf_pipeline = {
+    .map_type = BPF_MAP_TYPE_PROG_ARRAY,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),
     .max_entries = 16,

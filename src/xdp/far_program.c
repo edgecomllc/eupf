@@ -1,5 +1,6 @@
-#include <linux/bpf.h>
-#include <bpf/bpf_helpers.h>
+//#include <linux/bpf.h>
+//#include <bpf/bpf_helpers.h>
+#include "bpf_helpers.h"
 
 SEC("upf_far_program")
 int upf_far_program_func(struct xdp_md *ctx)
