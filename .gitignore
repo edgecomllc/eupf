@@ -3,3 +3,6 @@ build/
 cmake-build-*/
 launch.json
 settings.json
+
+*.o
+*_bpf.go

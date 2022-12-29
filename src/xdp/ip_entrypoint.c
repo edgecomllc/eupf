@@ -2,9 +2,8 @@
 // Created by pirog-spb on 14.12.2022.
 //
 
-//#include <linux/bpf.h>
-//#include <bpf/bpf_helpers.h>
-#include "bpf_helpers.h"
+#include <linux/bpf.h>
+#include <bpf/bpf_helpers.h>
 
 #include "xdp/program_array.h"
 

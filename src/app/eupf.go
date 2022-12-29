@@ -3,73 +3,69 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
+	"strings"
+	"time"
 
-	"github.com/dropbox/goebpf"
+	"github.com/cilium/ebpf"
+	"golang.org/x/sys/unix"
 )
 
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf ip_entrypoint 	../xdp/ip_entrypoint.c -- -I.. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf gtp_entrypoint 	../xdp/gtp_entrypoint.c -- -I.. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf qer_program 		../xdp/qer_program.c -- -I.. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf far_program 		../xdp/far_program.c -- -I.. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf upf_xdp 			../xdp/upf_program.c -- -I.. -O2 -Wall
+
 var iface = flag.String("iface", "", "Interface to bind XDP program to")
-var elf = flag.String("elf", "ebpf_prog/xdp_fw.elf", "clang/llvm compiled binary file")
-var programName = flag.String("program", "upf_far_program_func", "ebpf program name")
 
 func main() {
 	flag.Parse()
 
-	if *elf == "" {
-		fmt.Printf("--elf is required\n")
-		os.Exit(1)
+	if err := increaseResourceLimits(); err != nil {
+		panic(err)
 	}
 
-	bpf := goebpf.NewDefaultEbpfSystem()
-
-	//if err := bpf.LoadElf("../../build/CMakeFiles/eupf.dir/src/xdp/ip_entrypoint.c.o"); err != nil {
-	if err := bpf.LoadElf(*elf); err != nil {
-		fmt.Printf("Load elf %s failed: %v\n", *elf, err)
-		os.Exit(1)
+	objs := upf_xdpObjects{}
+	if err := loadUpf_xdpObjects(&objs, nil); err != nil {
+		panic(err)
 	}
+	defer objs.Close()
 
-	printBpfInfo(bpf)
+	//fmt.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
+	fmt.Printf("Press Ctrl-C to exit and remove the program")
 
-	if *iface != "" && *programName != "" {
-		program := bpf.GetProgramByName(*programName)
-		if program == nil {
-			fmt.Printf("No ebpf program %s\n", *programName)
-			os.Exit(1)
+	// Print the contents of the BPF hash map (source IP address -> packet count).
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		s, err := formatMapContents(objs.UpfPipeline)
+		if err != nil {
+			fmt.Printf("Error reading map: %s", err)
+			continue
 		}
-
-		if err := program.Load(); err != nil {
-			fmt.Printf("Load ebpf to kernel failed: %v\n", err)
-			os.Exit(1)
-
-		}
-
-		if err := program.Attach(*iface); err != nil {
-			fmt.Printf("Can't attach ebpf program to interface %s: %v\n", *iface, err)
-			os.Exit(1)
-		}
-
-		defer program.Detach()
-	}
-
-	// Interact with program is simply done through maps:
-	upfPipeline := bpf.GetMapByName("upf_pipeline") // name also matches BPF_MAP_ADD(drops)
-	val, err := upfPipeline.LookupInt(0)            // Get value from map at index 0
-	if err == nil {
-		fmt.Printf("Drops: %d\n", val)
+		fmt.Printf("Pipeline map contents:\n%s", s)
 	}
 }
 
-func printBpfInfo(bpf goebpf.System) {
-	fmt.Println("ebpf maps:")
-	for _, item := range bpf.GetMaps() {
-		fmt.Printf("\t%s: %v, Fd %v\n", item.GetName(), item.GetType(), item.GetFd())
-	}
-	fmt.Println("\nebpf programs:")
-	for _, prog := range bpf.GetPrograms() {
-		fmt.Printf("\t%s: %v, size %d, license \"%s\"\n",
-			prog.GetName(), prog.GetType(), prog.GetSize(), prog.GetLicense(),
-		)
+//increaseResourceLimits https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits
+func increaseResourceLimits() error {
+	return unix.Setrlimit(unix.RLIMIT_MEMLOCK, &unix.Rlimit{
+		Cur: unix.RLIM_INFINITY,
+		Max: unix.RLIM_INFINITY,
+	})
+}
 
+func formatMapContents(m *ebpf.Map) (string, error) {
+	var (
+		sb  strings.Builder
+		key []byte
+		val uint32
+	)
+	iter := m.Iterate()
+	for iter.Next(&key, &val) {
+		programId := key
+		programRef := val
+		sb.WriteString(fmt.Sprintf("\t%d => %d\n", programId, programRef))
 	}
-	fmt.Println()
+	return sb.String(), iter.Err()
 }
