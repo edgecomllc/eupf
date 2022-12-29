@@ -4,8 +4,8 @@
 
 #include "xdp/program_array.h"
 
-SEC("upf_program")
-int upf_program_func(struct xdp_md *ctx)
+SEC("xdp/upf")
+int upf_func(struct xdp_md *ctx)
 {
     bpf_printk("upf_program start\n");
 

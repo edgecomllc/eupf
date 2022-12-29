@@ -2,3 +2,4 @@
 build/
 cmake-build-*/
 launch.json
+settings.json
