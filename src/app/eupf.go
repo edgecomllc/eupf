@@ -3,10 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"log"
+	"net"
 	"strings"
 	"time"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/link"
 	"golang.org/x/sys/unix"
 )
 
@@ -16,7 +20,89 @@ import (
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf far_program 		../xdp/far_program.c -- -I.. -O2 -Wall
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf upf_xdp 			../xdp/upf_program.c -- -I.. -O2 -Wall
 
-var iface = flag.String("iface", "", "Interface to bind XDP program to")
+type BpfObjects struct {
+	upf_xdpObjects
+	far_programObjects
+	qer_programObjects
+	ip_entrypointObjects
+	gtp_entrypointObjects
+}
+
+func (o *BpfObjects) Load() error {
+
+	collectionOptions := ebpf.CollectionOptions{
+		Maps: ebpf.MapOptions{
+			// Pin the map to the BPF filesystem and configure the
+			// library to automatically re-write it in the BPF
+			// program so it can be re-used if it already exists or
+			// create it if not
+			PinPath: "/sys/fs/bpf/upf_pipeline",
+		},
+	}
+
+	if err := loadUpf_xdpObjects(&o.upf_xdpObjects, &collectionOptions); err != nil {
+		return err
+	}
+
+	if err := loadFar_programObjects(&o.far_programObjects, &collectionOptions); err != nil {
+		return err
+	}
+
+	if err := loadQer_programObjects(&o.qer_programObjects, &collectionOptions); err != nil {
+		return err
+	}
+
+	if err := loadIp_entrypointObjects(&o.ip_entrypointObjects, &collectionOptions); err != nil {
+		return err
+	}
+
+	if err := loadGtp_entrypointObjects(&o.gtp_entrypointObjects, &collectionOptions); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (o *BpfObjects) Close() error {
+	return CloseAllObjects(
+		&o.upf_xdpObjects,
+		&o.far_programObjects,
+		&o.qer_programObjects,
+		&o.ip_entrypointObjects,
+		&o.gtp_entrypointObjects,
+	)
+}
+
+func (bpfObjects *BpfObjects) buildPipeline() {
+	upfPipeline := bpfObjects.upf_xdpObjects.UpfPipeline
+	upfMainProgram := bpfObjects.UpfFunc
+	farProgram := bpfObjects.UpfFarProgramFunc
+	qerProgram := bpfObjects.UpfQerProgramFunc
+
+	if err := upfPipeline.Put(uint32(0), upfMainProgram); err != nil {
+		panic(err)
+	}
+
+	if err := upfPipeline.Put(uint32(1), farProgram); err != nil {
+		panic(err)
+	}
+
+	if err := upfPipeline.Put(uint32(2), qerProgram); err != nil {
+		panic(err)
+	}
+
+}
+
+func CloseAllObjects(closers ...io.Closer) error {
+	for _, closer := range closers {
+		if err := closer.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var ifaceName = flag.String("iface", "lo", "Interface to bind XDP program to")
 
 func main() {
 	flag.Parse()
@@ -25,25 +111,43 @@ func main() {
 		panic(err)
 	}
 
-	objs := upf_xdpObjects{}
-	if err := loadUpf_xdpObjects(&objs, nil); err != nil {
+	bpfObjects := &BpfObjects{}
+	if err := bpfObjects.Load(); err != nil {
 		panic(err)
 	}
-	defer objs.Close()
 
-	//fmt.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
-	fmt.Printf("Press Ctrl-C to exit and remove the program")
+	defer bpfObjects.Close()
+
+	bpfObjects.buildPipeline()
+
+	iface, err := net.InterfaceByName(*ifaceName)
+	if err != nil {
+		log.Fatalf("lookup network iface %q: %s", *ifaceName, err)
+	}
+
+	// Attach the program.
+	l, err := link.AttachXDP(link.XDPOptions{
+		Program:   bpfObjects.UpfIpEntrypointFunc,
+		Interface: iface.Index,
+	})
+	if err != nil {
+		log.Fatalf("could not attach XDP program: %s", err)
+	}
+	defer l.Close()
+
+	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
+	log.Printf("Press Ctrl-C to exit and remove the program")
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for range ticker.C {
-		s, err := formatMapContents(objs.UpfPipeline)
+		s, err := formatMapContents(bpfObjects.upf_xdpObjects.UpfPipeline)
 		if err != nil {
-			fmt.Printf("Error reading map: %s", err)
+			log.Printf("Error reading map: %s", err)
 			continue
 		}
-		fmt.Printf("Pipeline map contents:\n%s", s)
+		log.Printf("Pipeline map contents:\n%s", s)
 	}
 }
 
