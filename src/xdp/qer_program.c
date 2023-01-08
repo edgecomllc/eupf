@@ -1,10 +1,9 @@
-//#include <linux/bpf.h>
-//#include <bpf/bpf_helpers.h>
-#include "bpf_helpers.h"
+#include <linux/bpf.h>
+#include <bpf/bpf_helpers.h>
 
 #include "xdp/program_array.h"
 
-SEC("upf_qer_program")
+SEC("xdp/upf_qer_program")
 int upf_qer_program_func(struct xdp_md *ctx)
 {
     bpf_printk("upf_qer_program start\n");
