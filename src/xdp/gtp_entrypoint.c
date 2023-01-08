@@ -7,7 +7,7 @@
 
 #include "xdp/program_array.h"
 
-SEC("upf_gtp_entrypoint")
+SEC("xdp/upf_gtp_entrypoint")
 int upf_gtp_entrypoint_func(struct xdp_md *ctx)
 {
     bpf_printk("upf_gtp_entrypoint start\n");

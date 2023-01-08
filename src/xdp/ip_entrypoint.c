@@ -7,7 +7,7 @@
 
 #include "xdp/program_array.h"
 
-SEC("upf_ip_entrypoint")
+SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
     bpf_printk("upf_ip_entrypoint start\n");
