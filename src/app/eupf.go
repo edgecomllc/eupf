@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"strings"
 	"time"
 
@@ -30,37 +31,28 @@ type BpfObjects struct {
 
 func (o *BpfObjects) Load() error {
 
+	pinPath := "/sys/fs/bpf/upf_pipeline"
+	if err := os.MkdirAll(pinPath, os.ModePerm); err != nil {
+		log.Fatalf("failed to create bpf fs subpath: %+v", err)
+		return err
+	}
+
 	collectionOptions := ebpf.CollectionOptions{
 		Maps: ebpf.MapOptions{
 			// Pin the map to the BPF filesystem and configure the
 			// library to automatically re-write it in the BPF
 			// program so it can be re-used if it already exists or
 			// create it if not
-			PinPath: "/sys/fs/bpf/upf_pipeline",
+			PinPath: pinPath,
 		},
 	}
 
-	if err := loadUpf_xdpObjects(&o.upf_xdpObjects, &collectionOptions); err != nil {
-		return err
-	}
-
-	if err := loadFar_programObjects(&o.far_programObjects, &collectionOptions); err != nil {
-		return err
-	}
-
-	if err := loadQer_programObjects(&o.qer_programObjects, &collectionOptions); err != nil {
-		return err
-	}
-
-	if err := loadIp_entrypointObjects(&o.ip_entrypointObjects, &collectionOptions); err != nil {
-		return err
-	}
-
-	if err := loadGtp_entrypointObjects(&o.gtp_entrypointObjects, &collectionOptions); err != nil {
-		return err
-	}
-
-	return nil
+	return LoadAllObjects(&collectionOptions,
+		Loader{loadUpf_xdpObjects, &o.upf_xdpObjects},
+		Loader{loadFar_programObjects, &o.far_programObjects},
+		Loader{loadQer_programObjects, &o.qer_programObjects},
+		Loader{loadIp_entrypointObjects, &o.ip_entrypointObjects},
+		Loader{loadGtp_entrypointObjects, &o.gtp_entrypointObjects})
 }
 
 func (o *BpfObjects) Close() error {
@@ -91,6 +83,21 @@ func (bpfObjects *BpfObjects) buildPipeline() {
 		panic(err)
 	}
 
+}
+
+type LoaderFunc func(obj interface{}, opts *ebpf.CollectionOptions) error
+type Loader struct {
+	LoaderFunc
+	object interface{}
+}
+
+func LoadAllObjects(opts *ebpf.CollectionOptions, loaders ...Loader) error {
+	for _, loader := range loaders {
+		if err := loader.LoaderFunc(loader.object, opts); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func CloseAllObjects(closers ...io.Closer) error {
