@@ -102,6 +102,11 @@ static __always_inline __u32 parse_gtp(struct hdr_cursor *nh, void *data_end, st
     return gtp->message_type;
 }
 
+static __always_inline __u32 handle_echo_request(struct xdp_md *ctx, struct gtpuhdr *gtpu)
+{
+    return XDP_DROP;
+}
+
 struct bpf_map_def SEC("maps") context_map_ip4 = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(__u32),      // IPv4
