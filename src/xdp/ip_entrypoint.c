@@ -20,33 +20,41 @@ enum default_action {
 };
 
 /* Header cursor to keep track of current parsing position */
-struct hdr_cursor {
-    void *pos;
+struct packet_context {
+    void *data;
+    void *data_end;
+    struct xdp_md *ctx;
 };
 
-static __always_inline __u16 parse_ethernet(struct hdr_cursor *nh, void *data_end, struct ethhdr **ethhdr)
+static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct ethhdr **ethhdr)
 {
-    struct ethhdr *eth = nh->pos;
+    void *data = ctx->data;
+    void *data_end = ctx->data_end;
+
+    struct ethhdr *eth = data;
     int hdrsize = sizeof(*eth);
 
-    if (nh->pos + hdrsize > data_end)
+    if (data + hdrsize > data_end)
         return -1;
 
-    nh->pos += hdrsize;
+    ctx->data += hdrsize;
     *ethhdr = eth;
 
     return bpf_htons(eth->h_proto); /* network-byte-order */
 }
 
-static __always_inline int parse_ip4(struct hdr_cursor *nh, void *data_end, struct iphdr **ip4hdr)
+static __always_inline int parse_ip4(struct packet_context *ctx, struct iphdr **ip4hdr)
 {
-    struct iphdr *ip4 = nh->pos;
+    void *data = ctx->data;
+    void *data_end = ctx->data_end;
+
+    struct iphdr *ip4 = data;
     int hdrsize = sizeof(*ip4);
 
-    if (nh->pos + hdrsize > data_end)
+    if (data + hdrsize > data_end)
         return -1;
 
-    nh->pos += hdrsize;
+    ctx->data += hdrsize;
     *ip4hdr = ip4;
     // tuple5->proto = ip4->protocol;
     // tuple5->dst_ip.ip4.addr = ip4->daddr;
@@ -54,15 +62,18 @@ static __always_inline int parse_ip4(struct hdr_cursor *nh, void *data_end, stru
     return ip4->protocol; /* network-byte-order */
 }
 
-static __always_inline int parse_ip6(struct hdr_cursor *nh, void *data_end, struct ipv6hdr **ip6hdr)
+static __always_inline int parse_ip6(struct packet_context *ctx, struct ipv6hdr **ip6hdr)
 {
-    struct ipv6hdr *ip6 = nh->pos;
+    void *data = ctx->data;
+    void *data_end = ctx->data_end;
+
+    struct ipv6hdr *ip6 = data;
     int hdrsize = sizeof(*ip6);
 
-    if (nh->pos + hdrsize > data_end)
+    if (data + hdrsize > data_end)
         return -1;
 
-    nh->pos += hdrsize;
+    ctx->data += hdrsize;
     *ip6hdr = ip6;
     // tuple5->proto = ip6->nexthdr;
     // tuple5->dst_ip.ip6 = ip6->daddr;
@@ -71,32 +82,35 @@ static __always_inline int parse_ip6(struct hdr_cursor *nh, void *data_end, stru
     return ip6->nexthdr; /* network-byte-order */
 }
 
-static __always_inline __u16 parse_udp(struct hdr_cursor *nh, void *data_end)
+static __always_inline __u16 parse_udp(struct packet_context *ctx)
 {
-    struct udphdr *udp = nh->pos;
+    void *data = ctx->data;
+    void *data_end = ctx->data_end;
+
+    struct udphdr *udp = data;
     int hdrsize = sizeof(*udp);
 
-    if (nh->pos + hdrsize > data_end)
+    if (data + hdrsize > data_end)
         return -1;
 
-    nh->pos += hdrsize;
+    ctx->data += hdrsize;
     // tuple5->src_port = udp->source;
     // tuple5->dst_port = udp->dest;
     return udp->dest;
 }
 
-static __always_inline __u32 parse_gtp(struct hdr_cursor *nh, void *data_end, struct gtpuhdr **gtphdr)
+static __always_inline __u32 parse_gtp(struct packet_context *ctx, struct gtpuhdr **gtphdr)
 {
-    struct gtpuhdr *gtp = nh->pos;
+    void *data = ctx->data;
+    void *data_end = ctx->data_end;
+
+    struct gtpuhdr *gtp = data;
     int hdrsize = sizeof(*gtp);
 
-    /* Byte-count bounds check; check if current pointer + size of header
-     * is after data_end.
-     */
-    if (nh->pos + hdrsize > data_end)
+    if (data + hdrsize > data_end)
         return -1;
 
-    nh->pos += hdrsize;
+    ctx->data += hdrsize;
     *gtphdr = gtp;
 
     return gtp->message_type;
@@ -121,12 +135,13 @@ struct bpf_map_def SEC("maps") context_map_teid = {
     .max_entries = 10,              // FIXME
 };
 
-static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, struct iphdr *ip4)
+static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const struct iphdr *ip4)
 {
-    __u32* session_id = bpf_map_lookup_elem(&context_map_ip4, &ip4->daddr);
-
-    if(!session_id)
-        return DEFAULT_XDP_ACTION;
+    //if(ctx->data_end)
+    //__u32 daddr = ip4->daddr;
+    const __u32* session_id = bpf_map_lookup_elem(&context_map_ip4, &ip4->daddr);
+     if(session_id == NULL)
+         return DEFAULT_XDP_ACTION;
 
     bpf_printk("tail call to UPF_PROG_TYPE_MAIN key\n");
     bpf_tail_call(ctx, &upf_pipeline, UPF_PROG_TYPE_MAIN);
@@ -154,6 +169,27 @@ static __always_inline __u32 handle_access_packet(struct xdp_md *ctx, __u32 teid
     return DEFAULT_XDP_ACTION;
 }
 
+static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
+{
+    struct gtpuhdr *gtp;
+    int pdu_type = parse_gtp(ctx, &gtp);
+    switch(pdu_type) {
+        case GTPU_G_PDU:
+            return handle_access_packet(ctx->ctx, bpf_htonl(gtp->teid));
+        case GTPU_ECHO_REQUEST:
+            return handle_echo_request(ctx->ctx, gtp);
+        case GTPU_ECHO_RESPONSE:
+        case GTPU_ERROR_INDICATION:
+        case GTPU_SUPPORTED_EXTENSION_HEADERS_NOTIFICATION:
+        case GTPU_END_MARKER:
+        default:
+            return DEFAULT_XDP_ACTION;
+
+    }
+}
+
+
+
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
@@ -163,25 +199,27 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
     void *data = (void *)(long)ctx->data;
 
     /* These keep track of the next header type and iterator pointer */
-    struct hdr_cursor cursor = { .pos = data };
+    struct packet_context context = { .data = data, .data_end = data_end, .ctx = ctx };
 
-    struct ethhdr *eth;
+    struct ethhdr   *eth;
+    struct iphdr    *ip4;
+    struct ipv6hdr  *ip6;
 
+    __u16 l3_protocol = parse_ethernet(&context, &eth);
 
-    __u16 l3_protocol = parse_ethernet(&cursor, data_end, &eth);
     int l4_protocol = 0;
     switch (l3_protocol) {
         case ETH_P_IPV6: 
-        {
-            struct ipv6hdr *ip6;
-            l4_protocol = parse_ip6(&cursor, data_end, &ip6);
-            return handle_core_packet_ipv6(ctx, ip6);
+        {        
+            l4_protocol = parse_ip6(&context, &ip6);
+            break;
+            //return handle_core_packet_ipv6(ctx, ip6);
         }
         case ETH_P_IP:
-        {
-            struct iphdr *ip4;
-            l4_protocol = parse_ip4(&cursor, data_end, &ip4);
-            return handle_core_packet_ipv4(ctx, ip4);
+        {   
+            l4_protocol = parse_ip4(&context, &ip4);
+            //return handle_core_packet_ipv4(ctx, ip4);
+            break;
         }
         case ETH_P_ARP: //Let kernel stack takes care
             return XDP_PASS;
@@ -195,30 +233,24 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
             return XDP_PASS;
         case IPPROTO_UDP:
         {
-            __u16 dest_port = parse_udp(&cursor, data_end);
-            if(dest_port != GTP_UDP_PORT)
-                return DEFAULT_XDP_ACTION;
+            __u16 dest_port = parse_udp(&context);
+            if(dest_port == GTP_UDP_PORT)
+                return handle_gtpu(&context);
             break;
         }
+        case IPPROTO_TCP:
+            break;
         default:
             return DEFAULT_XDP_ACTION;
     }
-    
 
-    struct gtpuhdr *gtp;
-    int pdu_type = parse_gtp(&cursor, data_end, &gtp);
-    switch(pdu_type) {
-        case GTPU_G_PDU:
-            return handle_access_packet(ctx, bpf_htonl(gtp->teid));
-        case GTPU_ECHO_REQUEST:
-            return handle_echo_request(ctx, gtp);
-        case GTPU_ECHO_RESPONSE:
-        case GTPU_ERROR_INDICATION:
-        case GTPU_SUPPORTED_EXTENSION_HEADERS_NOTIFICATION:
-        case GTPU_END_MARKER:
+    switch (l3_protocol) {
+        case ETH_P_IPV6: 
+            return handle_core_packet_ipv6(ctx, ip6);
+        case ETH_P_IP:
+            return handle_core_packet_ipv4(ctx, ip4);
         default:
             return DEFAULT_XDP_ACTION;
-
     }
 
     return DEFAULT_XDP_ACTION;
