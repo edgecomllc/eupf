@@ -21,9 +21,9 @@ enum default_action {
 
 /* Header cursor to keep track of current parsing position */
 struct packet_context {
-    void *data;
-    void *data_end;
-    struct xdp_md *ctx;
+    void            *data;
+    void            *data_end;
+    struct xdp_md   *ctx;
 };
 
 static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct ethhdr **ethhdr)
@@ -32,7 +32,7 @@ static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct e
     void *data_end = ctx->data_end;
 
     struct ethhdr *eth = data;
-    int hdrsize = sizeof(*eth);
+    const int hdrsize = sizeof(*eth);
 
     if (data + hdrsize > data_end)
         return -1;
@@ -49,7 +49,7 @@ static __always_inline int parse_ip4(struct packet_context *ctx, struct iphdr **
     void *data_end = ctx->data_end;
 
     struct iphdr *ip4 = data;
-    int hdrsize = sizeof(*ip4);
+    const int hdrsize = sizeof(*ip4);
 
     if (data + hdrsize > data_end)
         return -1;
@@ -68,7 +68,7 @@ static __always_inline int parse_ip6(struct packet_context *ctx, struct ipv6hdr 
     void *data_end = ctx->data_end;
 
     struct ipv6hdr *ip6 = data;
-    int hdrsize = sizeof(*ip6);
+    const int hdrsize = sizeof(*ip6);
 
     if (data + hdrsize > data_end)
         return -1;
@@ -88,7 +88,7 @@ static __always_inline __u16 parse_udp(struct packet_context *ctx)
     void *data_end = ctx->data_end;
 
     struct udphdr *udp = data;
-    int hdrsize = sizeof(*udp);
+    const int hdrsize = sizeof(*udp);
 
     if (data + hdrsize > data_end)
         return -1;
@@ -96,7 +96,7 @@ static __always_inline __u16 parse_udp(struct packet_context *ctx)
     ctx->data += hdrsize;
     // tuple5->src_port = udp->source;
     // tuple5->dst_port = udp->dest;
-    return udp->dest;
+    return bpf_htons(udp->dest);
 }
 
 static __always_inline __u32 parse_gtp(struct packet_context *ctx, struct gtpuhdr **gtphdr)
@@ -105,7 +105,7 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx, struct gtpuhd
     void *data_end = ctx->data_end;
 
     struct gtpuhdr *gtp = data;
-    int hdrsize = sizeof(*gtp);
+    const int hdrsize = sizeof(*gtp);
 
     if (data + hdrsize > data_end)
         return -1;
@@ -118,7 +118,7 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx, struct gtpuhd
 
 static __always_inline __u32 handle_echo_request(struct xdp_md *ctx, struct gtpuhdr *gtpu)
 {
-    return XDP_DROP;
+    return XDP_TX;
 }
 
 struct bpf_map_def SEC("maps") context_map_ip4 = {
@@ -137,8 +137,6 @@ struct bpf_map_def SEC("maps") context_map_teid = {
 
 static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const struct iphdr *ip4)
 {
-    //if(ctx->data_end)
-    //__u32 daddr = ip4->daddr;
     const __u32* session_id = bpf_map_lookup_elem(&context_map_ip4, &ip4->daddr);
      if(session_id == NULL)
          return DEFAULT_XDP_ACTION;
@@ -163,7 +161,7 @@ static __always_inline __u32 handle_access_packet(struct xdp_md *ctx, __u32 teid
         return DEFAULT_XDP_ACTION;
     }
 
-    bpf_printk("Access packet > teid:%d sessionid:%d\n", teid, session_id);
+    bpf_printk("Access packet [ teid:%d sessionid:%d ]\n", teid, session_id);
     bpf_tail_call(ctx, &upf_pipeline, UPF_PROG_TYPE_MAIN);
     bpf_printk("tail call to UPF_PROG_TYPE_MAIN key failed\n");
     return DEFAULT_XDP_ACTION;
@@ -175,20 +173,23 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
     int pdu_type = parse_gtp(ctx, &gtp);
     switch(pdu_type) {
         case GTPU_G_PDU:
+            
             return handle_access_packet(ctx->ctx, bpf_htonl(gtp->teid));
         case GTPU_ECHO_REQUEST:
+            bpf_printk("upf: gtp header [ version=%d, pt=%d, e=%d]\n", gtp->version, gtp->pt, gtp->e);
+            bpf_printk("upf: gtp echo request [ type=%d ]\n", pdu_type);
             return handle_echo_request(ctx->ctx, gtp);
         case GTPU_ECHO_RESPONSE:
         case GTPU_ERROR_INDICATION:
         case GTPU_SUPPORTED_EXTENSION_HEADERS_NOTIFICATION:
         case GTPU_END_MARKER:
+            return DEFAULT_XDP_ACTION;
         default:
+            bpf_printk("upf: unexpected gtp message: type=%d\n", pdu_type);
             return DEFAULT_XDP_ACTION;
 
     }
 }
-
-
 
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
@@ -210,18 +211,13 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
     int l4_protocol = 0;
     switch (l3_protocol) {
         case ETH_P_IPV6: 
-        {        
             l4_protocol = parse_ip6(&context, &ip6);
             break;
-            //return handle_core_packet_ipv6(ctx, ip6);
-        }
         case ETH_P_IP:
-        {   
             l4_protocol = parse_ip4(&context, &ip4);
-            //return handle_core_packet_ipv4(ctx, ip4);
             break;
-        }
         case ETH_P_ARP: //Let kernel stack takes care
+            bpf_printk("upf: arp received. passing to kernel\n");
             return XDP_PASS;
         default:
             return DEFAULT_XDP_ACTION;
@@ -230,14 +226,14 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
     switch(l4_protocol)
     {
         case IPPROTO_ICMP: //Let kernel stack takes care
+            bpf_printk("upf: icmp received. passing to kernel\n");
             return XDP_PASS;
         case IPPROTO_UDP:
-        {
-            __u16 dest_port = parse_udp(&context);
-            if(dest_port == GTP_UDP_PORT)
+            if(GTP_UDP_PORT == parse_udp(&context)) {
+                bpf_printk("upf: gtp-u received\n");
                 return handle_gtpu(&context);
+            }
             break;
-        }
         case IPPROTO_TCP:
             break;
         default:
