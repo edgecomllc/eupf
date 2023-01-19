@@ -15,6 +15,14 @@
 #include "xdp/gtpu.h"
 #include "xdp/program_array.h"
 
+#undef bpf_printk
+#define bpf_printk(fmt, ...)                            \
+({                                                      \
+        static const char ____fmt[] = fmt;              \
+        bpf_trace_printk(____fmt, sizeof(____fmt),      \
+                         ##__VA_ARGS__);                \
+})
+
 enum default_action {
     DEFAULT_XDP_ACTION = XDP_PASS,
 };
@@ -24,6 +32,10 @@ struct packet_context {
     void            *data;
     void            *data_end;
     struct xdp_md   *ctx;
+    struct ethhdr   *eth;
+    struct iphdr    *ip4;
+    struct ipv6hdr  *ip6;
+    struct udphdr   *udp;
 };
 
 static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct ethhdr **ethhdr)
@@ -43,6 +55,9 @@ static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct e
     return bpf_htons(eth->h_proto); /* network-byte-order */
 }
 
+/* 0x3FFF mask to check for fragment offset field */
+#define IP_FRAGMENTED 65343
+
 static __always_inline int parse_ip4(struct packet_context *ctx, struct iphdr **ip4hdr)
 {
     void *data = ctx->data;
@@ -53,6 +68,10 @@ static __always_inline int parse_ip4(struct packet_context *ctx, struct iphdr **
 
     if (data + hdrsize > data_end)
         return -1;
+
+    /* do not support fragmented packets as L4 headers may be missing */
+    if (ip4->frag_off & IP_FRAGMENTED)
+		return -1;
 
     ctx->data += hdrsize;
     *ip4hdr = ip4;
@@ -93,6 +112,7 @@ static __always_inline __u16 parse_udp(struct packet_context *ctx)
     if (data + hdrsize > data_end)
         return -1;
 
+    ctx->udp = udp;
     ctx->data += hdrsize;
     // tuple5->src_port = udp->source;
     // tuple5->dst_port = udp->dest;
@@ -116,8 +136,71 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx, struct gtpuhd
     return gtp->message_type;
 }
 
-static __always_inline __u32 handle_echo_request(struct xdp_md *ctx, struct gtpuhdr *gtpu)
+
+    /* calculate ip header checksum */
+	//next_iph_u16 = (__u16 *)&iph_tnl;
+	//#pragma clang loop unroll(full)
+	//for (int i = 0; i < (int)sizeof(*iph) >> 1; i++)
+	//	csum += *next_iph_u16++;
+	//iph_tnl.check = ~((csum & 0xffff) + (csum >> 16));
+
+static __always_inline __u16 csum_fold_helper(__u64 csum) {
+  int i;
+  #pragma unroll
+  for (i = 0; i < 4; i ++) {
+    if (csum >> 16)
+      csum = (csum & 0xffff) + (csum >> 16);
+  }
+  return ~csum;
+}
+
+static __always_inline void ipv4_csum(void *data_start, int data_size,  __u64 *csum) {
+  *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
+  *csum = csum_fold_helper(*csum);
+}
+
+static __always_inline void ipv4_l4_csum(void *data_start, __u32 data_size,
+                                __u64 *csum, struct iphdr *iph) {
+  __u32 tmp = 0;
+  *csum = bpf_csum_diff(0, 0, &iph->saddr, sizeof(__be32), *csum);
+  *csum = bpf_csum_diff(0, 0, &iph->daddr, sizeof(__be32), *csum);
+  tmp = __builtin_bswap32((__u32)(iph->protocol));
+  *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
+  tmp = __builtin_bswap32((__u32)(data_size));
+  *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
+  *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
+  *csum = csum_fold_helper(*csum);
+}
+
+static __always_inline __u32 handle_echo_request(struct packet_context *ctx, struct gtpuhdr *gtpu)
 {
+    struct iphdr *iph = ctx->ip4; 
+    struct udphdr *udp = ctx->udp; 
+
+    gtpu->message_type = GTPU_ECHO_RESPONSE;
+
+    if(iph == NULL)
+        return XDP_ABORTED;
+    __u32 tmp_ip = iph->daddr;
+    iph->daddr = iph->saddr;
+    iph->saddr = tmp_ip; 
+    iph->check = 0;
+    __u64 cs = 0 ;
+    ipv4_csum(iph, sizeof (*iph), &cs);
+    iph->check = cs;
+
+    if(udp == NULL)
+        return XDP_ABORTED;
+    __u16 tmp = udp->dest;
+    udp->dest = udp->source;
+    udp->source = tmp;
+    // Update UDP checksum
+    udp->check = 0;
+    cs = 0;
+    ipv4_l4_csum(udp, sizeof(*udp), &cs, iph) ;
+    udp->check = cs;
+
+    bpf_printk("upf: send gtp echo response [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
     return XDP_TX;
 }
 
@@ -141,9 +224,9 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
      if(session_id == NULL)
          return DEFAULT_XDP_ACTION;
 
-    bpf_printk("tail call to UPF_PROG_TYPE_MAIN key\n");
+    bpf_printk("tail call to UPF_PROG_TYPE_MAIN key");
     bpf_tail_call(ctx, &upf_pipeline, UPF_PROG_TYPE_MAIN);
-    bpf_printk("tail call to UPF_PROG_TYPE_MAIN key failed\n");
+    bpf_printk("tail call to UPF_PROG_TYPE_MAIN key failed");
     return DEFAULT_XDP_ACTION;
 }
 
@@ -154,17 +237,36 @@ static __always_inline __u32 handle_core_packet_ipv6(struct xdp_md *ctx, struct 
 
 static __always_inline __u32 handle_access_packet(struct xdp_md *ctx, __u32 teid)
 {
-    __u32* session_id = bpf_map_lookup_elem(&context_map_teid, &teid);
+    // __u32* session_id = bpf_map_lookup_elem(&context_map_teid, &teid);
 
-    if(!session_id) {
-        bpf_printk("No session for teid %d\n", teid);
-        return DEFAULT_XDP_ACTION;
+    // if(!session_id) {
+    //     bpf_printk("No session for teid %d", teid);
+    //     return DEFAULT_XDP_ACTION;
+    // }
+
+    void *data = (void *)(long)ctx->data;
+    void *data_end = (void *)(long)ctx->data_end;
+    static const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
+    struct ethhdr *eth = data;
+    if((void *)(eth + 1) > data_end) {
+          return DEFAULT_XDP_ACTION;
     }
 
-    bpf_printk("Access packet [ teid:%d sessionid:%d ]\n", teid, session_id);
-    bpf_tail_call(ctx, &upf_pipeline, UPF_PROG_TYPE_MAIN);
-    bpf_printk("tail call to UPF_PROG_TYPE_MAIN key failed\n");
-    return DEFAULT_XDP_ACTION;
+    struct ethhdr *new_eth = data + GTP_ENCAPSULATED_SIZE;
+    if((void *)(new_eth + 1) > data_end) {
+          return DEFAULT_XDP_ACTION;
+    }
+    __builtin_memcpy(new_eth, eth, sizeof(*eth));
+
+    bpf_xdp_adjust_head(ctx, GTP_ENCAPSULATED_SIZE);
+
+    return XDP_PASS; //Now lets kernel takes care
+
+
+    // bpf_printk("Access packet [ teid:%d sessionid:%d ]", teid, session_id);
+    // bpf_tail_call(ctx, &upf_pipeline, UPF_PROG_TYPE_MAIN);
+    // bpf_printk("tail call to UPF_PROG_TYPE_MAIN key failed");
+    // return DEFAULT_XDP_ACTION;
 }
 
 static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
@@ -173,19 +275,24 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
     int pdu_type = parse_gtp(ctx, &gtp);
     switch(pdu_type) {
         case GTPU_G_PDU:
-            
+            if(ctx->ip4) {
+                bpf_printk("upf: gtp pdu [ %pI4 -> %pI4 ]", &ctx->ip4->saddr, &ctx->ip4->daddr);
+            }
             return handle_access_packet(ctx->ctx, bpf_htonl(gtp->teid));
         case GTPU_ECHO_REQUEST:
-            bpf_printk("upf: gtp header [ version=%d, pt=%d, e=%d]\n", gtp->version, gtp->pt, gtp->e);
-            bpf_printk("upf: gtp echo request [ type=%d ]\n", pdu_type);
-            return handle_echo_request(ctx->ctx, gtp);
+            bpf_printk("upf: gtp header [ version=%d, pt=%d, e=%d]", gtp->version, gtp->pt, gtp->e);
+            bpf_printk("upf: gtp echo request [ type=%d ]", pdu_type);
+            if(ctx->ip4) {
+                bpf_printk("upf: gtp echo request [ %pI4 -> %pI4 ]", &ctx->ip4->saddr, &ctx->ip4->daddr);
+            }
+            return handle_echo_request(ctx, gtp);
         case GTPU_ECHO_RESPONSE:
         case GTPU_ERROR_INDICATION:
         case GTPU_SUPPORTED_EXTENSION_HEADERS_NOTIFICATION:
         case GTPU_END_MARKER:
             return DEFAULT_XDP_ACTION;
         default:
-            bpf_printk("upf: unexpected gtp message: type=%d\n", pdu_type);
+            bpf_printk("upf: unexpected gtp message: type=%d", pdu_type);
             return DEFAULT_XDP_ACTION;
 
     }
@@ -194,7 +301,7 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
-    bpf_printk("upf_ip_entrypoint start\n");
+    bpf_printk("upf_ip_entrypoint start");
 
     void *data_end = (void *)(long)ctx->data_end;
     void *data = (void *)(long)ctx->data;
@@ -207,17 +314,20 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
     struct ipv6hdr  *ip6;
 
     __u16 l3_protocol = parse_ethernet(&context, &eth);
+    context.eth = eth; //fixme
 
     int l4_protocol = 0;
     switch (l3_protocol) {
         case ETH_P_IPV6: 
             l4_protocol = parse_ip6(&context, &ip6);
+            context.ip6 = ip6; //fixme
             break;
         case ETH_P_IP:
             l4_protocol = parse_ip4(&context, &ip4);
+            context.ip4 = ip4; //fixme
             break;
         case ETH_P_ARP: //Let kernel stack takes care
-            bpf_printk("upf: arp received. passing to kernel\n");
+            bpf_printk("upf: arp received. passing to kernel");
             return XDP_PASS;
         default:
             return DEFAULT_XDP_ACTION;
@@ -226,11 +336,11 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
     switch(l4_protocol)
     {
         case IPPROTO_ICMP: //Let kernel stack takes care
-            bpf_printk("upf: icmp received. passing to kernel\n");
+            bpf_printk("upf: icmp received. passing to kernel");
             return XDP_PASS;
         case IPPROTO_UDP:
             if(GTP_UDP_PORT == parse_udp(&context)) {
-                bpf_printk("upf: gtp-u received\n");
+                bpf_printk("upf: gtp-u received");
                 return handle_gtpu(&context);
             }
             break;
