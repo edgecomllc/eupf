@@ -1,4 +1,4 @@
-module eupf
+module github.com/edgecomllc/eupf
 
 go 1.18
 

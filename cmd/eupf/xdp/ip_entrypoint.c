@@ -23,6 +23,10 @@
                          ##__VA_ARGS__);                \
 })
 
+#ifndef NULL
+    #define NULL 0
+#endif
+
 enum default_action {
     DEFAULT_XDP_ACTION = XDP_PASS,
 };
