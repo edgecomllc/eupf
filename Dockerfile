@@ -2,15 +2,20 @@ FROM golang:1.19.2-bullseye as builder
  
 WORKDIR /app
  
-# Effectively tracks changes within your go.mod file
+#Install dependencies for ebpf compilation
+RUN apt update \
+    && apt install --no-install-recommends -y clang llvm gcc-multilib libbpf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY go.mod go.sum ./
- 
-RUN go mod download && go mod verify
-RUN go generate
-RUN go build -v -o bin/eupf ./...
+COPY cmd/eupf cmd/eupf
 
-FROM golang:1.19.2-alpine AS runtime
+RUN go mod download -x && go mod verify
+RUN go generate -v cmd/eupf/ebpf_objects.go 
+RUN CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/eupf
 
-WORKDIR /app
+#FROM golang:1.19.2-alpine AS runtime
+FROM alpine:3.17 AS runtime
+
 COPY --from=builder /app/bin/ /app/bin/
-ENTRYPOINT ["./bin/eupf"]
+CMD ["/app/bin/eupf"]
