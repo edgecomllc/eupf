@@ -1,7 +1,7 @@
 FROM golang:1.19.2-bullseye as builder
- 
+
 WORKDIR /app
- 
+
 #Install dependencies for ebpf compilation
 RUN apt update \
     && apt install --no-install-recommends -y clang llvm gcc-multilib libbpf-dev \
@@ -18,4 +18,7 @@ RUN CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/eupf
 FROM alpine:3.17 AS runtime
 
 COPY --from=builder /app/bin/ /app/bin/
-CMD ["/app/bin/eupf"]
+COPY ./entrypoint.sh /app/bin/entrypoint.sh
+#CMD [ "sh", "/app/bin/entrypoint.sh" ]
+# CMD is overridden if arguments are passed.
+ENTRYPOINT [ "sh", "/app/bin/entrypoint.sh" ]
