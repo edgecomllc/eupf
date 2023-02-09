@@ -16,6 +16,7 @@ RUN CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/eupf
 
 #FROM golang:1.19.2-alpine AS runtime
 FROM alpine:3.17 AS runtime
+LABEL org.opencontainers.image.source="https://github.com/edgecomllc/eupf"
 
 COPY --from=builder /app/bin/ /app/bin/
 CMD ["/app/bin/eupf"]
