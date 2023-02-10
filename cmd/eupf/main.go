@@ -45,6 +45,12 @@ func main() {
 	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	log.Printf("Press Ctrl-C to exit and remove the program")
 
+	// go StartAPI(bpfObjects.upf_xdpObjects.UpfPipeline)
+	api := NewApiBuilder()
+	api.AddMap("upf_pipeline", bpfObjects.upf_xdpObjects.UpfPipeline, FormatMapContents)
+	//api.AddMap("context_map_ipv4", bpfObjects.ip_entrypointObjects.ContextMapIp4, SomeOtherFormatFunction)
+	go api.StartAPI()
+
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
