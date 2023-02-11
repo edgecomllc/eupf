@@ -4,12 +4,14 @@ import (
 	"flag"
 	"log"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/cilium/ebpf/link"
 )
 
 var ifaceName = flag.String("iface", "lo", "Interface to bind XDP program to")
+var webAddr = flag.String("waddr", ":8080", "Address to bind web server to")
 
 func main() {
 	flag.Parse()
@@ -45,11 +47,17 @@ func main() {
 	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	log.Printf("Press Ctrl-C to exit and remove the program")
 
-	// go StartAPI(bpfObjects.upf_xdpObjects.UpfPipeline)
-	api := NewApiBuilder()
-	api.AddMap("upf_pipeline", bpfObjects.upf_xdpObjects.UpfPipeline, FormatMapContents)
-	//api.AddMap("context_map_ipv4", bpfObjects.ip_entrypointObjects.ContextMapIp4, SomeOtherFormatFunction)
-	go api.StartAPI()
+	// Create mux web
+	mux := http.NewServeMux()
+	// Add root handler
+	mux.Handle("/", &RootHandler{routes: []string{"upf_pipeline"}})
+	// Add map handler
+	mux.Handle("/upf_pipeline", EbpfMapPrintHandler{ebpfMap: bpfObjects.upf_xdpObjects.UpfPipeline, formatter: FormatMapContents})
+	// Start web server
+	go func() {
+		log.Printf("Web server started on address: %s", *webAddr)
+		http.ListenAndServe(*webAddr, mux)
+	}()
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(1 * time.Second)
