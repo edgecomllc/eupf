@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf/link"
+	"github.com/gin-gonic/gin"
 )
 
 var ifaceName = flag.String("iface", "lo", "Interface to bind XDP program to")
@@ -47,17 +48,28 @@ func main() {
 	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	log.Printf("Press Ctrl-C to exit and remove the program")
 
-	// Create mux web
-	mux := http.NewServeMux()
-	// Add root handler
-	mux.Handle("/", &RootHandler{routes: []string{"upf_pipeline"}})
+	r := gin.Default()
 	// Add map handler
-	mux.Handle("/upf_pipeline", EbpfMapPrintHandler{ebpfMap: bpfObjects.upf_xdpObjects.UpfPipeline, formatter: FormatMapContents})
+	r.GET("/upf_pipeline", func(c *gin.Context) {
+		s, err := FormatMapContents(bpfObjects.upf_xdpObjects.UpfPipeline)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.String(http.StatusOK, s)
+	})
+	// List gin routes at root as clickable links.
+	r.GET("/", func(c *gin.Context) {
+		links := "<html><body>"
+		for _, route := range r.Routes() {
+			links += "<a href=\"" + route.Path + "\">" + route.Path + "</a></br>"
+		}
+		links += "</body></html>"
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(links))
+	})
+
 	// Start web server
-	go func() {
-		log.Printf("Web server started on address: %s", *webAddr)
-		http.ListenAndServe(*webAddr, mux)
-	}()
+	go r.Run(*webAddr)
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(1 * time.Second)
