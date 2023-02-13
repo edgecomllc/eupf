@@ -49,23 +49,15 @@ func main() {
 	log.Printf("Press Ctrl-C to exit and remove the program")
 
 	r := gin.Default()
-	// Add map handler
+	
 	r.GET("/upf_pipeline", func(c *gin.Context) {
-		s, err := FormatMapContents(bpfObjects.upf_xdpObjects.UpfPipeline)
+		elements, err := ListMapProgArrayContents(bpfObjects.upf_xdpObjects.UpfPipeline)
 		if err != nil {
+			log.Printf("Error reading map: %s", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.String(http.StatusOK, s)
-	})
-	// List gin routes at root as clickable links.
-	r.GET("/", func(c *gin.Context) {
-		links := "<html><body>"
-		for _, route := range r.Routes() {
-			links += "<a href=\"" + route.Path + "\">" + route.Path + "</a></br>"
-		}
-		links += "</body></html>"
-		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(links))
+		c.JSON(http.StatusOK, elements)
 	})
 
 	// Start web server
