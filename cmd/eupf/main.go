@@ -4,15 +4,13 @@ import (
 	"flag"
 	"log"
 	"net"
-	"net/http"
 	"time"
 
 	"github.com/cilium/ebpf/link"
-	"github.com/gin-gonic/gin"
 )
 
 var ifaceName = flag.String("iface", "lo", "Interface to bind XDP program to")
-var webAddr = flag.String("waddr", ":8080", "Address to bind web server to")
+var apiAddr = flag.String("aaddr", ":8080", "Address to bind api server to")
 
 func main() {
 	flag.Parse()
@@ -48,20 +46,9 @@ func main() {
 	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	log.Printf("Press Ctrl-C to exit and remove the program")
 
-	r := gin.Default()
-	
-	r.GET("/upf_pipeline", func(c *gin.Context) {
-		elements, err := ListMapProgArrayContents(bpfObjects.upf_xdpObjects.UpfPipeline)
-		if err != nil {
-			log.Printf("Error reading map: %s", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, elements)
-	})
-
-	// Start web server
-	go r.Run(*webAddr)
+	// Start api server
+	api := CreateApiServer(bpfObjects)
+	go api.Run(*apiAddr)
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(1 * time.Second)
