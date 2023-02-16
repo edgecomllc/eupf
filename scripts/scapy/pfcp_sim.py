@@ -3,16 +3,16 @@
 from scapy.all import Ether, IP, UDP, srp1, sendp, sr, sr1, fuzz
 from scapy.contrib.pfcp import *
 
+# TODO: Understand why packet only visible in tcpdump but not reacing software
 
 def test_hearbeat():
-    pfcp_heartbeat = IP(dst="localhost") / \
-        fuzz(UDP(dport=8805) / PFCP(version=1, S=0, seq=3) /
+    pfcp_heartbeat = Ether() / IP(dst="127.0.0.1") / \
+        fuzz(UDP(dport=8805) / PFCP() /
              PFCPHeartbeatRequest(IE_list=[
                  IE_RecoveryTimeStamp()
              ]))
     print(pfcp_heartbeat.show())
-    # ans = sr1(pfcp_heartbeat*10,  inter=1,  timeout=5)
-    ans = srp1(pfcp_heartbeat,  timeout=5, iface='lo')
+    ans = srp1(pfcp_heartbeat, inter=1,  timeout=5, iface='lo')
     print(ans)
 
 

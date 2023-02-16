@@ -9,6 +9,7 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
+// #TODO:
 func CreateAndRunPfcpServer(addr string) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
@@ -41,12 +42,21 @@ func handlePfcpMessage(conn *net.UDPConn, addr *net.UDPAddr, buf []byte) {
 	}
 	log.Printf("Parsed PFCP message: %s", msg)
 
-	hbreq, ok := msg.(*message.HeartbeatRequest)
-	if !ok {
-		log.Printf("got unexpected message: %s, from: %s", msg.MessageTypeName(), addr)
-		return
+	switch msg.MessageType() {
+	case message.MsgTypeHeartbeatRequest:
+		handlePfcpHeartbeatRequest(conn, addr, msg)
+	default:
+		log.Printf("got unexpected message %s: %s, from: %s", msg.MessageTypeName(), msg, addr)
 	}
+}
 
+func handlePfcpHeartbeatRequest(conn *net.UDPConn, addr *net.UDPAddr, msg message.Message) {
+	hbreq := msg.(*message.HeartbeatRequest)
+	// hbreq, ok := msg.(*message.HeartbeatRequest)
+	// if !ok {
+	// 	log.Printf("got unexpected message: %s, from: %s", msg.MessageTypeName(), addr)
+	// 	return
+	// }
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
 		log.Printf("got Heartbeat Request with invalid TS: %s, from: %s", err, addr)

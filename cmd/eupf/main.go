@@ -11,7 +11,7 @@ import (
 
 var ifaceName = flag.String("iface", "lo", "Interface to bind XDP program to")
 var apiAddr = flag.String("aaddr", ":8080", "Address to bind api server to")
-var pfcpAddr = flag.String("paddr", ":8805", "Address to bind api server to")
+var pfcpAddr = flag.String("paddr", ":8805", "Address to bind PFCP server to")
 
 func main() {
 	flag.Parse()
