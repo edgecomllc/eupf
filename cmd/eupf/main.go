@@ -51,8 +51,7 @@ func main() {
 	api := CreateApiServer(bpfObjects)
 	go api.Run(*apiAddr)
 
-	pfcp := CreatePfcpServer(*pfcpAddr)
-	go pfcp.Run()
+	go CreateAndRunPfcpServer(*pfcpAddr)
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(1 * time.Second)

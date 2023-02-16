@@ -9,11 +9,7 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type PfcpServer struct {
-	Conn *net.UDPConn
-}
-
-func CreatePfcpServer(addr string) *PfcpServer {
+func CreateAndRunPfcpServer(addr string) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Fatalf("Can't resolve UDP address: %s", err)
@@ -22,20 +18,17 @@ func CreatePfcpServer(addr string) *PfcpServer {
 	if err != nil {
 		log.Fatalf("Can't listen UDP address: %s", err)
 	}
-	return &PfcpServer{Conn: udpConn}
-}
-
-func (u *PfcpServer) Run() {
-	defer u.Conn.Close()
+	log.Printf("Listening for PFCP on %s", udpConn.LocalAddr())
+	defer udpConn.Close()
 	for {
 		buf := make([]byte, 1500)
-		n, addr, err := u.Conn.ReadFromUDP(buf)
+		n, addr, err := udpConn.ReadFromUDP(buf)
 		if err != nil {
 			log.Printf("Error reading from UDP socket: %s", err)
 			continue
 		}
-		log.Printf("Received %d bytes from %s", n, u.Conn.RemoteAddr())
-		go handlePfcpMessage(u.Conn, addr, buf[:n])
+		log.Printf("Received %d bytes from %s", n, udpConn.RemoteAddr())
+		go handlePfcpMessage(udpConn, addr, buf[:n])
 	}
 }
 
@@ -68,7 +61,7 @@ func handlePfcpMessage(conn *net.UDPConn, addr *net.UDPAddr, buf []byte) {
 		log.Fatal(err)
 	}
 
-	if _, err := conn.WriteTo(hbres, addr); err != nil {
+	if _, err := conn.WriteToUDP(hbres, addr); err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("sent Heartbeat Response to: %s", addr)
