@@ -7,10 +7,10 @@ from scapy.contrib.pfcp import *
 
 def test_hearbeat():
     pfcp_heartbeat = Ether() / IP(dst="127.0.0.1") / \
-        fuzz(UDP(dport=8805) / PFCP() /
+        UDP(dport=8805) / PFCP() /
              PFCPHeartbeatRequest(IE_list=[
                  IE_RecoveryTimeStamp()
-             ]))
+             ])
     print(pfcp_heartbeat.show())
     ans = srp1(pfcp_heartbeat, inter=1,  timeout=5, iface='lo')
     print(ans)
