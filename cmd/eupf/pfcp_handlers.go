@@ -13,11 +13,6 @@ type PfcpFunc func(conn *net.UDPConn, addr *net.UDPAddr, msg message.Message)
 
 type PfcpHanderMap map[uint8]PfcpFunc
 
-var PfcpHandlers PfcpHanderMap = PfcpHanderMap{
-	message.MsgTypeHeartbeatRequest:        handlePfcpHeartbeatRequest,
-	message.MsgTypeAssociationSetupRequest: handlePfcpAssociationSetupRequest,
-}
-
 func (h PfcpHanderMap) Handle(conn *net.UDPConn, addr *net.UDPAddr, buf []byte) {
 	log.Printf("Handling PFCP message from %s", addr)
 	msg, err := message.Parse(buf)
@@ -33,29 +28,6 @@ func (h PfcpHanderMap) Handle(conn *net.UDPConn, addr *net.UDPAddr, buf []byte) 
 	}
 }
 
-func CreateAndRunPfcpServer(addr string) {
-	udpAddr, err := net.ResolveUDPAddr("udp", addr)
-	if err != nil {
-		log.Fatalf("Can't resolve UDP address: %s", err)
-	}
-	udpConn, err := net.ListenUDP("udp", udpAddr)
-	if err != nil {
-		log.Fatalf("Can't listen UDP address: %s", err)
-	}
-	log.Printf("Listening for PFCP on %s", udpConn.LocalAddr())
-	defer udpConn.Close()
-	for {
-		buf := make([]byte, 1500)
-		n, addr, err := udpConn.ReadFromUDP(buf)
-		if err != nil {
-			log.Printf("Error reading from UDP socket: %s", err)
-			continue
-		}
-		log.Printf("Received %d bytes from %s", n, udpConn.RemoteAddr())
-		go PfcpHandlers.Handle(udpConn, addr, buf[:n])
-	}
-}
-
 func handlePfcpHeartbeatRequest(conn *net.UDPConn, addr *net.UDPAddr, msg message.Message) {
 	hbreq := msg.(*message.HeartbeatRequest)
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
@@ -65,7 +37,7 @@ func handlePfcpHeartbeatRequest(conn *net.UDPConn, addr *net.UDPAddr, msg messag
 	} else {
 		log.Printf("got Heartbeat Request with TS: %s, from: %s", ts, addr)
 	}
-	
+
 	// #TODO: add sequence tracking for individual sessions
 	var seq uint32 = 1
 	hbres, err := message.NewHeartbeatResponse(seq, ie.NewRecoveryTimeStamp(time.Now())).Marshal()
