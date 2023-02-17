@@ -9,7 +9,6 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-// #TODO:
 func CreateAndRunPfcpServer(addr string) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
@@ -42,21 +41,20 @@ func handlePfcpMessage(conn *net.UDPConn, addr *net.UDPAddr, buf []byte) {
 	}
 	log.Printf("Parsed PFCP message: %s", msg)
 
+	// #TODO: This will not scale well. We should use a map of message types to handlers.
 	switch msg.MessageType() {
 	case message.MsgTypeHeartbeatRequest:
 		handlePfcpHeartbeatRequest(conn, addr, msg)
+	case message.MsgTypeAssociationSetupRequest:
+		handlePfcpAssociationSetupRequest(conn, addr, msg)
 	default:
 		log.Printf("got unexpected message %s: %s, from: %s", msg.MessageTypeName(), msg, addr)
 	}
 }
 
 func handlePfcpHeartbeatRequest(conn *net.UDPConn, addr *net.UDPAddr, msg message.Message) {
-	hbreq := msg.(*message.HeartbeatRequest)
-	// hbreq, ok := msg.(*message.HeartbeatRequest)
-	// if !ok {
-	// 	log.Printf("got unexpected message: %s, from: %s", msg.MessageTypeName(), addr)
-	// 	return
-	// }
+	// This should never panic, message type is already checked in handlePfcpMessage
+	hbreq := msg.(*message.HeartbeatRequest)		
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
 		log.Printf("got Heartbeat Request with invalid TS: %s, from: %s", err, addr)
@@ -75,4 +73,9 @@ func handlePfcpHeartbeatRequest(conn *net.UDPConn, addr *net.UDPAddr, msg messag
 		log.Fatal(err)
 	}
 	log.Printf("sent Heartbeat Response to: %s", addr)
+}
+
+func handlePfcpAssociationSetupRequest(conn *net.UDPConn, addr *net.UDPAddr, msg message.Message) {
+	asreq := msg.(*message.AssociationSetupRequest)
+	log.Print(asreq)
 }
