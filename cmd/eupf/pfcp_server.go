@@ -65,7 +65,8 @@ func handlePfcpHeartbeatRequest(conn *net.UDPConn, addr *net.UDPAddr, msg messag
 	} else {
 		log.Printf("got Heartbeat Request with TS: %s, from: %s", ts, addr)
 	}
-
+	
+	// #TODO: add sequence tracking for individual sessions
 	var seq uint32 = 1
 	hbres, err := message.NewHeartbeatResponse(seq, ie.NewRecoveryTimeStamp(time.Now())).Marshal()
 	if err != nil {
