@@ -9,6 +9,30 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
+type PfcpFunc func(conn *net.UDPConn, addr *net.UDPAddr, msg message.Message)
+
+type PfcpHanderMap map[uint8]PfcpFunc
+
+var PfcpHandlers PfcpHanderMap = PfcpHanderMap{
+	message.MsgTypeHeartbeatRequest:        handlePfcpHeartbeatRequest,
+	message.MsgTypeAssociationSetupRequest: handlePfcpAssociationSetupRequest,
+}
+
+func (h PfcpHanderMap) Handle(conn *net.UDPConn, addr *net.UDPAddr, buf []byte) {
+	log.Printf("Handling PFCP message from %s", addr)
+	msg, err := message.Parse(buf)
+	if err != nil {
+		log.Printf("ignored undecodable message: %x, error: %s", buf, err)
+		return
+	}
+	log.Printf("Parsed PFCP message: %s", msg)
+	if handler, ok := h[msg.MessageType()]; ok {
+		handler(conn, addr, msg)
+	} else {
+		log.Printf("got unexpected message %s: %s, from: %s", msg.MessageTypeName(), msg, addr)
+	}
+}
+
 func CreateAndRunPfcpServer(addr string) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
@@ -28,33 +52,12 @@ func CreateAndRunPfcpServer(addr string) {
 			continue
 		}
 		log.Printf("Received %d bytes from %s", n, udpConn.RemoteAddr())
-		go handlePfcpMessage(udpConn, addr, buf[:n])
-	}
-}
-
-func handlePfcpMessage(conn *net.UDPConn, addr *net.UDPAddr, buf []byte) {
-	log.Printf("Handling PFCP message from %s", addr)
-	msg, err := message.Parse(buf)
-	if err != nil {
-		log.Printf("ignored undecodable message: %x, error: %s", buf, err)
-		return
-	}
-	log.Printf("Parsed PFCP message: %s", msg)
-
-	// #TODO: This will not scale well. We should use a map of message types to handlers.
-	switch msg.MessageType() {
-	case message.MsgTypeHeartbeatRequest:
-		handlePfcpHeartbeatRequest(conn, addr, msg)
-	case message.MsgTypeAssociationSetupRequest:
-		handlePfcpAssociationSetupRequest(conn, addr, msg)
-	default:
-		log.Printf("got unexpected message %s: %s, from: %s", msg.MessageTypeName(), msg, addr)
+		go PfcpHandlers.Handle(udpConn, addr, buf[:n])
 	}
 }
 
 func handlePfcpHeartbeatRequest(conn *net.UDPConn, addr *net.UDPAddr, msg message.Message) {
-	// This should never panic, message type is already checked in handlePfcpMessage
-	hbreq := msg.(*message.HeartbeatRequest)		
+	hbreq := msg.(*message.HeartbeatRequest)
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
 		log.Printf("got Heartbeat Request with invalid TS: %s, from: %s", err, addr)
