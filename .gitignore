@@ -3,6 +3,7 @@ build/
 cmake-build-*/
 launch.json
 settings.json
+.vscode/
 
 *.o
 *_bpf.go

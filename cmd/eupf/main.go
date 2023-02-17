@@ -10,6 +10,7 @@ import (
 )
 
 var ifaceName = flag.String("iface", "lo", "Interface to bind XDP program to")
+var apiAddr = flag.String("aaddr", ":8080", "Address to bind api server to")
 
 func main() {
 	flag.Parse()
@@ -44,6 +45,10 @@ func main() {
 
 	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	log.Printf("Press Ctrl-C to exit and remove the program")
+
+	// Start api server
+	api := CreateApiServer(bpfObjects)
+	go api.Run(*apiAddr)
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(1 * time.Second)
