@@ -9,11 +9,11 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type PfcpFunc func(conn *net.UDPConn, addr *net.UDPAddr, msg message.Message)
+type PfcpFunc func(conn *PfcpConnection, addr *net.UDPAddr, msg message.Message)
 
 type PfcpHanderMap map[uint8]PfcpFunc
 
-func (h PfcpHanderMap) Handle(conn *net.UDPConn, addr *net.UDPAddr, buf []byte) {
+func (h PfcpHanderMap) Handle(conn *PfcpConnection, addr *net.UDPAddr, buf []byte) {
 	log.Printf("Handling PFCP message from %s", addr)
 	msg, err := message.Parse(buf)
 	if err != nil {
@@ -28,7 +28,7 @@ func (h PfcpHanderMap) Handle(conn *net.UDPConn, addr *net.UDPAddr, buf []byte) 
 	}
 }
 
-func handlePfcpHeartbeatRequest(conn *net.UDPConn, addr *net.UDPAddr, msg message.Message) {
+func handlePfcpHeartbeatRequest(conn *PfcpConnection, addr *net.UDPAddr, msg message.Message) {
 	hbreq := msg.(*message.HeartbeatRequest)
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
@@ -51,7 +51,7 @@ func handlePfcpHeartbeatRequest(conn *net.UDPConn, addr *net.UDPAddr, msg messag
 	log.Printf("sent Heartbeat Response to: %s", addr)
 }
 
-func handlePfcpAssociationSetupRequest(conn *net.UDPConn, addr *net.UDPAddr, msg message.Message) {
+func handlePfcpAssociationSetupRequest(conn *PfcpConnection, addr *net.UDPAddr, msg message.Message) {
 	asreq := msg.(*message.AssociationSetupRequest)
 	log.Print(asreq)
 }

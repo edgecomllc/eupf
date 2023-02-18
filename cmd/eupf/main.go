@@ -58,7 +58,10 @@ func main() {
 		message.MsgTypeAssociationSetupRequest: handlePfcpAssociationSetupRequest,
 	}
 
-	pfcp_conn := CreatePfcpConnection(*pfcpAddr, pfcpHandlers)
+	pfcp_conn, err := CreatePfcpConnection(*pfcpAddr, pfcpHandlers)
+	if err != nil {
+		log.Printf("Could not create PFCP connection: %s", err)
+	}
 	go pfcp_conn.Run()
 	defer pfcp_conn.Close()
 
