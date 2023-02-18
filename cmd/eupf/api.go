@@ -8,23 +8,31 @@ import (
 )
 
 type ApiServer struct {
-	r *gin.Engine
+	router *gin.Engine
 }
 
 func CreateApiServer(bpfObjects *BpfObjects) *ApiServer {
-	r := gin.Default()
-	r.GET("/upf_pipeline", func(c *gin.Context) {
+	router := gin.Default()
+	router.GET("/upf_pipeline", func(c *gin.Context) {
 		elements, err := ListMapProgArrayContents(bpfObjects.upf_xdpObjects.UpfPipeline)
 		if err != nil {
 			log.Printf("Error reading map: %s", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, elements)
+		c.IndentedJSON(http.StatusOK, elements)
+	}).GET("/context_map", func(c *gin.Context) {
+		elements, err := ListContextMapContents(bpfObjects.ip_entrypointObjects.ContextMapIp4)
+		if err != nil {
+			log.Printf("Error reading map: %s", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.IndentedJSON(http.StatusOK, elements)
 	})
-	return &ApiServer{r: r}
+	return &ApiServer{router: router}
 }
 
-func (a *ApiServer) Run(addr string) {
-	a.r.Run(addr)
+func (server *ApiServer) Run(addr string) {
+	server.router.Run(addr)
 }

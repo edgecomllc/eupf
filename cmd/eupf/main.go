@@ -4,6 +4,9 @@ import (
 	"flag"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/cilium/ebpf/link"
@@ -13,6 +16,9 @@ var ifaceName = flag.String("iface", "lo", "Interface to bind XDP program to")
 var apiAddr = flag.String("aaddr", ":8080", "Address to bind api server to")
 
 func main() {
+	stopper := make(chan os.Signal, 1)
+	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
+
 	flag.Parse()
 
 	if err := IncreaseResourceLimits(); err != nil {
@@ -51,14 +57,21 @@ func main() {
 	go api.Run(*apiAddr)
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
-	for range ticker.C {
-		s, err := FormatMapContents(bpfObjects.upf_xdpObjects.UpfPipeline)
-		if err != nil {
-			log.Printf("Error reading map: %s", err)
-			continue
+
+	for {
+		select {
+		case <-ticker.C:
+			// s, err := FormatMapContents(bpfObjects.upf_xdpObjects.UpfPipeline)
+			// if err != nil {
+			// 	log.Printf("Error reading map: %s", err)
+			// 	continue
+			// }
+			// log.Printf("Pipeline map contents:\n%s", s)
+		case <-stopper:
+			log.Println("Received signal, exiting program..")
+			return
 		}
-		log.Printf("Pipeline map contents:\n%s", s)
 	}
 }
