@@ -44,8 +44,8 @@ func (c *PfcpConnection) Close() {
 	c.udpConn.Close()
 }
 
-func (c *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error) {
-	return c.udpConn.WriteToUDP(b, addr)
+func (c *PfcpConnection) Send(b []byte) (int, error) {
+	return c.udpConn.WriteToUDP(b, c.RemoteAddr())
 }
 
 func (c *PfcpConnection) RemoteAddr() *net.UDPAddr {

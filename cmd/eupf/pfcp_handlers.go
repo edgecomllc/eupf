@@ -50,7 +50,7 @@ func handlePfcpHeartbeatRequest(c *PfcpConnection, msg message.Message) error {
 		return err
 	}
 
-	if _, err := c.Send(hbres, c.RemoteAddr()); err != nil {
+	if _, err := c.Send(hbres); err != nil {
 		log.Print(err)
 		return err
 	}
