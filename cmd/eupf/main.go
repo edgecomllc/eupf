@@ -10,10 +10,12 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf/link"
+	"github.com/wmnsk/go-pfcp/message"
 )
 
 var ifaceName = flag.String("iface", "lo", "Interface to bind XDP program to")
 var apiAddr = flag.String("aaddr", ":8080", "Address to bind api server to")
+var pfcpAddr = flag.String("paddr", ":8805", "Address to bind PFCP server to")
 
 func main() {
 	stopper := make(chan os.Signal, 1)
@@ -55,6 +57,19 @@ func main() {
 	// Start api server
 	api := CreateApiServer(bpfObjects)
 	go api.Run(*apiAddr)
+
+	// Create PFCP connection
+	var pfcpHandlers PfcpHanderMap = PfcpHanderMap{
+		message.MsgTypeHeartbeatRequest:        handlePfcpHeartbeatRequest,
+		message.MsgTypeAssociationSetupRequest: handlePfcpAssociationSetupRequest,
+	}
+
+	pfcp_conn, err := CreatePfcpConnection(*pfcpAddr, pfcpHandlers)
+	if err != nil {
+		log.Printf("Could not create PFCP connection: %s", err)
+	}
+	go pfcp_conn.Run()
+	defer pfcp_conn.Close()
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)

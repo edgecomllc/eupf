@@ -26,7 +26,7 @@ func (o *BpfObjects) Load() error {
 
 	pinPath := "/sys/fs/bpf/upf_pipeline"
 	if err := os.MkdirAll(pinPath, os.ModePerm); err != nil {
-		log.Fatalf("failed to create bpf fs subpath: %+v", err)
+		log.Printf("failed to create bpf fs subpath: %+v", err)
 		return err
 	}
 
