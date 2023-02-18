@@ -27,27 +27,27 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap) (*PfcpConne
 	}, nil
 }
 
-func (c *PfcpConnection) Run() {
+func (connection *PfcpConnection) Run() {
 	buf := make([]byte, 1500)
 	for {
-		n, _, err := c.udpConn.ReadFromUDP(buf)
+		n, _, err := connection.udpConn.ReadFromUDP(buf)
 		if err != nil {
 			log.Printf("Error reading from UDP socket: %s", err)
 			continue
 		}
-		log.Printf("Received %d bytes from %s", n, c.udpConn.RemoteAddr())
-		c.pfcpHandlerMap.Handle(c, buf[:n])
+		log.Printf("Received %d bytes from %s", n, connection.udpConn.RemoteAddr())
+		connection.pfcpHandlerMap.Handle(connection, buf[:n])
 	}
 }
 
-func (c *PfcpConnection) Close() {
-	c.udpConn.Close()
+func (connection *PfcpConnection) Close() {
+	connection.udpConn.Close()
 }
 
-func (c *PfcpConnection) Send(b []byte) (int, error) {
-	return c.udpConn.WriteToUDP(b, c.RemoteAddr())
+func (connection *PfcpConnection) Send(b []byte) (int, error) {
+	return connection.udpConn.WriteToUDP(b, connection.RemoteAddr())
 }
 
-func (c *PfcpConnection) RemoteAddr() *net.UDPAddr {
-	return c.udpConn.RemoteAddr().(*net.UDPAddr)
+func (connection *PfcpConnection) RemoteAddr() *net.UDPAddr {
+	return connection.udpConn.RemoteAddr().(*net.UDPAddr)
 }
