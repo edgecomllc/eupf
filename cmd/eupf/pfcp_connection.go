@@ -5,9 +5,17 @@ import (
 	"net"
 )
 
+type NodeAssociationMap map[string]RemoteNode
+
+type RemoteNode struct {
+	ID   string
+	Addr string
+}
+
 type PfcpConnection struct {
-	udpConn        *net.UDPConn
-	pfcpHandlerMap PfcpHanderMap
+	udpConn          *net.UDPConn
+	pfcpHandlerMap   PfcpHanderMap
+	nodeAssociations NodeAssociationMap
 }
 
 func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap) (*PfcpConnection, error) {
