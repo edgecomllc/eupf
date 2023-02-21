@@ -45,6 +45,7 @@ func handlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr 
 	}
 
 	// #TODO: Explore how to properly set sequence number
+	// Answer with same Sequence Number as in request
 	var seq uint32 = 1
 	hbres, err := message.NewHeartbeatResponse(seq, ie.NewRecoveryTimeStamp(time.Now())).Marshal()
 	if err != nil {
