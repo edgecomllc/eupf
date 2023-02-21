@@ -67,6 +67,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		return fmt.Errorf("association setup request without NodeID from: %s", conn.RemoteAddr())
 	}
 	// Get NodeID
+	// #TODO: Use UPF NodeID instead of request
 	nodeID, err := asreq.NodeID.NodeID()
 	if err != nil {
 		log.Printf("Got Association Setup Request with invalid NodeID from: %s", conn.RemoteAddr())
