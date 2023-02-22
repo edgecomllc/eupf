@@ -44,10 +44,7 @@ func handlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr 
 		log.Printf("Got Heartbeat Request with TS: %s, from: %s", ts, addr)
 	}
 
-	// #TODO: Explore how to properly set sequence number
-	// Answer with same Sequence Number as in request
-	var seq uint32 = 1
-	hbres, err := message.NewHeartbeatResponse(seq, ie.NewRecoveryTimeStamp(time.Now())).Marshal()
+	hbres, err := message.NewHeartbeatResponse(hbreq.SequenceNumber, ie.NewRecoveryTimeStamp(time.Now())).Marshal()
 	if err != nil {
 		log.Print(err)
 		return err
@@ -83,9 +80,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	conn.nodeAssociations[nodeID] = remoteNode
 	log.Printf("Added RemoteNode: %s to NodeAssociationMap", remoteNode)
 	// Create AssociationSetupResponse
-	// #TODO: Explore how to properly set sequence number
-	var seq uint32 = 1
-	asres, err := message.NewAssociationSetupResponse(seq,
+	asres, err := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 		ie.NewRecoveryTimeStamp(time.Now()),
 		ie.NewNodeID(nodeID, "", ""),
 		ie.NewCause(ie.CauseRequestAccepted),
@@ -101,18 +96,4 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		return err
 	}
 	return nil
-}
-
-// Handle PFCP Association Release Request
-func handlePfcpAssociationReleaseRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
-	release_request := msg.(*message.AssociationReleaseRequest)
-	log.Printf("Got Association Release Request from: %s. \n %s", addr, release_request)
-	if release_request.NodeID == nil {
-		log.Printf("Got Association Release Request without NodeID from: %s", addr)
-		return fmt.Errorf("association release request without NodeID from: %s", addr)
-	}
-	// #TODO: ...
-
-	return nil
-
 }

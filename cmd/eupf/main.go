@@ -60,9 +60,8 @@ func main() {
 
 	// Create PFCP connection
 	var pfcpHandlers PfcpHanderMap = PfcpHanderMap{
-		message.MsgTypeHeartbeatRequest:          handlePfcpHeartbeatRequest,
-		message.MsgTypeAssociationSetupRequest:   handlePfcpAssociationSetupRequest,
-		message.MsgTypeAssociationReleaseRequest: handlePfcpAssociationReleaseRequest,
+		message.MsgTypeHeartbeatRequest:        handlePfcpHeartbeatRequest,
+		message.MsgTypeAssociationSetupRequest: handlePfcpAssociationSetupRequest,
 	}
 
 	pfcp_conn, err := CreatePfcpConnection(*pfcpAddr, pfcpHandlers)
