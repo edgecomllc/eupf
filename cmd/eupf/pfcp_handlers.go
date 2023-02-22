@@ -58,6 +58,7 @@ func handlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr 
 	return nil
 }
 
+// https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/16.04.00_60/ts_129244v160400p.pdf page 95
 func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
 	asreq := msg.(*message.AssociationSetupRequest)
 	log.Printf("Got Association Setup Request from: %s. \n %s", addr, asreq)
@@ -66,32 +67,48 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		return fmt.Errorf("association setup request without NodeID from: %s", addr)
 	}
 	// Get NodeID
-	nodeID, err := asreq.NodeID.NodeID()
+	remote_nodeID, err := asreq.NodeID.NodeID()
 	if err != nil {
 		log.Printf("Got Association Setup Request with invalid NodeID from: %s", addr)
 		return err
 	}
+	// Check if the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
+	if _, ok := conn.nodeAssociations[remote_nodeID]; ok {
+		log.Printf("Association Setup Request with NodeID: %s from: %s already exists", remote_nodeID, addr)
+		// retain the PFCP sessions that were established with the existing PFCP association and that are requested to be retained, if the PFCP Session Retention Information IE was received in the request; otherwise, delete the PFCP sessions that were established with the existing PFCP association;
+		log.Println("Session retention is not yet implemented")
+	}
+
+	// If the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
+	// proceed with establishing the new PFCP association (regardless of the Recovery Timestamp received in the request), overwriting the existing association;
+	// if the request is accepted:
+	// shall store the Node ID of the CP function as the identifier of the PFCP association;
 	// Create RemoteNode from AssociationSetupRequest
-	remoteNode := RemoteNode{
-		ID:   nodeID,
+	remoteNode := NodeAssociation{
+		ID:   remote_nodeID,
 		Addr: addr.String(),
 	}
 	// Add or replace RemoteNode to NodeAssociationMap
-	conn.nodeAssociations[nodeID] = remoteNode
-	log.Printf("Added RemoteNode: %s to NodeAssociationMap", remoteNode)
-	// Create AssociationSetupResponse
-	asres, err := message.NewAssociationSetupResponse(asreq.SequenceNumber,
-		ie.NewRecoveryTimeStamp(time.Now()),
-		ie.NewNodeID(nodeID, "", ""),
-		ie.NewCause(ie.CauseRequestAccepted),
+	conn.nodeAssociations[remote_nodeID] = remoteNode
+	log.Printf("Added RemoteNode: %s to NodeAssociationMap", remoteNode.ID)
+
+	// shall send a PFCP Association Setup Response including:
+	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
+		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
+		ie.NewNodeID("", "", conn.nodeId),    // its Node ID; Currently only support FQDN
+		ie.NewUPFunctionFeatures(),           // information of all supported optional features in the UP function; We don't support any optional features at the moment
 		// ... other IEs
-	).Marshal()
+		//	optionally one or more UE IP address Pool Information IE which contains a list of UE IP Address Pool Identities per Network Instance, S-NSSAI and IP version;
+		//	optionally the NF Instance ID of the UPF if available
+	)
+
+	// Send AssociationSetupResponse
+	response_bytes, err := asres.Marshal()
 	if err != nil {
 		log.Print(err)
 		return err
 	}
-	// Send AssociationSetupResponse
-	if _, err := conn.Send(asres, addr); err != nil {
+	if _, err := conn.Send(response_bytes, addr); err != nil {
 		log.Print(err)
 		return err
 	}

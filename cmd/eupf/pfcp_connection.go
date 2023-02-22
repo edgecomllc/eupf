@@ -5,20 +5,26 @@ import (
 	"net"
 )
 
-type NodeAssociationMap map[string]RemoteNode
+type Session struct {
+	Seid uint64	
+}
 
-type RemoteNode struct {
-	ID   string
-	Addr string
+type NodeAssociationMap map[string]NodeAssociation
+
+type NodeAssociation struct {
+	ID       string
+	Addr     string
+	Sessions []Session
 }
 
 type PfcpConnection struct {
 	udpConn          *net.UDPConn
 	pfcpHandlerMap   PfcpHanderMap
 	nodeAssociations NodeAssociationMap
+	nodeId           string
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap) (*PfcpConnection, error) {
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Panicf("Can't resolve UDP address: %s", err)
@@ -32,6 +38,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap) (*PfcpConne
 	return &PfcpConnection{
 		udpConn:        udpConn,
 		pfcpHandlerMap: pfcpHandlerMap,
+		nodeId:         nodeId,
 	}, nil
 }
 
