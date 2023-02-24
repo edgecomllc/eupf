@@ -160,8 +160,29 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		SEID: fseid.SEID,
 	}
 
-	// #TODO: Handle failed PDR applies
-	
+	// #TODO: Actually applie rules to the dataplane
+	// #TODO: Handle failed applies and return error
+
+	// Print IE's content as is, it looks like there is no way to pretty print them, without implementing fortmatting for the whole go-pfcp library.
+	for far := range req.CreateFAR {
+		log.Printf("Create FAR: %+v", far)
+	}
+
+	for qer := range req.CreateQER {
+		log.Printf("Create QER: %+v", qer)
+	}
+
+	for urr := range req.CreateURR {
+		log.Printf("Create URR: %+v", urr)
+	}
+
+	for pdr := range req.CreatePDR {
+		log.Printf("Create PDR: %+v", pdr)
+	}
+
+	if req.CreateBAR != nil {
+		log.Printf("Create BAR: %+v", req.CreateBAR)
+	}
 
 	var v4 net.IP
 	addrv4, err := net.ResolveIPAddr("ip4", conn.nodeId)
@@ -177,7 +198,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		req.SequenceNumber,
 		0,
 		ie.NewCause(ie.CauseRequestAccepted),
-		ie.NewNodeID("", "", conn.nodeId),		
+		ie.NewNodeID("", "", conn.nodeId),
 		ie.NewFSEID(fseid.SEID, v4, v6),
 	).Marshal()
 	if err != nil {
