@@ -5,12 +5,26 @@ import (
 	"net"
 )
 
-type PfcpConnection struct {
-	udpConn        *net.UDPConn
-	pfcpHandlerMap PfcpHanderMap
+type Session struct {
+	Seid uint64	
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap) (*PfcpConnection, error) {
+type NodeAssociationMap map[string]NodeAssociation
+
+type NodeAssociation struct {
+	ID       string
+	Addr     string
+	Sessions []Session
+}
+
+type PfcpConnection struct {
+	udpConn          *net.UDPConn
+	pfcpHandlerMap   PfcpHanderMap
+	nodeAssociations NodeAssociationMap
+	nodeId           string
+}
+
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Panicf("Can't resolve UDP address: %s", err)
@@ -24,19 +38,20 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap) (*PfcpConne
 	return &PfcpConnection{
 		udpConn:        udpConn,
 		pfcpHandlerMap: pfcpHandlerMap,
+		nodeId:         nodeId,
 	}, nil
 }
 
 func (connection *PfcpConnection) Run() {
 	buf := make([]byte, 1500)
 	for {
-		n, _, err := connection.udpConn.ReadFromUDP(buf)
+		n, addr, err := connection.udpConn.ReadFromUDP(buf)
 		if err != nil {
 			log.Printf("Error reading from UDP socket: %s", err)
 			continue
 		}
-		log.Printf("Received %d bytes from %s", n, connection.udpConn.RemoteAddr())
-		connection.pfcpHandlerMap.Handle(connection, buf[:n])
+		log.Printf("Received %d bytes from %s", n, addr)
+		connection.pfcpHandlerMap.Handle(connection, buf[:n], addr)
 	}
 }
 
@@ -44,10 +59,6 @@ func (connection *PfcpConnection) Close() {
 	connection.udpConn.Close()
 }
 
-func (connection *PfcpConnection) Send(b []byte) (int, error) {
-	return connection.udpConn.WriteToUDP(b, connection.RemoteAddr())
-}
-
-func (connection *PfcpConnection) RemoteAddr() *net.UDPAddr {
-	return connection.udpConn.RemoteAddr().(*net.UDPAddr)
+func (connection *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error) {
+	return connection.udpConn.WriteTo(b, addr)
 }
