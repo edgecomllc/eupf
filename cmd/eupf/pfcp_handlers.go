@@ -36,6 +36,7 @@ func (handlerMap PfcpHanderMap) Handle(conn *PfcpConnection, buf []byte, addr *n
 
 func handlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
 	hbreq := msg.(*message.HeartbeatRequest)
+
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
 		log.Printf("Got Heartbeat Request with invalid TS: %s, from: %s", err, addr)
@@ -115,19 +116,84 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	return nil
 }
 
-
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
-	ser := msg.(*message.SessionEstablishmentRequest)
-	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, ser)
+	req := msg.(*message.SessionEstablishmentRequest)
+	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, req)
 	// Check if the PFCP Session Establishment Request contains a Node ID for which a PFCP association was already established
-	if ser.NodeID == nil {
+	if req.NodeID == nil {
 		log.Printf("Got Session Establishment Request without NodeID from: %s", addr)
 		return fmt.Errorf("session establishment request without NodeID from: %s", addr)
 	}
 	// Get NodeID
-	remote_nodeID, err := ser.NodeID.NodeID()
+	remote_nodeID, err := req.NodeID.NodeID()
 	if err != nil {
 		log.Printf("Got Session Establishment Request with invalid NodeID from: %s", addr)
 		return err
 	}
+	// Check if the PFCP Session Establishment Request contains a Node ID for which a PFCP association was already established
+	if err := conn.checkNodeAssociation(remote_nodeID); err != nil {
+		// shall reject any incoming PFCP Session related messages from that CP function, with a cause indicating that no PFCP association exists with the peer entity
+		log.Printf("Rejecting Session Establishment Request from: %s", addr)
+		// Send SessionEstablishmentResponse with Cause: No PFCP Established Association
+		response_bytes, err := message.NewSessionEstablishmentResponse(0,
+			0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation),
+		).Marshal()
+		if err != nil {
+			log.Print(err)
+			return err
+		}
+		if _, err := conn.Send(response_bytes, addr); err != nil {
+			log.Print(err)
+			return err
+		}
+	}
+	if req.CPFSEID == nil {
+		return fmt.Errorf("not found CP F-SEID")
+	}
+	fseid, err := req.CPFSEID.FSEID()
+	if err != nil {
+		return err
+	}
+
+	// We are using same SEID as SMF
+	conn.nodeAssociations[remote_nodeID].Sessions[fseid.SEID] = Session{
+		SEID: fseid.SEID,
+	}
+
+	// #TODO: Handle failed PDR applies
+	
+
+	var v4 net.IP
+	addrv4, err := net.ResolveIPAddr("ip4", conn.nodeId)
+	if err == nil {
+		v4 = addrv4.IP.To4()
+	}
+	// #TODO: support v6
+	var v6 net.IP
+	// Send SessionEstablishmentResponse
+	response_bytes, err := message.NewSessionEstablishmentResponse(
+		0, 0,
+		fseid.SEID,
+		req.SequenceNumber,
+		0,
+		ie.NewCause(ie.CauseRequestAccepted),
+		ie.NewNodeID("", "", conn.nodeId),		
+		ie.NewFSEID(fseid.SEID, v4, v6),
+	).Marshal()
+	if err != nil {
+		return err
+	}
+	if _, err := conn.Send(response_bytes, addr); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Check if for incoming message NodeID exists in NodeAssociationMap
+func (conn *PfcpConnection) checkNodeAssociation(remote_nodeID string) error {
+	if _, ok := conn.nodeAssociations[remote_nodeID]; !ok {
+		log.Printf("NodeID: %s not found in NodeAssociationMap", remote_nodeID)
+		return fmt.Errorf("nodeID: %s not found in NodeAssociationMap", remote_nodeID)
+	}
+	return nil
 }

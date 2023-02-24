@@ -6,15 +6,17 @@ import (
 )
 
 type Session struct {
-	Seid uint64	
+	SEID uint64	
 }
+
+type SessionMap map[uint64]Session
 
 type NodeAssociationMap map[string]NodeAssociation
 
 type NodeAssociation struct {
 	ID       string
 	Addr     string
-	Sessions []Session
+	Sessions SessionMap
 }
 
 type PfcpConnection struct {
