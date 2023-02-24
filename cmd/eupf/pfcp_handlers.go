@@ -114,3 +114,20 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	}
 	return nil
 }
+
+
+func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
+	ser := msg.(*message.SessionEstablishmentRequest)
+	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, ser)
+	// Check if the PFCP Session Establishment Request contains a Node ID for which a PFCP association was already established
+	if ser.NodeID == nil {
+		log.Printf("Got Session Establishment Request without NodeID from: %s", addr)
+		return fmt.Errorf("session establishment request without NodeID from: %s", addr)
+	}
+	// Get NodeID
+	remote_nodeID, err := ser.NodeID.NodeID()
+	if err != nil {
+		log.Printf("Got Session Establishment Request with invalid NodeID from: %s", addr)
+		return err
+	}
+}
