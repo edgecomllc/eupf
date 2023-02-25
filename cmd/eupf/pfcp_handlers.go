@@ -45,13 +45,8 @@ func handlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr 
 		log.Printf("Got Heartbeat Request with TS: %s, from: %s", ts, addr)
 	}
 
-	hbres, err := message.NewHeartbeatResponse(hbreq.SequenceNumber, ie.NewRecoveryTimeStamp(time.Now())).Marshal()
-	if err != nil {
-		log.Print(err)
-		return err
-	}
-
-	if _, err := conn.Send(hbres, addr); err != nil {
+	hbres := message.NewHeartbeatResponse(hbreq.SequenceNumber, ie.NewRecoveryTimeStamp(time.Now()))
+	if err := conn.SendMessage(hbres, addr); err != nil {
 		log.Print(err)
 		return err
 	}
@@ -104,12 +99,8 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	)
 
 	// Send AssociationSetupResponse
-	response_bytes, err := asres.Marshal()
-	if err != nil {
-		log.Print(err)
-		return err
-	}
-	if _, err := conn.Send(response_bytes, addr); err != nil {
+
+	if err := conn.SendMessage(asres, addr); err != nil {
 		log.Print(err)
 		return err
 	}
@@ -120,9 +111,17 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, req)
 	// Check if the PFCP Session Establishment Request contains a Node ID for which a PFCP association was already established
-	if req.NodeID == nil {
-		log.Printf("Got Session Establishment Request without NodeID from: %s", addr)
-		return fmt.Errorf("session establishment request without NodeID from: %s", addr)
+	if req.NodeID == nil || req.CPFSEID == nil {
+		log.Printf("Rejecting Session Establishment Request from: %s", addr)
+		// Send SessionEstablishmentResponse with Cause: Mandatory IE missing
+		if err := conn.SendMessage(
+			message.NewSessionEstablishmentResponse(0,
+				0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseMandatoryIEMissing),
+			), addr); err != nil {
+			log.Print(err)
+			return err
+		}
+		return fmt.Errorf("session establishment request without mandatory IEs NodeID(%+v), CPFSEID(%+v) from: %s", req.NodeID, req.CPFSEID, addr)
 	}
 	// Get NodeID
 	remote_nodeID, err := req.NodeID.NodeID()
@@ -135,26 +134,31 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		// shall reject any incoming PFCP Session related messages from that CP function, with a cause indicating that no PFCP association exists with the peer entity
 		log.Printf("Rejecting Session Establishment Request from: %s", addr)
 		// Send SessionEstablishmentResponse with Cause: No PFCP Established Association
-		response_bytes, err := message.NewSessionEstablishmentResponse(0,
+		est_resp := message.NewSessionEstablishmentResponse(0,
 			0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation),
-		).Marshal()
-		if err != nil {
-			log.Print(err)
-			return err
-		}
-		if _, err := conn.Send(response_bytes, addr); err != nil {
+		)
+		if err := conn.SendMessage(est_resp, addr); err != nil {
 			log.Print(err)
 			return err
 		}
 	}
-	if req.CPFSEID == nil {
-		return fmt.Errorf("not found CP F-SEID")
-	}
+
 	fseid, err := req.CPFSEID.FSEID()
 	if err != nil {
 		return err
 	}
 
+	// if session already exists, return error
+	if _, ok := conn.nodeAssociations[remote_nodeID].Sessions[fseid.SEID]; ok {
+		log.Printf("Rejecting Session Establishment Request from: %s", addr)
+		est_resp := message.NewSessionEstablishmentResponse(0,
+			0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseRequestRejected),
+		)
+		if err := conn.SendMessage(est_resp, addr); err != nil {
+			log.Print(err)
+			return err
+		}
+	}
 	// We are using same SEID as SMF
 	conn.nodeAssociations[remote_nodeID].Sessions[fseid.SEID] = Session{
 		SEID: fseid.SEID,
@@ -187,7 +191,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	// #TODO: support v6
 	var v6 net.IP
 	// Send SessionEstablishmentResponse
-	response_bytes, err := message.NewSessionEstablishmentResponse(
+	est_resp := message.NewSessionEstablishmentResponse(
 		0, 0,
 		fseid.SEID,
 		req.SequenceNumber,
@@ -195,11 +199,8 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		ie.NewCause(ie.CauseRequestAccepted),
 		newIeNodeID(conn.nodeId),
 		ie.NewFSEID(fseid.SEID, conn.nodeAddrV4, v6),
-	).Marshal()
-	if err != nil {
-		return err
-	}
-	if _, err := conn.Send(response_bytes, addr); err != nil {
+	)
+	if err := conn.SendMessage(est_resp, addr); err != nil {
 		return err
 	}
 	return nil
