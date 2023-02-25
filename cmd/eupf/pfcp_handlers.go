@@ -96,7 +96,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	// shall send a PFCP Association Setup Response including:
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
-		ie.NewNodeID("", "", conn.nodeId),    // its Node ID; Currently only support FQDN
+		newIeNodeID(conn.nodeId),             // its Node ID;
 		ie.NewUPFunctionFeatures(),           // information of all supported optional features in the UP function; We don't support any optional features at the moment
 		// ... other IEs
 		//	optionally one or more UE IP address Pool Information IE which contains a list of UE IP Address Pool Identities per Network Instance, S-NSSAI and IP version;
@@ -184,11 +184,6 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		log.Printf("Create BAR: %+v", req.CreateBAR)
 	}
 
-	var v4 net.IP
-	addrv4, err := net.ResolveIPAddr("ip4", conn.nodeId)
-	if err == nil {
-		v4 = addrv4.IP.To4()
-	}
 	// #TODO: support v6
 	var v6 net.IP
 	// Send SessionEstablishmentResponse
@@ -198,8 +193,8 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		req.SequenceNumber,
 		0,
 		ie.NewCause(ie.CauseRequestAccepted),
-		ie.NewNodeID("", "", conn.nodeId),
-		ie.NewFSEID(fseid.SEID, v4, v6),
+		newIeNodeID(conn.nodeId),
+		ie.NewFSEID(fseid.SEID, conn.nodeAddrV4, v6),
 	).Marshal()
 	if err != nil {
 		return err
@@ -217,4 +212,15 @@ func (conn *PfcpConnection) checkNodeAssociation(remote_nodeID string) error {
 		return fmt.Errorf("nodeID: %s not found in NodeAssociationMap", remote_nodeID)
 	}
 	return nil
+}
+
+func newIeNodeID(nodeID string) *ie.IE {
+	ip := net.ParseIP(nodeID)
+	if ip != nil {
+		if ip.To4() != nil {
+			return ie.NewNodeID(nodeID, "", "")
+		}
+		return ie.NewNodeID("", nodeID, "")
+	}
+	return ie.NewNodeID("", "", nodeID)
 }

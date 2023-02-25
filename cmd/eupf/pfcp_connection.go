@@ -6,7 +6,7 @@ import (
 )
 
 type Session struct {
-	SEID uint64	
+	SEID uint64
 }
 
 type SessionMap map[uint64]Session
@@ -24,6 +24,7 @@ type PfcpConnection struct {
 	pfcpHandlerMap   PfcpHanderMap
 	nodeAssociations NodeAssociationMap
 	nodeId           string
+	nodeAddrV4       net.IP
 }
 
 func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string) (*PfcpConnection, error) {
@@ -37,10 +38,15 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		log.Printf("Can't listen UDP address: %s", err)
 		return nil, err
 	}
+	addrv4, err := net.ResolveIPAddr("ip4", nodeId)
+	if err != nil {
+		return nil, err
+	}
 	return &PfcpConnection{
 		udpConn:        udpConn,
 		pfcpHandlerMap: pfcpHandlerMap,
 		nodeId:         nodeId,
+		nodeAddrV4:     addrv4.IP,
 	}, nil
 }
 
