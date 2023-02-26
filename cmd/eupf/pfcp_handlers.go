@@ -81,8 +81,9 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	// shall store the Node ID of the CP function as the identifier of the PFCP association;
 	// Create RemoteNode from AssociationSetupRequest
 	remoteNode := NodeAssociation{
-		ID:   remote_nodeID,
-		Addr: addr.String(),
+		ID:       remote_nodeID,
+		Addr:     addr.String(),
+		Sessions: SessionMap{},
 	}
 	// Add or replace RemoteNode to NodeAssociationMap
 	conn.nodeAssociations[remote_nodeID] = remoteNode
@@ -102,105 +103,6 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 
 	if err := conn.SendMessage(asres, addr); err != nil {
 		log.Print(err)
-		return err
-	}
-	return nil
-}
-
-func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
-	req := msg.(*message.SessionEstablishmentRequest)
-	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, req)
-	// Check if the PFCP Session Establishment Request contains a Node ID for which a PFCP association was already established
-	if req.NodeID == nil || req.CPFSEID == nil {
-		log.Printf("Rejecting Session Establishment Request from: %s", addr)
-		// Send SessionEstablishmentResponse with Cause: Mandatory IE missing
-		if err := conn.SendMessage(
-			message.NewSessionEstablishmentResponse(0,
-				0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseMandatoryIEMissing),
-			), addr); err != nil {
-			log.Print(err)
-			return err
-		}
-		return fmt.Errorf("session establishment request without mandatory IEs NodeID(%+v), CPFSEID(%+v) from: %s", req.NodeID, req.CPFSEID, addr)
-	}
-	// Get NodeID
-	remote_nodeID, err := req.NodeID.NodeID()
-	if err != nil {
-		log.Printf("Got Session Establishment Request with invalid NodeID from: %s", addr)
-		return err
-	}
-	// Check if the PFCP Session Establishment Request contains a Node ID for which a PFCP association was already established
-	if err := conn.checkNodeAssociation(remote_nodeID); err != nil {
-		// shall reject any incoming PFCP Session related messages from that CP function, with a cause indicating that no PFCP association exists with the peer entity
-		log.Printf("Rejecting Session Establishment Request from: %s", addr)
-		// Send SessionEstablishmentResponse with Cause: No PFCP Established Association
-		est_resp := message.NewSessionEstablishmentResponse(0,
-			0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation),
-		)
-		if err := conn.SendMessage(est_resp, addr); err != nil {
-			log.Print(err)
-			return err
-		}
-	}
-
-	fseid, err := req.CPFSEID.FSEID()
-	if err != nil {
-		return err
-	}
-
-	// if session already exists, return error
-	if _, ok := conn.nodeAssociations[remote_nodeID].Sessions[fseid.SEID]; ok {
-		log.Printf("Rejecting Session Establishment Request from: %s", addr)
-		est_resp := message.NewSessionEstablishmentResponse(0,
-			0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseRequestRejected),
-		)
-		if err := conn.SendMessage(est_resp, addr); err != nil {
-			log.Print(err)
-			return err
-		}
-	}
-	// We are using same SEID as SMF
-	conn.nodeAssociations[remote_nodeID].Sessions[fseid.SEID] = Session{
-		SEID: fseid.SEID,
-	}
-
-	// #TODO: Actually apply rules to the dataplane
-	// #TODO: Handle failed applies and return error
-
-	// Print IE's content as is, it looks like there is no way to pretty print them, without implementing fortmatting for the whole go-pfcp library.
-	for far := range req.CreateFAR {
-		log.Printf("Create FAR: %+v", far)
-	}
-
-	for qer := range req.CreateQER {
-		log.Printf("Create QER: %+v", qer)
-	}
-
-	for urr := range req.CreateURR {
-		log.Printf("Create URR: %+v", urr)
-	}
-
-	for pdr := range req.CreatePDR {
-		log.Printf("Create PDR: %+v", pdr)
-	}
-
-	if req.CreateBAR != nil {
-		log.Printf("Create BAR: %+v", req.CreateBAR)
-	}
-
-	// #TODO: support v6
-	var v6 net.IP
-	// Send SessionEstablishmentResponse
-	est_resp := message.NewSessionEstablishmentResponse(
-		0, 0,
-		fseid.SEID,
-		req.SequenceNumber,
-		0,
-		ie.NewCause(ie.CauseRequestAccepted),
-		newIeNodeID(conn.nodeId),
-		ie.NewFSEID(fseid.SEID, conn.nodeAddrV4, v6),
-	)
-	if err := conn.SendMessage(est_resp, addr); err != nil {
 		return err
 	}
 	return nil

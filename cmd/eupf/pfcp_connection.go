@@ -45,10 +45,11 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		return nil, err
 	}
 	return &PfcpConnection{
-		udpConn:        udpConn,
-		pfcpHandlerMap: pfcpHandlerMap,
-		nodeId:         nodeId,
-		nodeAddrV4:     addrv4.IP,
+		udpConn:          udpConn,
+		pfcpHandlerMap:   pfcpHandlerMap,
+		nodeAssociations: NodeAssociationMap{},
+		nodeId:           nodeId,
+		nodeAddrV4:       addrv4.IP,
 	}, nil
 }
 
