@@ -164,7 +164,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		SEID: fseid.SEID,
 	}
 
-	// #TODO: Actually applie rules to the dataplane
+	// #TODO: Actually apply rules to the dataplane
 	// #TODO: Handle failed applies and return error
 
 	// Print IE's content as is, it looks like there is no way to pretty print them, without implementing fortmatting for the whole go-pfcp library.
