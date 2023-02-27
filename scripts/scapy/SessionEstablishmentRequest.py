@@ -57,7 +57,13 @@ pfcpSESReq = PFCP(version=1, S=1, seq=2, seid=0, spare_oct=0) / \
          IE_NodeId(id_type="FQDN", id="BIG-IMPORTANT-CP")
        ])
 
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.sendto(bytes(pfcpASReq), ("127.0.0.1", 8805))
-time.sleep(2)
-s.sendto(bytes(pfcpSESReq), ("127.0.0.1", 8805))
+# https://stackoverflow.com/questions/41166420/sending-a-packet-over-physical-loopback-in-scapy
+conf.L3socket=L3RawSocket
+
+target = IP(dst="127.0.0.1")/UDP(sport=33100,dport=8805)
+ans = sr1(target/pfcpASReq, iface='lo')
+print(ans.show())
+
+ans = sr1(target/pfcpSESReq, iface='lo')
+print(ans.show())
+
