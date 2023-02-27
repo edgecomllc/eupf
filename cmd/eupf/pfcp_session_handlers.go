@@ -151,19 +151,19 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	// #TODO: Handle failed applies and return error
 
 	// Print IE's content as is, it looks like there is no way to pretty print them, without implementing fortmatting for the whole go-pfcp library.
-	for far := range req.CreateFAR {
-		log.Printf("Create FAR: %+v", far)
+	for _, far := range req.CreateFAR {
+		log.Printf("Create FAR: %+v", *far)
 	}
 
-	for qer := range req.CreateQER {
+	for _, qer := range req.CreateQER {
 		log.Printf("Create QER: %+v", qer)
 	}
 
-	for urr := range req.CreateURR {
+	for _, urr := range req.CreateURR {
 		log.Printf("Create URR: %+v", urr)
 	}
 
-	for pdr := range req.CreatePDR {
+	for _, pdr := range req.CreatePDR {
 		log.Printf("Create PDR: %+v", pdr)
 	}
 
