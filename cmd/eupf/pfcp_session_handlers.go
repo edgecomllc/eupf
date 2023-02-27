@@ -150,9 +150,18 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	// #TODO: Actually apply rules to the dataplane
 	// #TODO: Handle failed applies and return error
 
-	// Print IE's content as is, it looks like there is no way to pretty print them, without implementing fortmatting for the whole go-pfcp library.
+	// #TODO: Implement printing for other IEs
 	for _, far := range req.CreateFAR {
-		log.Printf("Create FAR: %+v", *far)
+		log.Printf("Create FAR: %+v", far)
+		CreateFAR, err := far.CreateFAR()
+		if err != nil {
+			log.Printf("Error: %+v", err)
+			continue
+		}
+		for _, ie := range CreateFAR {
+			log.Printf("IE: %+v", ie)
+			printIE(ie)
+		}
 	}
 
 	for _, qer := range req.CreateQER {
@@ -200,4 +209,12 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 
 func handlePfcpSessionReportRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
 	return fmt.Errorf("not implemented")
+}
+
+// Print child IE recursively
+func printIE(ie *ie.IE) {
+	log.Printf("IE: %+v", ie)
+	for _, child := range ie.ChildIEs {
+		printIE(child)
+	}
 }
