@@ -60,6 +60,14 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	log.Printf("Got Association Setup Request from: %s. \n %s", addr, asreq)
 	if asreq.NodeID == nil {
 		log.Printf("Got Association Setup Request without NodeID from: %s", addr)
+		// Reject with cause
+		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
+			ie.NewCause(ie.CauseMandatoryIEMissing),
+		)
+		if err := conn.SendMessage(asres, addr); err != nil {
+			log.Print(err)
+			return err
+		}
 		return fmt.Errorf("association setup request without NodeID from: %s", addr)
 	}
 	// Get NodeID

@@ -53,7 +53,7 @@ pfcpSESReq = PFCP(version=1, S=1, seq=2, seid=0, spare_oct=0) / \
              IE_TimeQuota(quota=60),
              IE_URR_Id(id=1)
          ]),
-         IE_FSEID(v4=1, seid=0xffde7210bf97810a, ipv4="172.18.1.1"),
+         IE_FSEID(v4=1, seid=0xffde7230bf97810a, ipv4="172.18.1.1"),
          IE_NodeId(id_type="FQDN", id="BIG-IMPORTANT-CP")
        ])
 
@@ -61,9 +61,20 @@ pfcpSESReq = PFCP(version=1, S=1, seq=2, seid=0, spare_oct=0) / \
 conf.L3socket=L3RawSocket
 
 target = IP(dst="127.0.0.1")/UDP(sport=33100,dport=8805)
-ans = sr1(target/pfcpASReq, iface='lo')
-print(ans.show())
+
+# ans = sr1(target/pfcpSESReq, iface='lo')
+# print(ans.show())
+
+# ans = sr1(target/pfcpASReq, iface='lo')
+# print(ans.show())
 
 ans = sr1(target/pfcpSESReq, iface='lo')
 print(ans.show())
 
+# pfcpASReq_borked = PFCP(version=1, S=0, seq=1) / \
+#   PFCPAssociationSetupRequest(IE_list=[
+#       IE_RecoveryTimeStamp(timestamp=3785653512),      
+#   ])
+
+# ans = sr1(target/pfcpASReq_borked, iface='lo')
+# print(ans.show())
