@@ -21,7 +21,6 @@ func (handlerMap PfcpHanderMap) Handle(conn *PfcpConnection, buf []byte, addr *n
 		log.Printf("Ignored undecodable message: %x, error: %s", buf, err)
 		return err
 	}
-	log.Printf("Parsed PFCP message: %s", msg)
 	if handler, ok := handlerMap[msg.MessageType()]; ok {
 		err := handler(conn, msg, addr)
 		if err != nil {

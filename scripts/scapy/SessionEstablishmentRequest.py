@@ -62,19 +62,19 @@ conf.L3socket=L3RawSocket
 
 target = IP(dst="127.0.0.1")/UDP(sport=33100,dport=8805)
 
-# ans = sr1(target/pfcpSESReq, iface='lo')
-# print(ans.show())
+ans = sr1(target/pfcpSESReq, iface='lo')
+print(ans.show())
 
-# ans = sr1(target/pfcpASReq, iface='lo')
-# print(ans.show())
+ans = sr1(target/pfcpASReq, iface='lo')
+print(ans.show())
 
 ans = sr1(target/pfcpSESReq, iface='lo')
 print(ans.show())
 
-# pfcpASReq_borked = PFCP(version=1, S=0, seq=1) / \
-#   PFCPAssociationSetupRequest(IE_list=[
-#       IE_RecoveryTimeStamp(timestamp=3785653512),      
-#   ])
+pfcpASReq_borked = PFCP(version=1, S=0, seq=1) / \
+  PFCPAssociationSetupRequest(IE_list=[
+      IE_RecoveryTimeStamp(timestamp=3785653512),      
+  ])
 
-# ans = sr1(target/pfcpASReq_borked, iface='lo')
-# print(ans.show())
+ans = sr1(target/pfcpASReq_borked, iface='lo')
+print(ans.show())
