@@ -54,19 +54,6 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	return nil
 }
 
-func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
-
-	return fmt.Errorf("not implemented")
-}
-
-func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
-	return fmt.Errorf("not implemented")
-}
-
-func handlePfcpSessionReportRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
-	return fmt.Errorf("not implemented")
-}
-
 func validateNodeIdFSEID(nodeId *ie.IE, FSEID *ie.IE) error {
 	if nodeId == nil || FSEID == nil {
 		return fmt.Errorf("mandatory IE is missing")
@@ -92,7 +79,7 @@ func sessionRelatedMessagesGuard(conn *PfcpConnection, addr *net.UDPAddr, seq ui
 			log.Print(err)
 			return "", nil, err
 		}
-		return "", nil, fmt.Errorf("Mandatory IE is missing")
+		return "", nil, fmt.Errorf("mandatory IE is missing")
 	}
 	// Errors checked in the validateNodeIdFSEID function
 	remote_nodeID, _ := nodeId.NodeID()

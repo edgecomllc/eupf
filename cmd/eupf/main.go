@@ -59,7 +59,6 @@ func main() {
 	var pfcpHandlers PfcpHanderMap = PfcpHanderMap{
 		message.MsgTypeHeartbeatRequest:        handlePfcpHeartbeatRequest,
 		message.MsgTypeAssociationSetupRequest: handlePfcpAssociationSetupRequest,
-		//
 		message.MsgTypeSessionEstablishmentRequest: handlePfcpSessionEstablishmentRequest,
 	}
 
