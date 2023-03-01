@@ -83,7 +83,7 @@ func validateNodeIdFSEID(nodeId *ie.IE, FSEID *ie.IE) error {
 	// get remote node id
 	_, err := nodeId.NodeID()
 	if err != nil {
-		return fmt.Errorf("NodeId is cirrupted")
+		return fmt.Errorf("NodeId is corrupted")
 	}
 	// get remote FSEID
 	_, err = FSEID.FSEID()
