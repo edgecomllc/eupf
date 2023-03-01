@@ -57,8 +57,8 @@ func main() {
 
 	// Create PFCP connection
 	var pfcpHandlers PfcpHanderMap = PfcpHanderMap{
-		message.MsgTypeHeartbeatRequest:        handlePfcpHeartbeatRequest,
-		message.MsgTypeAssociationSetupRequest: handlePfcpAssociationSetupRequest,
+		message.MsgTypeHeartbeatRequest:            handlePfcpHeartbeatRequest,
+		message.MsgTypeAssociationSetupRequest:     handlePfcpAssociationSetupRequest,
 		message.MsgTypeSessionEstablishmentRequest: handlePfcpSessionEstablishmentRequest,
 	}
 
@@ -72,6 +72,8 @@ func main() {
 	// Start api server
 	api := CreateApiServer(bpfObjects, pfcp_conn)
 	go api.Run(*apiAddr)
+
+	StartMetrics(":9090")
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
