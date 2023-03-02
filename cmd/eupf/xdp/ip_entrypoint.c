@@ -214,6 +214,39 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx, str
     return XDP_TX;
 }
 
+struct pdr_info {
+    __u8 outer_header_removal; 
+    __u16 far_id;
+};
+
+struct bpf_map_def SEC("maps") pdr_map_uplink_ip4 = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(__u32),      // IPv4
+    .value_size = sizeof(struct pdr_info), 
+    .max_entries = 1024,              // FIXME
+};
+
+struct bpf_map_def SEC("maps") pdr_map_downlink_ip4 = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(__u32),      // TEID
+    .value_size = sizeof(struct pdr_info), 
+    .max_entries = 1024,              // FIXME
+};
+
+struct far_info {
+    __u8 action;
+    __u8 outer_header_creation;
+    __u32 teid;
+    __u32 srcip;
+};
+
+struct bpf_map_def SEC("maps") far_map = {
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(__u32),      // FAR ID
+    .value_size = sizeof(struct far_info), 
+    .max_entries = 1024,              // FIXME
+};
+
 struct gtp_tunnel_info {
     __u32 teid;
     __u32 srcip;
@@ -428,6 +461,58 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
     }
 }
 
+static __always_inline __u32 handle_ip4(struct packet_context *ctx)
+{
+    struct iphdr    *ip4;
+    int l4_protocol = parse_ip4(ctx, &ip4);
+    ctx->ip4 = ip4; //fixme
+
+    switch(l4_protocol)
+    {
+        case IPPROTO_ICMP: //Let kernel stack takes care
+            bpf_printk("upf: icmp received. passing to kernel");
+            return XDP_PASS;
+        case IPPROTO_UDP:
+            if(GTP_UDP_PORT == parse_udp(ctx)) {
+                bpf_printk("upf: gtp-u received");
+                return handle_gtpu(ctx);
+            }
+            break;
+        case IPPROTO_TCP:
+            break;
+        default:
+            return DEFAULT_XDP_ACTION;
+    }
+
+    return handle_core_packet_ipv4(ctx->ctx, ip4);
+}
+
+static __always_inline __u32 handle_ip6(struct packet_context *ctx)
+{
+    struct ipv6hdr  *ip6;
+    int l4_protocol = parse_ip6(ctx, &ip6);
+    ctx->ip6 = ip6; //fixme
+
+    switch(l4_protocol)
+    {
+        case IPPROTO_ICMPV6: //Let kernel stack takes care
+            bpf_printk("upf: icmp received. passing to kernel");
+            return XDP_PASS;
+        case IPPROTO_UDP:
+            if(GTP_UDP_PORT == parse_udp(ctx)) {
+                bpf_printk("upf: gtp-u received");
+                return handle_gtpu(ctx);
+            }
+            break;
+        case IPPROTO_TCP:
+            break;
+        default:
+            return DEFAULT_XDP_ACTION;
+    }
+
+    return handle_core_packet_ipv6(ctx->ctx, ip6);
+}
+
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
@@ -440,51 +525,17 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
     struct packet_context context = { .data = data, .data_end = data_end, .ctx = ctx };
 
     struct ethhdr   *eth;
-    struct iphdr    *ip4;
-    struct ipv6hdr  *ip6;
-
     __u16 l3_protocol = parse_ethernet(&context, &eth);
     context.eth = eth; //fixme
-
-    int l4_protocol = 0;
     switch (l3_protocol) {
         case ETH_P_IPV6: 
-            l4_protocol = parse_ip6(&context, &ip6);
-            context.ip6 = ip6; //fixme
-            break;
+            return handle_ip6(&context);
         case ETH_P_IP:
-            l4_protocol = parse_ip4(&context, &ip4);
-            context.ip4 = ip4; //fixme
+            return handle_ip4(&context);
             break;
         case ETH_P_ARP: //Let kernel stack takes care
             bpf_printk("upf: arp received. passing to kernel");
             return XDP_PASS;
-        default:
-            return DEFAULT_XDP_ACTION;
-    }
-
-    switch(l4_protocol)
-    {
-        case IPPROTO_ICMP: //Let kernel stack takes care
-            bpf_printk("upf: icmp received. passing to kernel");
-            return XDP_PASS;
-        case IPPROTO_UDP:
-            if(GTP_UDP_PORT == parse_udp(&context)) {
-                bpf_printk("upf: gtp-u received");
-                return handle_gtpu(&context);
-            }
-            break;
-        case IPPROTO_TCP:
-            break;
-        default:
-            return DEFAULT_XDP_ACTION;
-    }
-
-    switch (l3_protocol) {
-        case ETH_P_IPV6: 
-            return handle_core_packet_ipv6(ctx, ip6);
-        case ETH_P_IP:
-            return handle_core_packet_ipv4(ctx, ip4);
         default:
             return DEFAULT_XDP_ACTION;
     }
