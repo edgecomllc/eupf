@@ -78,15 +78,15 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 func validateRequest(conn *PfcpConnection, addr *net.UDPAddr, nodeId *ie.IE, cpfseid *ie.IE) (string, *ie.FSEIDFields, error) {
 	if nodeId == nil || cpfseid == nil {
-		return "", nil, fmt.Errorf("mandatory IE is missing")
+		return "", nil, errMandatoryIeMissing
 	}
 	_, err := nodeId.NodeID()
 	if err != nil {
-		return "", nil, fmt.Errorf("NodeId is corrupted")
+		return "", nil, errMandatoryIeMissing
 	}
 	_, err = cpfseid.FSEID()
 	if err != nil {
-		return "", nil, fmt.Errorf("FSEID is corrupted")
+		return "", nil, errMandatoryIeMissing
 	}
 	
 	remoteNodeID, _ := nodeId.NodeID()
