@@ -113,7 +113,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		log.Print(err)
 		return err
 	}
-	AsrSucsess.Inc()
+	AsrSuccess.Inc()
 	return nil
 }
 

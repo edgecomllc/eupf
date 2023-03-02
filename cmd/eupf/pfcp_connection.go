@@ -75,12 +75,12 @@ func (connection *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error)
 }
 
 func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDPAddr) error {
-	response_bytes := make([]byte, msg.MarshalLen())
-	if err := msg.MarshalTo(response_bytes); err != nil {
+	responseBytes := make([]byte, msg.MarshalLen())
+	if err := msg.MarshalTo(responseBytes); err != nil {
 		log.Print(err)
 		return err
 	}
-	if _, err := connection.Send(response_bytes, addr); err != nil {
+	if _, err := connection.Send(responseBytes, addr); err != nil {
 		log.Print(err)
 		return err
 	}

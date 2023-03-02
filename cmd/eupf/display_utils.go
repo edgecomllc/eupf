@@ -14,87 +14,87 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 	log.Printf("Session Establishment Request: \n")
 
 	for _, pdr := range req.CreatePDR {
-		display_create_pdr(pdr)
+		displayCreatePdr(pdr)
 	}
 
 	for _, far := range req.CreateFAR {
-		display_create_far(far)
+		displayCreateFar(far)
 	}
 
 	for _, qer := range req.CreateQER {
-		display_create_qer(qer)
+		displayCreateQer(qer)
 	}
 
 	for _, urr := range req.CreateURR {
-		display_create_urr(urr)
+		displayCreateUrr(urr)
 	}
 
 	if req.CreateBAR != nil {
-		display_create_bar(req)
+		displayCreateBar(req)
 	}
 }
 
-func display_create_bar(req *message.SessionEstablishmentRequest) {
+func displayCreateBar(req *message.SessionEstablishmentRequest) {
 	log.Printf("------ Create BAR: %+v", req.CreateBAR)
 	var sb strings.Builder
-	bar_id, err := req.CreateBAR.BARID()
+	barId, err := req.CreateBAR.BARID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("BAR ID: %d \n", bar_id))
+		sb.WriteString(fmt.Sprintf("BAR ID: %d \n", barId))
 	}
 	downlink, err := req.CreateBAR.DownlinkDataNotificationDelay()
 	if err == nil {
 		sb.WriteString(fmt.Sprintf("Downlink Data Notification Delay: %s \n", downlink))
 	}
-	suggested_buffering_packets, err := req.CreateBAR.SuggestedBufferingPacketsCount()
+	suggestedBufferingPackets, err := req.CreateBAR.SuggestedBufferingPacketsCount()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Suggested Buffering Packets Count: %d \n", suggested_buffering_packets))
+		sb.WriteString(fmt.Sprintf("Suggested Buffering Packets Count: %d \n", suggestedBufferingPackets))
 	}
-	mt_edt_control, err := req.CreateBAR.MTEDTControlInformation()
+	mtEdtControl, err := req.CreateBAR.MTEDTControlInformation()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("MT EDI: %d \n", mt_edt_control))
+		sb.WriteString(fmt.Sprintf("MT EDI: %d \n", mtEdtControl))
 	}
 }
 
-func display_create_urr(urr *ie.IE) {
+func displayCreateUrr(urr *ie.IE) {
 	log.Printf("------ Create URR: %+v", urr)
 	var sb strings.Builder
-	urr_id, err := urr.URRID()
+	urrId, err := urr.URRID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("URR ID: %d \n", urr_id))
+		sb.WriteString(fmt.Sprintf("URR ID: %d \n", urrId))
 	}
-	measurement_method, err := urr.MeasurementMethod()
+	measurementMethod, err := urr.MeasurementMethod()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Measurement Method: %d \n", measurement_method))
+		sb.WriteString(fmt.Sprintf("Measurement Method: %d \n", measurementMethod))
 	}
-	volume_threshold, err := urr.VolumeThreshold()
+	volumeThreshold, err := urr.VolumeThreshold()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Volume Threshold: %+v \n", volume_threshold))
+		sb.WriteString(fmt.Sprintf("Volume Threshold: %+v \n", volumeThreshold))
 	}
-	time_threshold, err := urr.TimeThreshold()
+	timeThreshold, err := urr.TimeThreshold()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Time Threshold: %d \n", time_threshold))
+		sb.WriteString(fmt.Sprintf("Time Threshold: %d \n", timeThreshold))
 	}
-	monitoring_time, err := urr.MonitoringTime()
+	monitoringTime, err := urr.MonitoringTime()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Monitoring Time: %s \n", monitoring_time.Format(time.RFC3339)))
+		sb.WriteString(fmt.Sprintf("Monitoring Time: %s \n", monitoringTime.Format(time.RFC3339)))
 	}
 	log.Println(sb.String())
 }
 
-func display_create_qer(qer *ie.IE) {
+func displayCreateQer(qer *ie.IE) {
 	log.Printf("------ Create QER: %+v", qer)
 	var sb strings.Builder
-	qer_id, err := qer.QERID()
+	qerId, err := qer.QERID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("QER ID: %d \n", qer_id))
+		sb.WriteString(fmt.Sprintf("QER ID: %d \n", qerId))
 	}
 	qfi, err := qer.QFI()
 	if err == nil {
 		sb.WriteString(fmt.Sprintf("QFI: %d \n", qfi))
 	}
-	gate_status, err := qer.GateStatus()
+	gateStatus, err := qer.GateStatus()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Gate Status: %d \n", gate_status))
+		sb.WriteString(fmt.Sprintf("Gate Status: %d \n", gateStatus))
 	}
 	mbr, err := qer.MBR()
 	if err == nil {
@@ -104,153 +104,153 @@ func display_create_qer(qer *ie.IE) {
 	if err == nil {
 		sb.WriteString(fmt.Sprintf("GBR: %+v \n", gbr))
 	}
-	packet_rate, err := qer.PacketRate()
+	packetRate, err := qer.PacketRate()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Packet Rate: %+v \n", packet_rate))
+		sb.WriteString(fmt.Sprintf("Packet Rate: %+v \n", packetRate))
 	}
 }
 
-func display_create_far(far *ie.IE) {
+func displayCreateFar(far *ie.IE) {
 	log.Printf("------ Create FAR: %+v", far)
 	var sb strings.Builder
-	far_id, err := far.FARID()
+	farId, err := far.FARID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("FAR ID: %d \n", far_id))
+		sb.WriteString(fmt.Sprintf("FAR ID: %d \n", farId))
 	}
-	apply_action, err := far.ApplyAction()
+	applyAction, err := far.ApplyAction()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Apply Action: %+v \n", apply_action))
+		sb.WriteString(fmt.Sprintf("Apply Action: %+v \n", applyAction))
 	}
-	forwarding_parameters, err := far.ForwardingParameters()
+	forwardingParameters, err := far.ForwardingParameters()
 	if err == nil {
-		for _, forwarding_parameter := range forwarding_parameters {
-			network_instance, err := forwarding_parameter.NetworkInstance()
+		for _, forwardingParameter := range forwardingParameters {
+			networkInstance, err := forwardingParameter.NetworkInstance()
 			if err == nil {
-				sb.WriteString(fmt.Sprintf("Network Instance: %s \n", network_instance))
+				sb.WriteString(fmt.Sprintf("Network Instance: %s \n", networkInstance))
 			}
-			redirect_information, err := forwarding_parameter.RedirectInformation()
+			redirectInformation, err := forwardingParameter.RedirectInformation()
 			if err == nil {
-				sb.WriteString(fmt.Sprintf("Redirect Information, server address: %s \n", redirect_information.RedirectServerAddress))
-				sb.WriteString(fmt.Sprintf("Redirect Information, other server address: %s \n", redirect_information.OtherRedirectServerAddress))
+				sb.WriteString(fmt.Sprintf("Redirect Information, server address: %s \n", redirectInformation.RedirectServerAddress))
+				sb.WriteString(fmt.Sprintf("Redirect Information, other server address: %s \n", redirectInformation.OtherRedirectServerAddress))
 			}
-			header_enrichment, err := forwarding_parameter.HeaderEnrichment()
+			headerEnrichment, err := forwardingParameter.HeaderEnrichment()
 			if err == nil {
-				sb.WriteString(fmt.Sprintf("Header Enrichment: %s : %s \n", header_enrichment.HeaderFieldName, header_enrichment.HeaderFieldValue))
+				sb.WriteString(fmt.Sprintf("Header Enrichment: %s : %s \n", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue))
 			}
 		}
 	}
-	duplicating_parameters, err := far.DuplicatingParameters()
+	duplicatingParameters, err := far.DuplicatingParameters()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Duplicating Parameters: %+v \n", duplicating_parameters))
+		sb.WriteString(fmt.Sprintf("Duplicating Parameters: %+v \n", duplicatingParameters))
 	}
-	bar_id, err := far.BARID()
+	barId, err := far.BARID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("BAR ID: %d \n", bar_id))
+		sb.WriteString(fmt.Sprintf("BAR ID: %d \n", barId))
 	}
-	outer_header_creation, err := far.OuterHeaderCreation()
+	outerHeaderCreation, err := far.OuterHeaderCreation()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Outer Header Creation: %+v \n", outer_header_creation))
+		sb.WriteString(fmt.Sprintf("Outer Header Creation: %+v \n", outerHeaderCreation))
 	}
 	log.Println(sb.String())
 }
 
-func display_create_pdr(pdr *ie.IE) {
+func displayCreatePdr(pdr *ie.IE) {
 	log.Printf("------ Create PDR: %+v", pdr)
 	var sb strings.Builder
-	pdr_id, err := pdr.PDRID()
+	pdrId, err := pdr.PDRID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("PDR ID: %d \n", pdr_id))
+		sb.WriteString(fmt.Sprintf("PDR ID: %d \n", pdrId))
 	}
 	precedence, err := pdr.Precedence()
 	if err == nil {
 		sb.WriteString(fmt.Sprintf("Precedence: %d \n", precedence))
 	}
-	pdi_ies, err := pdr.PDI()
+	pdiIes, err := pdr.PDI()
 	if err == nil {
-		for _, pdi := range pdi_ies {
-			source_interface, err := pdi.SourceInterface()
+		for _, pdi := range pdiIes {
+			sourceInterface, err := pdi.SourceInterface()
 			if err == nil {
-				sb.WriteString(fmt.Sprintf("Source Interface: %d \n", source_interface))
+				sb.WriteString(fmt.Sprintf("Source Interface: %d \n", sourceInterface))
 			}
-			f_teid, err := pdi.FTEID()
+			fTeid, err := pdi.FTEID()
 			if err == nil {
-				sb.WriteString(fmt.Sprintf("F-TEID: %+v \n", f_teid))
+				sb.WriteString(fmt.Sprintf("F-TEID: %+v \n", fTeid))
 			}
-			network_instance, err := pdi.NetworkInstance()
+			networkInstance, err := pdi.NetworkInstance()
 			if err == nil {
-				sb.WriteString(fmt.Sprintf("Network Instance: %s \n", network_instance))
+				sb.WriteString(fmt.Sprintf("Network Instance: %s \n", networkInstance))
 			}
-			redurant_transmission_parameters, err := pdi.RedundantTransmissionParameters()
+			redurantTransmissionParameters, err := pdi.RedundantTransmissionParameters()
 			if err == nil {
-				for _, rtp := range redurant_transmission_parameters {
-					local_f_teid, err := rtp.FTEID()
+				for _, rtp := range redurantTransmissionParameters {
+					localFTeid, err := rtp.FTEID()
 					if err == nil {
-						sb.WriteString(fmt.Sprintf("Local F-TEID: %+v \n", local_f_teid))
+						sb.WriteString(fmt.Sprintf("Local F-TEID: %+v \n", localFTeid))
 					}
-					network_instance, err := rtp.NetworkInstance()
+					networkInstance, err := rtp.NetworkInstance()
 					if err == nil {
-						sb.WriteString(fmt.Sprintf("Network Instance: %s \n", network_instance))
+						sb.WriteString(fmt.Sprintf("Network Instance: %s \n", networkInstance))
 					}
 				}
 			}
 		}
 	}
-	outer_header_removal, err := pdr.OuterHeaderRemoval()
+	outerHeaderRemoval, err := pdr.OuterHeaderRemoval()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Outer Header Removal: %+v \n", outer_header_removal))
+		sb.WriteString(fmt.Sprintf("Outer Header Removal: %+v \n", outerHeaderRemoval))
 	}
-	far_id, err := pdr.FARID()
+	farId, err := pdr.FARID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("FAR ID: %d \n", far_id))
+		sb.WriteString(fmt.Sprintf("FAR ID: %d \n", farId))
 	}
-	urr_id, err := pdr.URRID()
+	urrId, err := pdr.URRID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("URR ID: %d \n", urr_id))
+		sb.WriteString(fmt.Sprintf("URR ID: %d \n", urrId))
 	}
-	qer_id, err := pdr.QERID()
+	qerId, err := pdr.QERID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("QER ID: %d \n", qer_id))
+		sb.WriteString(fmt.Sprintf("QER ID: %d \n", qerId))
 	}
-	activate_predefined_rules, err := pdr.ActivatePredefinedRules()
+	activatePredefinedRules, err := pdr.ActivatePredefinedRules()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Activate Predefined Rules: %s \n", activate_predefined_rules))
+		sb.WriteString(fmt.Sprintf("Activate Predefined Rules: %s \n", activatePredefinedRules))
 	}
-	activation_time, err := pdr.ActivationTime()
+	activationTime, err := pdr.ActivationTime()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Activation Time: %s \n", activation_time.Format(time.RFC3339)))
+		sb.WriteString(fmt.Sprintf("Activation Time: %s \n", activationTime.Format(time.RFC3339)))
 	}
-	deactivation_time, err := pdr.DeactivationTime()
+	deactivationTime, err := pdr.DeactivationTime()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Deactivation Time: %s \n", deactivation_time.Format(time.RFC3339)))
+		sb.WriteString(fmt.Sprintf("Deactivation Time: %s \n", deactivationTime.Format(time.RFC3339)))
 	}
-	mar_id, err := pdr.MARID()
+	marId, err := pdr.MARID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("MAR ID: %d \n", mar_id))
+		sb.WriteString(fmt.Sprintf("MAR ID: %d \n", marId))
 	}
-	packet_replication_and_detection_carry_on_information, err := pdr.PacketReplicationAndDetectionCarryOnInformation()
+	packetReplicationAndDetectionCarryOnInformation, err := pdr.PacketReplicationAndDetectionCarryOnInformation()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Packet Replication and Detection Carry On Information: %+v \n", packet_replication_and_detection_carry_on_information))
+		sb.WriteString(fmt.Sprintf("Packet Replication and Detection Carry On Information: %+v \n", packetReplicationAndDetectionCarryOnInformation))
 	}
-	ip_multicast_addressing_info, err := pdr.IPMulticastAddressingInfo()
+	ipMulticastAddressingInfo, err := pdr.IPMulticastAddressingInfo()
 	if err == nil {
-		for _, ipma := range ip_multicast_addressing_info {
-			ip_multicast_address, err := ipma.IPMulticastAddress()
+		for _, ipma := range ipMulticastAddressingInfo {
+			ipMulticastAddress, err := ipma.IPMulticastAddress()
 			if err == nil {
-				sb.WriteString(fmt.Sprintf("IP Multicast Address: %+v \n", ip_multicast_address))
+				sb.WriteString(fmt.Sprintf("IP Multicast Address: %+v \n", ipMulticastAddress))
 			}
-			source_ip_address, err := ipma.SourceIPAddress()
+			sourceIpAddress, err := ipma.SourceIPAddress()
 			if err == nil {
-				sb.WriteString(fmt.Sprintf("Source IP Address: %+v \n", source_ip_address))
+				sb.WriteString(fmt.Sprintf("Source IP Address: %+v \n", sourceIpAddress))
 			}
 		}
 	}
-	ue_ip_address_pool_identity, err := pdr.UEIPAddressPoolIdentity()
+	ueIpAddressPoolIdentity, err := pdr.UEIPAddressPoolIdentity()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("UE IP Address Pool Identity: %+vd \n", ue_ip_address_pool_identity))
+		sb.WriteString(fmt.Sprintf("UE IP Address Pool Identity: %+vd \n", ueIpAddressPoolIdentity))
 	}
-	mptcp_applicable_indication, err := pdr.MPTCPApplicableIndication()
+	mptcpApplicableIndication, err := pdr.MPTCPApplicableIndication()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("MPTCP Applicable Indication: %d \n", mptcp_applicable_indication))
+		sb.WriteString(fmt.Sprintf("MPTCP Applicable Indication: %d \n", mptcpApplicableIndication))
 	}
 
 	log.Println(sb.String())

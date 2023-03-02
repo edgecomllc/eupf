@@ -10,22 +10,22 @@ import (
 
 var (
 	// Association setup requests
-	AsrSucsess = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "eupf_asr_sucsess",
+	AsrSuccess = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_asr_success",
 		Help: "The total number of successful association setup requests",
 	})
 	AsrReject = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "eupf_asr_reject",
+		Name: "upf_asr_reject",
 		Help: "The total number of rejected association setup requests",
 	})
 
 	// Session establishment requests
-	SerSucsess = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "eupf_ser_sucsess",
+	SerSuccess = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_ser_sucsess",
 		Help: "The total number of successful session establishment requests",
 	})
 	SerReject = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "eupf_ser_reject",
+		Name: "upf_ser_reject",
 		Help: "The total number of rejected session establishment requests",
 	})
 )
