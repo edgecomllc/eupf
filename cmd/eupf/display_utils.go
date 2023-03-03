@@ -13,29 +13,98 @@ import (
 func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) {
 	log.Printf("Session Establishment Request: \n")
 
+	log.Println("------ Create:")
 	for _, pdr := range req.CreatePDR {
-		displayCreatePdr(pdr)
+		displayPdr(pdr)
 	}
 
 	for _, far := range req.CreateFAR {
-		displayCreateFar(far)
+		displayFar(far)
 	}
 
 	for _, qer := range req.CreateQER {
-		displayCreateQer(qer)
+		displayQer(qer)
 	}
 
 	for _, urr := range req.CreateURR {
-		displayCreateUrr(urr)
+		displayUrr(urr)
 	}
 
 	if req.CreateBAR != nil {
-		displayCreateBar(req)
+		displayBar(req)
 	}
 }
 
-func displayCreateBar(req *message.SessionEstablishmentRequest) {
-	log.Printf("------ Create BAR: %+v", req.CreateBAR)
+// IE Contents of Create/Update/Remove are mostly the same
+func printSessionModificationRequest(req *message.SessionModificationRequest) {
+	log.Printf("Session Modification Request: \n")
+	log.Println("------ Update:")
+	for _, pdr := range req.UpdatePDR {
+		displayPdr(pdr)
+	}
+
+	for _, far := range req.UpdateFAR {
+		displayFar(far)
+	}
+
+	for _, qer := range req.UpdateQER {
+		displayQer(qer)
+	}
+
+	for _, urr := range req.UpdateURR {
+		displayUrr(urr)
+	}
+
+	if req.UpdateBAR != nil {
+		log.Printf("------ BAR: %+v", req.UpdateBAR)
+		var sb strings.Builder
+		barId, err := req.UpdateBAR.BARID()
+		if err == nil {
+			sb.WriteString(fmt.Sprintf("BAR ID: %d \n", barId))
+		}
+		downlink, err := req.UpdateBAR.DownlinkDataNotificationDelay()
+		if err == nil {
+			sb.WriteString(fmt.Sprintf("Downlink Data Notification Delay: %s \n", downlink))
+		}
+		suggestedBufferingPackets, err := req.UpdateBAR.SuggestedBufferingPacketsCount()
+		if err == nil {
+			sb.WriteString(fmt.Sprintf("Suggested Buffering Packets Count: %d \n", suggestedBufferingPackets))
+		}
+		mtEdtControl, err := req.UpdateBAR.MTEDTControlInformation()
+		if err == nil {
+			sb.WriteString(fmt.Sprintf("MT EDI: %d \n", mtEdtControl))
+		}
+	}
+
+	log.Println("------ Remove:")
+	for _, pdr := range req.RemovePDR {
+		displayPdr(pdr)
+	}
+
+	for _, far := range req.RemoveFAR {
+		displayFar(far)
+	}
+
+	for _, qer := range req.RemoveQER {
+		displayQer(qer)
+	}
+
+	for _, urr := range req.RemoveURR {
+		displayUrr(urr)
+	}
+
+	if req.RemoveBAR != nil {
+		log.Printf("------ BAR: %+v", req.RemoveBAR)
+		var sb strings.Builder
+		barId, err := req.RemoveBAR.BARID()
+		if err == nil {
+			sb.WriteString(fmt.Sprintf("BAR ID: %d \n", barId))
+		}
+	}
+}
+
+func displayBar(req *message.SessionEstablishmentRequest) {
+	log.Printf("------ BAR: %+v", req.CreateBAR)
 	var sb strings.Builder
 	barId, err := req.CreateBAR.BARID()
 	if err == nil {
@@ -55,8 +124,8 @@ func displayCreateBar(req *message.SessionEstablishmentRequest) {
 	}
 }
 
-func displayCreateUrr(urr *ie.IE) {
-	log.Printf("------ Create URR: %+v", urr)
+func displayUrr(urr *ie.IE) {
+	log.Printf("------ URR: %+v", urr)
 	var sb strings.Builder
 	urrId, err := urr.URRID()
 	if err == nil {
@@ -81,8 +150,8 @@ func displayCreateUrr(urr *ie.IE) {
 	log.Println(sb.String())
 }
 
-func displayCreateQer(qer *ie.IE) {
-	log.Printf("------ Create QER: %+v", qer)
+func displayQer(qer *ie.IE) {
+	log.Printf("------ QER: %+v", qer)
 	var sb strings.Builder
 	qerId, err := qer.QERID()
 	if err == nil {
@@ -110,8 +179,8 @@ func displayCreateQer(qer *ie.IE) {
 	}
 }
 
-func displayCreateFar(far *ie.IE) {
-	log.Printf("------ Create FAR: %+v", far)
+func displayFar(far *ie.IE) {
+	log.Printf("------ FAR: %+v", far)
 	var sb strings.Builder
 	farId, err := far.FARID()
 	if err == nil {
@@ -154,8 +223,8 @@ func displayCreateFar(far *ie.IE) {
 	log.Println(sb.String())
 }
 
-func displayCreatePdr(pdr *ie.IE) {
-	log.Printf("------ Create PDR: %+v", pdr)
+func displayPdr(pdr *ie.IE) {
+	log.Printf("------ PDR: %+v", pdr)
 	var sb strings.Builder
 	pdrId, err := pdr.PDRID()
 	if err == nil {

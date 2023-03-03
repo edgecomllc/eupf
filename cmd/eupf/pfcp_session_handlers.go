@@ -75,6 +75,50 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	return message.NewSessionDeletionResponse(0, 0, seid, req.SequenceNumber, 0, ie.NewCause(ie.CauseRequestAccepted)), nil
 }
 
+func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+	req := msg.(*message.SessionModificationRequest)
+	log.Printf("Got Session Modification Request from: %s. \n %s", addr, req)
+	remoteNodeID, fseid, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
+	if err != nil {
+		log.Printf("Rejecting Session Modification Request from: %s", addr)
+		SmrReject.Inc()
+		return message.NewSessionModificationResponse(0, 0, 0, req.SequenceNumber, 0, convertErrorToIeCause(err)), nil
+	}
+
+	association, ok := conn.nodeAssociations[remoteNodeID]
+	if !ok {
+		log.Printf("Rejecting Session Modification Request from: %s", addr)
+		SmrReject.Inc()
+		return message.NewSessionModificationResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
+	}
+
+	_, ok = association.Sessions[fseid.SEID]
+	if !ok {
+		log.Printf("Rejecting Session Modification Request from: %s", addr)
+		SmrReject.Inc()
+		return message.NewSessionModificationResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
+	}
+
+	// #TODO: Actually apply rules to the dataplane
+	// #TODO: Handle failed applies and return error
+	printSessionModificationRequest(req)
+
+	// #TODO: support v6
+	var v6 net.IP
+	// Send SessionEstablishmentResponse
+	modResp := message.NewSessionModificationResponse(
+		0, 0,
+		fseid.SEID,
+		req.SequenceNumber,
+		0,
+		ie.NewCause(ie.CauseRequestAccepted),
+		newIeNodeID(conn.nodeId),
+		ie.NewFSEID(fseid.SEID, conn.nodeAddrV4, v6),
+	)
+	SmrSuccess.Inc()
+	return modResp, nil
+}
+
 func convertErrorToIeCause(err error) *ie.IE {
 	switch err {
 	case errMandatoryIeMissing:
