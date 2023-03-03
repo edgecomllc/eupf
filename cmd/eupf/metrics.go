@@ -28,6 +28,16 @@ var (
 		Name: "upf_ser_reject",
 		Help: "The total number of rejected session establishment requests",
 	})
+
+	// Session modification requests
+	SmrSuccess = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_smr_success",
+		Help: "The total number of successful session modification requests",
+	})
+	SmrReject = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_smr_reject",
+		Help: "The total number of rejected session modification requests",
+	})
 )
 
 func StartMetrics(addr string) {
