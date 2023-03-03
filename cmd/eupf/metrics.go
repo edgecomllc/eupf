@@ -21,7 +21,7 @@ var (
 
 	// Session establishment requests
 	SerSuccess = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "upf_ser_sucsess",
+		Name: "upf_ser_success",
 		Help: "The total number of successful session establishment requests",
 	})
 	SerReject = promauto.NewCounter(prometheus.CounterOpts{

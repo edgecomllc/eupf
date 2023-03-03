@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"time"
@@ -10,7 +9,7 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type PfcpFunc func(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error
+type PfcpFunc func(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error)
 
 type PfcpHanderMap map[uint8]PfcpFunc
 
@@ -22,39 +21,36 @@ func (handlerMap PfcpHanderMap) Handle(conn *PfcpConnection, buf []byte, addr *n
 		return err
 	}
 	if handler, ok := handlerMap[msg.MessageType()]; ok {
-		err := handler(conn, msg, addr)
+		msg, err := handler(conn, msg, addr)
 		if err != nil {
 			log.Printf("Error handling PFCP message: %s", err)
 			return err
 		}
+		return conn.SendMessage(msg, addr)
 	} else {
 		log.Printf("Got unexpected message %s: %s, from: %s", msg.MessageTypeName(), msg, addr)
 	}
 	return nil
 }
 
-func handlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
+func handlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	hbreq := msg.(*message.HeartbeatRequest)
 
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
 		log.Printf("Got Heartbeat Request with invalid TS: %s, from: %s", err, addr)
-		return err
+		return nil, err
 	} else {
 		log.Printf("Got Heartbeat Request with TS: %s, from: %s", ts, addr)
 	}
 
 	hbres := message.NewHeartbeatResponse(hbreq.SequenceNumber, ie.NewRecoveryTimeStamp(time.Now()))
-	if err := conn.SendMessage(hbres, addr); err != nil {
-		log.Print(err)
-		return err
-	}
 	log.Printf("Sent Heartbeat Response to: %s", addr)
-	return nil
+	return hbres, nil
 }
 
 // https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/16.04.00_60/ts_129244v160400p.pdf page 95
-func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) error {
+func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	asreq := msg.(*message.AssociationSetupRequest)
 	log.Printf("Got Association Setup Request from: %s. \n %s", addr, asreq)
 	if asreq.NodeID == nil {
@@ -64,17 +60,17 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
-		if err := conn.SendMessage(asres, addr); err != nil {
-			log.Print(err)
-			return err
-		}
-		return fmt.Errorf("association setup request without NodeID from: %s", addr)
+		return asres, nil
 	}
 	// Get NodeID
 	remote_nodeID, err := asreq.NodeID.NodeID()
 	if err != nil {
 		log.Printf("Got Association Setup Request with invalid NodeID from: %s", addr)
-		return err
+		AsrReject.Inc()
+		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
+			ie.NewCause(ie.CauseMandatoryIEMissing),
+		)
+		return asres, nil
 	}
 	// Check if the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
 	if _, ok := conn.nodeAssociations[remote_nodeID]; ok {
@@ -108,22 +104,8 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	)
 
 	// Send AssociationSetupResponse
-
-	if err := conn.SendMessage(asres, addr); err != nil {
-		log.Print(err)
-		return err
-	}
 	AsrSuccess.Inc()
-	return nil
-}
-
-// Check if for incoming message NodeID exists in NodeAssociationMap
-func (conn *PfcpConnection) checkNodeAssociation(remote_nodeID string) error {
-	if _, ok := conn.nodeAssociations[remote_nodeID]; !ok {
-		log.Printf("NodeID: %s not found in NodeAssociationMap", remote_nodeID)
-		return fmt.Errorf("nodeID: %s not found in NodeAssociationMap", remote_nodeID)
-	}
-	return nil
+	return asres, nil
 }
 
 func newIeNodeID(nodeID string) *ie.IE {
