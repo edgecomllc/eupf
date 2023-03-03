@@ -3,18 +3,22 @@ package main
 import (
 	"log"
 	"net"
+
+	"github.com/wmnsk/go-pfcp/message"
 )
 
 type Session struct {
-	Seid uint64	
+	SEID uint64
 }
+
+type SessionMap map[uint64]Session
 
 type NodeAssociationMap map[string]NodeAssociation
 
 type NodeAssociation struct {
 	ID       string
 	Addr     string
-	Sessions []Session
+	Sessions SessionMap
 }
 
 type PfcpConnection struct {
@@ -22,6 +26,7 @@ type PfcpConnection struct {
 	pfcpHandlerMap   PfcpHanderMap
 	nodeAssociations NodeAssociationMap
 	nodeId           string
+	nodeAddrV4       net.IP
 }
 
 func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string) (*PfcpConnection, error) {
@@ -35,10 +40,16 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		log.Printf("Can't listen UDP address: %s", err)
 		return nil, err
 	}
+	addrv4, err := net.ResolveIPAddr("ip4", nodeId)
+	if err != nil {
+		return nil, err
+	}
 	return &PfcpConnection{
-		udpConn:        udpConn,
-		pfcpHandlerMap: pfcpHandlerMap,
-		nodeId:         nodeId,
+		udpConn:          udpConn,
+		pfcpHandlerMap:   pfcpHandlerMap,
+		nodeAssociations: NodeAssociationMap{},
+		nodeId:           nodeId,
+		nodeAddrV4:       addrv4.IP,
 	}, nil
 }
 
@@ -61,4 +72,17 @@ func (connection *PfcpConnection) Close() {
 
 func (connection *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error) {
 	return connection.udpConn.WriteTo(b, addr)
+}
+
+func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDPAddr) error {
+	responseBytes := make([]byte, msg.MarshalLen())
+	if err := msg.MarshalTo(responseBytes); err != nil {
+		log.Print(err)
+		return err
+	}
+	if _, err := connection.Send(responseBytes, addr); err != nil {
+		log.Print(err)
+		return err
+	}
+	return nil
 }

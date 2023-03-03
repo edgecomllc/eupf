@@ -11,7 +11,7 @@ type ApiServer struct {
 	router *gin.Engine
 }
 
-func CreateApiServer(bpfObjects *BpfObjects) *ApiServer {
+func CreateApiServer(bpfObjects *BpfObjects, pfcp_srv *PfcpConnection) *ApiServer {
 	router := gin.Default()
 	router.GET("/upf_pipeline", func(c *gin.Context) {
 		elements, err := ListMapProgArrayContents(bpfObjects.upf_xdpObjects.UpfPipeline)
@@ -29,6 +29,8 @@ func CreateApiServer(bpfObjects *BpfObjects) *ApiServer {
 			return
 		}
 		c.IndentedJSON(http.StatusOK, elements)
+	}).GET("/pfcp_associations", func(c *gin.Context) {
+		c.IndentedJSON(http.StatusOK, pfcp_srv.nodeAssociations)
 	})
 	return &ApiServer{router: router}
 }

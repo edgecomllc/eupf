@@ -16,7 +16,7 @@ import (
 var ifaceName = flag.String("iface", "lo", "Interface to bind XDP program to")
 var apiAddr = flag.String("aaddr", ":8080", "Address to bind api server to")
 var pfcpAddr = flag.String("paddr", ":8805", "Address to bind PFCP server to")
-var pfcpNodeId = flag.String("nodeid", "pfcp.somecore.internal", "PFCP Server Node ID, only FQDN for now")
+var pfcpNodeId = flag.String("nodeid", "localhost", "PFCP Server Node ID")
 
 func main() {
 	stopper := make(chan os.Signal, 1)
@@ -55,14 +55,11 @@ func main() {
 	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	log.Printf("Press Ctrl-C to exit and remove the program")
 
-	// Start api server
-	api := CreateApiServer(bpfObjects)
-	go api.Run(*apiAddr)
-
 	// Create PFCP connection
 	var pfcpHandlers PfcpHanderMap = PfcpHanderMap{
-		message.MsgTypeHeartbeatRequest:        handlePfcpHeartbeatRequest,
-		message.MsgTypeAssociationSetupRequest: handlePfcpAssociationSetupRequest,
+		message.MsgTypeHeartbeatRequest:            handlePfcpHeartbeatRequest,
+		message.MsgTypeAssociationSetupRequest:     handlePfcpAssociationSetupRequest,
+		message.MsgTypeSessionEstablishmentRequest: handlePfcpSessionEstablishmentRequest,
 	}
 
 	pfcp_conn, err := CreatePfcpConnection(*pfcpAddr, pfcpHandlers, *pfcpNodeId)
@@ -71,6 +68,12 @@ func main() {
 	}
 	go pfcp_conn.Run()
 	defer pfcp_conn.Close()
+
+	// Start api server
+	api := CreateApiServer(bpfObjects, pfcp_conn)
+	go api.Run(*apiAddr)
+
+	StartMetrics(":9090")
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
