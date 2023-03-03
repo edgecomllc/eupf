@@ -16,16 +16,10 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, req)
 	remoteNodeID, fseid, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
-	switch err {
-	case errMandatoryIeMissing:
+	if err != nil {
 		log.Printf("Rejecting Session Establishment Request from: %s", addr)
 		SerReject.Inc()
-		return message.NewSessionEstablishmentResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseMandatoryIEMissing)), nil
-	case errNoEstablishedAssociation:
-		log.Printf("Rejecting Session Establishment Request from: %s", addr)
-		// Send SessionEstablishmentResponse with Cause: No PFCP Established Association
-		SerReject.Inc()
-		return message.NewSessionEstablishmentResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
+		return message.NewSessionEstablishmentResponse(0, 0, 0, req.SequenceNumber, 0, convertErrorToIeCause(err)), nil
 	}
 
 	association, ok := conn.nodeAssociations[remoteNodeID]
@@ -64,6 +58,18 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	)
 	SerSuccess.Inc()
 	return estResp, nil
+}
+
+func convertErrorToIeCause(err error) *ie.IE {
+	switch err {
+	case errMandatoryIeMissing:
+		return ie.NewCause(ie.CauseMandatoryIEMissing)
+	case errNoEstablishedAssociation:
+		return ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)
+	default:
+		log.Printf("Unknown error: %s", err)
+		return ie.NewCause(ie.CauseRequestRejected)
+	}
 }
 
 func validateRequest(conn *PfcpConnection, addr *net.UDPAddr, nodeId *ie.IE, cpfseid *ie.IE) (string, *ie.FSEIDFields, error) {
