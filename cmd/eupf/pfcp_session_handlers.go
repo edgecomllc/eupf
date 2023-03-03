@@ -60,6 +60,21 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	return estResp, nil
 }
 
+func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+	req := msg.(*message.SessionDeletionRequest)
+	log.Printf("Got Session Deletion Request from: %s. \n %s", addr, req)
+	seid := req.SEID()
+
+	// #TODO: Explore how Sessions should be stored, perform actual deletion of session when session storage API stabilizes	
+	if seid != 0 {
+		log.Printf("Rejecting Session Deletion Request from: %s", addr)
+		SdrReject.Inc()
+		return message.NewSessionDeletionResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
+	}
+	
+	return message.NewSessionDeletionResponse(0, 0, seid, req.SequenceNumber, 0, ie.NewCause(ie.CauseRequestAccepted)), nil
+}
+
 func convertErrorToIeCause(err error) *ie.IE {
 	switch err {
 	case errMandatoryIeMissing:
