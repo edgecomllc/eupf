@@ -60,6 +60,7 @@ func main() {
 		message.MsgTypeHeartbeatRequest:            handlePfcpHeartbeatRequest,
 		message.MsgTypeAssociationSetupRequest:     handlePfcpAssociationSetupRequest,
 		message.MsgTypeSessionEstablishmentRequest: handlePfcpSessionEstablishmentRequest,
+		message.MsgTypeSessionModificationRequest:  handlePfcpSessionModificationRequest,
 	}
 
 	pfcp_conn, err := CreatePfcpConnection(*pfcpAddr, pfcpHandlers, *pfcpNodeId)
