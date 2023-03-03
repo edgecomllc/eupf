@@ -65,13 +65,13 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	log.Printf("Got Session Deletion Request from: %s. \n %s", addr, req)
 	seid := req.SEID()
 
-	// #TODO: Explore how Sessions should be stored, perform actual deletion of session when session storage API stabilizes	
-	if seid != 0 {
+	// #TODO: Explore how Sessions should be stored, perform actual deletion of session when session storage API stabilizes
+	if seid == 0 {
 		log.Printf("Rejecting Session Deletion Request from: %s", addr)
 		SdrReject.Inc()
 		return message.NewSessionDeletionResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
-	
+
 	return message.NewSessionDeletionResponse(0, 0, seid, req.SequenceNumber, 0, ie.NewCause(ie.CauseRequestAccepted)), nil
 }
 
