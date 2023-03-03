@@ -15,14 +15,14 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, req)
-	remoteNodeID, fseid, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
+	_, fseid, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
 	if err != nil {
 		log.Printf("Rejecting Session Establishment Request from: %s", addr)
 		SerReject.Inc()
 		return message.NewSessionEstablishmentResponse(0, 0, 0, req.SequenceNumber, 0, convertErrorToIeCause(err)), nil
 	}
 
-	association, ok := conn.nodeAssociations[remoteNodeID]
+	association, ok := conn.nodeAssociations[addr.String()]
 	if !ok {
 		log.Printf("Rejecting Session Establishment Request from: %s", addr)
 		SerReject.Inc()
@@ -64,9 +64,15 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	req := msg.(*message.SessionDeletionRequest)
 	log.Printf("Got Session Deletion Request from: %s. \n %s", addr, req)
 	seid := req.SEID()
-
+	association, ok := conn.nodeAssociations[addr.String()]
+	if !ok {
+		log.Printf("Rejecting Session Deletion Request from: %s", addr)
+		SdrReject.Inc()
+		return message.NewSessionDeletionResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
+	}
 	// #TODO: Explore how Sessions should be stored, perform actual deletion of session when session storage API stabilizes
-	if seid == 0 {
+	_, ok = association.Sessions[seid]
+	if !ok {
 		log.Printf("Rejecting Session Deletion Request from: %s", addr)
 		SdrReject.Inc()
 		return message.NewSessionDeletionResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
@@ -78,14 +84,14 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionModificationRequest)
 	log.Printf("Got Session Modification Request from: %s. \n %s", addr, req)
-	remoteNodeID, fseid, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
+	_, fseid, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
 	if err != nil {
 		log.Printf("Rejecting Session Modification Request from: %s", addr)
 		SmrReject.Inc()
 		return message.NewSessionModificationResponse(0, 0, 0, req.SequenceNumber, 0, convertErrorToIeCause(err)), nil
 	}
 
-	association, ok := conn.nodeAssociations[remoteNodeID]
+	association, ok := conn.nodeAssociations[addr.String()]
 	if !ok {
 		log.Printf("Rejecting Session Modification Request from: %s", addr)
 		SmrReject.Inc()

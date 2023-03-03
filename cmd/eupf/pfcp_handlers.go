@@ -90,7 +90,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		Sessions: SessionMap{},
 	}
 	// Add or replace RemoteNode to NodeAssociationMap
-	conn.nodeAssociations[remote_nodeID] = remoteNode
+	conn.nodeAssociations[addr.String()] = remoteNode
 	log.Printf("Added RemoteNode: %s to NodeAssociationMap", remoteNode.ID)
 
 	// shall send a PFCP Association Setup Response including:
