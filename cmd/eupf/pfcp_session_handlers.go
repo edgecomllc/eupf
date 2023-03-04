@@ -17,23 +17,23 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, req)
 	_, fseid, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
 	if err != nil {
-		log.Printf("Rejecting Session Establishment Request from: %s", addr)
+		log.Printf("Rejecting Session Establishment Request from: %s (missing NodeID or F-SEID)", addr)
 		SerReject.Inc()
-		return message.NewSessionEstablishmentResponse(0, 0, 0, req.SequenceNumber, 0, convertErrorToIeCause(err)), nil
+		return message.NewSessionEstablishmentResponse(0, 0, fseid.SEID, req.Sequence(), 0, convertErrorToIeCause(err)), nil
 	}
 
 	association, ok := conn.nodeAssociations[addr.String()]
 	if !ok {
-		log.Printf("Rejecting Session Establishment Request from: %s", addr)
+		log.Printf("Rejecting Session Establishment Request from: %s (no association)", addr)
 		SerReject.Inc()
-		return message.NewSessionEstablishmentResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
+		return message.NewSessionEstablishmentResponse(0, 0, fseid.SEID, req.Sequence(), 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
 	}
 
 	// if session already exists, return error
 	if _, ok := association.Sessions[fseid.SEID]; ok {
-		log.Printf("Rejecting Session Establishment Request from: %s", addr)
+		log.Printf("Rejecting Session Establishment Request from: %s (unknown SEID)", addr)
 		SerReject.Inc()
-		return message.NewSessionEstablishmentResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseRequestRejected)), nil
+		return message.NewSessionEstablishmentResponse(0, 0, fseid.SEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestRejected)), nil
 	}
 	// We are using same SEID as SMF
 	association.Sessions[fseid.SEID] = Session{
@@ -50,7 +50,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	estResp := message.NewSessionEstablishmentResponse(
 		0, 0,
 		fseid.SEID,
-		req.SequenceNumber,
+		req.Sequence(),
 		0,
 		ie.NewCause(ie.CauseRequestAccepted),
 		newIeNodeID(conn.nodeId),
@@ -66,43 +66,43 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	seid := req.SEID()
 	association, ok := conn.nodeAssociations[addr.String()]
 	if !ok {
-		log.Printf("Rejecting Session Deletion Request from: %s", addr)
+		log.Printf("Rejecting Session Deletion Request from: %s (no association)", addr)
 		SdrReject.Inc()
-		return message.NewSessionDeletionResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
+		return message.NewSessionDeletionResponse(0, 0, req.SEID(), req.Sequence(), 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
 	}
 	// #TODO: Explore how Sessions should be stored, perform actual deletion of session when session storage API stabilizes
 	_, ok = association.Sessions[seid]
 	if !ok {
-		log.Printf("Rejecting Session Deletion Request from: %s", addr)
+		log.Printf("Rejecting Session Deletion Request from: %s (unknown SEID)", addr)
 		SdrReject.Inc()
-		return message.NewSessionDeletionResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
+		return message.NewSessionDeletionResponse(0, 0, req.SEID(), req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 
-	return message.NewSessionDeletionResponse(0, 0, seid, req.SequenceNumber, 0, ie.NewCause(ie.CauseRequestAccepted)), nil
+	return message.NewSessionDeletionResponse(0, 0, req.SEID(), req.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted)), nil
 }
 
 func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionModificationRequest)
 	log.Printf("Got Session Modification Request from: %s. \n %s", addr, req)
-	_, fseid, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
-	if err != nil {
-		log.Printf("Rejecting Session Modification Request from: %s", addr)
-		SmrReject.Inc()
-		return message.NewSessionModificationResponse(0, 0, 0, req.SequenceNumber, 0, convertErrorToIeCause(err)), nil
-	}
+	// _, fseid, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
+	// if err != nil {
+	// 	log.Printf("Rejecting Session Modification Request from: %s", addr)
+	// 	SmrReject.Inc()
+	// 	return message.NewSessionModificationResponse(0, 0, msg.SEID(), msg.Sequence(), 0, convertErrorToIeCause(err)), nil
+	// }
 
 	association, ok := conn.nodeAssociations[addr.String()]
 	if !ok {
-		log.Printf("Rejecting Session Modification Request from: %s", addr)
+		log.Printf("Rejecting Session Modification Request from: %s (no association)", addr)
 		SmrReject.Inc()
-		return message.NewSessionModificationResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
+		return message.NewSessionModificationResponse(0, 0, req.SEID(), req.Sequence(), 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
 	}
 
-	_, ok = association.Sessions[fseid.SEID]
+	_, ok = association.Sessions[req.SEID()]
 	if !ok {
-		log.Printf("Rejecting Session Modification Request from: %s", addr)
+		log.Printf("Rejecting Session Modification Request from: %s (unknown SEID)", addr)
 		SmrReject.Inc()
-		return message.NewSessionModificationResponse(0, 0, 0, req.SequenceNumber, 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
+		return message.NewSessionModificationResponse(0, 0, req.SEID(), req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 
 	// #TODO: Actually apply rules to the dataplane
@@ -114,12 +114,12 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	// Send SessionEstablishmentResponse
 	modResp := message.NewSessionModificationResponse(
 		0, 0,
-		fseid.SEID,
-		req.SequenceNumber,
+		req.SEID(),
+		req.Sequence(),
 		0,
 		ie.NewCause(ie.CauseRequestAccepted),
 		newIeNodeID(conn.nodeId),
-		ie.NewFSEID(fseid.SEID, conn.nodeAddrV4, v6),
+		ie.NewFSEID(req.SEID(), conn.nodeAddrV4, v6),
 	)
 	SmrSuccess.Inc()
 	return modResp, nil
