@@ -42,6 +42,9 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		RemoteSEID: remoneSEID.SEID,
 	}
 
+	// FIXME
+	conn.nodeAssociations[addr.String()] = association
+
 	// #TODO: Actually apply rules to the dataplane
 	// #TODO: Handle failed applies and return error
 	printSessionEstablishmentRequest(req)
@@ -105,7 +108,10 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	if req.CPFSEID != nil {
 		remoteSEID, err := req.CPFSEID.FSEID()
 		if err == nil {
-			session.RemoteSEID = remoteSEID.SEID // FIXME: won't work
+			session.RemoteSEID = remoteSEID.SEID
+
+			association.Sessions[req.SEID()] = session         // FIXME
+			conn.nodeAssociations[addr.String()] = association // FIXME
 		}
 	}
 
