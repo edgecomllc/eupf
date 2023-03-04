@@ -1,0 +1,21 @@
+name: deploy to test
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+
+  use-build:
+    uses: edgecomllc/eupf/.github/workflows/build.yml@main
+  deploy:
+    uses: edgecomllc/eupf/.github/workflows/deploy.yml@main
+    name: deploy to test
+    needs: use-build
+    with:
+      kube_context: "edgecom-test"
+      environment_name: "test"
+      helm_cmd_args: "--wait --timeout 60s --values .deploy/helm/values/test.yaml"
+    secrets:
+      kube_config: ${{ secrets.KUBE_CONFIG_TEST }}
