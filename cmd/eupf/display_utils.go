@@ -177,6 +177,7 @@ func displayQer(qer *ie.IE) {
 	if err == nil {
 		sb.WriteString(fmt.Sprintf("Packet Rate: %+v \n", packetRate))
 	}
+	log.Println(sb.String())
 }
 
 func displayFar(far *ie.IE) {

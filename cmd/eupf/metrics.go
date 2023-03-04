@@ -29,6 +29,16 @@ var (
 		Help: "The total number of rejected session establishment requests",
 	})
 
+	// Session Deletion requests
+	SdrSuccess = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_sdr_success",
+		Help: "The total number of successful session deletion requests",
+	})
+	SdrReject = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_sdr_reject",
+		Help: "The total number of rejected session deletion requests",
+	})
+	
 	// Session modification requests
 	SmrSuccess = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "upf_smr_success",

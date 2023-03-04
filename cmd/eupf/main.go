@@ -60,6 +60,7 @@ func main() {
 		message.MsgTypeHeartbeatRequest:            handlePfcpHeartbeatRequest,
 		message.MsgTypeAssociationSetupRequest:     handlePfcpAssociationSetupRequest,
 		message.MsgTypeSessionEstablishmentRequest: handlePfcpSessionEstablishmentRequest,
+		message.MsgTypeSessionDeletionRequest:      handlePfcpSessionDeletionRequest,
 		message.MsgTypeSessionModificationRequest:  handlePfcpSessionModificationRequest,
 	}
 

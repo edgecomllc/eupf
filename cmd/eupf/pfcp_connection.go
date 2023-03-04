@@ -8,7 +8,8 @@ import (
 )
 
 type Session struct {
-	SEID uint64
+	LocalSEID  uint64
+	RemoteSEID uint64
 }
 
 type SessionMap map[uint64]Session
@@ -16,9 +17,15 @@ type SessionMap map[uint64]Session
 type NodeAssociationMap map[string]NodeAssociation
 
 type NodeAssociation struct {
-	ID       string
-	Addr     string
-	Sessions SessionMap
+	ID            string
+	Addr          string
+	NextSessionID uint64
+	Sessions      SessionMap
+}
+
+func (association *NodeAssociation) NewLocalSEID() uint64 {
+	association.NextSessionID += 1
+	return association.NextSessionID
 }
 
 type PfcpConnection struct {
