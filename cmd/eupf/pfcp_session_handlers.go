@@ -82,6 +82,7 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 
+	SdrSuccess.Inc()
 	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted)), nil
 }
 
