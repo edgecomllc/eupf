@@ -1,16 +1,13 @@
 name: deploy to dev
 
 on:
-  push:
-    branches:
-      - "main"
+  workflow_dispatch:
 
 jobs:
-
   use-build:
-    uses: edgecomllc/eupf/.github/workflows/build.yml@main
+    uses: ./.github/workflows/build.yml
   deploy:
-    uses: edgecomllc/eupf/.github/workflows/deploy.yml@main
+    uses: ./.github/workflows/deploy.yml
     name: deploy to dev
     needs: use-build
     with:

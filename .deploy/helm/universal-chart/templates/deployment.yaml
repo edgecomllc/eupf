@@ -37,7 +37,7 @@ spec:
         - name: app
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ include "helpers.common.containerImage" . }}"
+          image: "{{ include "helpers.pod.containerImage" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.ImagePullPolicy }}
           {{- if .Values.env }}
           env:

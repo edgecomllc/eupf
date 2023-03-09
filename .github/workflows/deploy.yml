@@ -23,6 +23,7 @@ jobs:
     env:
       HELM_DEPLOYMENT_NAMESPACE_NAME: free5gc
       HELM_CHART_RELEASE_NAME: eupf
+      HELM_CHART_APP_VERSION: ${{ github.sha }}
       HELM_CHART_DIRECTORY: .deploy/helm/universal-chart
       HELM_CMD_ARGS: ${{ inputs.helm_cmd_args }}
     environment:
@@ -38,9 +39,12 @@ jobs:
           context: ${{ inputs.kube_context }}
           kubeconfig: ${{ secrets.kube_config }}
 
-      - name: helm install
+      - name: Install helm
+        uses: azure/setup-helm@v3
+        with:
+          version: "v3.11.1"
+
+      - name: Install helm chart
         run: |
-          export SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-7`
-          export IMAGE_TAG="sha-${SHORT_SHA}"
-          sed -ie "s/appVersion.*$/appVersion\: \"$SHORT_SHA\"/g" ${HELM_CHART_DIRECTORY}/Chart.yaml
-          helm upgrade --install ${HELM_CHART_RELEASE_NAME} ${HELM_CHART_DIRECTORY} --namespace ${HELM_DEPLOYMENT_NAMESPACE_NAME} ${HELM_CMD_ARGS} --set-string image.tag=${IMAGE_TAG}
+          sed -ie "s/appVersion.*$/appVersion\: \"$HELM_CHART_APP_VERSION\"/g" ${HELM_CHART_DIRECTORY}/Chart.yaml
+          helm upgrade --install ${HELM_CHART_RELEASE_NAME} ${HELM_CHART_DIRECTORY} --namespace ${HELM_DEPLOYMENT_NAMESPACE_NAME} ${HELM_CMD_ARGS}
