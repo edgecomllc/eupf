@@ -12,6 +12,15 @@ Currently UPF have theese parameters:
 
 Theese parametrs can be changes through command line interface, config files (YAML, JSON) or enviroment variables prefixed with `UPF_`.
 
+We are using [Viper](https://github.com/spf13/viper) for configuration handling, [Viper](https://github.com/spf13/viper) uses the following precedence order. Each item takes precedence over the item below it:
+
+- explicit call to Set
+- flag
+- env
+- config
+- key/value store
+- default
+
 ## Example configuration
 
 ### Default values YAML
