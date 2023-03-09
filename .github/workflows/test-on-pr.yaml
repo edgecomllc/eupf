@@ -10,7 +10,7 @@ jobs:
         with:
          packages: clang llvm gcc-multilib libbpf-dev
 
-      - uses: actions/checkout@v3      
+      - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v3

@@ -1,6 +1,7 @@
-name: Build and publish docker container
+name: Build and publish docker image
 
 on:
+  workflow_call:
   push:
     branches:
       - "main"
@@ -10,12 +11,11 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  docker:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -29,12 +29,15 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha
 
       - name: Build and push
         uses: docker/build-push-action@v4
