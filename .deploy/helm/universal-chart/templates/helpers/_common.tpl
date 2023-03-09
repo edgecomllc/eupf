@@ -10,14 +10,3 @@ Usage:
         {{- tpl (.value | toYaml) .context }}
     {{- end }}
 {{- end -}}
-
-{{/*
-Container image full
-*/}}
-{{- define "helpers.common.containerImage" -}}
-{{- if .Values.image.tag }}
-{{- printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository .Values.image.name .Values.image.tag }}
-{{- else }}
-{{- printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository .Values.image.name .Chart.AppVersion }}
-{{- end }}
-{{- end -}}

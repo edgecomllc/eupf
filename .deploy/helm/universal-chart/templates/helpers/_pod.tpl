@@ -1,3 +1,13 @@
+{{- define "helpers.pod.containerImage" -}}
+
+{{- if .Values.image.tag }}
+{{- printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository .Values.image.name .Values.image.tag }}
+{{- else }}
+{{- printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository .Values.image.name .Chart.AppVersion }}
+{{- end }}
+
+{{- end -}}
+
 {{- define "helpers.pod.initContainers" -}}
 
 {{- $all := . -}}
@@ -6,7 +16,7 @@
   {{- if $v.image }}
   image: {{ $v.image }}
   {{- else }}
-  image: {{ include "helpers.common.containerImage" $all | quote }}
+  image: {{ include "helpers.pod.containerImage" $all | quote }}
   {{- end }}
   {{- if $v.imagePullPolicy }}
   imagePullPolicy: {{ $v.imagePullPolicy }}
