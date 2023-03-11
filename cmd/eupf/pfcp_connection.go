@@ -10,6 +10,63 @@ import (
 type Session struct {
 	LocalSEID  uint64
 	RemoteSEID uint64
+	updrs      map[uint32]PdrInfo // Uplink PDRs
+	dpdrs      map[string]PdrInfo // Downlink PDRs
+	fars       map[uint32]FarInfo
+}
+
+func (s *Session) CreateUpLinkPDR(bpfObjects *BpfObjects, teid uint32, pdrInfo PdrInfo) error {
+	if err := bpfObjects.PutPdrUpLink(teid, pdrInfo); err != nil {
+		log.Printf("Can't put uplink PDR: %s", err)
+		return err
+	}
+	s.updrs[teid] = pdrInfo
+	return nil
+}
+
+func (s *Session) CreateDownLinkPDR(bpfObjects *BpfObjects, ipv4 net.IP, pdrInfo PdrInfo) error {
+	if err := bpfObjects.PutPdrDownLink(ipv4, pdrInfo); err != nil {
+		log.Printf("Can't put uplink PDR: %s", err)
+		return err
+	}
+	s.dpdrs[ipv4.String()] = pdrInfo
+	return nil
+}
+
+func (s *Session) CreateFAR(bpfObjects *BpfObjects, id uint32, farInfo FarInfo) error {
+	if err := bpfObjects.PutFar(id, farInfo); err != nil {
+		log.Printf("Can't put FAR: %s", err)
+		return err
+	}
+	s.fars[id] = farInfo
+	return nil
+}
+
+func (s *Session) UpdateUpLinkPDR(bpfObjects *BpfObjects, teid uint32, pdrInfo PdrInfo) error {
+	if err := bpfObjects.UpdatePdrUpLink(teid, pdrInfo); err != nil {
+		log.Printf("Can't update uplink PDR: %s", err)
+		return err
+	}
+	s.updrs[teid] = pdrInfo
+	return nil
+}
+
+func (s *Session) UpdateDownLinkPDR(bpfObjects *BpfObjects, ipv4 net.IP, pdrInfo PdrInfo) error {
+	if err := bpfObjects.UpdatePdrDownLink(ipv4, pdrInfo); err != nil {
+		log.Printf("Can't update uplink PDR: %s", err)
+		return err
+	}
+	s.dpdrs[ipv4.String()] = pdrInfo
+	return nil
+}
+
+func (s *Session) UpdateFAR(bpfObjects *BpfObjects, id uint32, farInfo FarInfo) error {
+	if err := bpfObjects.UpdateFar(id, farInfo); err != nil {
+		log.Printf("Can't update FAR: %s", err)
+		return err
+	}
+	s.fars[id] = farInfo
+	return nil
 }
 
 type SessionMap map[uint64]Session
@@ -34,9 +91,10 @@ type PfcpConnection struct {
 	nodeAssociations NodeAssociationMap
 	nodeId           string
 	nodeAddrV4       net.IP
+	bpfObjects       *BpfObjects
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string) (*PfcpConnection, error) {
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string, bpfObjects *BpfObjects) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Panicf("Can't resolve UDP address: %s", err)
@@ -57,6 +115,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		nodeAssociations: NodeAssociationMap{},
 		nodeId:           nodeId,
 		nodeAddrV4:       addrv4.IP,
+		bpfObjects:       bpfObjects,
 	}, nil
 }
 

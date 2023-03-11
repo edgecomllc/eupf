@@ -37,17 +37,63 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	// 	return message.NewSessionEstablishmentResponse(0, 0, fseid.SEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestRejected)), nil
 	// }
 
-	association.Sessions[localSEID] = Session{
+	session := Session{
 		LocalSEID:  localSEID,
 		RemoteSEID: remoneSEID.SEID,
+		updrs:      map[uint32]PdrInfo{},
+		dpdrs:      map[string]PdrInfo{},
+		fars:       map[uint32]FarInfo{},
 	}
-
-	// FIXME
-	conn.nodeAssociations[addr.String()] = association
 
 	// #TODO: Actually apply rules to the dataplane
 	// #TODO: Handle failed applies and return error
 	printSessionEstablishmentRequest(req)
+
+	bpfObjects := conn.bpfObjects
+	for _, far := range req.CreateFAR {
+		farInfo := FarInfo{}
+		if applyAction, err := far.ApplyAction(); err == nil {
+			farInfo.Action = applyAction[0]
+		}
+		if outerHeaderCreation, err := far.OuterHeaderCreation(); err == nil {
+			farInfo.OuterHeaderCreation = 1 // FIXME
+			farInfo.Teid = outerHeaderCreation.TEID
+		}
+		// SRC IP ???
+
+		farid, _ := far.FARID()
+		session.CreateFAR(bpfObjects, farid, farInfo)
+	}
+
+	for _, pdr := range req.CreatePDR {
+		pdrInfo := PdrInfo{}
+		if outerHeaderRemoval, err := pdr.OuterHeaderRemoval(); err == nil {
+			pdrInfo.OuterHeaderRemoval = outerHeaderRemoval[0] // FIXME
+		}
+		if farid, err := pdr.FARID(); err == nil {
+			pdrInfo.FarId = farid
+		}
+		pdi, err := pdr.PDI()
+		if err != nil {
+			log.Print(err)
+			return nil, err
+		}
+		srcInterface, _ := pdi[0].SourceInterface()
+		if srcInterface == ie.SrcInterfaceAccess {
+			fteid, _ := pdi[0].FTEID()
+			teid := fteid.TEID
+			session.CreateUpLinkPDR(bpfObjects, teid, pdrInfo)
+		} else {
+			ue_ip, _ := pdi[0].UEIPAddress()
+			ipv4 := ue_ip.IPv4Address
+			session.CreateDownLinkPDR(bpfObjects, ipv4, pdrInfo)
+		}
+	}
+
+	// Reassigning is the best I can think of for now
+	association.Sessions[localSEID] = session
+	// FIXME
+	conn.nodeAssociations[addr.String()] = association
 
 	// #TODO: support v6
 	var v6 net.IP
@@ -121,6 +167,49 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	// #TODO: Actually apply rules to the dataplane
 	// #TODO: Handle failed applies and return error
 	printSessionModificationRequest(req)
+
+	bpfObjects := conn.bpfObjects
+	for _, far := range req.UpdateFAR {
+		farInfo := FarInfo{}
+		if applyAction, err := far.ApplyAction(); err == nil {
+			farInfo.Action = applyAction[0]
+		}
+		if outerHeaderCreation, err := far.OuterHeaderCreation(); err == nil {
+			farInfo.OuterHeaderCreation = 1 // FIXME
+			farInfo.Teid = outerHeaderCreation.TEID
+		}
+		// SRC IP ???
+
+		farid, _ := far.FARID()
+		session.UpdateFAR(bpfObjects, farid, farInfo)
+	}
+
+	for _, pdr := range req.UpdatePDR {
+		pdrInfo := PdrInfo{}
+		if outerHeaderRemoval, err := pdr.OuterHeaderRemoval(); err == nil {
+			pdrInfo.OuterHeaderRemoval = outerHeaderRemoval[0] // FIXME
+		}
+		if farid, err := pdr.FARID(); err == nil {
+			pdrInfo.FarId = farid
+		}
+		pdi, err := pdr.PDI()
+		if err != nil {
+			log.Print(err)
+			return nil, err
+		}
+		srcInterface, _ := pdi[0].SourceInterface()
+		if srcInterface == ie.SrcInterfaceAccess {
+			fteid, _ := pdi[0].FTEID()
+			teid := fteid.TEID
+			session.UpdateUpLinkPDR(bpfObjects, teid, pdrInfo)
+		} else {
+			ue_ip, _ := pdi[0].UEIPAddress()
+			ipv4 := ue_ip.IPv4Address
+			session.UpdateDownLinkPDR(bpfObjects, ipv4, pdrInfo)
+		}
+	}
+
+	association.Sessions[req.SEID()] = session
 
 	// Send SessionEstablishmentResponse
 	modResp := message.NewSessionModificationResponse(
