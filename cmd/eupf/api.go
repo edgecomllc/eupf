@@ -32,6 +32,10 @@ func CreateApiServer(bpfObjects *BpfObjects, pfcp_srv *PfcpConnection) *ApiServe
 	}).GET("/pfcp_associations", func(c *gin.Context) {
 		c.IndentedJSON(http.StatusOK, pfcp_srv.nodeAssociations)
 	})
+	router.GET("/config", func(c *gin.Context) {
+		c.IndentedJSON(http.StatusOK, config)
+	})
+
 	return &ApiServer{router: router}
 }
 
