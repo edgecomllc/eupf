@@ -1,0 +1,50 @@
+name: deploy by helm
+
+on:
+  workflow_call:
+    inputs:
+      helm_cmd_args:
+        required: true
+        type: string
+      kube_context:
+        required: true
+        type: string
+      environment_name:
+        required: true
+        type: string
+    secrets:
+      kube_config:
+        required: true
+
+jobs:
+
+  deploy:
+    runs-on: self-hosted
+    env:
+      HELM_DEPLOYMENT_NAMESPACE_NAME: free5gc
+      HELM_CHART_RELEASE_NAME: eupf
+      HELM_CHART_APP_VERSION: ${{ github.sha }}
+      HELM_CHART_DIRECTORY: .deploy/helm/universal-chart
+      HELM_CMD_ARGS: ${{ inputs.helm_cmd_args }}
+    environment:
+      name: ${{ inputs.environment_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set Kubernetes Context
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          context: ${{ inputs.kube_context }}
+          kubeconfig: ${{ secrets.kube_config }}
+
+      - name: Install helm
+        uses: azure/setup-helm@v3
+        with:
+          version: "v3.11.1"
+
+      - name: Install helm chart
+        run: |
+          sed -ie "s/appVersion.*$/appVersion\: \"$HELM_CHART_APP_VERSION\"/g" ${HELM_CHART_DIRECTORY}/Chart.yaml
+          helm upgrade --install ${HELM_CHART_RELEASE_NAME} ${HELM_CHART_DIRECTORY} --namespace ${HELM_DEPLOYMENT_NAMESPACE_NAME} ${HELM_CMD_ARGS}
