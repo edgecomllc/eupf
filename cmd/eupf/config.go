@@ -18,7 +18,7 @@ type UpfConfig struct {
 var config UpfConfig
 
 func LoadConfig() error {
-	var configPath = pflag.String("config", "", "Path to config file")
+	var configPath = pflag.String("config", "./config.yml", "Path to config file")
 	pflag.String("iface", "lo", "Interface to bind XDP program to")
 	pflag.String("aaddr", ":8080", "Address to bind api server to")
 	pflag.String("paddr", ":8805", "Address to bind PFCP server to")
@@ -38,13 +38,14 @@ func LoadConfig() error {
 	viper.SetDefault("pfcp_node_id", "localhost")
 	viper.SetDefault("metrics_address", ":9090")
 
-	if *configPath != "" {
-		viper.SetConfigFile(*configPath)
-	} else {
-		viper.SetConfigName("config")
-		viper.AddConfigPath(".")
-	}
-	
+	viper.SetConfigFile(*configPath)
+	// if *configPath != "" {
+	//	 viper.SetConfigFile(*configPath)
+	// } else {
+	// 	viper.SetConfigName("config")
+	// 	viper.AddConfigPath(".")
+	// }
+
 	viper.SetEnvPrefix("upf")
 	viper.AutomaticEnv()
 
