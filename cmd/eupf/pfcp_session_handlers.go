@@ -81,9 +81,13 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		}
 		srcInterface, _ := pdi[0].SourceInterface()
 		if srcInterface == ie.SrcInterfaceAccess {
-			fteid, _ := pdi[0].FTEID()
-			teid := fteid.TEID
-			session.CreateUpLinkPDR(bpfObjects, teid, pdrInfo)
+			if fteid, err := pdi[0].FTEID(); err == nil {
+				teid := fteid.TEID
+				session.CreateUpLinkPDR(bpfObjects, teid, pdrInfo)
+			} else {
+				log.Println(err)
+				return nil, err
+			}
 		} else {
 			ue_ip, _ := pdi[0].UEIPAddress()
 			ipv4 := ue_ip.IPv4Address
