@@ -69,6 +69,25 @@ func (s *Session) UpdateFAR(bpfObjects *BpfObjects, id uint32, farInfo FarInfo) 
 	return nil
 }
 
+func (s *Session) Cleanup(bpfObjects *BpfObjects) error {
+	for teid := range s.updrs {
+		if err := bpfObjects.DeletePdrUpLink(teid); err != nil {
+			return err
+		}
+	}
+	for ipv4 := range s.dpdrs {
+		if err := bpfObjects.DeletePdrDownLink(net.ParseIP(ipv4)); err != nil {
+			return err
+		}
+	}
+	for id := range s.fars {
+		if err := bpfObjects.DeleteFar(id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type SessionMap map[uint64]Session
 
 type NodeAssociationMap map[string]NodeAssociation

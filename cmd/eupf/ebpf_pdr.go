@@ -27,6 +27,14 @@ func (o *BpfObjects) UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
 	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Update(ipv4, pdrInfo, ebpf.UpdateExist)
 }
 
+func (o *BpfObjects) DeletePdrUpLink(teid uint32) error {
+	return o.ip_entrypointMaps.PdrMapUplinkIp4.Delete(teid)
+}
+
+func (o *BpfObjects) DeletePdrDownLink(ipv4 net.IP) error {
+	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Delete(ipv4)
+}
+
 type FarInfo struct {
 	Action              uint8
 	OuterHeaderCreation uint8
@@ -40,4 +48,8 @@ func (o *BpfObjects) PutFar(i uint32, farInfo FarInfo) error {
 
 func (o *BpfObjects) UpdateFar(i uint32, farInfo FarInfo) error {
 	return o.ip_entrypointMaps.FarMap.Update(i, farInfo, ebpf.UpdateExist)
+}
+
+func (o *BpfObjects) DeleteFar(i uint32) error {
+	return o.ip_entrypointMaps.FarMap.Delete(i)
 }

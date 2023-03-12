@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log"
 	"net"
@@ -128,6 +129,10 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 
+	if err := session.Cleanup(conn.bpfObjects); err != nil {
+		log.Printf("Rejecting Session Deletion Request from: %s (cleanup failed)", addr)
+		return nil, err // FIXME
+	}
 	delete(association.Sessions, req.SEID())
 
 	SdrSuccess.Inc()
@@ -177,8 +182,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		if outerHeaderCreation, err := far.OuterHeaderCreation(); err == nil {
 			farInfo.OuterHeaderCreation = 1 // FIXME
 			farInfo.Teid = outerHeaderCreation.TEID
+			farInfo.Srcip = ip2int(outerHeaderCreation.IPv4Address)
 		}
-		// SRC IP ???
 
 		farid, _ := far.FARID()
 		session.UpdateFAR(bpfObjects, farid, farInfo)
@@ -251,4 +256,11 @@ func validateRequest(conn *PfcpConnection, addr *net.UDPAddr, nodeId *ie.IE, cpf
 	remoteNodeID, _ := nodeId.NodeID()
 	fseid, _ := cpfseid.FSEID()
 	return remoteNodeID, fseid, nil
+}
+
+func ip2int(ip net.IP) uint32 {
+	if len(ip) == 16 {
+		panic("no sane way to convert ipv6 into uint32")
+	}
+	return binary.BigEndian.Uint32(ip.To4())
 }
