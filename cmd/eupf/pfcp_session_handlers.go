@@ -72,7 +72,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			pdrInfo.OuterHeaderRemoval = outerHeaderRemoval[0] // FIXME
 		}
 		if farid, err := pdr.FARID(); err == nil {
-			pdrInfo.FarId = farid
+			pdrInfo.FarId = uint16(farid)
 		}
 		pdi, err := pdr.PDI()
 		if err != nil {
@@ -195,7 +195,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			pdrInfo.OuterHeaderRemoval = outerHeaderRemoval[0] // FIXME
 		}
 		if farid, err := pdr.FARID(); err == nil {
-			pdrInfo.FarId = farid
+			pdrInfo.FarId = uint16(farid)
 		}
 		pdi, err := pdr.PDI()
 		if err != nil {
