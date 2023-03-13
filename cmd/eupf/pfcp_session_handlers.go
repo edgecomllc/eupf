@@ -8,6 +8,7 @@ import (
 
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
+	"golang.org/x/exp/slices"
 )
 
 var errMandatoryIeMissing = fmt.Errorf("mandatory IE missing")
@@ -79,9 +80,15 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			log.Print(err)
 			return nil, err
 		}
-		srcInterface, _ := pdi[0].SourceInterface()
+		srcIfacePdiId := slices.IndexFunc(pdi, func(ie *ie.IE) bool {
+			return ie.Type == 20 // IE Type source interface
+		})
+		srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
 		if srcInterface == ie.SrcInterfaceAccess {
-			if fteid, err := pdi[0].FTEID(); err == nil {
+			teidPdiId := slices.IndexFunc(pdi, func(ie *ie.IE) bool {
+				return ie.Type == 21 // IE Type F-TEID
+			})
+			if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 				teid := fteid.TEID
 				session.CreateUpLinkPDR(bpfObjects, teid, pdrInfo)
 			} else {
@@ -89,7 +96,10 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				return nil, err
 			}
 		} else {
-			ue_ip, _ := pdi[0].UEIPAddress()
+			ueipPdiId := slices.IndexFunc(pdi, func(ie *ie.IE) bool {
+				return ie.Type == 93 // IE Type UE IP Address
+			})
+			ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
 			ipv4 := ue_ip.IPv4Address
 			session.CreateDownLinkPDR(bpfObjects, ipv4, pdrInfo)
 		}
