@@ -47,7 +47,7 @@ func LoadConfig() error {
 		log.Printf("Unable to read config file, %v", err)
 	}
 
-	log.Println(viper.AllSettings())	
+	log.Println(viper.AllSettings())
 	if err := viper.UnmarshalExact(&config); err != nil {
 		log.Printf("Unable to decode into struct, %v", err)
 		return err
