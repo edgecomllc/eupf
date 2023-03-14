@@ -39,12 +39,6 @@ func LoadConfig() error {
 	viper.SetDefault("metrics_address", ":9090")
 
 	viper.SetConfigFile(*configPath)
-	// if *configPath != "" {
-	//	 viper.SetConfigFile(*configPath)
-	// } else {
-	// 	viper.SetConfigName("config")
-	// 	viper.AddConfigPath(".")
-	// }
 
 	viper.SetEnvPrefix("upf")
 	viper.AutomaticEnv()

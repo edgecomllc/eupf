@@ -105,6 +105,8 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		}
 	}
 
+	// #TODO: Add cleanup if some of IEs cannot be applied
+
 	// Reassigning is the best I can think of for now
 	association.Sessions[localSEID] = session
 	// FIXME
