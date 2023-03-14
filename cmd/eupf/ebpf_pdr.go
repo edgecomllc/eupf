@@ -17,15 +17,15 @@ func (o *BpfObjects) PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error {
 }
 
 func (o *BpfObjects) PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
-	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Put(ipv4, pdrInfo)
+	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Put(ipv4, unsafe.Pointer(&pdrInfo))
 }
 
 func (o *BpfObjects) UpdatePdrUpLink(teid uint32, pdrInfo PdrInfo) error {
-	return o.ip_entrypointMaps.PdrMapUplinkIp4.Update(teid, pdrInfo, ebpf.UpdateExist)
+	return o.ip_entrypointMaps.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&pdrInfo), ebpf.UpdateExist)
 }
 
 func (o *BpfObjects) UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
-	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Update(ipv4, pdrInfo, ebpf.UpdateExist)
+	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(&pdrInfo), ebpf.UpdateExist)
 }
 
 func (o *BpfObjects) DeletePdrUpLink(teid uint32) error {
@@ -48,7 +48,7 @@ func (o *BpfObjects) PutFar(i uint32, farInfo FarInfo) error {
 }
 
 func (o *BpfObjects) UpdateFar(i uint32, farInfo FarInfo) error {
-	return o.ip_entrypointMaps.FarMap.Update(i, farInfo, ebpf.UpdateExist)
+	return o.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&farInfo), ebpf.UpdateExist)
 }
 
 func (o *BpfObjects) DeleteFar(i uint32) error {
