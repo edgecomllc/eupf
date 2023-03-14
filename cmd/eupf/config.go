@@ -39,12 +39,6 @@ func LoadConfig() error {
 	viper.SetDefault("metrics_address", ":9090")
 
 	viper.SetConfigFile(*configPath)
-	// if *configPath != "" {
-	//	 viper.SetConfigFile(*configPath)
-	// } else {
-	// 	viper.SetConfigName("config")
-	// 	viper.AddConfigPath(".")
-	// }
 
 	viper.SetEnvPrefix("upf")
 	viper.AutomaticEnv()
@@ -54,11 +48,10 @@ func LoadConfig() error {
 	}
 
 	log.Println(viper.AllSettings())
-	var c UpfConfig
-	if err := viper.UnmarshalExact(&c); err != nil {
+	if err := viper.UnmarshalExact(&config); err != nil {
 		log.Printf("Unable to decode into struct, %v", err)
 		return err
 	}
-	log.Println(c)
+	log.Println(config)
 	return nil
 }
