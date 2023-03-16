@@ -8,28 +8,34 @@ import (
 )
 
 type Session struct {
-	LocalSEID  uint64
-	RemoteSEID uint64
-	updrs      map[uint32]PdrInfo // Uplink PDRs
-	dpdrs      map[string]PdrInfo // Downlink PDRs
-	fars       map[uint32]FarInfo
+	LocalSEID    uint64
+	RemoteSEID   uint64
+	UplinkPDRs   map[uint32]SPDRInfo
+	DownlinkPDRs map[uint32]SPDRInfo
+	FARs         map[uint32]FarInfo
 }
 
-func (s *Session) CreateUpLinkPDR(bpfObjects *BpfObjects, teid uint32, pdrInfo PdrInfo) error {
-	if err := bpfObjects.PutPdrUpLink(teid, pdrInfo); err != nil {
+type SPDRInfo struct {
+	PdrInfo PdrInfo
+	Teid    uint32
+	Ipv4    net.IP
+}
+
+func (s *Session) CreateUpLinkPDR(bpfObjects *BpfObjects, pdrId uint16, pdrInfo SPDRInfo) error {
+	if err := bpfObjects.PutPdrUpLink(pdrInfo.Teid, pdrInfo.PdrInfo); err != nil {
 		log.Printf("Can't put uplink PDR: %s", err)
 		return err
 	}
-	s.updrs[teid] = pdrInfo
+	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
 	return nil
 }
 
-func (s *Session) CreateDownLinkPDR(bpfObjects *BpfObjects, ipv4 net.IP, pdrInfo PdrInfo) error {
-	if err := bpfObjects.PutPdrDownLink(ipv4, pdrInfo); err != nil {
+func (s *Session) CreateDownLinkPDR(bpfObjects *BpfObjects, pdrId uint16, pdrInfo SPDRInfo) error {
+	if err := bpfObjects.PutPdrDownLink(pdrInfo.Ipv4, pdrInfo.PdrInfo); err != nil {
 		log.Printf("Can't put uplink PDR: %s", err)
 		return err
 	}
-	s.dpdrs[ipv4.String()] = pdrInfo
+	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
 	return nil
 }
 
@@ -38,25 +44,25 @@ func (s *Session) CreateFAR(bpfObjects *BpfObjects, id uint32, farInfo FarInfo) 
 		log.Printf("Can't put FAR: %s", err)
 		return err
 	}
-	s.fars[id] = farInfo
+	s.FARs[id] = farInfo
 	return nil
 }
 
-func (s *Session) UpdateUpLinkPDR(bpfObjects *BpfObjects, teid uint32, pdrInfo PdrInfo) error {
-	if err := bpfObjects.UpdatePdrUpLink(teid, pdrInfo); err != nil {
+func (s *Session) UpdateUpLinkPDR(bpfObjects *BpfObjects, pdrId uint16, pdrInfo SPDRInfo) error {
+	if err := bpfObjects.UpdatePdrUpLink(pdrInfo.Teid, pdrInfo.PdrInfo); err != nil {
 		log.Printf("Can't update uplink PDR: %s", err)
 		return err
 	}
-	s.updrs[teid] = pdrInfo
+	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
 	return nil
 }
 
-func (s *Session) UpdateDownLinkPDR(bpfObjects *BpfObjects, ipv4 net.IP, pdrInfo PdrInfo) error {
-	if err := bpfObjects.UpdatePdrDownLink(ipv4, pdrInfo); err != nil {
+func (s *Session) UpdateDownLinkPDR(bpfObjects *BpfObjects, pdrId uint16, pdrInfo SPDRInfo) error {
+	if err := bpfObjects.UpdatePdrDownLink(pdrInfo.Ipv4, pdrInfo.PdrInfo); err != nil {
 		log.Printf("Can't update uplink PDR: %s", err)
 		return err
 	}
-	s.dpdrs[ipv4.String()] = pdrInfo
+	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
 	return nil
 }
 
@@ -65,22 +71,48 @@ func (s *Session) UpdateFAR(bpfObjects *BpfObjects, id uint32, farInfo FarInfo) 
 		log.Printf("Can't update FAR: %s", err)
 		return err
 	}
-	s.fars[id] = farInfo
+	s.FARs[id] = farInfo
 	return nil
 }
 
+func (s *Session) RemoveUplinkPDR(bpfObjects *BpfObjects, pdrId uint16) error {
+	delete(s.UplinkPDRs, uint32(pdrId))
+	return bpfObjects.DeletePdrUpLink(s.UplinkPDRs[uint32(pdrId)].Teid)
+}
+
+func (s *Session) RemoveDownlinkPDR(bpfObjects *BpfObjects, pdrId uint16) error {
+	delete(s.DownlinkPDRs, uint32(pdrId))
+	return bpfObjects.DeletePdrDownLink(s.DownlinkPDRs[uint32(pdrId)].Ipv4)
+}
+
+// Removes PDR from one of the maps. If same PDR is present in both maps, it will be removed from both maps.
+func (s *Session) RemovePDR(bpfObjects *BpfObjects, pdrId uint16) error {
+	if err := s.RemoveUplinkPDR(bpfObjects, pdrId); err != nil {
+		return err
+	}
+	if err := s.RemoveDownlinkPDR(bpfObjects, pdrId); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Session) RemoveFAR(bpfObjects *BpfObjects, farId uint32) error {
+	delete(s.FARs, farId)
+	return bpfObjects.DeleteFar(farId)
+}
+
 func (s *Session) Cleanup(bpfObjects *BpfObjects) error {
-	for teid := range s.updrs {
-		if err := bpfObjects.DeletePdrUpLink(teid); err != nil {
+	for _, pdrInfo := range s.UplinkPDRs {
+		if err := bpfObjects.DeletePdrUpLink(pdrInfo.Teid); err != nil {
 			return err
 		}
 	}
-	for ipv4 := range s.dpdrs {
-		if err := bpfObjects.DeletePdrDownLink(net.ParseIP(ipv4)); err != nil {
+	for _, pdrInfo := range s.DownlinkPDRs {
+		if err := bpfObjects.DeletePdrDownLink(pdrInfo.Ipv4); err != nil {
 			return err
 		}
 	}
-	for id := range s.fars {
+	for id := range s.FARs {
 		if err := bpfObjects.DeleteFar(id); err != nil {
 			return err
 		}

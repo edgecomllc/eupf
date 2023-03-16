@@ -17,7 +17,7 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, req)
-	_, remoneSEID, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
+	_, remoteSEID, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
 	if err != nil {
 		log.Printf("Rejecting Session Establishment Request from: %s (missing NodeID or F-SEID)", addr)
 		SerReject.Inc()
@@ -40,69 +40,92 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	// }
 
 	session := Session{
-		LocalSEID:  localSEID,
-		RemoteSEID: remoneSEID.SEID,
-		updrs:      map[uint32]PdrInfo{},
-		dpdrs:      map[string]PdrInfo{},
-		fars:       map[uint32]FarInfo{},
+		LocalSEID:    localSEID,
+		RemoteSEID:   remoteSEID.SEID,
+		UplinkPDRs:   map[uint32]SPDRInfo{},
+		DownlinkPDRs: map[uint32]SPDRInfo{},
+		FARs:         map[uint32]FarInfo{},
 	}
 
-	// #TODO: Actually apply rules to the dataplane
-	// #TODO: Handle failed applies and return error
 	printSessionEstablishmentRequest(req)
-
-	bpfObjects := conn.bpfObjects
-	for _, far := range req.CreateFAR {
-		farInfo := FarInfo{}
-		if applyAction, err := far.ApplyAction(); err == nil {
-			farInfo.Action = applyAction[0]
-		}
-		if outerHeaderCreation, err := far.OuterHeaderCreation(); err == nil {
-			farInfo.OuterHeaderCreation = 1 // FIXME
-			farInfo.Teid = outerHeaderCreation.TEID
-		}
-		// SRC IP ???
-
-		farid, _ := far.FARID()
-		session.CreateFAR(bpfObjects, farid, farInfo)
-	}
-
-	for _, pdr := range req.CreatePDR {
-		pdrInfo := PdrInfo{}
-		if outerHeaderRemoval, err := pdr.OuterHeaderRemoval(); err == nil {
-			pdrInfo.OuterHeaderRemoval = outerHeaderRemoval[0] // FIXME
-		}
-		if farid, err := pdr.FARID(); err == nil {
-			pdrInfo.FarId = uint16(farid)
-		}
-		pdi, err := pdr.PDI()
-		if err != nil {
-			log.Print(err)
-			return nil, err
-		}
-		srcIfacePdiId := slices.IndexFunc(pdi, func(ie *ie.IE) bool {
-			return ie.Type == 20 // IE Type source interface
-		})
-		srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
-		if srcInterface == ie.SrcInterfaceAccess {
-			teidPdiId := slices.IndexFunc(pdi, func(ie *ie.IE) bool {
-				return ie.Type == 21 // IE Type F-TEID
-			})
-			if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-				teid := fteid.TEID
-				session.CreateUpLinkPDR(bpfObjects, teid, pdrInfo)
-			} else {
-				log.Println(err)
-				return nil, err
+	// #TODO: Implement rollback on error
+	err = func() error {
+		bpfObjects := conn.bpfObjects
+		for _, far := range req.CreateFAR {
+			// #TODO: Extract to standalone function to avoid code duplication
+			farInfo := FarInfo{}
+			if applyAction, err := far.ApplyAction(); err == nil {
+				farInfo.Action = applyAction[0]
 			}
-		} else {
-			ueipPdiId := slices.IndexFunc(pdi, func(ie *ie.IE) bool {
-				return ie.Type == 93 // IE Type UE IP Address
-			})
-			ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
-			ipv4 := ue_ip.IPv4Address
-			session.CreateDownLinkPDR(bpfObjects, ipv4, pdrInfo)
+			if forward, err := far.ForwardingParameters(); err == nil {
+				outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
+				if outerHeaderCreationIndex == -1 {
+					log.Println("WARN: No OuterHeaderCreation")
+				} else {
+					outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
+					farInfo.OuterHeaderCreation = 1
+					farInfo.Teid = outerHeaderCreation.TEID
+					farInfo.Srcip = ip2int(outerHeaderCreation.IPv4Address)
+				}
+			}
+
+			farid, _ := far.FARID()
+			session.CreateFAR(bpfObjects, farid, farInfo)
 		}
+
+		//#TODO: Extract to standalone function to avoid code duplication
+		for _, pdr := range req.CreatePDR {
+			spdrInfo := SPDRInfo{}
+			pdrId, err := pdr.PDRID()
+			if err != nil {
+				return fmt.Errorf("PDR ID missing")
+			}
+			if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+			}
+			if farid, err := pdr.FARID(); err == nil {
+				spdrInfo.PdrInfo.FarId = uint16(farid)
+			}
+			pdi, err := pdr.PDI()
+			if err != nil {
+				log.Print(err)
+				return err
+			}
+			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
+			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
+			// #TODO: Rework Uplink/Downlink decesion making
+			if srcInterface == ie.SrcInterfaceAccess {
+				teidPdiId := findIEindex(pdi, 21) // IE Type F-TEID
+
+				if teidPdiId == -1 {
+					log.Println("F-TEID IE missing")
+					return fmt.Errorf("F-TEID IE missing")
+				}
+				if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+					spdrInfo.Teid = fteid.TEID
+					session.CreateUpLinkPDR(bpfObjects, pdrId, spdrInfo)
+				} else {
+					log.Println(err)
+					return err
+				}
+			} else {
+				ueipPdiId := findIEindex(pdi, 93) // IE Type UE IP Address
+				if ueipPdiId == -1 {
+					log.Println("UE IP Address IE missing")
+					return fmt.Errorf("UE IP Address IE missing")
+				}
+				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
+				spdrInfo.Ipv4 = ue_ip.IPv4Address
+				session.CreateDownLinkPDR(bpfObjects, pdrId, spdrInfo)
+			}
+		}
+		return nil
+	}()
+
+	if err != nil {
+		log.Printf("Rejecting Session Establishment Request from: %s (error in applying IEs)", err)
+		SerReject.Inc()
+		return message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), nil
 	}
 
 	// #TODO: Add cleanup if some of IEs cannot be applied
@@ -117,7 +140,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	// Send SessionEstablishmentResponse
 	estResp := message.NewSessionEstablishmentResponse(
 		0, 0,
-		remoneSEID.SEID,
+		remoteSEID.SEID,
 		req.Sequence(),
 		0,
 		ie.NewCause(ie.CauseRequestAccepted),
@@ -185,49 +208,98 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		}
 	}
 
-	// #TODO: Actually apply rules to the dataplane
-	// #TODO: Handle failed applies and return error
 	printSessionModificationRequest(req)
 
-	bpfObjects := conn.bpfObjects
-	for _, far := range req.UpdateFAR {
-		farInfo := FarInfo{}
-		if applyAction, err := far.ApplyAction(); err == nil {
-			farInfo.Action = applyAction[0]
-		}
-		if outerHeaderCreation, err := far.OuterHeaderCreation(); err == nil {
-			farInfo.OuterHeaderCreation = 1 // FIXME
-			farInfo.Teid = outerHeaderCreation.TEID
-			farInfo.Srcip = ip2int(outerHeaderCreation.IPv4Address)
+	// #TODO: Implement rollback on error
+	err := func() error {
+		bpfObjects := conn.bpfObjects
+		// #TODO: Extract to standalone function to avoid code duplication
+		for _, far := range req.UpdateFAR {
+			farInfo := FarInfo{}
+			if applyAction, err := far.ApplyAction(); err == nil {
+				farInfo.Action = applyAction[0]
+			}
+			if forward, err := far.UpdateForwardingParameters(); err == nil {
+				outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
+				if outerHeaderCreationIndex == -1 {
+					log.Println("WARN: No OuterHeaderCreation")
+				} else {
+					outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
+					farInfo.OuterHeaderCreation = 1
+					farInfo.Teid = outerHeaderCreation.TEID
+					farInfo.Srcip = ip2int(outerHeaderCreation.IPv4Address)
+				}
+			} else {
+				log.Println("WARN: No UpdateForwardingParameters")
+			}
+
+			farid, _ := far.FARID()
+			session.UpdateFAR(bpfObjects, farid, farInfo)
 		}
 
-		farid, _ := far.FARID()
-		session.UpdateFAR(bpfObjects, farid, farInfo)
-	}
+		for _, removeFar := range req.RemoveFAR {
+			farid, _ := removeFar.FARID()
+			session.RemoveFAR(bpfObjects, farid)
+		}
 
-	for _, pdr := range req.UpdatePDR {
-		pdrInfo := PdrInfo{}
-		if outerHeaderRemoval, err := pdr.OuterHeaderRemoval(); err == nil {
-			pdrInfo.OuterHeaderRemoval = outerHeaderRemoval[0] // FIXME
+		for _, pdr := range req.RemovePDR {
+			pdrId, _ := pdr.PDRID()
+			session.RemovePDR(bpfObjects, pdrId)
 		}
-		if farid, err := pdr.FARID(); err == nil {
-			pdrInfo.FarId = uint16(farid)
+
+		// #TODO: Extract to standalone function to avoid code duplication
+		for _, pdr := range req.UpdatePDR {
+			spdrInfo := SPDRInfo{}
+			pdrId, err := pdr.PDRID()
+			if err != nil {
+				return fmt.Errorf("PDR ID missing")
+			}
+			if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+			}
+			if farid, err := pdr.FARID(); err == nil {
+				spdrInfo.PdrInfo.FarId = uint16(farid)
+			}
+			pdi, err := pdr.PDI()
+			if err != nil {
+				log.Print(err)
+				return err
+			}
+			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
+			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
+			// #TODO: Rework Uplink/Downlink decesion making
+			if srcInterface == ie.SrcInterfaceAccess {
+				teidPdiId := findIEindex(pdi, 21) // IE Type F-TEID
+
+				if teidPdiId == -1 {
+					log.Println("F-TEID IE missing")
+					return fmt.Errorf("F-TEID IE missing")
+				}
+				if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+					spdrInfo.Teid = fteid.TEID
+					session.UpdateUpLinkPDR(bpfObjects, pdrId, spdrInfo)
+				} else {
+					log.Println(err)
+					return err
+				}
+			} else {
+				ueipPdiId := findIEindex(pdi, 93) // IE Type UE IP Address
+				if ueipPdiId == -1 {
+					log.Println("UE IP Address IE missing")
+					return fmt.Errorf("UE IP Address IE missing")
+				}
+				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
+				spdrInfo.Ipv4 = ue_ip.IPv4Address
+				session.UpdateDownLinkPDR(bpfObjects, pdrId, spdrInfo)
+			}
 		}
-		pdi, err := pdr.PDI()
-		if err != nil {
-			log.Print(err)
-			return nil, err
-		}
-		srcInterface, _ := pdi[0].SourceInterface()
-		if srcInterface == ie.SrcInterfaceAccess {
-			fteid, _ := pdi[0].FTEID()
-			teid := fteid.TEID
-			session.UpdateUpLinkPDR(bpfObjects, teid, pdrInfo)
-		} else {
-			ue_ip, _ := pdi[0].UEIPAddress()
-			ipv4 := ue_ip.IPv4Address
-			session.UpdateDownLinkPDR(bpfObjects, ipv4, pdrInfo)
-		}
+		return nil
+	}()
+	if err != nil {
+		log.Printf("Rejecting Session Modification Request from: %s (failed to apply rules)", err)
+		SmrReject.Inc()
+		return message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), nil
+
 	}
 
 	association.Sessions[req.SEID()] = session
@@ -279,4 +351,11 @@ func ip2int(ip net.IP) uint32 {
 		panic("no sane way to convert ipv6 into uint32")
 	}
 	return binary.BigEndian.Uint32(ip.To4())
+}
+
+func findIEindex(ieArr []*ie.IE, ieType uint16) int {
+	arrIndex := slices.IndexFunc(ieArr, func(ie *ie.IE) bool {
+		return ie.Type == ieType
+	})
+	return arrIndex
 }
