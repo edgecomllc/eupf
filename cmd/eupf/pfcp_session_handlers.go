@@ -234,17 +234,26 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			farid, _ := far.FARID()
-			session.UpdateFAR(bpfObjects, farid, farInfo)
+			if err := session.UpdateFAR(bpfObjects, farid, farInfo); err != nil {
+				log.Printf("Failed to update FAR: %v", err)
+				return err
+			}
 		}
 
 		for _, removeFar := range req.RemoveFAR {
 			farid, _ := removeFar.FARID()
-			session.RemoveFAR(bpfObjects, farid)
+			if err := session.RemoveFAR(bpfObjects, farid); err != nil{
+				log.Printf("Failed to remove FAR: %v", err)
+				return err
+			}
 		}
 
 		for _, pdr := range req.RemovePDR {
 			pdrId, _ := pdr.PDRID()
-			session.RemovePDR(bpfObjects, pdrId)
+			if err := session.RemovePDR(bpfObjects, pdrId); err != nil{
+				log.Printf("Failed to remove PDR: %v", err)
+				return err
+			}
 		}
 
 		// #TODO: Extract to standalone function to avoid code duplication
