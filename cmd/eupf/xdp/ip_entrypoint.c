@@ -14,6 +14,7 @@
 
 #include "xdp/gtpu.h"
 #include "xdp/program_array.h"
+#include "xdp/statistics.h"
 
 #undef bpf_printk
 #define bpf_printk(fmt, ...)                            \
@@ -513,11 +514,8 @@ static __always_inline __u32 handle_ip6(struct packet_context *ctx)
     return handle_core_packet_ipv6(ctx->ctx, ip6);
 }
 
-SEC("xdp/upf_ip_entrypoint")
-int upf_ip_entrypoint_func(struct xdp_md *ctx)
+static __always_inline __u32 process_packet(struct xdp_md *ctx)
 {
-    bpf_printk("upf_ip_entrypoint start");
-
     void *data_end = (void *)(long)ctx->data_end;
     void *data = (void *)(long)ctx->data;
 
@@ -528,19 +526,34 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
     __u16 l3_protocol = parse_ethernet(&context, &eth);
     context.eth = eth; //fixme
     switch (l3_protocol) {
-        case ETH_P_IPV6: 
+        case ETH_P_IPV6:
             return handle_ip6(&context);
         case ETH_P_IP:
             return handle_ip4(&context);
-            break;
         case ETH_P_ARP: //Let kernel stack takes care
+        {
             bpf_printk("upf: arp received. passing to kernel");
             return XDP_PASS;
-        default:
-            return DEFAULT_XDP_ACTION;
+        }
     }
 
     return DEFAULT_XDP_ACTION;
+}
+
+SEC("xdp/upf_ip_entrypoint")
+int upf_ip_entrypoint_func(struct xdp_md *ctx)
+{
+    bpf_printk("upf_ip_entrypoint start");
+
+    __u32 xdp_action = process_packet(ctx);
+
+    __u64* counter = bpf_map_lookup_elem(&upf_xdp_statistic, &xdp_action);
+    if(counter) {
+        __u64 value = 1;
+        __sync_fetch_and_add(&counter, &value);
+    }
+
+    return xdp_action;
 }
 
 char _license[] SEC("license") = "GPL";
