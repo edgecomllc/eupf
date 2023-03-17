@@ -38,7 +38,7 @@ var (
 		Name: "upf_sdr_reject",
 		Help: "The total number of rejected session deletion requests",
 	})
-	
+
 	// Session modification requests
 	SmrSuccess = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "upf_smr_success",
@@ -48,7 +48,18 @@ var (
 		Name: "upf_smr_reject",
 		Help: "The total number of rejected session modification requests",
 	})
+	PacketCounter = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "upf_packet_counter",
+		Help: "The total number of packets",
+	}, []string{"label"}) // here we can add more labels to the metric
 )
+
+// PacketCounter usage
+/*
+	PacketCounter.WithLabelValues("SOMELABLEVALUE").Add(1)
+	PacketCounter.WithLabelValues("SOMELABLEVALUE").Add(10)
+	PacketCounter.WithLabelValues("SOMELABLEVALUE2").Add(1)
+*/
 
 func StartMetrics(addr string) {
 	http.Handle("/metrics", promhttp.Handler())
