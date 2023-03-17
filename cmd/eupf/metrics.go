@@ -48,10 +48,31 @@ var (
 		Name: "upf_smr_reject",
 		Help: "The total number of rejected session modification requests",
 	})
-	PacketCounter = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "upf_packet_counter",
-		Help: "The total number of packets",
-	}, []string{"label"}) // here we can add more labels to the metric
+	XdpRx = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_xdp_rx",
+		Help: "The total number of packets passed by XDP",
+	})
+	XdpTx = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_xdp_tx",
+		Help: "The total number of packets transmitted by XDP",
+	})
+	XdpRedirect = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_xdp_redirect",
+		Help: "The total number of packets redirected by XDP",
+	})
+	XdpDrop = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_xdp_drop",
+		Help: "The total number of packets dropped by XDP",
+	})
+	XdpAbort = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "upf_xdp_abort",
+		Help: "The total number of packets aborted by XDP",
+	})
+
+	// PacketCounter = promauto.NewCounterVec(prometheus.CounterOpts{
+	// 	Name: "upf_packet_counter",
+	// 	Help: "The total number of packets",
+	// }, []string{"label"}) // here we can add more labels to the metric
 )
 
 // PacketCounter usage
