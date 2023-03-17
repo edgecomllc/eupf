@@ -50,6 +50,12 @@ var (
 		Help: "The total number of rejected session modification requests",
 	})
 
+	UpfXdpAborted  prometheus.CounterFunc
+	UpfXdpDrop     prometheus.CounterFunc
+	UpfXdpPass     prometheus.CounterFunc
+	UpfXdpTx       prometheus.CounterFunc
+	UpfXdpRedirect prometheus.CounterFunc
+
 	// PacketCounter = promauto.NewCounterVec(prometheus.CounterOpts{
 	// 	Name: "upf_packet_counter",
 	// 	Help: "The total number of packets",
@@ -71,7 +77,7 @@ func StartMetrics(addr string) {
 // Register eBPF metrics
 func RegisterMetrics(bpfObjects *BpfObjects) {
 	aborted, drop, pass, tx, redirect := CreateEbpfGetStats(bpfObjects)
-	prometheus.NewCounterFunc(prometheus.CounterOpts{
+	UpfXdpAborted = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_aborted",
 		Help: "The total number of aborted packets",
 	}, func() float64 {
@@ -83,7 +89,7 @@ func RegisterMetrics(bpfObjects *BpfObjects) {
 		return float64(res)
 	})
 
-	prometheus.NewCounterFunc(prometheus.CounterOpts{
+	UpfXdpDrop = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_drop",
 		Help: "The total number of dropped packets",
 	}, func() float64 {
@@ -95,7 +101,7 @@ func RegisterMetrics(bpfObjects *BpfObjects) {
 		return float64(res)
 	})
 
-	prometheus.NewCounterFunc(prometheus.CounterOpts{
+	UpfXdpPass = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_pass",
 		Help: "The total number of passed packets",
 	}, func() float64 {
@@ -107,7 +113,7 @@ func RegisterMetrics(bpfObjects *BpfObjects) {
 		return float64(res)
 	})
 
-	prometheus.NewCounterFunc(prometheus.CounterOpts{
+	UpfXdpTx = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_tx",
 		Help: "The total number of transmitted packets",
 	}, func() float64 {
@@ -119,7 +125,7 @@ func RegisterMetrics(bpfObjects *BpfObjects) {
 		return float64(res)
 	})
 
-	prometheus.NewCounterFunc(prometheus.CounterOpts{
+	UpfXdpRedirect = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_redirect",
 		Help: "The total number of redirected packets",
 	}, func() float64 {
@@ -130,4 +136,10 @@ func RegisterMetrics(bpfObjects *BpfObjects) {
 		}
 		return float64(res)
 	})
+
+	prometheus.MustRegister(UpfXdpAborted)
+	prometheus.MustRegister(UpfXdpDrop)
+	prometheus.MustRegister(UpfXdpPass)
+	prometheus.MustRegister(UpfXdpTx)
+	prometheus.MustRegister(UpfXdpRedirect)
 }
