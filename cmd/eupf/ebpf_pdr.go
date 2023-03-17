@@ -7,6 +7,8 @@ import (
 	"github.com/cilium/ebpf"
 )
 
+// The BPF_ARRAY map type has no delete operation. The only way to delete an element is to replace it with a new one.
+
 type PdrInfo struct {
 	OuterHeaderRemoval uint8
 	FarId              uint16
@@ -29,11 +31,13 @@ func (o *BpfObjects) UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
 }
 
 func (o *BpfObjects) DeletePdrUpLink(teid uint32) error {
-	return o.ip_entrypointMaps.PdrMapUplinkIp4.Delete(teid)
+	return o.ip_entrypointMaps.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&PdrInfo{}), ebpf.UpdateExist)
+	//return o.ip_entrypointMaps.PdrMapUplinkIp4.Delete(teid)
 }
 
 func (o *BpfObjects) DeletePdrDownLink(ipv4 net.IP) error {
-	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Delete(ipv4)
+	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(&PdrInfo{}), ebpf.UpdateExist)
+	//return o.ip_entrypointMaps.PdrMapDownlinkIp4.Delete(ipv4)
 }
 
 type FarInfo struct {
@@ -52,5 +56,6 @@ func (o *BpfObjects) UpdateFar(i uint32, farInfo FarInfo) error {
 }
 
 func (o *BpfObjects) DeleteFar(i uint32) error {
-	return o.ip_entrypointMaps.FarMap.Delete(i)
+	return o.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
+	//return o.ip_entrypointMaps.FarMap.Delete(i)
 }
