@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -48,26 +49,6 @@ var (
 		Name: "upf_smr_reject",
 		Help: "The total number of rejected session modification requests",
 	})
-	XdpRx = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "upf_xdp_rx",
-		Help: "The total number of packets passed by XDP",
-	})
-	XdpTx = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "upf_xdp_tx",
-		Help: "The total number of packets transmitted by XDP",
-	})
-	XdpRedirect = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "upf_xdp_redirect",
-		Help: "The total number of packets redirected by XDP",
-	})
-	XdpDrop = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "upf_xdp_drop",
-		Help: "The total number of packets dropped by XDP",
-	})
-	XdpAbort = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "upf_xdp_abort",
-		Help: "The total number of packets aborted by XDP",
-	})
 
 	// PacketCounter = promauto.NewCounterVec(prometheus.CounterOpts{
 	// 	Name: "upf_packet_counter",
@@ -85,4 +66,68 @@ var (
 func StartMetrics(addr string) {
 	http.Handle("/metrics", promhttp.Handler())
 	http.ListenAndServe(addr, nil)
+}
+
+// Register eBPF metrics
+func RegisterMetrics(bpfObjects *BpfObjects) {
+	aborted, drop, pass, tx, redirect := CreateEbpfGetStats(bpfObjects)
+	prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "upf_xdp_aborted",
+		Help: "The total number of aborted packets",
+	}, func() float64 {
+		res, err := aborted()
+		if err != nil {
+			log.Println("XDP Stats: aborted", err)
+			return 0
+		}
+		return float64(res)
+	})
+
+	prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "upf_xdp_drop",
+		Help: "The total number of dropped packets",
+	}, func() float64 {
+		res, err := drop()
+		if err != nil {
+			log.Println("XDP Stats: drop", err)
+			return 0
+		}
+		return float64(res)
+	})
+
+	prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "upf_xdp_pass",
+		Help: "The total number of passed packets",
+	}, func() float64 {
+		res, err := pass()
+		if err != nil {
+			log.Println("XDP Stats: pass", err)
+			return 0
+		}
+		return float64(res)
+	})
+
+	prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "upf_xdp_tx",
+		Help: "The total number of transmitted packets",
+	}, func() float64 {
+		res, err := tx()
+		if err != nil {
+			log.Println("XDP Stats: tx", err)
+			return 0
+		}
+		return float64(res)
+	})
+
+	prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "upf_xdp_redirect",
+		Help: "The total number of redirected packets",
+	}, func() float64 {
+		res, err := redirect()
+		if err != nil {
+			log.Println("XDP Stats: redirect", err)
+			return 0
+		}
+		return float64(res)
+	})
 }
