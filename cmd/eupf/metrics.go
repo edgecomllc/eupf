@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -75,66 +74,41 @@ func StartMetrics(addr string) {
 }
 
 // Register eBPF metrics
-func RegisterMetrics(bpfObjects *BpfObjects) {
-	aborted, drop, pass, tx, redirect := CreateEbpfGetStats(bpfObjects)
+func RegisterMetrics(stats UpfXdpActionStatistic) {
 	UpfXdpAborted = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_aborted",
 		Help: "The total number of aborted packets",
 	}, func() float64 {
-		res, err := aborted()
-		if err != nil {
-			log.Println("XDP Stats: aborted", err)
-			return 0
-		}
-		return float64(res)
+
+		return float64(stats.GetAborted())
 	})
 
 	UpfXdpDrop = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_drop",
 		Help: "The total number of dropped packets",
 	}, func() float64 {
-		res, err := drop()
-		if err != nil {
-			log.Println("XDP Stats: drop", err)
-			return 0
-		}
-		return float64(res)
+		return float64(stats.GetDrop())
 	})
 
 	UpfXdpPass = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_pass",
 		Help: "The total number of passed packets",
 	}, func() float64 {
-		res, err := pass()
-		if err != nil {
-			log.Println("XDP Stats: pass", err)
-			return 0
-		}
-		return float64(res)
+		return float64(stats.GetPass())
 	})
 
 	UpfXdpTx = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_tx",
 		Help: "The total number of transmitted packets",
 	}, func() float64 {
-		res, err := tx()
-		if err != nil {
-			log.Println("XDP Stats: tx", err)
-			return 0
-		}
-		return float64(res)
+		return float64(stats.GetTx())
 	})
 
 	UpfXdpRedirect = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_redirect",
 		Help: "The total number of redirected packets",
 	}, func() float64 {
-		res, err := redirect()
-		if err != nil {
-			log.Println("XDP Stats: redirect", err)
-			return 0
-		}
-		return float64(res)
+		return float64(stats.GetRedirect())
 	})
 
 	prometheus.MustRegister(UpfXdpAborted)
