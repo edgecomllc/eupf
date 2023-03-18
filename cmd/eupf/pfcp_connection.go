@@ -21,7 +21,7 @@ type SPDRInfo struct {
 	Ipv4    net.IP
 }
 
-func (s *Session) CreateUpLinkPDR(bpfMapOperations BpfMapOperations, pdrId uint16, pdrInfo SPDRInfo) error {
+func (s *Session) CreateUpLinkPDR(bpfMapOperations ForwardingPlaneController, pdrId uint16, pdrInfo SPDRInfo) error {
 	if err := bpfMapOperations.PutPdrUpLink(pdrInfo.Teid, pdrInfo.PdrInfo); err != nil {
 		log.Printf("Can't put uplink PDR: %s", err)
 		return err
@@ -30,7 +30,7 @@ func (s *Session) CreateUpLinkPDR(bpfMapOperations BpfMapOperations, pdrId uint1
 	return nil
 }
 
-func (s *Session) CreateDownLinkPDR(bpfMapOperations BpfMapOperations, pdrId uint16, pdrInfo SPDRInfo) error {
+func (s *Session) CreateDownLinkPDR(bpfMapOperations ForwardingPlaneController, pdrId uint16, pdrInfo SPDRInfo) error {
 	if err := bpfMapOperations.PutPdrDownLink(pdrInfo.Ipv4, pdrInfo.PdrInfo); err != nil {
 		log.Printf("Can't put uplink PDR: %s", err)
 		return err
@@ -39,7 +39,7 @@ func (s *Session) CreateDownLinkPDR(bpfMapOperations BpfMapOperations, pdrId uin
 	return nil
 }
 
-func (s *Session) CreateFAR(bpfMapOperations BpfMapOperations, id uint32, farInfo FarInfo) error {
+func (s *Session) CreateFAR(bpfMapOperations ForwardingPlaneController, id uint32, farInfo FarInfo) error {
 	if err := bpfMapOperations.PutFar(id, farInfo); err != nil {
 		log.Printf("Can't put FAR: %s", err)
 		return err
@@ -48,7 +48,7 @@ func (s *Session) CreateFAR(bpfMapOperations BpfMapOperations, id uint32, farInf
 	return nil
 }
 
-func (s *Session) UpdateUpLinkPDR(bpfMapOperations BpfMapOperations, pdrId uint16, pdrInfo SPDRInfo) error {
+func (s *Session) UpdateUpLinkPDR(bpfMapOperations ForwardingPlaneController, pdrId uint16, pdrInfo SPDRInfo) error {
 	if err := bpfMapOperations.UpdatePdrUpLink(pdrInfo.Teid, pdrInfo.PdrInfo); err != nil {
 		log.Printf("Can't update uplink PDR: %s", err)
 		return err
@@ -57,7 +57,7 @@ func (s *Session) UpdateUpLinkPDR(bpfMapOperations BpfMapOperations, pdrId uint1
 	return nil
 }
 
-func (s *Session) UpdateDownLinkPDR(bpfMapOperations BpfMapOperations, pdrId uint16, pdrInfo SPDRInfo) error {
+func (s *Session) UpdateDownLinkPDR(bpfMapOperations ForwardingPlaneController, pdrId uint16, pdrInfo SPDRInfo) error {
 	if err := bpfMapOperations.UpdatePdrDownLink(pdrInfo.Ipv4, pdrInfo.PdrInfo); err != nil {
 		log.Printf("Can't update uplink PDR: %s", err)
 		return err
@@ -66,7 +66,7 @@ func (s *Session) UpdateDownLinkPDR(bpfMapOperations BpfMapOperations, pdrId uin
 	return nil
 }
 
-func (s *Session) UpdateFAR(bpfMapOperations BpfMapOperations, id uint32, farInfo FarInfo) error {
+func (s *Session) UpdateFAR(bpfMapOperations ForwardingPlaneController, id uint32, farInfo FarInfo) error {
 	if err := bpfMapOperations.UpdateFar(id, farInfo); err != nil {
 		log.Printf("Can't update FAR: %s", err)
 		return err
@@ -75,18 +75,18 @@ func (s *Session) UpdateFAR(bpfMapOperations BpfMapOperations, id uint32, farInf
 	return nil
 }
 
-func (s *Session) RemoveUplinkPDR(bpfMapOperations BpfMapOperations, pdrId uint16) error {
+func (s *Session) RemoveUplinkPDR(bpfMapOperations ForwardingPlaneController, pdrId uint16) error {
 	delete(s.UplinkPDRs, uint32(pdrId))
 	return bpfMapOperations.DeletePdrUpLink(s.UplinkPDRs[uint32(pdrId)].Teid)
 }
 
-func (s *Session) RemoveDownlinkPDR(bpfMapOperations BpfMapOperations, pdrId uint16) error {
+func (s *Session) RemoveDownlinkPDR(bpfMapOperations ForwardingPlaneController, pdrId uint16) error {
 	delete(s.DownlinkPDRs, uint32(pdrId))
 	return bpfMapOperations.DeletePdrDownLink(s.DownlinkPDRs[uint32(pdrId)].Ipv4)
 }
 
 // Removes PDR from one of the maps. If same PDR is present in both maps, it will be removed from both maps.
-func (s *Session) RemovePDR(bpfMapOperations BpfMapOperations, pdrId uint16) error {
+func (s *Session) RemovePDR(bpfMapOperations ForwardingPlaneController, pdrId uint16) error {
 	if err := s.RemoveUplinkPDR(bpfMapOperations, pdrId); err != nil {
 		return err
 	}
@@ -96,12 +96,12 @@ func (s *Session) RemovePDR(bpfMapOperations BpfMapOperations, pdrId uint16) err
 	return nil
 }
 
-func (s *Session) RemoveFAR(bpfMapOperations BpfMapOperations, farId uint32) error {
+func (s *Session) RemoveFAR(bpfMapOperations ForwardingPlaneController, farId uint32) error {
 	delete(s.FARs, farId)
 	return bpfMapOperations.DeleteFar(farId)
 }
 
-func (s *Session) Cleanup(bpfMapOperations BpfMapOperations) error {
+func (s *Session) Cleanup(bpfMapOperations ForwardingPlaneController) error {
 	for _, pdrInfo := range s.UplinkPDRs {
 		if err := bpfMapOperations.DeletePdrUpLink(pdrInfo.Teid); err != nil {
 			return err
@@ -142,10 +142,10 @@ type PfcpConnection struct {
 	nodeAssociations NodeAssociationMap
 	nodeId           string
 	nodeAddrV4       net.IP
-	bpfMapOperations BpfMapOperations
+	bpfMapOperations ForwardingPlaneController
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string, bpfMapOperations BpfMapOperations) (*PfcpConnection, error) {
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string, bpfMapOperations ForwardingPlaneController) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Panicf("Can't resolve UDP address: %s", err)

@@ -60,7 +60,7 @@ func (o *BpfObjects) DeleteFar(i uint32) error {
 	//return o.ip_entrypointMaps.FarMap.Delete(i)
 }
 
-type BpfMapOperations interface {
+type ForwardingPlaneController interface {
 	PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error
 	PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
 	UpdatePdrUpLink(teid uint32, pdrInfo PdrInfo) error
