@@ -59,3 +59,15 @@ func (o *BpfObjects) DeleteFar(i uint32) error {
 	return o.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
 	//return o.ip_entrypointMaps.FarMap.Delete(i)
 }
+
+type BpfMapOperations interface {
+	PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error
+	PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
+	UpdatePdrUpLink(teid uint32, pdrInfo PdrInfo) error
+	UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
+	DeletePdrUpLink(teid uint32) error
+	DeletePdrDownLink(ipv4 net.IP) error
+	PutFar(i uint32, farInfo FarInfo) error
+	UpdateFar(i uint32, farInfo FarInfo) error
+	DeleteFar(i uint32) error
+}

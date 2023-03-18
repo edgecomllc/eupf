@@ -50,7 +50,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
 	err = func() error {
-		bpfObjects := conn.bpfObjects
+		bpfMapOperations := conn.bpfMapOperations
 		for _, far := range req.CreateFAR {
 			// #TODO: Extract to standalone function to avoid code duplication
 			farInfo := FarInfo{}
@@ -70,7 +70,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 
 			farid, _ := far.FARID()
-			session.CreateFAR(bpfObjects, farid, farInfo)
+			session.CreateFAR(bpfMapOperations, farid, farInfo)
 		}
 
 		//#TODO: Extract to standalone function to avoid code duplication
@@ -103,7 +103,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				}
 				if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 					spdrInfo.Teid = fteid.TEID
-					session.CreateUpLinkPDR(bpfObjects, pdrId, spdrInfo)
+					session.CreateUpLinkPDR(bpfMapOperations, pdrId, spdrInfo)
 				} else {
 					log.Println(err)
 					return err
@@ -116,7 +116,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				}
 				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
 				spdrInfo.Ipv4 = ue_ip.IPv4Address
-				session.CreateDownLinkPDR(bpfObjects, pdrId, spdrInfo)
+				session.CreateDownLinkPDR(bpfMapOperations, pdrId, spdrInfo)
 			}
 		}
 		return nil
@@ -168,7 +168,7 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 
-	if err := session.Cleanup(conn.bpfObjects); err != nil {
+	if err := session.Cleanup(conn.bpfMapOperations); err != nil {
 		log.Printf("Rejecting Session Deletion Request from: %s (cleanup failed)", addr)
 		return nil, err // FIXME
 	}
@@ -212,7 +212,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 	// #TODO: Implement rollback on error
 	err := func() error {
-		bpfObjects := conn.bpfObjects
+		bpfMapOperations := conn.bpfMapOperations
 		// #TODO: Extract to standalone function to avoid code duplication
 		for _, far := range req.UpdateFAR {
 			farInfo := FarInfo{}
@@ -234,7 +234,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			farid, _ := far.FARID()
-			if err := session.UpdateFAR(bpfObjects, farid, farInfo); err != nil {
+			if err := session.UpdateFAR(bpfMapOperations, farid, farInfo); err != nil {
 				log.Printf("Failed to update FAR: %v", err)
 				return err
 			}
@@ -242,7 +242,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 		for _, removeFar := range req.RemoveFAR {
 			farid, _ := removeFar.FARID()
-			if err := session.RemoveFAR(bpfObjects, farid); err != nil{
+			if err := session.RemoveFAR(bpfMapOperations, farid); err != nil {
 				log.Printf("Failed to remove FAR: %v", err)
 				return err
 			}
@@ -250,7 +250,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 		for _, pdr := range req.RemovePDR {
 			pdrId, _ := pdr.PDRID()
-			if err := session.RemovePDR(bpfObjects, pdrId); err != nil{
+			if err := session.RemovePDR(bpfMapOperations, pdrId); err != nil {
 				log.Printf("Failed to remove PDR: %v", err)
 				return err
 			}
@@ -286,7 +286,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				}
 				if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 					spdrInfo.Teid = fteid.TEID
-					session.UpdateUpLinkPDR(bpfObjects, pdrId, spdrInfo)
+					session.UpdateUpLinkPDR(bpfMapOperations, pdrId, spdrInfo)
 				} else {
 					log.Println(err)
 					return err
@@ -299,7 +299,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				}
 				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
 				spdrInfo.Ipv4 = ue_ip.IPv4Address
-				session.UpdateDownLinkPDR(bpfObjects, pdrId, spdrInfo)
+				session.UpdateDownLinkPDR(bpfMapOperations, pdrId, spdrInfo)
 			}
 		}
 		return nil
