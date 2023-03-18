@@ -34,13 +34,14 @@ enum default_action {
 
 /* Header cursor to keep track of current parsing position */
 struct packet_context {
-    void            *data;
-    void            *data_end;
-    struct xdp_md   *ctx;
-    struct ethhdr   *eth;
-    struct iphdr    *ip4;
-    struct ipv6hdr  *ip6;
-    struct udphdr   *udp;
+    void                *data;
+    void                *data_end;
+    struct upf_counters *counters;
+    struct xdp_md       *ctx;
+    struct ethhdr       *eth;
+    struct iphdr        *ip4;
+    struct ipv6hdr      *ip6;
+    struct udphdr       *udp;
 };
 
 static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct ethhdr **ethhdr)
@@ -442,6 +443,8 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
             if(ctx->ip4) {
                 bpf_printk("upf: gtp pdu [ %pI4 -> %pI4 ]", &ctx->ip4->saddr, &ctx->ip4->daddr);
             }
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_gtp_pdu , 1);
             return handle_access_packet(ctx, bpf_htonl(gtp->teid));
         case GTPU_ECHO_REQUEST:
             bpf_printk("upf: gtp header [ version=%d, pt=%d, e=%d]", gtp->version, gtp->pt, gtp->e);
@@ -449,14 +452,20 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
             if(ctx->ip4) {
                 bpf_printk("upf: gtp echo request [ %pI4 -> %pI4 ]", &ctx->ip4->saddr, &ctx->ip4->daddr);
             }
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_gtp_echo , 1);
             return handle_echo_request(ctx, gtp);
         case GTPU_ECHO_RESPONSE:
         case GTPU_ERROR_INDICATION:
         case GTPU_SUPPORTED_EXTENSION_HEADERS_NOTIFICATION:
         case GTPU_END_MARKER:
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_gtp_other , 1);
             return DEFAULT_XDP_ACTION;
         default:
             bpf_printk("upf: unexpected gtp message: type=%d", pdu_type);
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_gtp_unexp , 1);
             return DEFAULT_XDP_ACTION;
 
     }
@@ -471,17 +480,25 @@ static __always_inline __u32 handle_ip4(struct packet_context *ctx)
     switch(l4_protocol)
     {
         case IPPROTO_ICMP: //Let kernel stack takes care
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_icmp , 1);
             bpf_printk("upf: icmp received. passing to kernel");
             return XDP_PASS;
         case IPPROTO_UDP:
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_udp , 1);
             if(GTP_UDP_PORT == parse_udp(ctx)) {
                 bpf_printk("upf: gtp-u received");
                 return handle_gtpu(ctx);
             }
             break;
         case IPPROTO_TCP:
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_tcp , 1);
             break;
         default:
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_other , 1);
             return DEFAULT_XDP_ACTION;
     }
 
@@ -498,40 +515,48 @@ static __always_inline __u32 handle_ip6(struct packet_context *ctx)
     {
         case IPPROTO_ICMPV6: //Let kernel stack takes care
             bpf_printk("upf: icmp received. passing to kernel");
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_icmp6 , 1);
             return XDP_PASS;
         case IPPROTO_UDP:
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_udp , 1);
             if(GTP_UDP_PORT == parse_udp(ctx)) {
                 bpf_printk("upf: gtp-u received");
                 return handle_gtpu(ctx);
             }
             break;
         case IPPROTO_TCP:
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_tcp , 1);
             break;
         default:
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_other , 1);
             return DEFAULT_XDP_ACTION;
     }
 
     return handle_core_packet_ipv6(ctx->ctx, ip6);
 }
 
-static __always_inline __u32 process_packet(struct xdp_md *ctx)
+static __always_inline __u32 process_packet(struct packet_context *ctx)
 {
-    void *data_end = (void *)(long)ctx->data_end;
-    void *data = (void *)(long)ctx->data;
-
-    /* These keep track of the next header type and iterator pointer */
-    struct packet_context context = { .data = data, .data_end = data_end, .ctx = ctx };
-
     struct ethhdr   *eth;
-    __u16 l3_protocol = parse_ethernet(&context, &eth);
-    context.eth = eth; //fixme
+    __u16 l3_protocol = parse_ethernet(ctx, &eth);
+    ctx->eth = eth; //fixme
     switch (l3_protocol) {
         case ETH_P_IPV6:
-            return handle_ip6(&context);
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_ip6 , 1);
+            return handle_ip6(ctx);
         case ETH_P_IP:
-            return handle_ip4(&context);
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_ip4 , 1);
+            return handle_ip4(ctx);
         case ETH_P_ARP: //Let kernel stack takes care
         {
+            if(ctx->counters)
+                __sync_fetch_and_add(&ctx->counters->rx_arp , 1);
             bpf_printk("upf: arp received. passing to kernel");
             return XDP_PASS;
         }
@@ -544,13 +569,21 @@ SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
     bpf_printk("upf_ip_entrypoint start");
+    void *data_end = (void *)(long)ctx->data_end;
+    void *data = (void *)(long)ctx->data;
 
-    __u32 xdp_action = process_packet(ctx);
+    __u32 cpu_ip = 0;
+    struct upf_counters* upf_counters = bpf_map_lookup_elem(&upf_ext_stat, &cpu_ip);
 
+    /* These keep track of the next header type and iterator pointer */
+    struct packet_context context = { .data = data, .data_end = data_end, .ctx = ctx, .counters = upf_counters};
+
+    __u32 xdp_action = process_packet(&context);
+
+    //TODO: move xdp action statistic to upf_ext_stat
     __u64* counter = bpf_map_lookup_elem(&upf_xdp_statistic, &xdp_action);
     if(counter) {
-        __u64 value = 1;
-        __sync_fetch_and_add(&counter, &value);
+        __sync_fetch_and_add(counter, 1);
     }
 
     return xdp_action;
