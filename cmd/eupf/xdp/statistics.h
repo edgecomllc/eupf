@@ -17,3 +17,62 @@ struct bpf_map_def SEC("maps") upf_xdp_statistic = {
     .value_size = sizeof(__u64), 
     .max_entries = 5,
 };
+
+struct upf_counters {
+    __u64 rx_total;
+    __u64 rx_arp;
+    __u64 rx_icmp;
+    __u64 rx_icmp6;
+    __u64 rx_ip4;
+    __u64 rx_ip6;
+    __u64 rx_tcp;
+    __u64 rx_udp;
+    __u64 rx_other;
+    __u64 rx_gtp_echo;
+    __u64 rx_gtp_pdu;
+    __u64 rx_gtp_other;
+    __u64 rx_gtp_unexp;
+};
+
+
+
+#ifdef __RELEASE
+ struct bpf_map_def SEC("maps") upf_ext_stat = {
+     .type = BPF_MAP_TYPE_ARRAY,
+     .key_size = sizeof(__u32),      // cpu
+     .value_size = sizeof(struct upf_counters), 
+     .max_entries = 1,
+ };
+
+#else
+
+// Using BTF for fun and for more comfortable debugging:
+// Example:
+// > bpftool map dump name upf_ext_stat
+// [{
+//         "key": 0,
+//         "value": {
+//             "rx_total": 0,
+//             "rx_arp": 1,
+//             "rx_icmp": 0,
+//             "rx_icmp6": 8,
+//             "rx_ip4": 0,
+//             "rx_ip6": 28,
+//             "rx_tcp": 0,
+//             "rx_udp": 15,
+//             "rx_other": 5,
+//             "rx_gtp_echo": 0,
+//             "rx_gtp_pdu": 0,
+//             "rx_gtp_other": 0,
+//             "rx_gtp_unexp": 0
+//         }
+//     }
+// ]
+
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, __u32);      // cpu
+    __type(value, struct upf_counters); 
+    __uint(max_entries, 1);
+} upf_ext_stat SEC(".maps");
+#endif
