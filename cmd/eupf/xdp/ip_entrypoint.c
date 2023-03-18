@@ -550,7 +550,7 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
     __u64* counter = bpf_map_lookup_elem(&upf_xdp_statistic, &xdp_action);
     if(counter) {
         __u64 value = 1;
-        __sync_fetch_and_add(&counter, &value);
+        __sync_fetch_and_add(counter, value);
     }
 
     return xdp_action;
