@@ -68,7 +68,7 @@ volumes: {}
 
 # volume mounts
 volumeMounts: {}
-  # - name: config.yml
+  # - name: config
   #   mountPath: /app/conf
 
 serviceAccount:
