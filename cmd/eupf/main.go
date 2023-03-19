@@ -67,13 +67,14 @@ func main() {
 	go pfcp_conn.Run()
 	defer pfcp_conn.Close()
 
-	// Start api server
-	api := CreateApiServer(bpfObjects, pfcp_conn)
-	go api.Run(config.ApiAddress)
-
 	ForwardPlaneStats := UpfXdpActionStatistic{
 		bpfObjects: bpfObjects,
 	}
+
+	// Start api server
+	api := CreateApiServer(bpfObjects, pfcp_conn, ForwardPlaneStats)
+	go api.Run(config.ApiAddress)
+
 	RegisterMetrics(ForwardPlaneStats)
 	StartMetrics(config.MetricsAddress)
 

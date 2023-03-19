@@ -11,10 +11,7 @@ type ApiServer struct {
 	router *gin.Engine
 }
 
-func CreateApiServer(bpfObjects *BpfObjects, pfcp_srv *PfcpConnection) *ApiServer {
-	ForwardPlaneStats := UpfXdpActionStatistic{
-		bpfObjects: bpfObjects,
-	}
+func CreateApiServer(bpfObjects *BpfObjects, pfcp_srv *PfcpConnection, forwardPlaneStats UpfXdpActionStatistic) *ApiServer {
 	router := gin.Default()
 	router.GET("/upf_pipeline", func(c *gin.Context) {
 		elements, err := ListMapProgArrayContents(bpfObjects.upf_xdpObjects.UpfPipeline)
@@ -46,13 +43,13 @@ func CreateApiServer(bpfObjects *BpfObjects, pfcp_srv *PfcpConnection) *ApiServe
 			Tx       uint32 `json:"tx"`
 			Redirect uint32 `json:"redirect"`
 		}
-		// Fill from existing prometheus metrics
+
 		xdpStats := XdpStats{
-			Aborted:  ForwardPlaneStats.GetAborted(),
-			Drop:     ForwardPlaneStats.GetDrop(),
-			Pass:     ForwardPlaneStats.GetPass(),
-			Tx:       ForwardPlaneStats.GetTx(),
-			Redirect: ForwardPlaneStats.GetRedirect(),
+			Aborted:  forwardPlaneStats.GetAborted(),
+			Drop:     forwardPlaneStats.GetDrop(),
+			Pass:     forwardPlaneStats.GetPass(),
+			Tx:       forwardPlaneStats.GetTx(),
+			Redirect: forwardPlaneStats.GetRedirect(),
 		}
 		c.IndentedJSON(http.StatusOK, xdpStats)
 	})
