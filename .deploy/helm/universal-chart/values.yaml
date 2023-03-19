@@ -51,19 +51,20 @@ env: {}
 
 # create config maps
 configMaps: {}
-  # config.yml:
+  # config:
   #   additionalLabels:
   #     foo: bar
   #   additionalAnnotations:
   #     foo: bar
-  #   data: |
-  #     foo: bar
+  #   data:
+  #     config.yml: |
+  #       foo: bar
 
 # volumes
 volumes: {}
-  # - name: config.yml
+  # - name: config
   #   configMap:
-  #     name: "test"
+  #     name: "universal-chart-config"
 
 # volume mounts
 volumeMounts: {}

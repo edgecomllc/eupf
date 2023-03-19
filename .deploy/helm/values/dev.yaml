@@ -16,13 +16,14 @@ securityContext:
   privileged: true
 
 configMaps:
-  config.yml:
-    data: |
-      interface_name: lo
-      api_address: :8080
-      pfcp_address: :8805
-      pfcp_node_id: localhost
-      metrics_address: :9090
+  config:
+    data:
+      config.yml: |
+        interface_name: lo
+        api_address: :8080
+        pfcp_address: :8805
+        pfcp_node_id: localhost
+        metrics_address: :9090
 
 volumes:
   - name: sys
@@ -30,7 +31,7 @@ volumes:
       path: /sys
   - name: config
     configMap:
-      name: eupf-universal-chart-config.yml
+      name: eupf-universal-chart-config
 
 volumeMounts:
   - name: sys
