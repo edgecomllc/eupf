@@ -8,18 +8,36 @@ image:
   name: eupf
   tag: ""
 
+args:
+  - --config
+  - /app/conf/config.yml
+
 securityContext:
   privileged: true
+
+configMaps:
+  config.yml:
+    data:
+      interface_name: lo
+      api_address: :8080
+      pfcp_address: :8805
+      pfcp_node_id: localhost
+      metrics_address: :9090
 
 volumes:
   - name: sys
     hostPath:
       path: /sys
+  - name: config
+    configMap:
+      name: eupf-universal-chart-config.yml
 
 volumeMounts:
   - name: sys
     mountPath: /sys
     readOnly:  true
+  - name: config
+    mountPath: /app/conf
 
 imagePullSecrets:
   - name: gh-container-registry

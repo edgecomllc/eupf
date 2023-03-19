@@ -18,6 +18,12 @@ image:
   tag: ""
   pullPolicy: IfNotPresent
 
+# Override default container command
+command: []
+
+# Override default container args
+args: []
+
 initContainers: []
   # - name: run-db-migrations
   #   # if "" then uses default image for this chart
@@ -42,6 +48,27 @@ fullnameOverride: ""
 # Additional environment variables
 env: {}
   # foo: bar
+
+# create config maps
+configMaps: {}
+  # config.yml:
+  #   additionalLabels:
+  #     foo: bar
+  #   additionalAnnotations:
+  #     foo: bar
+  #   data:
+  #     foo: bar
+
+# volumes
+volumes: {}
+  # - name: config.yml
+  #   configMap:
+  #     name: "test"
+
+# volume mounts
+volumeMounts: {}
+  # - name: config.yml
+  #   mountPath: /app/conf
 
 serviceAccount:
   # Specifies whether a service account should be created
