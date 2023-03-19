@@ -142,10 +142,10 @@ type PfcpConnection struct {
 	nodeAssociations NodeAssociationMap
 	nodeId           string
 	nodeAddrV4       net.IP
-	bpfMapOperations ForwardingPlaneController
+	mapOperations    ForwardingPlaneController
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string, bpfMapOperations ForwardingPlaneController) (*PfcpConnection, error) {
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string, mapOperations ForwardingPlaneController) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Panicf("Can't resolve UDP address: %s", err)
@@ -166,7 +166,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		nodeAssociations: NodeAssociationMap{},
 		nodeId:           nodeId,
 		nodeAddrV4:       addrv4.IP,
-		bpfMapOperations: bpfMapOperations,
+		mapOperations:    mapOperations,
 	}, nil
 }
 

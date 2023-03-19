@@ -50,7 +50,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
 	err = func() error {
-		bpfMapOperations := conn.bpfMapOperations
+		bpfMapOperations := conn.mapOperations
 		for _, far := range req.CreateFAR {
 			// #TODO: Extract to standalone function to avoid code duplication
 			farInfo := FarInfo{}
@@ -168,7 +168,7 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 
-	if err := session.Cleanup(conn.bpfMapOperations); err != nil {
+	if err := session.Cleanup(conn.mapOperations); err != nil {
 		log.Printf("Rejecting Session Deletion Request from: %s (cleanup failed)", addr)
 		return nil, err // FIXME
 	}
@@ -212,7 +212,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 	// #TODO: Implement rollback on error
 	err := func() error {
-		bpfMapOperations := conn.bpfMapOperations
+		bpfMapOperations := conn.mapOperations
 		// #TODO: Extract to standalone function to avoid code duplication
 		for _, far := range req.UpdateFAR {
 			farInfo := FarInfo{}
