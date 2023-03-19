@@ -56,7 +56,7 @@ configMaps: {}
   #     foo: bar
   #   additionalAnnotations:
   #     foo: bar
-  #   data:
+  #   data: |
   #     foo: bar
 
 # volumes

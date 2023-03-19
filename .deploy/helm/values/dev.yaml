@@ -17,7 +17,7 @@ securityContext:
 
 configMaps:
   config.yml:
-    data:
+    data: |
       interface_name: lo
       api_address: :8080
       pfcp_address: :8805
