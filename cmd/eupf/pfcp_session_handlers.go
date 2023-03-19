@@ -70,7 +70,11 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 
 			farid, _ := far.FARID()
-			session.CreateFAR(bpfMapOperations, farid, farInfo)
+			session.CreateFAR(farid, farInfo)
+			if err := bpfMapOperations.PutFar(farid, farInfo); err != nil {
+				log.Printf("Can't put FAR: %s", err)
+				return err
+			}
 		}
 
 		//#TODO: Extract to standalone function to avoid code duplication
@@ -103,7 +107,11 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				}
 				if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 					spdrInfo.Teid = fteid.TEID
-					session.CreateUpLinkPDR(bpfMapOperations, pdrId, spdrInfo)
+					session.CreateUpLinkPDR(pdrId, spdrInfo)
+					if err := bpfMapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
+						log.Printf("Can't put uplink PDR: %s", err)
+						return err
+					}
 				} else {
 					log.Println(err)
 					return err
@@ -116,7 +124,11 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				}
 				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
 				spdrInfo.Ipv4 = ue_ip.IPv4Address
-				session.CreateDownLinkPDR(bpfMapOperations, pdrId, spdrInfo)
+				session.CreateDownLinkPDR(pdrId, spdrInfo)
+				if err := bpfMapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+					log.Printf("Can't put uplink PDR: %s", err)
+					return err
+				}
 			}
 		}
 		return nil
@@ -167,10 +179,21 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		SdrReject.Inc()
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
-
-	if err := session.Cleanup(conn.mapOperations); err != nil {
-		log.Printf("Rejecting Session Deletion Request from: %s (cleanup failed)", addr)
-		return nil, err // FIXME
+	mapOperations := conn.mapOperations
+	for _, pdrInfo := range session.UplinkPDRs {
+		if err := mapOperations.DeletePdrUpLink(pdrInfo.Teid); err != nil {
+			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
+		}
+	}
+	for _, pdrInfo := range session.DownlinkPDRs {
+		if err := mapOperations.DeletePdrDownLink(pdrInfo.Ipv4); err != nil {
+			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
+		}
+	}
+	for id := range session.FARs {
+		if err := mapOperations.DeleteFar(id); err != nil {
+			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
+		}
 	}
 	delete(association.Sessions, req.SEID())
 
@@ -234,25 +257,37 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			farid, _ := far.FARID()
-			if err := session.UpdateFAR(bpfMapOperations, farid, farInfo); err != nil {
-				log.Printf("Failed to update FAR: %v", err)
+			session.UpdateFAR(farid, farInfo)
+			if err := bpfMapOperations.UpdateFar(farid, farInfo); err != nil {
+				log.Printf("Can't update FAR: %s", err)
 				return err
 			}
 		}
 
 		for _, removeFar := range req.RemoveFAR {
 			farid, _ := removeFar.FARID()
-			if err := session.RemoveFAR(bpfMapOperations, farid); err != nil {
-				log.Printf("Failed to remove FAR: %v", err)
+			session.RemoveFAR(farid)
+			if err := bpfMapOperations.DeleteFar(farid); err != nil {
+				log.Printf("Can't remove FAR: %s", err)
 				return err
 			}
 		}
 
 		for _, pdr := range req.RemovePDR {
 			pdrId, _ := pdr.PDRID()
-			if err := session.RemovePDR(bpfMapOperations, pdrId); err != nil {
-				log.Printf("Failed to remove PDR: %v", err)
-				return err
+			if _, ok := session.UplinkPDRs[uint32(pdrId)]; ok {
+				session.RemoveUplinkPDR(pdrId)
+				if err := bpfMapOperations.DeletePdrUpLink(session.UplinkPDRs[uint32(pdrId)].Teid); err != nil {
+					log.Printf("Failed to remove uplink PDR: %v", err)
+					return err
+				}
+			}
+			if _, ok := session.DownlinkPDRs[uint32(pdrId)]; ok {
+				session.RemoveDownlinkPDR(pdrId)
+				if err := bpfMapOperations.DeletePdrDownLink(session.DownlinkPDRs[uint32(pdrId)].Ipv4); err != nil {
+					log.Printf("Failed to remove downlink PDR: %v", err)
+					return err
+				}
 			}
 		}
 
@@ -286,7 +321,11 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				}
 				if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 					spdrInfo.Teid = fteid.TEID
-					session.UpdateUpLinkPDR(bpfMapOperations, pdrId, spdrInfo)
+					session.UpdateUpLinkPDR(pdrId, spdrInfo)
+					if err := bpfMapOperations.UpdatePdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
+						log.Printf("Can't update uplink PDR: %s", err)
+						return err
+					}
 				} else {
 					log.Println(err)
 					return err
@@ -299,7 +338,11 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				}
 				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
 				spdrInfo.Ipv4 = ue_ip.IPv4Address
-				session.UpdateDownLinkPDR(bpfMapOperations, pdrId, spdrInfo)
+				session.UpdateDownLinkPDR(pdrId, spdrInfo)
+				if err := bpfMapOperations.UpdatePdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+					log.Printf("Can't update uplink PDR: %s", err)
+					return err
+				}
 			}
 		}
 		return nil
