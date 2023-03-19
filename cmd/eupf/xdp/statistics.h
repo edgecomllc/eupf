@@ -13,12 +13,13 @@
 
 struct bpf_map_def SEC("maps") upf_xdp_statistic = {
     .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(__u32),      // xdp_action
-    .value_size = sizeof(__u64), 
+    .key_size = sizeof(__u32), // xdp_action
+    .value_size = sizeof(__u64),
     .max_entries = 5,
 };
 
-struct upf_counters {
+struct upf_counters
+{
     __u64 rx_total;
     __u64 rx_arp;
     __u64 rx_icmp;
@@ -34,15 +35,13 @@ struct upf_counters {
     __u64 rx_gtp_unexp;
 };
 
-
-
 #ifdef __RELEASE
- struct bpf_map_def SEC("maps") upf_ext_stat = {
-     .type = BPF_MAP_TYPE_ARRAY,
-     .key_size = sizeof(__u32),      // cpu
-     .value_size = sizeof(struct upf_counters), 
-     .max_entries = 1,
- };
+struct bpf_map_def SEC("maps") upf_ext_stat = {
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(__u32), // cpu
+    .value_size = sizeof(struct upf_counters),
+    .max_entries = 1,
+};
 
 #else
 
@@ -69,10 +68,11 @@ struct upf_counters {
 //     }
 // ]
 
-struct {
+struct
+{
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __type(key, __u32);      // cpu
-    __type(value, struct upf_counters); 
+    __type(key, __u32); // cpu
+    __type(value, struct upf_counters);
     __uint(max_entries, 1);
 } upf_ext_stat SEC(".maps");
 #endif

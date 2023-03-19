@@ -68,10 +68,15 @@ func main() {
 	go pfcp_conn.Run()
 	defer pfcp_conn.Close()
 
+	ForwardPlaneStats := UpfXdpActionStatistic{
+		bpfObjects: bpfObjects,
+	}
+
 	// Start api server
-	api := CreateApiServer(bpfObjects, pfcp_conn)
+	api := CreateApiServer(bpfObjects, pfcp_conn, ForwardPlaneStats)
 	go api.Run(config.ApiAddress)
 
+	RegisterMetrics(ForwardPlaneStats)
 	StartMetrics(config.MetricsAddress)
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
