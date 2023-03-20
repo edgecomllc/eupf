@@ -256,7 +256,7 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
     struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
     if(!pdr) {
             bpf_printk("upf: no downlink session for ip:%pI4", ip4->daddr);
-            return XDP_DROP;
+            return DEFAULT_XDP_ACTION;
     }
 
     struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
@@ -395,7 +395,7 @@ static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __
     struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
     if(!pdr) {
             bpf_printk("upf: no uplink session for teid:%d", teid);
-            return XDP_DROP;
+            return DEFAULT_XDP_ACTION;
     }
 
     struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
@@ -412,7 +412,6 @@ static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __
 
     if(pdr->outer_header_removal) 
     {
-
         void *data = (void *)(long)ctx->ctx->data;
         void *data_end = (void *)(long)ctx->ctx->data_end;
         static const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
