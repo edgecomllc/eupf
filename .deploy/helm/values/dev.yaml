@@ -44,6 +44,8 @@ metrics:
   enabled: true
   serviceMonitor:
     enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
     endpoints:
       port: metrics
       path: "/metrics"
