@@ -126,7 +126,7 @@ securityContext: {}
 extraContainerPorts: []
   # - name: metrics
   #   containerPort: 9090
-  #   protocol: tcp
+  #   protocol: TCP
 
 service:
   type: ClusterIP
