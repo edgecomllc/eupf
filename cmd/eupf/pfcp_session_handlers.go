@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log"
 	"net"
 
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
+	"golang.org/x/exp/slices"
 )
 
 var errMandatoryIeMissing = fmt.Errorf("mandatory IE missing")
@@ -15,7 +17,7 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, req)
-	_, remoneSEID, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
+	_, remoteSEID, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
 	if err != nil {
 		log.Printf("Rejecting Session Establishment Request from: %s (missing NodeID or F-SEID)", addr)
 		SerReject.Inc()
@@ -37,24 +39,120 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	// 	return message.NewSessionEstablishmentResponse(0, 0, fseid.SEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestRejected)), nil
 	// }
 
-	association.Sessions[localSEID] = Session{
-		LocalSEID:  localSEID,
-		RemoteSEID: remoneSEID.SEID,
+	session := Session{
+		LocalSEID:    localSEID,
+		RemoteSEID:   remoteSEID.SEID,
+		UplinkPDRs:   map[uint32]SPDRInfo{},
+		DownlinkPDRs: map[uint32]SPDRInfo{},
+		FARs:         map[uint32]FarInfo{},
 	}
 
+	printSessionEstablishmentRequest(req)
+	// #TODO: Implement rollback on error
+	err = func() error {
+		mapOperations := conn.mapOperations
+		for _, far := range req.CreateFAR {
+			// #TODO: Extract to standalone function to avoid code duplication
+			farInfo := FarInfo{}
+			if applyAction, err := far.ApplyAction(); err == nil {
+				farInfo.Action = applyAction[0]
+			}
+			if forward, err := far.ForwardingParameters(); err == nil {
+				outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
+				if outerHeaderCreationIndex == -1 {
+					log.Println("WARN: No OuterHeaderCreation")
+				} else {
+					outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
+					farInfo.OuterHeaderCreation = 1
+					farInfo.Teid = outerHeaderCreation.TEID
+					farInfo.Srcip = ip2int(outerHeaderCreation.IPv4Address)
+				}
+			}
+
+			farid, _ := far.FARID()
+			session.CreateFAR(farid, farInfo)
+			if err := mapOperations.PutFar(farid, farInfo); err != nil {
+				log.Printf("Can't put FAR: %s", err)
+				return err
+			}
+		}
+
+		//#TODO: Extract to standalone function to avoid code duplication
+		for _, pdr := range req.CreatePDR {
+			spdrInfo := SPDRInfo{}
+			pdrId, err := pdr.PDRID()
+			if err != nil {
+				return fmt.Errorf("PDR ID missing")
+			}
+			if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+			}
+			if farid, err := pdr.FARID(); err == nil {
+				spdrInfo.PdrInfo.FarId = uint16(farid)
+			}
+			pdi, err := pdr.PDI()
+			if err != nil {
+				log.Print(err)
+				return err
+			}
+			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
+			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
+			// #TODO: Rework Uplink/Downlink decesion making
+			if srcInterface == ie.SrcInterfaceAccess {
+				teidPdiId := findIEindex(pdi, 21) // IE Type F-TEID
+
+				if teidPdiId == -1 {
+					log.Println("F-TEID IE missing")
+					return fmt.Errorf("F-TEID IE missing")
+				}
+				if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+					spdrInfo.Teid = fteid.TEID
+					session.CreateUpLinkPDR(pdrId, spdrInfo)
+					if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
+						log.Printf("Can't put uplink PDR: %s", err)
+						return err
+					}
+				} else {
+					log.Println(err)
+					return err
+				}
+			} else {
+				ueipPdiId := findIEindex(pdi, 93) // IE Type UE IP Address
+				if ueipPdiId == -1 {
+					log.Println("UE IP Address IE missing")
+					return fmt.Errorf("UE IP Address IE missing")
+				}
+				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
+				spdrInfo.Ipv4 = ue_ip.IPv4Address
+				session.CreateDownLinkPDR(pdrId, spdrInfo)
+				if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+					log.Printf("Can't put uplink PDR: %s", err)
+					return err
+				}
+			}
+		}
+		return nil
+	}()
+
+	if err != nil {
+		log.Printf("Rejecting Session Establishment Request from: %s (error in applying IEs)", err)
+		SerReject.Inc()
+		return message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), nil
+	}
+
+	// #TODO: Add cleanup if some of IEs cannot be applied
+
+	// Reassigning is the best I can think of for now
+	association.Sessions[localSEID] = session
 	// FIXME
 	conn.nodeAssociations[addr.String()] = association
-
-	// #TODO: Actually apply rules to the dataplane
-	// #TODO: Handle failed applies and return error
-	printSessionEstablishmentRequest(req)
 
 	// #TODO: support v6
 	var v6 net.IP
 	// Send SessionEstablishmentResponse
 	estResp := message.NewSessionEstablishmentResponse(
 		0, 0,
-		remoneSEID.SEID,
+		remoteSEID.SEID,
 		req.Sequence(),
 		0,
 		ie.NewCause(ie.CauseRequestAccepted),
@@ -81,7 +179,22 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		SdrReject.Inc()
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
-
+	mapOperations := conn.mapOperations
+	for _, pdrInfo := range session.UplinkPDRs {
+		if err := mapOperations.DeletePdrUpLink(pdrInfo.Teid); err != nil {
+			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
+		}
+	}
+	for _, pdrInfo := range session.DownlinkPDRs {
+		if err := mapOperations.DeletePdrDownLink(pdrInfo.Ipv4); err != nil {
+			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
+		}
+	}
+	for id := range session.FARs {
+		if err := mapOperations.DeleteFar(id); err != nil {
+			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
+		}
+	}
 	delete(association.Sessions, req.SEID())
 
 	SdrSuccess.Inc()
@@ -118,9 +231,130 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		}
 	}
 
-	// #TODO: Actually apply rules to the dataplane
-	// #TODO: Handle failed applies and return error
 	printSessionModificationRequest(req)
+
+	// #TODO: Implement rollback on error
+	err := func() error {
+		mapOperations := conn.mapOperations
+		// #TODO: Extract to standalone function to avoid code duplication
+		for _, far := range req.UpdateFAR {
+			farInfo := FarInfo{}
+			if applyAction, err := far.ApplyAction(); err == nil {
+				farInfo.Action = applyAction[0]
+			}
+			if forward, err := far.UpdateForwardingParameters(); err == nil {
+				outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
+				if outerHeaderCreationIndex == -1 {
+					log.Println("WARN: No OuterHeaderCreation")
+				} else {
+					outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
+					farInfo.OuterHeaderCreation = 1
+					farInfo.Teid = outerHeaderCreation.TEID
+					farInfo.Srcip = ip2int(outerHeaderCreation.IPv4Address)
+				}
+			} else {
+				log.Println("WARN: No UpdateForwardingParameters")
+			}
+
+			farid, _ := far.FARID()
+			session.UpdateFAR(farid, farInfo)
+			if err := mapOperations.UpdateFar(farid, farInfo); err != nil {
+				log.Printf("Can't update FAR: %s", err)
+				return err
+			}
+		}
+
+		for _, removeFar := range req.RemoveFAR {
+			farid, _ := removeFar.FARID()
+			session.RemoveFAR(farid)
+			if err := mapOperations.DeleteFar(farid); err != nil {
+				log.Printf("Can't remove FAR: %s", err)
+				return err
+			}
+		}
+
+		for _, pdr := range req.RemovePDR {
+			pdrId, _ := pdr.PDRID()
+			if _, ok := session.UplinkPDRs[uint32(pdrId)]; ok {
+				session.RemoveUplinkPDR(pdrId)
+				if err := mapOperations.DeletePdrUpLink(session.UplinkPDRs[uint32(pdrId)].Teid); err != nil {
+					log.Printf("Failed to remove uplink PDR: %v", err)
+					return err
+				}
+			}
+			if _, ok := session.DownlinkPDRs[uint32(pdrId)]; ok {
+				session.RemoveDownlinkPDR(pdrId)
+				if err := mapOperations.DeletePdrDownLink(session.DownlinkPDRs[uint32(pdrId)].Ipv4); err != nil {
+					log.Printf("Failed to remove downlink PDR: %v", err)
+					return err
+				}
+			}
+		}
+
+		// #TODO: Extract to standalone function to avoid code duplication
+		for _, pdr := range req.UpdatePDR {
+			spdrInfo := SPDRInfo{}
+			pdrId, err := pdr.PDRID()
+			if err != nil {
+				return fmt.Errorf("PDR ID missing")
+			}
+			if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+			}
+			if farid, err := pdr.FARID(); err == nil {
+				spdrInfo.PdrInfo.FarId = uint16(farid)
+			}
+			pdi, err := pdr.PDI()
+			if err != nil {
+				log.Print(err)
+				return err
+			}
+			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
+			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
+			// #TODO: Rework Uplink/Downlink decesion making
+			if srcInterface == ie.SrcInterfaceAccess {
+				teidPdiId := findIEindex(pdi, 21) // IE Type F-TEID
+
+				if teidPdiId == -1 {
+					log.Println("F-TEID IE missing")
+					return fmt.Errorf("F-TEID IE missing")
+				}
+				if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+					spdrInfo.Teid = fteid.TEID
+					session.UpdateUpLinkPDR(pdrId, spdrInfo)
+					if err := mapOperations.UpdatePdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
+						log.Printf("Can't update uplink PDR: %s", err)
+						return err
+					}
+				} else {
+					log.Println(err)
+					return err
+				}
+			} else {
+				ueipPdiId := findIEindex(pdi, 93) // IE Type UE IP Address
+				if ueipPdiId == -1 {
+					log.Println("UE IP Address IE missing")
+					return fmt.Errorf("UE IP Address IE missing")
+				}
+				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
+				spdrInfo.Ipv4 = ue_ip.IPv4Address
+				session.UpdateDownLinkPDR(pdrId, spdrInfo)
+				if err := mapOperations.UpdatePdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+					log.Printf("Can't update uplink PDR: %s", err)
+					return err
+				}
+			}
+		}
+		return nil
+	}()
+	if err != nil {
+		log.Printf("Rejecting Session Modification Request from: %s (failed to apply rules)", err)
+		SmrReject.Inc()
+		return message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), nil
+
+	}
+
+	association.Sessions[req.SEID()] = session
 
 	// Send SessionEstablishmentResponse
 	modResp := message.NewSessionModificationResponse(
@@ -162,4 +396,18 @@ func validateRequest(conn *PfcpConnection, addr *net.UDPAddr, nodeId *ie.IE, cpf
 	remoteNodeID, _ := nodeId.NodeID()
 	fseid, _ := cpfseid.FSEID()
 	return remoteNodeID, fseid, nil
+}
+
+func ip2int(ip net.IP) uint32 {
+	if len(ip) == 16 {
+		panic("no sane way to convert ipv6 into uint32")
+	}
+	return binary.BigEndian.Uint32(ip.To4())
+}
+
+func findIEindex(ieArr []*ie.IE, ieType uint16) int {
+	arrIndex := slices.IndexFunc(ieArr, func(ie *ie.IE) bool {
+		return ie.Type == ieType
+	})
+	return arrIndex
 }

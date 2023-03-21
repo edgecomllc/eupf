@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net"
 	"os"
@@ -13,16 +12,13 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-var ifaceName = flag.String("iface", "lo", "Interface to bind XDP program to")
-var apiAddr = flag.String("aaddr", ":8080", "Address to bind api server to")
-var pfcpAddr = flag.String("paddr", ":8805", "Address to bind PFCP server to")
-var pfcpNodeId = flag.String("nodeid", "localhost", "PFCP Server Node ID")
-
 func main() {
 	stopper := make(chan os.Signal, 1)
 	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
 
-	flag.Parse()
+	if LoadConfig() != nil {
+		log.Fatalf("Unable to load config")
+	}
 
 	if err := IncreaseResourceLimits(); err != nil {
 		log.Fatalf("Can't increase resourse limits: %s", err)
@@ -37,9 +33,9 @@ func main() {
 
 	bpfObjects.buildPipeline()
 
-	iface, err := net.InterfaceByName(*ifaceName)
+	iface, err := net.InterfaceByName(config.InterfaceName)
 	if err != nil {
-		log.Fatalf("Lookup network iface %q: %s", *ifaceName, err)
+		log.Fatalf("Lookup network iface %q: %s", config.InterfaceName, err)
 	}
 
 	// Attach the program.
@@ -64,18 +60,24 @@ func main() {
 		message.MsgTypeSessionModificationRequest:  handlePfcpSessionModificationRequest,
 	}
 
-	pfcp_conn, err := CreatePfcpConnection(*pfcpAddr, pfcpHandlers, *pfcpNodeId)
+	pfcp_conn, err := CreatePfcpConnection(config.PfcpAddress, pfcpHandlers, config.PfcpNodeId, bpfObjects)
+
 	if err != nil {
 		log.Printf("Could not create PFCP connection: %s", err)
 	}
 	go pfcp_conn.Run()
 	defer pfcp_conn.Close()
 
-	// Start api server
-	api := CreateApiServer(bpfObjects, pfcp_conn)
-	go api.Run(*apiAddr)
+	ForwardPlaneStats := UpfXdpActionStatistic{
+		bpfObjects: bpfObjects,
+	}
 
-	StartMetrics(":9090")
+	// Start api server
+	api := CreateApiServer(bpfObjects, pfcp_conn, ForwardPlaneStats)
+	go api.Run(config.ApiAddress)
+
+	RegisterMetrics(ForwardPlaneStats)
+	StartMetrics(config.MetricsAddress)
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)

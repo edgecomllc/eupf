@@ -39,6 +39,12 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ include "helpers.pod.containerImage" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.ImagePullPolicy }}
+          {{- if .Values.command }}
+          command: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.command "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.args }}
+          args: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.args "context" $) | nindent 12 }}
+          {{- end }}
           {{- if .Values.env }}
           env:
             {{- include "helpers.pod.envs" . | indent 12 }}

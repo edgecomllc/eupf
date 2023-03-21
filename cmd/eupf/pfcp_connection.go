@@ -8,8 +8,54 @@ import (
 )
 
 type Session struct {
-	LocalSEID  uint64
-	RemoteSEID uint64
+	LocalSEID    uint64
+	RemoteSEID   uint64
+	UplinkPDRs   map[uint32]SPDRInfo
+	DownlinkPDRs map[uint32]SPDRInfo
+	FARs         map[uint32]FarInfo
+}
+
+type SPDRInfo struct {
+	PdrInfo PdrInfo
+	Teid    uint32
+	Ipv4    net.IP
+}
+
+func (s *Session) CreateUpLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
+	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
+}
+
+func (s *Session) CreateDownLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
+	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
+}
+
+func (s *Session) CreateFAR(id uint32, farInfo FarInfo) {
+	s.FARs[id] = farInfo
+}
+
+func (s *Session) UpdateUpLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
+	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
+}
+
+func (s *Session) UpdateDownLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
+	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
+}
+
+func (s *Session) UpdateFAR(id uint32, farInfo FarInfo) {
+	
+	s.FARs[id] = farInfo
+}
+
+func (s *Session) RemoveUplinkPDR(pdrId uint16) {
+	delete(s.UplinkPDRs, uint32(pdrId))
+}
+
+func (s *Session) RemoveDownlinkPDR(pdrId uint16) {
+	delete(s.DownlinkPDRs, uint32(pdrId))	
+}
+
+func (s *Session) RemoveFAR(farId uint32) {
+	delete(s.FARs, farId)
 }
 
 type SessionMap map[uint64]Session
@@ -34,9 +80,10 @@ type PfcpConnection struct {
 	nodeAssociations NodeAssociationMap
 	nodeId           string
 	nodeAddrV4       net.IP
+	mapOperations    ForwardingPlaneController
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string) (*PfcpConnection, error) {
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string, mapOperations ForwardingPlaneController) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Panicf("Can't resolve UDP address: %s", err)
@@ -57,6 +104,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		nodeAssociations: NodeAssociationMap{},
 		nodeId:           nodeId,
 		nodeAddrV4:       addrv4.IP,
+		mapOperations:    mapOperations,
 	}, nil
 }
 
