@@ -40,12 +40,32 @@ volumeMounts:
   - name: config
     mountPath: /app/conf
 
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+    endpoints:
+      port: metrics
+      path: "/metrics"
+
 imagePullSecrets:
   - name: gh-container-registry
+
+extraContainerPorts:
+  - name: metrics
+    containerPort: 9090
+    protocol: TCP
 
 service:
   type: ClusterIP
   port: 8080
+  extraPorts:
+    - port: 9090
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
 
 resources:
   limits:

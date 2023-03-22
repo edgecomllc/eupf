@@ -53,6 +53,9 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+            {{- if .Values.extraContainerPorts }}
+            {{- include "helpers.common.tplvalues.render" (dict "value" .Values.extraContainerPorts "context" $) | nindent 12 }}
+            {{- end }}
           {{- include "helpers.pod.probes" . | nindent 10 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
