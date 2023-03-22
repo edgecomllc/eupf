@@ -3,6 +3,19 @@
 #include <bpf/bpf_helpers.h>
 #include <linux/bpf.h>
 
+
+enum outer_header_removal_values {
+    OHR_GTP_U_UDP_IPv4  = 0,
+    OHR_GTP_U_UDP_IPv6  = 1,
+    OHR_UDP_IPv4        = 2,
+    OHR_UDP_IPv6        = 3,
+    OHR_IPv4            = 4,
+    OHR_IPv6            = 5,
+    OHR_GTP_U_UDP_IP    = 6,
+    OHR_VLAN_S_TAG      = 7,
+    OHR_S_TAG_C_TAG     = 8,
+};
+
 struct pdr_info
 {
     __u8 outer_header_removal;
@@ -42,14 +55,14 @@ struct
 #endif
 
 enum far_action_mask {
-    FAR_DROP = 0x00,
-    FAR_FORW = 0x01,
-    FAR_BUFF = 0x02,
-    FAR_NOCP = 0x04,
-    FAR_DUPL = 0x08,
-    FAR_IPMA = 0x10,
-    FAR_IPMD = 0x20,
-    FAR_DFRT = 0x40,
+    FAR_DROP = 0x01,
+    FAR_FORW = 0x02,
+    FAR_BUFF = 0x04,
+    FAR_NOCP = 0x08,
+    FAR_DUPL = 0x10,
+    FAR_IPMA = 0x20,
+    FAR_IPMD = 0x40,
+    FAR_DFRT = 0x80,
 };
 
 struct far_info
@@ -57,7 +70,8 @@ struct far_info
     __u8 action;
     __u8 outer_header_creation;
     __u32 teid;
-    __u32 srcip;
+    __u32 remoteip;
+    __u32 localip;
 };
 
 #ifdef __RELEASE

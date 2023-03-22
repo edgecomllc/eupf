@@ -44,7 +44,8 @@ type FarInfo struct {
 	Action              uint8
 	OuterHeaderCreation uint8
 	Teid                uint32
-	Srcip               uint32
+	RemoteIP            uint32
+	LocalIP             uint32
 }
 
 func (o *BpfObjects) PutFar(i uint32, farInfo FarInfo) error {

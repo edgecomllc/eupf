@@ -37,14 +37,15 @@ enum default_action
 /* Header cursor to keep track of current parsing position */
 struct packet_context
 {
-    void *data;
-    void *data_end;
+    void            *data;
+    void            *data_end;
     struct upf_counters *counters;
-    struct xdp_md *ctx;
-    struct ethhdr *eth;
-    struct iphdr *ip4;
-    struct ipv6hdr *ip6;
-    struct udphdr *udp;
+    struct xdp_md   *ctx;
+    struct ethhdr   *eth;
+    struct iphdr    *ip4;
+    struct ipv6hdr  *ip6;
+    struct udphdr   *udp;
+    struct gtpuhdr  *gtp;
 };
 
 static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct ethhdr **ethhdr)
@@ -315,8 +316,8 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
     ip->ttl = 64;
     ip->protocol = IPPROTO_UDP;
     ip->check = 0;
-    ip->saddr = far->srcip; //FIXME
-    ip->daddr = far->srcip;
+    ip->saddr = far->localip;
+    ip->daddr = far->remoteip;
 
     // Add the UDP header
     struct udphdr *udp = (void *)(ip + 1);
@@ -398,23 +399,33 @@ static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __
             return DEFAULT_XDP_ACTION;
     }
 
+    bpf_printk("upf: uplink session for teid:%d far:%d headrm:%d", teid, pdr->far_id, pdr->outer_header_removal);
+
     struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
     if(!far) {
         bpf_printk("upf: no uplink session far for teid:%d far:%d", teid, pdr->far_id);
             return XDP_DROP;
     }
 
-    bpf_printk("upf: uplink session for teid:%d far:%d action:%d", teid, pdr->far_id, far->action);
+    bpf_printk("upf: far for teid:%d far:%d action:%d", teid, pdr->far_id, far->action);
 
     //Only forwarding action supported at the moment
     if(!(far->action & FAR_FORW))
         return XDP_DROP;
 
-    if(pdr->outer_header_removal) 
+    if(pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) 
     {
         void *data = (void *)(long)ctx->ctx->data;
         void *data_end = (void *)(long)ctx->ctx->data_end;
-        static const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
+
+        int ext_gtp_header_size = 0;
+        if(ctx->gtp) {
+            struct gtpuhdr *gtp = ctx->gtp;
+            if (gtp->e || gtp->s || gtp->pn)
+                ext_gtp_header_size += sizeof(struct gtp_hdr_ext) + 4;
+        }
+
+        const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr) + ext_gtp_header_size;
         struct ethhdr *eth = data;
         if ((void *)(eth + 1) > data_end)
         {
@@ -452,6 +463,8 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
         }
         if (ctx->counters)
             __sync_fetch_and_add(&ctx->counters->rx_gtp_pdu, 1);
+        
+        ctx->gtp = gtp;
         return handle_access_packet(ctx, bpf_htonl(gtp->teid));
     case GTPU_ECHO_REQUEST:
         bpf_printk("upf: gtp header [ version=%d, pt=%d, e=%d]", gtp->version, gtp->pt, gtp->e);
@@ -486,11 +499,13 @@ static __always_inline __u32 handle_ip4(struct packet_context *ctx)
 
     switch (l4_protocol)
     {
-    case IPPROTO_ICMP: // Let kernel stack takes care
+    case IPPROTO_ICMP: {
         if (ctx->counters)
             __sync_fetch_and_add(&ctx->counters->rx_icmp, 1);
-        bpf_printk("upf: icmp received. passing to kernel");
-        return XDP_PASS;
+        break;
+        //bpf_printk("upf: icmp received. passing to kernel");
+        //return XDP_PASS; // Let kernel stack takes care
+    }
     case IPPROTO_UDP:
         if (ctx->counters)
             __sync_fetch_and_add(&ctx->counters->rx_udp, 1);

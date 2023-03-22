@@ -65,7 +65,8 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 					outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
 					farInfo.OuterHeaderCreation = 1
 					farInfo.Teid = outerHeaderCreation.TEID
-					farInfo.Srcip = ip2int(outerHeaderCreation.IPv4Address)
+					farInfo.RemoteIP = ip2int(outerHeaderCreation.IPv4Address)
+					farInfo.LocalIP = ip2int(net.IP{127, 0, 0, 1})
 				}
 			}
 
@@ -250,7 +251,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 					outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
 					farInfo.OuterHeaderCreation = 1
 					farInfo.Teid = outerHeaderCreation.TEID
-					farInfo.Srcip = ip2int(outerHeaderCreation.IPv4Address)
+					farInfo.RemoteIP = ip2int(outerHeaderCreation.IPv4Address)
+					farInfo.LocalIP = ip2int(net.IP{127, 0, 0, 1})
 				}
 			} else {
 				log.Println("WARN: No UpdateForwardingParameters")
