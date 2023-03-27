@@ -67,6 +67,10 @@
 ### Eagle-eye overview
 ![UPF-Arch2](https://user-images.githubusercontent.com/20152142/207142700-cc3f17a5-203f-4b43-b712-a518cb627968.png)
 
+### Detailed architecture
+![image](https://user-images.githubusercontent.com/20152142/228003420-0a2be83e-095e-4ad4-8635-0eb434951a3e.png)
+
+
 ### Current limitation
 
 - Only one PDR in PFCP session per direction
