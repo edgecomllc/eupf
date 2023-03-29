@@ -68,7 +68,6 @@ var (
 	UpfRxGtpPdu   prometheus.CounterFunc
 	UpfRxGtpOther prometheus.CounterFunc
 	UpfRxGtpUnexp prometheus.CounterFunc
-	UpfRxGtpUnsup prometheus.CounterFunc
 
 	// PacketCounter = promauto.NewCounterVec(prometheus.CounterOpts{
 	// 	Name: "upf_packet_counter",
@@ -227,13 +226,6 @@ func RegisterMetrics(stats UpfXdpActionStatistic) {
 		return float64(stats.GetRxGtpUnexp())
 	})
 
-	UpfRxGtpUnsup = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_gtp_unsupported",
-		Help: "The total number of received GTP unsupported packets",
-	}, func() float64 {
-		return float64(stats.GetRxGtpUnsup())
-	})
-
 	prometheus.MustRegister(UpfRxTotal)
 	prometheus.MustRegister(UpfRxArp)
 	prometheus.MustRegister(UpfRxIcmp)
@@ -247,5 +239,4 @@ func RegisterMetrics(stats UpfXdpActionStatistic) {
 	prometheus.MustRegister(UpfRxGtpPdu)
 	prometheus.MustRegister(UpfRxGtpOther)
 	prometheus.MustRegister(UpfRxGtpUnexp)
-	prometheus.MustRegister(UpfRxGtpUnsup)
 }
