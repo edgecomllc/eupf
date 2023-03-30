@@ -60,6 +60,15 @@ func (o *BpfObjects) DeleteFar(i uint32) error {
 	//return o.ip_entrypointMaps.FarMap.Delete(i)
 }
 
+type QerInfo struct {
+	Qfi          uint8
+	GateStatus   uint8
+	GateStatusDL uint8
+	GateStatusUL uint8
+	MaxBitrateDL uint64
+	MaxBitrateUL uint64
+}
+
 type ForwardingPlaneController interface {
 	PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error
 	PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
