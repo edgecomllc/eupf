@@ -11,7 +11,7 @@ import (
 
 type PdrInfo struct {
 	OuterHeaderRemoval uint8
-	FarId              uint16
+	FarId              uint32
 }
 
 func (o *BpfObjects) PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error {

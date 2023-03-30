@@ -66,7 +66,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 					farInfo.OuterHeaderCreation = 1
 					farInfo.Teid = outerHeaderCreation.TEID
 					farInfo.RemoteIP = ip2int(outerHeaderCreation.IPv4Address)
-					farInfo.LocalIP = ip2int(net.IP{127, 0, 0, 1})
+					farInfo.LocalIP = ip2int(conn.nodeAddrV4)
 				}
 			}
 
@@ -89,7 +89,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 			}
 			if farid, err := pdr.FARID(); err == nil {
-				spdrInfo.PdrInfo.FarId = uint16(farid)
+				spdrInfo.PdrInfo.FarId = uint32(farid)
 			}
 			pdi, err := pdr.PDI()
 			if err != nil {
@@ -252,7 +252,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 					farInfo.OuterHeaderCreation = 1
 					farInfo.Teid = outerHeaderCreation.TEID
 					farInfo.RemoteIP = ip2int(outerHeaderCreation.IPv4Address)
-					farInfo.LocalIP = ip2int(net.IP{127, 0, 0, 1})
+					farInfo.LocalIP = ip2int(conn.nodeAddrV4)
 				}
 			} else {
 				log.Println("WARN: No UpdateForwardingParameters")
@@ -304,7 +304,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 			}
 			if farid, err := pdr.FARID(); err == nil {
-				spdrInfo.PdrInfo.FarId = uint16(farid)
+				spdrInfo.PdrInfo.FarId = uint32(farid)
 			}
 			pdi, err := pdr.PDI()
 			if err != nil {
@@ -404,7 +404,7 @@ func ip2int(ip net.IP) uint32 {
 	if len(ip) == 16 {
 		panic("no sane way to convert ipv6 into uint32")
 	}
-	return binary.BigEndian.Uint32(ip.To4())
+	return binary.LittleEndian.Uint32(ip.To4())
 }
 
 func findIEindex(ieArr []*ie.IE, ieType uint16) int {
