@@ -77,8 +77,7 @@ func main() {
 	go api.Run(config.ApiAddress)
 
 	RegisterMetrics(ForwardPlaneStats)
-	StartMetrics(config.MetricsAddress)
-
+	go StartMetrics(config.MetricsAddress)
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
