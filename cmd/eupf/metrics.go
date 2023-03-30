@@ -69,10 +69,12 @@ var (
 	UpfRxGtpOther prometheus.CounterFunc
 	UpfRxGtpUnexp prometheus.CounterFunc
 
-	// PacketCounter = promauto.NewCounterVec(prometheus.CounterOpts{
-	// 	Name: "upf_packet_counter",
-	// 	Help: "The total number of packets",
-	// }, []string{"label"}) // here we can add more labels to the metric
+	UpfMessageProcessingDuration = promauto.NewSummaryVec(prometheus.SummaryOpts{
+		Name:       "upf_message_processing_duration",
+		Subsystem:  "pfcp",
+		Help:       "Duration of the PFCP message processing",
+		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+	}, []string{"message_type"})
 )
 
 // PacketCounter usage
@@ -133,7 +135,7 @@ func RegisterMetrics(stats UpfXdpActionStatistic) {
 	prometheus.MustRegister(UpfXdpTx)
 	prometheus.MustRegister(UpfXdpRedirect)
 
-	// Metrics for the upf_ext_stat (upf_counters)	
+	// Metrics for the upf_ext_stat (upf_counters)
 	UpfRxTotal = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_rx_total",
 		Help: "The total number of received packets",
