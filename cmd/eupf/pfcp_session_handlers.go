@@ -139,12 +139,6 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				return fmt.Errorf("QER ID missing")
 			}
 
-			gateStatus, err := qer.GateStatus()
-			if err != nil {
-				return fmt.Errorf("Gate Status missing")
-			}
-			qerInfo.GateStatus = gateStatus
-
 			gateStatusDL, err := qer.GateStatusDL()
 			if err != nil {
 				return fmt.Errorf("Gate Status DL missing")
@@ -176,7 +170,10 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			qerInfo.Qfi = qfi
 
 			session.CreateQER(qerId, qerInfo)
-			// #TODO: Put QER to ebpf map
+			if err := mapOperations.PutQer(qerId, qerInfo); err != nil {
+				log.Printf("Can't put QER: %s", err)
+				return err
+			}
 		}
 
 		return nil
@@ -345,6 +342,10 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				return fmt.Errorf("QER ID missing")
 			}
 			session.RemoveQER(qerId)
+			if err := mapOperations.DeleteQer(qerId); err != nil {
+				log.Printf("Can't remove QER: %s", err)
+				return err
+			}
 		}
 
 		// #TODO: Extract to standalone function to avoid code duplication
@@ -408,12 +409,6 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err != nil {
 				return fmt.Errorf("QER ID missing")
 			}
-			// #TODO: Remove unused GateStatus
-			gateStatus, err := qer.GateStatus()
-			if err != nil {
-				return fmt.Errorf("Gate Status missing")
-			}
-			qerInfo.GateStatus = gateStatus
 
 			gateStatusDL, err := qer.GateStatusDL()
 			if err != nil {
@@ -446,7 +441,10 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			qerInfo.Qfi = qfi
 
 			session.UpdateQER(qerId, qerInfo)
-			// #TODO: Put QER to ebpf map
+			if err := mapOperations.UpdateQer(qerId, qerInfo); err != nil {
+				log.Panicf("Can't update QER: %s", err)
+				return err
+			}
 		}
 		return nil
 	}()
