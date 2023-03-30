@@ -133,8 +133,7 @@ func RegisterMetrics(stats UpfXdpActionStatistic) {
 	prometheus.MustRegister(UpfXdpTx)
 	prometheus.MustRegister(UpfXdpRedirect)
 
-	// Metrics for the upf_ext_stat (upf_counters)
-
+	// Metrics for the upf_ext_stat (upf_counters)	
 	UpfRxTotal = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_rx_total",
 		Help: "The total number of received packets",

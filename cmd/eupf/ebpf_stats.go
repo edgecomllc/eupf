@@ -41,7 +41,7 @@ func (stat *UpfXdpActionStatistic) GetRedirect() uint32 {
 }
 
 // Getters for the upf_ext_stat (upf_counters)
-
+// #TODO: Do not retrieve the whole struct each time.
 func (stat *UpfXdpActionStatistic) getUpfExtStatField() UpfCounters {
 	var result UpfCounters
 	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), unsafe.Pointer(&result))
