@@ -123,3 +123,50 @@
 - [ ]  Downlink Data Notification (DDN) - notification only (no buffering)
 - [ ]  Per-flow latency and throughput metrics
 - [ ]  Network Token Functions
+
+## Metrics
+
+### PFCP Message responses
+This set of metrics describes how many requests of each type has been processed with outcome specified.
+
+| Metric Name               | Description                                          |
+|---------------------------|------------------------------------------------------|
+| upf_asr_success           | The total number of successful association setup requests |
+| upf_asr_reject            | The total number of rejected association setup requests |
+| upf_ser_success           | The total number of successful session establishment requests |
+| upf_ser_reject            | The total number of rejected session establishment requests |
+| upf_sdr_success           | The total number of successful session deletion requests |
+| upf_sdr_reject            | The total number of rejected session deletion requests |
+| upf_smr_success           | The total number of successful session modification requests |
+| upf_smr_reject            | The total number of rejected session modification requests |
+| upf_message_processing_duration | Duration of the PFCP message processing with message_type label |
+
+### XDP Action metrics
+This set of metrics are used to count the number of packets with different outcomes, such as the total number of aborted, dropped, passed, transmitted, and redirected packets.
+
+| Metric Name       | Description                             |
+|-------------------|-----------------------------------------|
+| upf_xdp_aborted   | The total number of aborted packets     |
+| upf_xdp_drop      | The total number of dropped packets     |
+| upf_xdp_pass      | The total number of passed packets      |
+| upf_xdp_tx        | The total number of transmitted packets |
+| upf_xdp_redirect  | The total number of redirected packets  |
+
+### Packet metrics
+Various packet counters
+
+| Metric Name        | Description                                |
+|--------------------|--------------------------------------------|
+| upf_rx_total       | The total number of received packets       |
+| upf_rx_arp         | The total number of received ARP packets   |
+| upf_rx_icmp        | The total number of received ICMP packets  |
+| upf_rx_icmpv6      | The total number of received ICMPv6 packets|
+| upf_rx_ip4         | The total number of received IPv4 packets  |
+| upf_rx_ip6         | The total number of received IPv6 packets  |
+| upf_rx_tcp         | The total number of received TCP packets   |
+| upf_rx_udp         | The total number of received UDP packets   |
+| upf_rx_other       | The total number of received other packets |
+| upf_rx_gtp_echo    | The total number of received GTP echo packets |
+| upf_rx_gtp_pdu     | The total number of received GTP PDU packets |
+| upf_rx_gtp_other   | The total number of received GTP other packets |
+| upf_rx_gtp_error   | The total number of received GTP error packets |
