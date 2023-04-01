@@ -52,7 +52,6 @@ func (stat *UpfXdpActionStatistic) getUpfExtStatField() UpfCounters {
 }
 
 type UpfCounters struct {
-	RxTotal    uint64
 	RxArp      uint64
 	RxIcmp     uint64
 	RxIcmp6    uint64
@@ -65,10 +64,6 @@ type UpfCounters struct {
 	RxGtpPdu   uint64
 	RxGtpOther uint64
 	RxGtpUnexp uint64
-}
-
-func (stat *UpfXdpActionStatistic) GetRxTotal() uint64 {
-	return stat.getUpfExtStatField().RxTotal
 }
 
 func (stat *UpfXdpActionStatistic) GetRxArp() uint64 {

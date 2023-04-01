@@ -157,7 +157,6 @@ Various packet counters
 
 | Metric Name        | Description                                |
 |--------------------|--------------------------------------------|
-| upf_rx_total       | The total number of received packets       |
 | upf_rx_arp         | The total number of received ARP packets   |
 | upf_rx_icmp        | The total number of received ICMP packets  |
 | upf_rx_icmpv6      | The total number of received ICMPv6 packets|
