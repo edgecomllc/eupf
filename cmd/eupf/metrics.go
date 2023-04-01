@@ -219,7 +219,6 @@ func RegisterMetrics(stats UpfXdpActionStatistic) {
 		return float64(stats.GetRxGtpUnexp())
 	})
 
-	prometheus.MustRegister(UpfRxTotal)
 	prometheus.MustRegister(UpfRxArp)
 	prometheus.MustRegister(UpfRxIcmp)
 	prometheus.MustRegister(UpfRxIcmpv6)
