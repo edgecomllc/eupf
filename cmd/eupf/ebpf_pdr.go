@@ -60,6 +60,26 @@ func (o *BpfObjects) DeleteFar(i uint32) error {
 	//return o.ip_entrypointMaps.FarMap.Delete(i)
 }
 
+type QerInfo struct {
+	GateStatusUL uint8
+	GateStatusDL uint8
+	Qfi          uint8
+	MaxBitrateUL uint64
+	MaxBitrateDL uint64
+}
+
+func (o *BpfObjects) PutQer(i uint32, qerInfo QerInfo) error {
+	return o.ip_entrypointMaps.QerMap.Put(i, unsafe.Pointer(&qerInfo))
+}
+
+func (o *BpfObjects) UpdateQer(i uint32, qerInfo QerInfo) error {
+	return o.ip_entrypointMaps.QerMap.Update(i, unsafe.Pointer(&qerInfo), ebpf.UpdateExist)
+}
+
+func (o *BpfObjects) DeleteQer(i uint32) error {
+	return o.ip_entrypointMaps.QerMap.Update(i, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
+}
+
 type ForwardingPlaneController interface {
 	PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error
 	PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
@@ -70,4 +90,7 @@ type ForwardingPlaneController interface {
 	PutFar(i uint32, farInfo FarInfo) error
 	UpdateFar(i uint32, farInfo FarInfo) error
 	DeleteFar(i uint32) error
+	PutQer(i uint32, qerInfo QerInfo) error
+	UpdateQer(i uint32, qerInfo QerInfo) error
+	DeleteQer(i uint32) error
 }
