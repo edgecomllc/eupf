@@ -152,24 +152,23 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			qerInfo.GateStatusUL = gateStatusUL
 
 			maxBitrateDL, err := qer.MBRDL()
-			if err != nil {
-				return fmt.Errorf("Max Bitrate DL missing")
+			if err == nil {
+				qerInfo.MaxBitrateDL = maxBitrateDL
 			}
-			qerInfo.MaxBitrateDL = maxBitrateDL
 
 			maxBitrateUL, err := qer.MBRUL()
-			if err != nil {
-				return fmt.Errorf("Max Bitrate UL missing")
+			if err == nil {
+				qerInfo.MaxBitrateUL = maxBitrateUL
 			}
-			qerInfo.MaxBitrateUL = maxBitrateUL
 
 			qfi, err := qer.QFI()
-			if err != nil {
-				return fmt.Errorf("QFI missing")
+			if err == nil {
+				qerInfo.Qfi = qfi
 			}
-			qerInfo.Qfi = qfi
 
 			session.CreateQER(qerId, qerInfo)
+			log.Printf("Creating QER ID: %d, QER Info: %+v", qerId, qerInfo)
+
 			if err := mapOperations.PutQer(qerId, qerInfo); err != nil {
 				log.Printf("Can't put QER: %s", err)
 				return err
@@ -342,6 +341,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				return fmt.Errorf("QER ID missing")
 			}
 			session.RemoveQER(qerId)
+			log.Printf("Removing QER ID: %d", qerId)
 			if err := mapOperations.DeleteQer(qerId); err != nil {
 				log.Printf("Can't remove QER: %s", err)
 				return err
@@ -441,8 +441,9 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			qerInfo.Qfi = qfi
 
 			session.UpdateQER(qerId, qerInfo)
+			log.Printf("Updating QER ID: %d, QER Info: %+v", qerId, qerInfo)
 			if err := mapOperations.UpdateQer(qerId, qerInfo); err != nil {
-				log.Panicf("Can't update QER: %s", err)
+				log.Printf("Can't update QER: %s", err)
 				return err
 			}
 		}
