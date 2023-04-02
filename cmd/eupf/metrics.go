@@ -55,7 +55,6 @@ var (
 	UpfXdpTx       prometheus.CounterFunc
 	UpfXdpRedirect prometheus.CounterFunc
 
-	UpfRxTotal    prometheus.CounterFunc
 	UpfRxArp      prometheus.CounterFunc
 	UpfRxIcmp     prometheus.CounterFunc
 	UpfRxIcmpv6   prometheus.CounterFunc
@@ -136,13 +135,6 @@ func RegisterMetrics(stats UpfXdpActionStatistic) {
 	prometheus.MustRegister(UpfXdpRedirect)
 
 	// Metrics for the upf_ext_stat (upf_counters)
-	UpfRxTotal = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_total",
-		Help: "The total number of received packets",
-	}, func() float64 {
-		return float64(stats.GetRxTotal())
-	})
-
 	UpfRxArp = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_rx_arp",
 		Help: "The total number of received ARP packets",
@@ -227,7 +219,6 @@ func RegisterMetrics(stats UpfXdpActionStatistic) {
 		return float64(stats.GetRxGtpUnexp())
 	})
 
-	prometheus.MustRegister(UpfRxTotal)
 	prometheus.MustRegister(UpfRxArp)
 	prometheus.MustRegister(UpfRxIcmp)
 	prometheus.MustRegister(UpfRxIcmpv6)
