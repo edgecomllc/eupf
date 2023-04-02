@@ -126,7 +126,7 @@
 
 ## Metrics
 
-### PFCP Message responses
+### PFCP message metrics
 This set of metrics describes how many requests of each type has been processed with outcome specified.
 
 | Metric Name               | Description                                          |
