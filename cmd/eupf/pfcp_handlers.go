@@ -21,13 +21,13 @@ func (handlerMap PfcpHanderMap) Handle(conn *PfcpConnection, buf []byte, addr *n
 		return err
 	}
 	if handler, ok := handlerMap[incomingMsg.MessageType()]; ok {
-		start_time := time.Now()
+		startTime := time.Now()
 		outgoingMsg, err := handler(conn, incomingMsg, addr)
 		if err != nil {
 			log.Printf("Error handling PFCP message: %s", err)
 			return err
 		}
-		duration := time.Since(start_time)
+		duration := time.Since(startTime)
 		UpfMessageProcessingDuration.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
 		return conn.SendMessage(outgoingMsg, addr)
 	} else {
