@@ -64,8 +64,8 @@ type QerInfo struct {
 	GateStatusUL uint8
 	GateStatusDL uint8
 	Qfi          uint8
-	MaxBitrateUL uint64
-	MaxBitrateDL uint64
+	MaxBitrateUL uint32
+	MaxBitrateDL uint32
 }
 
 func (o *BpfObjects) PutQer(i uint32, qerInfo QerInfo) error {

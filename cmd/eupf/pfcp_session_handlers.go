@@ -153,12 +153,12 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			maxBitrateDL, err := qer.MBRDL()
 			if err == nil {
-				qerInfo.MaxBitrateDL = maxBitrateDL
+				qerInfo.MaxBitrateDL = uint32(maxBitrateDL)
 			}
 
 			maxBitrateUL, err := qer.MBRUL()
 			if err == nil {
-				qerInfo.MaxBitrateUL = maxBitrateUL
+				qerInfo.MaxBitrateUL = uint32(maxBitrateUL)
 			}
 
 			qfi, err := qer.QFI()
@@ -426,13 +426,13 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err != nil {
 				return fmt.Errorf("Max Bitrate DL missing")
 			}
-			qerInfo.MaxBitrateDL = maxBitrateDL
+			qerInfo.MaxBitrateDL = uint32(maxBitrateDL)
 
 			maxBitrateUL, err := qer.MBRUL()
 			if err != nil {
 				return fmt.Errorf("Max Bitrate UL missing")
 			}
-			qerInfo.MaxBitrateUL = maxBitrateUL
+			qerInfo.MaxBitrateUL = uint32(maxBitrateUL)
 
 			qfi, err := qer.QFI()
 			if err != nil {
