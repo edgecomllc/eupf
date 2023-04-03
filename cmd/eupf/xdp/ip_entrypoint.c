@@ -11,6 +11,7 @@
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/udp.h>
+#include <sys/socket.h>
 
 #include "xdp/gtpu.h"
 #include "xdp/program_array.h"
@@ -171,19 +172,17 @@ static __always_inline void ipv4_csum(void *data_start, int data_size, __u64 *cs
     *csum = csum_fold_helper(*csum);
 }
 
-static __always_inline void ipv4_l4_csum(void *data_start, __u32 data_size,
-                                         __u64 *csum, struct iphdr *iph)
-{
-    __u32 tmp = 0;
-    *csum = bpf_csum_diff(0, 0, &iph->saddr, sizeof(__be32), *csum);
-    *csum = bpf_csum_diff(0, 0, &iph->daddr, sizeof(__be32), *csum);
-    tmp = __builtin_bswap32((__u32)(iph->protocol));
-    *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
-    tmp = __builtin_bswap32((__u32)(data_size));
-    *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
-    *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
-    *csum = csum_fold_helper(*csum);
-}
+// static __always_inline void ipv4_l4_csum(void* data_start, int data_size, __u64* csum, struct iphdr* iph) {
+//   __u32 tmp = 0;
+//   *csum = bpf_csum_diff(0, 0, &iph->saddr, sizeof(__be32), *csum);
+//   *csum = bpf_csum_diff(0, 0, &iph->daddr, sizeof(__be32), *csum);
+//   tmp = __builtin_bswap32((__u32)(iph->protocol));
+//   *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
+//   tmp = __builtin_bswap32((__u32)(data_size));
+//   *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
+//   *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
+//   *csum = csum_fold_helper(*csum);
+// }
 
 static __always_inline __u32 handle_echo_request(struct packet_context *ctx, struct gtpuhdr *gtpu)
 {
@@ -210,9 +209,9 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx, str
     udp->source = tmp;
     // Update UDP checksum
     udp->check = 0;
-    cs = 0;
-    ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
-    udp->check = cs;
+    //cs = 0;
+    //ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
+    //udp->check = cs;
 
     __u8 mac[6];
     __builtin_memcpy(mac, eth->h_source, sizeof(mac));
@@ -251,6 +250,7 @@ struct bpf_map_def SEC("maps") context_map_ip6 = {
 //     .value_size = sizeof(__u32),    // SessionID
 //     .max_entries = 10,              // FIXME
 // };
+
 
 static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const struct iphdr *ip4)
 {
@@ -342,17 +342,57 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
     __builtin_memcpy(gtp, &flags, sizeof(__u8));
     gtp->message_type = GTPU_G_PDU;
     gtp->message_length = inner_ip->tot_len;
-    gtp->teid = far->teid; // p_far->forwarding_parameters.outer_header_creation.teid;
+    gtp->teid = bpf_htonl(far->teid);
 
     __u64 cs = 0;
     ipv4_csum(ip, sizeof(*ip), &cs);
     ip->check = cs;
 
-    cs = 0;
-    ipv4_l4_csum(udp, sizeof(*udp), &cs, ip);
-    udp->check = cs;
+    //Fuck ebpf verifier. I give up
+    //cs = 0;
+    //const void* udp_start = (void*)udp;
+    //const __u16 udp_len = bpf_htons(udp->len);
+    //ipv4_l4_csum(udp, udp_len, &cs, ip);
+    //udp->check = cs;
 
     bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ip->saddr, &ip->daddr);
+
+    struct bpf_fib_lookup fib_params = {};
+    fib_params.family = AF_INET;
+    fib_params.tos = ip->tos;
+    fib_params.l4_protocol = ip->protocol;
+    fib_params.sport = 0;
+    fib_params.dport = 0;
+    fib_params.tot_len = bpf_ntohs(ip->tot_len);
+    fib_params.ipv4_src = ip->saddr;
+    fib_params.ipv4_dst = ip->daddr;
+    fib_params.ifindex = ctx->ingress_ifindex;
+
+    int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), BPF_FIB_LOOKUP_OUTPUT);
+    bpf_printk("upf: bpf_fib_lookup %d: %pI4 -> %pI4", rc, &ip->saddr, &ip->daddr);
+    bpf_printk("upf: bpf_fib_lookup nexthop: %pI4", &fib_params.ipv4_dst);
+
+    switch(rc) {
+        case BPF_FIB_LKUP_RET_SUCCESS:  
+            //_decr_ttl(ether_proto, l3hdr);
+            __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
+            __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);          
+            bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
+            return bpf_redirect(fib_params.ifindex, 0);
+            //return XDP_TX;
+            //return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
+        case BPF_FIB_LKUP_RET_BLACKHOLE:
+        case BPF_FIB_LKUP_RET_UNREACHABLE:
+        case BPF_FIB_LKUP_RET_PROHIBIT:
+            return XDP_DROP;
+        case BPF_FIB_LKUP_RET_NOT_FWDED:
+        case BPF_FIB_LKUP_RET_FWD_DISABLED:
+        case BPF_FIB_LKUP_RET_UNSUPP_LWT:
+        case BPF_FIB_LKUP_RET_NO_NEIGH:
+        case BPF_FIB_LKUP_RET_FRAG_NEEDED:
+            return XDP_PASS;
+    }
+
     return XDP_PASS; // Let's kernel takes care
 
     //__builtin_memcpy(eth->h_dest, orig_eth->h_source, sizeof(orig_eth->h_source));

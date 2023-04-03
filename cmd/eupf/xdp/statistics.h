@@ -11,12 +11,23 @@
 // 	XDP_REDIRECT,
 // };
 
+#ifdef __RELEASE
 struct bpf_map_def SEC("maps") upf_xdp_statistic = {
     .type = BPF_MAP_TYPE_ARRAY,
     .key_size = sizeof(__u32), // xdp_action
     .value_size = sizeof(__u64),
     .max_entries = 5,
 };
+#else
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, __u32); // xdp_action
+    __type(value, __u64);
+    __uint(max_entries, 5);
+} upf_xdp_statistic SEC(".maps");
+#endif
+
 
 struct upf_counters
 {
