@@ -139,7 +139,7 @@ This set of metrics describes how many requests of each type has been processed 
 | upf_sdr_reject            | The total number of rejected session deletion requests |
 | upf_smr_success           | The total number of successful session modification requests |
 | upf_smr_reject            | The total number of rejected session modification requests |
-| upf_message_processing_duration | Duration of the PFCP message processing with message_type label |
+| upf_message_processing_duration | Duration of the PFCP message processing with message_type label in microseconds |
 
 ### XDP Action metrics
 This set of metrics are used to count the number of packets with different outcomes, such as the total number of aborted, dropped, passed, transmitted, and redirected packets.
