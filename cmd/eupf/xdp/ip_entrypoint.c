@@ -223,36 +223,6 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx, str
     return XDP_TX;
 }
 
-struct gtp_tunnel_info
-{
-    __u32 teid;
-    __u32 srcip;
-    __u32 dstip;
-    __u16 dstport;
-};
-
-struct bpf_map_def SEC("maps") context_map_ip4 = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(__u32), // IPv4
-    .value_size = sizeof(struct gtp_tunnel_info),
-    .max_entries = 10, // FIXME
-};
-
-struct bpf_map_def SEC("maps") context_map_ip6 = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(struct in6_addr), // IPv6
-    .value_size = sizeof(__u32),         // TEID
-    .max_entries = 10,                   // FIXME
-};
-
-// struct bpf_map_def SEC("maps") context_map_teid = {
-//     .type = BPF_MAP_TYPE_HASH,
-//     .key_size = sizeof(__u32),      // TEID
-//     .value_size = sizeof(__u32),    // SessionID
-//     .max_entries = 10,              // FIXME
-// };
-
-
 static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const struct iphdr *ip4)
 {
     struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
@@ -418,22 +388,6 @@ static __always_inline __u32 handle_core_packet_ipv6(struct xdp_md *ctx, struct 
 
 static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __u32 teid)
 {
-    // if (ctx->ip4 && ctx->udp)
-    // {
-    //     struct iphdr *inner_ip;
-    //     if (-1 == parse_ip4(ctx, &inner_ip))
-    //         return DEFAULT_XDP_ACTION;
-
-    //     bpf_printk("upf: update mapping %pI4 -> TEID:%d", &inner_ip->saddr, teid);
-    //     struct gtp_tunnel_info tunnel;
-    //     __builtin_memset(&tunnel, 0, sizeof(tunnel));
-    //     tunnel.teid = teid;
-    //     tunnel.srcip = ctx->ip4->daddr;
-    //     tunnel.dstip = ctx->ip4->saddr;
-    //     tunnel.dstport = ctx->udp->source;
-    //     bpf_map_update_elem(&context_map_ip4, &inner_ip->saddr, &tunnel, BPF_ANY);
-    // }
-
     struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
     if(!pdr) {
             bpf_printk("upf: no uplink session for teid:%d", teid);
