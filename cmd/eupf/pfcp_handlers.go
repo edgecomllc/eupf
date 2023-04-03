@@ -15,24 +15,24 @@ type PfcpHanderMap map[uint8]PfcpFunc
 
 func (handlerMap PfcpHanderMap) Handle(conn *PfcpConnection, buf []byte, addr *net.UDPAddr) error {
 	log.Printf("Handling PFCP message from %s", addr)
-	msg, err := message.Parse(buf)
+	incomingMsg, err := message.Parse(buf)
 	if err != nil {
 		log.Printf("Ignored undecodable message: %x, error: %s", buf, err)
 		return err
 	}
-	if handler, ok := handlerMap[msg.MessageType()]; ok {
+	if handler, ok := handlerMap[incomingMsg.MessageType()]; ok {
 		start_time := time.Now()
-		msg_type := msg.MessageTypeName()
-		msg, err := handler(conn, msg, addr)
+		msg_type := incomingMsg.MessageTypeName()
+		responseMsg, err := handler(conn, incomingMsg, addr)
 		if err != nil {
 			log.Printf("Error handling PFCP message: %s", err)
 			return err
 		}
 		duration := time.Since(start_time)
 		UpfMessageProcessingDuration.WithLabelValues(msg_type).Observe(float64(duration.Microseconds()))
-		return conn.SendMessage(msg, addr)
+		return conn.SendMessage(responseMsg, addr)
 	} else {
-		log.Printf("Got unexpected message %s: %s, from: %s", msg.MessageTypeName(), msg, addr)
+		log.Printf("Got unexpected message %s: %s, from: %s", incomingMsg.MessageTypeName(), incomingMsg, addr)
 	}
 	return nil
 }
