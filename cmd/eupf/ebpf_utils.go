@@ -130,8 +130,8 @@ type QerMapElement struct {
 	GateStatusUL uint8  `json:"gate_status_ul"`
 	GateStatusDL uint8  `json:"gate_status_dl"`
 	Qfi          uint8  `json:"qfi"`
-	MaxBitrateUL uint64 `json:"max_bitrate_ul"`
-	MaxBitrateDL uint64 `json:"max_bitrate_dl"`
+	MaxBitrateUL uint32 `json:"max_bitrate_ul"`
+	MaxBitrateDL uint32 `json:"max_bitrate_dl"`
 }
 
 func ListQerMapContents(m *ebpf.Map) ([]QerMapElement, error) {
@@ -155,7 +155,8 @@ func ListQerMapContents(m *ebpf.Map) ([]QerMapElement, error) {
 				Qfi:          value.Qfi,
 				MaxBitrateUL: value.MaxBitrateUL,
 				MaxBitrateDL: value.MaxBitrateDL,
-			})
+			},
+		)
 
 	}
 	return contextMap, iter.Err()
