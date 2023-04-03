@@ -132,6 +132,50 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				}
 			}
 		}
+
+		for _, qer := range req.CreateQER {
+			qerInfo := QerInfo{}
+			qerId, err := qer.QERID() // Probably will be used as ebpf map key
+			if err != nil {
+				return fmt.Errorf("QER ID missing")
+			}
+
+			gateStatusDL, err := qer.GateStatusDL()
+			if err != nil {
+				return fmt.Errorf("Gate Status DL missing")
+			}
+			qerInfo.GateStatusDL = gateStatusDL
+
+			gateStatusUL, err := qer.GateStatusUL()
+			if err != nil {
+				return fmt.Errorf("Gate Status UL missing")
+			}
+			qerInfo.GateStatusUL = gateStatusUL
+
+			maxBitrateDL, err := qer.MBRDL()
+			if err == nil {
+				qerInfo.MaxBitrateDL = uint32(maxBitrateDL)
+			}
+
+			maxBitrateUL, err := qer.MBRUL()
+			if err == nil {
+				qerInfo.MaxBitrateUL = uint32(maxBitrateUL)
+			}
+
+			qfi, err := qer.QFI()
+			if err == nil {
+				qerInfo.Qfi = qfi
+			}
+
+			session.CreateQER(qerId, qerInfo)
+			log.Printf("Creating QER ID: %d, QER Info: %+v", qerId, qerInfo)
+
+			if err := mapOperations.PutQer(qerId, qerInfo); err != nil {
+				log.Printf("Can't put QER: %s", err)
+				return err
+			}
+		}
+
 		return nil
 	}()
 
@@ -293,6 +337,19 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 		}
 
+		for _, qer := range req.RemoveQER {
+			qerId, err := qer.QERID()
+			if err != nil {
+				return fmt.Errorf("QER ID missing")
+			}
+			session.RemoveQER(qerId)
+			log.Printf("Removing QER ID: %d", qerId)
+			if err := mapOperations.DeleteQer(qerId); err != nil {
+				log.Printf("Can't remove QER: %s", err)
+				return err
+			}
+		}
+
 		// #TODO: Extract to standalone function to avoid code duplication
 		for _, pdr := range req.UpdatePDR {
 			spdrInfo := SPDRInfo{}
@@ -345,6 +402,51 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 					log.Printf("Can't update uplink PDR: %s", err)
 					return err
 				}
+			}
+		}
+
+		for _, qer := range req.UpdateQER {
+			qerInfo := QerInfo{}
+			qerId, err := qer.QERID() // Probably will be used as ebpf map key
+			if err != nil {
+				return fmt.Errorf("QER ID missing")
+			}
+
+			gateStatusDL, err := qer.GateStatusDL()
+			if err != nil {
+				return fmt.Errorf("Gate Status DL missing")
+			}
+			qerInfo.GateStatusDL = gateStatusDL
+
+			gateStatusUL, err := qer.GateStatusUL()
+			if err != nil {
+				return fmt.Errorf("Gate Status UL missing")
+			}
+			qerInfo.GateStatusUL = gateStatusUL
+
+			maxBitrateDL, err := qer.MBRDL()
+			if err != nil {
+				return fmt.Errorf("Max Bitrate DL missing")
+			}
+			qerInfo.MaxBitrateDL = uint32(maxBitrateDL)
+
+			maxBitrateUL, err := qer.MBRUL()
+			if err != nil {
+				return fmt.Errorf("Max Bitrate UL missing")
+			}
+			qerInfo.MaxBitrateUL = uint32(maxBitrateUL)
+
+			qfi, err := qer.QFI()
+			if err != nil {
+				return fmt.Errorf("QFI missing")
+			}
+			qerInfo.Qfi = qfi
+
+			session.UpdateQER(qerId, qerInfo)
+			log.Printf("Updating QER ID: %d, QER Info: %+v", qerId, qerInfo)
+			if err := mapOperations.UpdateQer(qerId, qerInfo); err != nil {
+				log.Printf("Can't update QER: %s", err)
+				return err
 			}
 		}
 		return nil

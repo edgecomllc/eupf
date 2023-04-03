@@ -16,6 +16,7 @@
 #include "xdp/gtpu.h"
 #include "xdp/program_array.h"
 #include "xdp/statistics.h"
+#include "xdp/qer.h"
 #include "xdp/pdr.h"
 
 #undef bpf_printk

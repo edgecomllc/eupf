@@ -31,7 +31,6 @@ struct
 
 struct upf_counters
 {
-    __u64 rx_total;
     __u64 rx_arp;
     __u64 rx_icmp;
     __u64 rx_icmp6;

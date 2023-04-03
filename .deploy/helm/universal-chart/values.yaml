@@ -18,6 +18,12 @@ image:
   tag: ""
   pullPolicy: IfNotPresent
 
+# Override default container command
+command: []
+
+# Override default container args
+args: []
+
 initContainers: []
   # - name: run-db-migrations
   #   # if "" then uses default image for this chart
@@ -43,6 +49,28 @@ fullnameOverride: ""
 env: {}
   # foo: bar
 
+# create config maps
+configMaps: {}
+  # config:
+  #   additionalLabels:
+  #     foo: bar
+  #   additionalAnnotations:
+  #     foo: bar
+  #   data:
+  #     config.yml: |
+  #       foo: bar
+
+# volumes
+volumes: {}
+  # - name: config
+  #   configMap:
+  #     name: "universal-chart-config"
+
+# volume mounts
+volumeMounts: {}
+  # - name: config
+  #   mountPath: /app/conf
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -51,6 +79,36 @@ serviceAccount:
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ""
+
+metrics:
+  enabled: false
+  serviceMonitor:
+    # Create ServiceMonitor Resource for scraping metrics using Prometheus Operator
+    enabled: false
+    # Namespace for the ServiceMonitor Resource (defaults to the Release Namespace)
+    namespace: ""
+    # Interval at which metrics should be scraped.
+    # ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
+    interval: ""
+    # Timeout after which the scrape is ended
+    # ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
+    scrapeTimeout: ""
+    # Additional labels that can be used so ServiceMonitor will be discovered by Prometheus
+    labels: {}
+    # Prometheus instance selector labels
+    # ref: https://github.com/bitnami/charts/tree/main/bitnami/prometheus-operator#prometheus-configuration
+    selector: {}
+    # RelabelConfigs to apply to samples before scraping
+    relabelings: []
+    # MetricRelabelConfigs to apply to samples before ingestion
+    metricRelabelings: []
+    # Specify honorLabels parameter to add the scrape endpoint
+    honorLabels: false
+    # The name of the label on the target service to use as the job name in prometheus.
+    jobLabel: ""
+    endpoints:
+      port: metrics
+      path: "/metrics"
 
 podAnnotations: {}
 
@@ -65,9 +123,19 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
+extraContainerPorts: []
+  # - name: metrics
+  #   containerPort: 9090
+  #   protocol: TCP
+
 service:
   type: ClusterIP
   port: 80
+  extraPorts: []
+    # - port: 9090
+    #   targetPort: metrics
+    #   protocol: TCP
+    #   name: metrics
 
 ingress:
   enabled: false

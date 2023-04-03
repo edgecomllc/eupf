@@ -124,3 +124,40 @@ func intToIP(ipNum uint32) net.IP {
 	binary.BigEndian.PutUint32(ip, ipNum)
 	return ip
 }
+
+type QerMapElement struct {
+	Id           uint32 `json:"id"`
+	GateStatusUL uint8  `json:"gate_status_ul"`
+	GateStatusDL uint8  `json:"gate_status_dl"`
+	Qfi          uint8  `json:"qfi"`
+	MaxBitrateUL uint32 `json:"max_bitrate_ul"`
+	MaxBitrateDL uint32 `json:"max_bitrate_dl"`
+}
+
+func ListQerMapContents(m *ebpf.Map) ([]QerMapElement, error) {
+	if m.Type() != ebpf.Array {
+		return nil, fmt.Errorf("map %s is not a hash", m)
+	}
+
+	contextMap := []QerMapElement{}
+
+	var key uint32
+	var value QerInfo
+
+	iter := m.Iterate()
+	for iter.Next(&key, &value) {
+		id := key
+		contextMap = append(contextMap,
+			QerMapElement{
+				Id:           id,
+				GateStatusUL: value.GateStatusUL,
+				GateStatusDL: value.GateStatusDL,
+				Qfi:          value.Qfi,
+				MaxBitrateUL: value.MaxBitrateUL,
+				MaxBitrateDL: value.MaxBitrateDL,
+			},
+		)
+
+	}
+	return contextMap, iter.Err()
+}

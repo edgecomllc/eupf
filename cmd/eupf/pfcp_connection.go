@@ -13,6 +13,7 @@ type Session struct {
 	UplinkPDRs   map[uint32]SPDRInfo
 	DownlinkPDRs map[uint32]SPDRInfo
 	FARs         map[uint32]FarInfo
+	QERs         map[uint32]QerInfo
 }
 
 type SPDRInfo struct {
@@ -33,6 +34,10 @@ func (s *Session) CreateFAR(id uint32, farInfo FarInfo) {
 	s.FARs[id] = farInfo
 }
 
+func (s *Session) CreateQER(id uint32, qerInfo QerInfo) {
+	s.QERs[id] = qerInfo
+}
+
 func (s *Session) UpdateUpLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
 	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
 }
@@ -42,8 +47,11 @@ func (s *Session) UpdateDownLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
 }
 
 func (s *Session) UpdateFAR(id uint32, farInfo FarInfo) {
-
 	s.FARs[id] = farInfo
+}
+
+func (s *Session) UpdateQER(id uint32, qerInfo QerInfo) {
+	s.QERs[id] = qerInfo
 }
 
 func (s *Session) RemoveUplinkPDR(pdrId uint16) {
@@ -56,6 +64,10 @@ func (s *Session) RemoveDownlinkPDR(pdrId uint16) {
 
 func (s *Session) RemoveFAR(farId uint32) {
 	delete(s.FARs, farId)
+}
+
+func (s *Session) RemoveQER(qerId uint32) {
+	delete(s.QERs, qerId)
 }
 
 type SessionMap map[uint64]Session
