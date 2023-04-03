@@ -135,7 +135,7 @@ type QerMapElement struct {
 }
 
 func ListQerMapContents(m *ebpf.Map) ([]QerMapElement, error) {
-	if m.Type() != ebpf.Hash {
+	if m.Type() != ebpf.Array {
 		return nil, fmt.Errorf("map %s is not a hash", m)
 	}
 
