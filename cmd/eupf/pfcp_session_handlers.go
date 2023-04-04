@@ -45,6 +45,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		UplinkPDRs:   map[uint32]SPDRInfo{},
 		DownlinkPDRs: map[uint32]SPDRInfo{},
 		FARs:         map[uint32]FarInfo{},
+		QERs:         map[uint32]QerInfo{},
 	}
 
 	printSessionEstablishmentRequest(req)
@@ -237,6 +238,11 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	}
 	for id := range session.FARs {
 		if err := mapOperations.DeleteFar(id); err != nil {
+			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
+		}
+	}
+	for id := range session.QERs {
+		if err := mapOperations.DeleteQer(id); err != nil {
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
