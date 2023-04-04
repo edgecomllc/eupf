@@ -22,15 +22,6 @@ func CreateApiServer(bpfObjects *BpfObjects, pfcp_srv *PfcpConnection, forwardPl
 		}
 		c.IndentedJSON(http.StatusOK, elements)
 	})
-	router.GET("/context_map", func(c *gin.Context) {
-		elements, err := ListContextMapContents(bpfObjects.ip_entrypointObjects.ContextMapIp4)
-		if err != nil {
-			log.Printf("Error reading map: %s", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.IndentedJSON(http.StatusOK, elements)
-	})
 	router.GET("/qer_map", func(c *gin.Context) {
 		elements, err := ListQerMapContents(bpfObjects.ip_entrypointObjects.QerMap)
 		if err != nil {
