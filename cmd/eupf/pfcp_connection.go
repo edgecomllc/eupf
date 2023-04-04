@@ -13,7 +13,7 @@ type Session struct {
 	UplinkPDRs   map[uint32]SPDRInfo
 	DownlinkPDRs map[uint32]SPDRInfo
 	FARs         map[uint32]FarInfo
-	QERs 		 map[uint32]QerInfo
+	QERs         map[uint32]QerInfo
 }
 
 type SPDRInfo struct {
@@ -46,7 +46,7 @@ func (s *Session) UpdateDownLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
 	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
 }
 
-func (s *Session) UpdateFAR(id uint32, farInfo FarInfo) {	
+func (s *Session) UpdateFAR(id uint32, farInfo FarInfo) {
 	s.FARs[id] = farInfo
 }
 
@@ -59,7 +59,7 @@ func (s *Session) RemoveUplinkPDR(pdrId uint16) {
 }
 
 func (s *Session) RemoveDownlinkPDR(pdrId uint16) {
-	delete(s.DownlinkPDRs, uint32(pdrId))	
+	delete(s.DownlinkPDRs, uint32(pdrId))
 }
 
 func (s *Session) RemoveFAR(farId uint32) {
@@ -106,6 +106,9 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		log.Printf("Can't listen UDP address: %s", err)
 		return nil, err
 	}
+
+	log.Printf("Start PFCP connection: %s", addr)
+
 	addrv4, err := net.ResolveIPAddr("ip4", nodeId)
 	if err != nil {
 		return nil, err

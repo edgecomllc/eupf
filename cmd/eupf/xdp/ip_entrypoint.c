@@ -11,11 +11,13 @@
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/udp.h>
+#include <sys/socket.h>
 
 #include "xdp/gtpu.h"
 #include "xdp/program_array.h"
 #include "xdp/statistics.h"
 #include "xdp/qer.h"
+#include "xdp/pdr.h"
 
 #undef bpf_printk
 #define bpf_printk(fmt, ...)                       \
@@ -37,14 +39,15 @@ enum default_action
 /* Header cursor to keep track of current parsing position */
 struct packet_context
 {
-    void *data;
-    void *data_end;
+    void            *data;
+    void            *data_end;
     struct upf_counters *counters;
-    struct xdp_md *ctx;
-    struct ethhdr *eth;
-    struct iphdr *ip4;
-    struct ipv6hdr *ip6;
-    struct udphdr *udp;
+    struct xdp_md   *ctx;
+    struct ethhdr   *eth;
+    struct iphdr    *ip4;
+    struct ipv6hdr  *ip6;
+    struct udphdr   *udp;
+    struct gtpuhdr  *gtp;
 };
 
 static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct ethhdr **ethhdr)
@@ -170,19 +173,17 @@ static __always_inline void ipv4_csum(void *data_start, int data_size, __u64 *cs
     *csum = csum_fold_helper(*csum);
 }
 
-static __always_inline void ipv4_l4_csum(void *data_start, __u32 data_size,
-                                         __u64 *csum, struct iphdr *iph)
-{
-    __u32 tmp = 0;
-    *csum = bpf_csum_diff(0, 0, &iph->saddr, sizeof(__be32), *csum);
-    *csum = bpf_csum_diff(0, 0, &iph->daddr, sizeof(__be32), *csum);
-    tmp = __builtin_bswap32((__u32)(iph->protocol));
-    *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
-    tmp = __builtin_bswap32((__u32)(data_size));
-    *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
-    *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
-    *csum = csum_fold_helper(*csum);
-}
+// static __always_inline void ipv4_l4_csum(void* data_start, int data_size, __u64* csum, struct iphdr* iph) {
+//   __u32 tmp = 0;
+//   *csum = bpf_csum_diff(0, 0, &iph->saddr, sizeof(__be32), *csum);
+//   *csum = bpf_csum_diff(0, 0, &iph->daddr, sizeof(__be32), *csum);
+//   tmp = __builtin_bswap32((__u32)(iph->protocol));
+//   *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
+//   tmp = __builtin_bswap32((__u32)(data_size));
+//   *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
+//   *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
+//   *csum = csum_fold_helper(*csum);
+// }
 
 static __always_inline __u32 handle_echo_request(struct packet_context *ctx, struct gtpuhdr *gtpu)
 {
@@ -209,9 +210,9 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx, str
     udp->source = tmp;
     // Update UDP checksum
     udp->check = 0;
-    cs = 0;
-    ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
-    udp->check = cs;
+    //cs = 0;
+    //ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
+    //udp->check = cs;
 
     __u8 mac[6];
     __builtin_memcpy(mac, eth->h_source, sizeof(mac));
@@ -222,81 +223,27 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx, str
     return XDP_TX;
 }
 
-struct pdr_info
-{
-    __u8 outer_header_removal;
-    __u16 far_id;
-};
-
-struct bpf_map_def SEC("maps") pdr_map_uplink_ip4 = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(__u32), // IPv4
-    .value_size = sizeof(struct pdr_info),
-    .max_entries = 1024, // FIXME
-};
-
-struct bpf_map_def SEC("maps") pdr_map_downlink_ip4 = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(__u32), // TEID
-    .value_size = sizeof(struct pdr_info),
-    .max_entries = 1024, // FIXME
-};
-
-struct far_info
-{
-    __u8 action;
-    __u8 outer_header_creation;
-    __u32 teid;
-    __u32 srcip;
-};
-
-struct bpf_map_def SEC("maps") far_map = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(__u32), // FAR ID
-    .value_size = sizeof(struct far_info),
-    .max_entries = 1024, // FIXME
-};
-
-struct gtp_tunnel_info
-{
-    __u32 teid;
-    __u32 srcip;
-    __u32 dstip;
-    __u16 dstport;
-};
-
-struct bpf_map_def SEC("maps") context_map_ip4 = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(__u32), // IPv4
-    .value_size = sizeof(struct gtp_tunnel_info),
-    .max_entries = 10, // FIXME
-};
-
-struct bpf_map_def SEC("maps") context_map_ip6 = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(struct in6_addr), // IPv6
-    .value_size = sizeof(__u32),         // TEID
-    .max_entries = 10,                   // FIXME
-};
-
-// struct bpf_map_def SEC("maps") context_map_teid = {
-//     .type = BPF_MAP_TYPE_HASH,
-//     .key_size = sizeof(__u32),      // TEID
-//     .value_size = sizeof(__u32),    // SessionID
-//     .max_entries = 10,              // FIXME
-// };
-
 static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const struct iphdr *ip4)
 {
-
-    const struct gtp_tunnel_info *tunnel = bpf_map_lookup_elem(&context_map_ip4, &ip4->daddr);
-    if (tunnel == NULL)
-    {
-        bpf_printk("upf: no mapping for dest %pI4", &ip4->daddr);
-        return DEFAULT_XDP_ACTION;
+    struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
+    if(!pdr) {
+            bpf_printk("upf: no downlink session for ip:%pI4", ip4->daddr);
+            return DEFAULT_XDP_ACTION;
     }
 
-    bpf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, tunnel->teid);
+    struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+    if(!far) {
+        bpf_printk("upf: no downlink session far for ip:%pI4 far:%d", &ip4->daddr, pdr->far_id);
+            return XDP_DROP;
+    }
+
+    bpf_printk("upf: downlink session for ip:%pI4  far:%d action:%d", &ip4->daddr, pdr->far_id, far->action);
+
+    //Only forwarding action supported at the moment
+    if(!(far->action & FAR_FORW))
+        return XDP_DROP;
+
+    bpf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
 
     static const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
     bpf_xdp_adjust_head(ctx, (__s32)-GTP_ENCAPSULATED_SIZE);
@@ -340,8 +287,8 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
     ip->ttl = 64;
     ip->protocol = IPPROTO_UDP;
     ip->check = 0;
-    ip->saddr = tunnel->srcip;
-    ip->daddr = tunnel->dstip; // p_far->forwarding_parameters.outer_header_creation.ipv4_address.s_addr;
+    ip->saddr = far->localip;
+    ip->daddr = far->remoteip;
 
     // Add the UDP header
     struct udphdr *udp = (void *)(ip + 1);
@@ -351,7 +298,7 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
     }
 
     udp->source = bpf_htons(GTP_UDP_PORT);
-    udp->dest = tunnel->dstport; // bpf_htons(p_far->forwarding_parameters.outer_header_creation.port_number);
+    udp->dest = bpf_htons(GTP_UDP_PORT);
     udp->len = bpf_htons(bpf_ntohs(inner_ip->tot_len) + sizeof(*udp) + sizeof(struct gtpuhdr));
     udp->check = 0;
 
@@ -366,17 +313,57 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
     __builtin_memcpy(gtp, &flags, sizeof(__u8));
     gtp->message_type = GTPU_G_PDU;
     gtp->message_length = inner_ip->tot_len;
-    gtp->teid = tunnel->teid; // p_far->forwarding_parameters.outer_header_creation.teid;
+    gtp->teid = bpf_htonl(far->teid);
 
     __u64 cs = 0;
     ipv4_csum(ip, sizeof(*ip), &cs);
     ip->check = cs;
 
-    cs = 0;
-    ipv4_l4_csum(udp, sizeof(*udp), &cs, ip);
-    udp->check = cs;
+    //Fuck ebpf verifier. I give up
+    //cs = 0;
+    //const void* udp_start = (void*)udp;
+    //const __u16 udp_len = bpf_htons(udp->len);
+    //ipv4_l4_csum(udp, udp_len, &cs, ip);
+    //udp->check = cs;
 
     bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ip->saddr, &ip->daddr);
+
+    struct bpf_fib_lookup fib_params = {};
+    fib_params.family = AF_INET;
+    fib_params.tos = ip->tos;
+    fib_params.l4_protocol = ip->protocol;
+    fib_params.sport = 0;
+    fib_params.dport = 0;
+    fib_params.tot_len = bpf_ntohs(ip->tot_len);
+    fib_params.ipv4_src = ip->saddr;
+    fib_params.ipv4_dst = ip->daddr;
+    fib_params.ifindex = ctx->ingress_ifindex;
+
+    int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), BPF_FIB_LOOKUP_OUTPUT);
+    bpf_printk("upf: bpf_fib_lookup %d: %pI4 -> %pI4", rc, &ip->saddr, &ip->daddr);
+    bpf_printk("upf: bpf_fib_lookup nexthop: %pI4", &fib_params.ipv4_dst);
+
+    switch(rc) {
+        case BPF_FIB_LKUP_RET_SUCCESS:  
+            //_decr_ttl(ether_proto, l3hdr);
+            __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
+            __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);          
+            bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
+            return bpf_redirect(fib_params.ifindex, 0);
+            //return XDP_TX;
+            //return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
+        case BPF_FIB_LKUP_RET_BLACKHOLE:
+        case BPF_FIB_LKUP_RET_UNREACHABLE:
+        case BPF_FIB_LKUP_RET_PROHIBIT:
+            return XDP_DROP;
+        case BPF_FIB_LKUP_RET_NOT_FWDED:
+        case BPF_FIB_LKUP_RET_FWD_DISABLED:
+        case BPF_FIB_LKUP_RET_UNSUPP_LWT:
+        case BPF_FIB_LKUP_RET_NO_NEIGH:
+        case BPF_FIB_LKUP_RET_FRAG_NEEDED:
+            return XDP_PASS;
+    }
+
     return XDP_PASS; // Let's kernel takes care
 
     //__builtin_memcpy(eth->h_dest, orig_eth->h_source, sizeof(orig_eth->h_source));
@@ -401,47 +388,54 @@ static __always_inline __u32 handle_core_packet_ipv6(struct xdp_md *ctx, struct 
 
 static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __u32 teid)
 {
-    if (ctx->ip4 && ctx->udp)
-    {
-
-        struct iphdr *inner_ip;
-        if (-1 == parse_ip4(ctx, &inner_ip))
+    struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
+    if(!pdr) {
+            bpf_printk("upf: no uplink session for teid:%d", teid);
             return DEFAULT_XDP_ACTION;
-
-        bpf_printk("upf: update mapping %pI4 -> TEID:%d", &inner_ip->saddr, teid);
-        struct gtp_tunnel_info tunnel;
-        __builtin_memset(&tunnel, 0, sizeof(tunnel));
-        tunnel.teid = teid;
-        tunnel.srcip = ctx->ip4->daddr;
-        tunnel.dstip = ctx->ip4->saddr;
-        tunnel.dstport = ctx->udp->source;
-        bpf_map_update_elem(&context_map_ip4, &inner_ip->saddr, &tunnel, BPF_ANY);
-
-        // __u32* session_teid = bpf_map_lookup_elem(&context_map_ip4, &ctx->ip4->saddr);
-
-        // if(!session_teid) {
-        //     bpf_printk("upf: no session for %pI4", &ctx->ip4->saddr);
-        //     return DEFAULT_XDP_ACTION;
-        // }
     }
 
-    void *data = (void *)(long)ctx->ctx->data;
-    void *data_end = (void *)(long)ctx->ctx->data_end;
-    static const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
-    struct ethhdr *eth = data;
-    if ((void *)(eth + 1) > data_end)
+    bpf_printk("upf: uplink session for teid:%d far:%d headrm:%d", teid, pdr->far_id, pdr->outer_header_removal);
+
+    struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+    if(!far) {
+        bpf_printk("upf: no uplink session far for teid:%d far:%d", teid, pdr->far_id);
+            return XDP_DROP;
+    }
+
+    bpf_printk("upf: far for teid:%d far:%d action:%d", teid, pdr->far_id, far->action);
+
+    //Only forwarding action supported at the moment
+    if(!(far->action & FAR_FORW))
+        return XDP_DROP;
+
+    if(pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) 
     {
-        return DEFAULT_XDP_ACTION;
-    }
+        void *data = (void *)(long)ctx->ctx->data;
+        void *data_end = (void *)(long)ctx->ctx->data_end;
 
-    struct ethhdr *new_eth = data + GTP_ENCAPSULATED_SIZE;
-    if ((void *)(new_eth + 1) > data_end)
-    {
-        return DEFAULT_XDP_ACTION;
-    }
-    __builtin_memcpy(new_eth, eth, sizeof(*eth));
+        int ext_gtp_header_size = 0;
+        if(ctx->gtp) {
+            struct gtpuhdr *gtp = ctx->gtp;
+            if (gtp->e || gtp->s || gtp->pn)
+                ext_gtp_header_size += sizeof(struct gtp_hdr_ext) + 4;
+        }
 
-    bpf_xdp_adjust_head(ctx->ctx, GTP_ENCAPSULATED_SIZE);
+        const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr) + ext_gtp_header_size;
+        struct ethhdr *eth = data;
+        if ((void *)(eth + 1) > data_end)
+        {
+            return XDP_DROP;
+        }
+
+        struct ethhdr *new_eth = data + GTP_ENCAPSULATED_SIZE;
+        if ((void *)(new_eth + 1) > data_end)
+        {
+            return XDP_DROP;
+        }
+        __builtin_memcpy(new_eth, eth, sizeof(*eth));
+
+        bpf_xdp_adjust_head(ctx->ctx, GTP_ENCAPSULATED_SIZE);
+    }
 
     return XDP_PASS; // Now lets kernel takes care
 
@@ -464,6 +458,8 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
         }
         if (ctx->counters)
             __sync_fetch_and_add(&ctx->counters->rx_gtp_pdu, 1);
+        
+        ctx->gtp = gtp;
         return handle_access_packet(ctx, bpf_htonl(gtp->teid));
     case GTPU_ECHO_REQUEST:
         bpf_printk("upf: gtp header [ version=%d, pt=%d, e=%d]", gtp->version, gtp->pt, gtp->e);
@@ -498,11 +494,13 @@ static __always_inline __u32 handle_ip4(struct packet_context *ctx)
 
     switch (l4_protocol)
     {
-    case IPPROTO_ICMP: // Let kernel stack takes care
+    case IPPROTO_ICMP: {
         if (ctx->counters)
             __sync_fetch_and_add(&ctx->counters->rx_icmp, 1);
-        bpf_printk("upf: icmp received. passing to kernel");
-        return XDP_PASS;
+        break;
+        //bpf_printk("upf: icmp received. passing to kernel");
+        //return XDP_PASS; // Let kernel stack takes care
+    }
     case IPPROTO_UDP:
         if (ctx->counters)
             __sync_fetch_and_add(&ctx->counters->rx_udp, 1);

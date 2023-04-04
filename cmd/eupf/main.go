@@ -42,6 +42,7 @@ func main() {
 	l, err := link.AttachXDP(link.XDPOptions{
 		Program:   bpfObjects.UpfIpEntrypointFunc,
 		Interface: iface.Index,
+		Flags:     StringToXDPAttachMode(config.XDPAttachMode),
 	})
 	if err != nil {
 		log.Fatalf("Could not attach XDP program: %s", err)
@@ -95,5 +96,18 @@ func main() {
 			log.Println("Received signal, exiting program..")
 			return
 		}
+	}
+}
+
+func StringToXDPAttachMode(Mode string) link.XDPAttachFlags {
+	switch Mode {
+	case "generic":
+		return link.XDPGenericMode
+	case "native":
+		return link.XDPDriverMode
+	case "offload":
+		return link.XDPOffloadMode
+	default:
+		return link.XDPGenericMode
 	}
 }

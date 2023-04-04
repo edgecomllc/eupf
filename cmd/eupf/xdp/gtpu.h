@@ -52,3 +52,11 @@ struct gtpuhdr
 
     /*The options start here. */
 } __attribute__((packed));
+
+
+ /* Optional word of GTP header, present if any of E, S, PN is set. */
+ struct gtp_hdr_ext {
+     __u16 sqn;       
+     __u8 npdu;         
+     __u8 next_ext;     
+ } __attribute__((packed));
