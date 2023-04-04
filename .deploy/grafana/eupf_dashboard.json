@@ -25,7 +25,34 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 2,
   "id": 28,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": true,
+      "title": "USE dashboard: Workload",
+      "tooltip": "",
+      "type": "link",
+      "url": "/d/a164a7f0339f99e89cea5cb47e9be617/kubernetes-compute-resources-workload?orgId=1&var-datasource=default&var-cluster=&var-type=deployment&var-workload=eupf-universal-chart"
+    },
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "kubernetes-mixin"
+      ],
+      "targetBlank": true,
+      "title": "USE dashboards: Utilization, Saturation, Errors",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
   "liveNow": false,
   "panels": [
     {
@@ -36,6 +63,228 @@
         "x": 0,
         "y": 0
       },
+      "id": 17,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "eUPF users rx packets rate summary by instances, stacked by layers 3&4",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic",
+                "seriesBy": "max"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 50,
+                "gradientMode": "opacity",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "pps"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/_ip|_other/"
+                },
+                "properties": [
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "bars"
+                  },
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "group": "layer3",
+                      "mode": "normal"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/_total/"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        30,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "A"
+                },
+                "properties": [
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "group": "layer4",
+                      "mode": "normal"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 1
+          },
+          "id": 18,
+          "options": {
+            "legend": {
+              "calcs": [
+                "min",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "sortBy": "Max",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_rx_.*\", job=~\"eupf.*\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
+              "hide": false,
+              "legendFormat": "{{nname}}",
+              "range": true,
+              "refId": "E"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "rate(label_join({__name__=~\"upf_rx_.*\", job=~\"eupf.*\"}, \"nname\", \",\", \"__name__\",\"instance\")[$__rate_interval:1s])",
+              "hide": true,
+              "legendFormat": "{{nname}}",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "rate(upf_xdp_pass{job=~\"eupf.*\"}[$__rate_interval])",
+              "hide": true,
+              "instant": false,
+              "legendFormat": "upf_xdp_pass",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "rate(upf_xdp_redirect{job=~\"eupf.*\"}[$__rate_interval])",
+              "hide": true,
+              "legendFormat": "upf_xdp_redirect",
+              "range": true,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "rate(upf_xdp_tx{job=~\"eupf.*\"}[$__rate_interval])",
+              "hide": true,
+              "legendFormat": "upf_xdp_tx",
+              "range": true,
+              "refId": "D"
+            }
+          ],
+          "title": "Sum rx packets rate per sec",
+          "transformations": [],
+          "type": "timeseries"
+        }
+      ],
+      "title": "N3 users traffic packets statistics summary for instances",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
       "id": 2,
       "panels": [
         {
@@ -43,7 +292,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "description": "XDP packets rate altogether",
+          "description": "XDP actions rate altogether",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -101,7 +350,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 9
+            "y": 10
           },
           "id": 4,
           "options": {
@@ -125,53 +374,15 @@
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "editorMode": "code",
-              "expr": "rate(label_join({__name__=~\"upf_xdp_.*\", job=~\"eupf.*\"}, \"nname\", \",\", \"__name__\",\"instance\")[$__rate_interval:1s])",
+              "editorMode": "builder",
+              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_xdp_.*\", job=~\"eupf.*\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
               "hide": false,
               "legendFormat": "{{nname}}",
               "range": true,
               "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "builder",
-              "exemplar": false,
-              "expr": "rate(upf_xdp_pass{job=~\"eupf.*\"}[$__rate_interval])",
-              "hide": true,
-              "instant": false,
-              "legendFormat": "upf_xdp_pass",
-              "range": true,
-              "refId": "B"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "builder",
-              "expr": "rate(upf_xdp_redirect{job=~\"eupf.*\"}[$__rate_interval])",
-              "hide": true,
-              "legendFormat": "upf_xdp_redirect",
-              "range": true,
-              "refId": "C"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "builder",
-              "expr": "rate(upf_xdp_tx{job=~\"eupf.*\"}[$__rate_interval])",
-              "hide": true,
-              "legendFormat": "upf_xdp_tx",
-              "range": true,
-              "refId": "D"
             }
           ],
-          "title": "XDP packets rate per sec",
+          "title": "XDP actions rate per sec",
           "transformations": [],
           "type": "timeseries"
         },
@@ -237,7 +448,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 9
+            "y": 10
           },
           "id": 5,
           "options": {
@@ -262,20 +473,8 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "{__name__=~\"upf_xdp_.*\", job=~\"eupf.*\"}",
-              "hide": true,
-              "legendFormat": "__auto",
-              "range": true,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "builder",
               "exemplar": false,
-              "expr": "rate(upf_xdp_aborted{job=~\"eupf.*\"}[$__rate_interval])",
+              "expr": "sum by(__name__) (rate(upf_xdp_aborted{job=~\"eupf.*\"}[$__rate_interval]))",
               "hide": false,
               "instant": false,
               "legendFormat": "upf_xdp_aborted",
@@ -288,14 +487,14 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "rate(upf_xdp_drop{job=~\"eupf.*\"}[$__rate_interval])",
+              "expr": "sum by(__name__) (rate(upf_xdp_drop{job=~\"eupf.*\"}[$__rate_interval]))",
               "hide": false,
               "legendFormat": "upf_xdp_drop",
               "range": true,
               "refId": "C"
             }
           ],
-          "title": "XDP packets drop rate",
+          "title": "XDP actions rate to drop packets ",
           "transformations": [],
           "type": "timeseries"
         },
@@ -361,7 +560,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 17
+            "y": 18
           },
           "id": 6,
           "options": {
@@ -386,447 +585,20 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "{__name__=~\"upf_xdp_.*\", job=~\"eupf.*\"}",
+              "expr": "sum by(__name__) ({__name__=~\"upf_xdp_.*\", job=~\"eupf.*\"})",
               "hide": false,
               "legendFormat": "{{__name__}}",
               "range": true,
               "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "builder",
-              "exemplar": false,
-              "expr": "rate(upf_xdp_pass{job=~\"eupf.*\"}[$__rate_interval])",
-              "hide": true,
-              "instant": false,
-              "legendFormat": "upf_xdp_pass",
-              "range": true,
-              "refId": "B"
             }
           ],
-          "title": "XDP packets total",
+          "title": "XDP actions total",
           "transformations": [],
           "type": "timeseries"
         }
       ],
-      "title": "N3 users traffic XDP packets",
+      "title": "N3 users traffic packets XDP action summary for instances",
       "type": "row"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 1
-      },
-      "id": 11,
-      "panels": [],
-      "title": "N4 PFCP request counters",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "The counts per sec of successful session requests",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "cps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 2
-      },
-      "id": 14,
-      "options": {
-        "legend": {
-          "calcs": [
-            "min",
-            "max"
-          ],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "rate(label_join({__name__=~\"upf_.*_success\", job=~\"eupf.*\"}, \"nname\", \",\", \"__name__\",\"instance\")[$__rate_interval:1s])",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "{{nname}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Success requests rate per sec",
-      "transformations": [],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "The counts per sec of rejeted session requests",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "cps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 2
-      },
-      "id": 15,
-      "options": {
-        "legend": {
-          "calcs": [
-            "min",
-            "max"
-          ],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "rate(label_join({__name__=~\"upf_.*_reject\", job=~\"eupf.*\"}, \"nname\", \",\", \"__name__\",\"instance\")[$__rate_interval:1s])",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "{{nname}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Rejected requests rate per sec",
-      "transformations": [],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "The total number of successful session requests",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 10
-      },
-      "id": 12,
-      "options": {
-        "legend": {
-          "calcs": [
-            "min",
-            "max"
-          ],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "builder",
-          "expr": "{__name__=~\"upf_.*_success\", job=~\"eupf.*\"}",
-          "hide": false,
-          "legendFormat": "{{__name__}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Success requests total altogether",
-      "transformations": [],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "The total number of rejected session requests",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 10
-      },
-      "id": 13,
-      "options": {
-        "legend": {
-          "calcs": [
-            "min",
-            "max"
-          ],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "builder",
-          "expr": "{__name__=~\"upf_.*_reject\", job=~\"eupf.*\"}",
-          "hide": false,
-          "legendFormat": "{{__name__}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Rejected requests total altogether",
-      "transformations": [],
-      "type": "timeseries"
     },
     {
       "collapsed": true,
@@ -834,15 +606,218 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 2
       },
-      "id": 8,
+      "id": 11,
       "panels": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
+          "description": "The counts per sec of successful session requests",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "cps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 3
+          },
+          "id": 14,
+          "options": {
+            "legend": {
+              "calcs": [
+                "min",
+                "max"
+              ],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_.*_success\", job=~\"eupf.*\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "{{nname}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Success requests rate per sec",
+          "transformations": [],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "The counts per sec of rejeted session requests",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "cps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 3
+          },
+          "id": 15,
+          "options": {
+            "legend": {
+              "calcs": [
+                "min",
+                "max"
+              ],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_.*_reject\", job=~\"eupf.*\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "{{nname}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Rejected requests rate per sec",
+          "transformations": [],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "The total number of successful session requests",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -900,9 +875,9 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 19
+            "y": 11
           },
-          "id": 9,
+          "id": 12,
           "options": {
             "legend": {
               "calcs": [
@@ -925,9 +900,224 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "{__name__=~\"upf_.*\", job=~\"eupf.*\"}",
+              "expr": "sum by(__name__) ({__name__=~\"upf_.*_success\", job=~\"eupf.*\"})",
               "hide": false,
-              "legendFormat": "{{__name__}}",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Success requests total altogether",
+          "transformations": [],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "The total number of rejected session requests",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 11
+          },
+          "id": 13,
+          "options": {
+            "legend": {
+              "calcs": [
+                "min",
+                "max"
+              ],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "sum by(__name__) ({__name__=~\"upf_.*_reject\", job=~\"eupf.*\"})",
+              "hide": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Rejected requests total altogether",
+          "transformations": [],
+          "type": "timeseries"
+        }
+      ],
+      "title": "N4 PFCP request counters summary for instances",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 3
+      },
+      "id": 8,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 4
+          },
+          "id": 9,
+          "links": [],
+          "options": {
+            "legend": {
+              "calcs": [
+                "min",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "sortBy": "Max",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "sum by(__name__) ({__name__=~\"upf_.*\", job=~\"eupf.*\"})",
+              "hide": false,
+              "legendFormat": "__auto",
               "range": true,
               "refId": "A"
             }
@@ -970,13 +1160,13 @@
     ]
   },
   "time": {
-    "from": "2023-03-23T17:44:34.238Z",
-    "to": "2023-03-23T18:05:10.882Z"
+    "from": "2023-04-04T09:51:08.916Z",
+    "to": "2023-04-04T10:18:19.936Z"
   },
   "timepicker": {},
   "timezone": "",
   "title": "5G core / eUPF",
   "uid": "1b4DK5f4z",
-  "version": 6,
+  "version": 11,
   "weekStart": ""
 }
