@@ -74,7 +74,7 @@
 ### Current limitation
 
 - Only one PDR in PFCP session per direction
-- Only single FAR supported 
+- Only single FAR supported
 
 ### Packet forwarding pipeline
 
@@ -169,3 +169,17 @@ Various packet counters
 | upf_rx_gtp_pdu     | The total number of received GTP PDU packets |
 | upf_rx_gtp_other   | The total number of received GTP other packets |
 | upf_rx_gtp_error   | The total number of received GTP error packets |
+
+## Quick start
+
+To install application, you must have:
+
+* Kubernetes cluster
+
+in our case, we used the `kubespray` tool. An example configs can be seen in [repo](https://github.com/edgecomllc/ansible)edgecomllc/ansible)
+
+* installed and configured 5G core `free5gc` or `open5gs`
+
+to install free5gc you can use our example in [repo](https://github.com/edgecomllc/free5gc)
+
+to install open5gs you can use our example in [repo](https://github.com/edgecomllc/open5gs)
