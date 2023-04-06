@@ -129,13 +129,13 @@
 ### PFCP message metrics
 This set of metrics describes how many requests of each type has been processed with outcome specified.
 All metrics except for `upf_message_processing_duration` are counters and labeled with `result` indicating if message was successfuly processed or rejected.
-| Metric Name                        | Description                                                                     |
-| ---------------------------------- | ------------------------------------------------------------------------------- |
-| upf_association_setup_requests     | The total number of association setup requests                                  |
-| upf_session_establishment_requests | The total number of session establishment requests                              |
-| upf_session_deletion_requests      | The total number of session deletion requests                                   |
-| upf_session_modification_requests  | The total number of session modification requests                               |
-| upf_message_processing_duration    | Duration of the PFCP message processing with message_type label in microseconds |
+**Note:** `upf_pfcp_msg_rx` and `upf_pfcp_msg_rx_with_cause_code` have different implementation and counted at different points, we will drop one or another after evaluation, or implement a different counters altogether.
+| Metric Name                     | Description                                                |
+| ------------------------------- | ---------------------------------------------------------- |
+| upf_pfcp_msg_rx                 | The total number of received PFCP messages                 |
+| upf_pfcp_msg_tx                 | The total number of transmitted PFCP messages              |
+| upf_pfcp_msg_rx_with_cause_code | The total number of received PFCP messages with cause code |
+| upf_message_processing_duration | The total number of PFCP messages processing duration      |
 
 ### XDP Action metrics
 This set of metrics are used to count the number of packets with different outcomes, such as the total number of aborted, dropped, passed, transmitted, and redirected packets.
@@ -149,19 +149,8 @@ This set of metrics are used to count the number of packets with different outco
 | upf_xdp_redirect | The total number of redirected packets  |
 
 ### Packet metrics
-Various packet counters
+Various packet counters with `packet_type` label.
 
-| Metric Name      | Description                                    |
-| ---------------- | ---------------------------------------------- |
-| upf_rx_arp       | The total number of received ARP packets       |
-| upf_rx_icmp      | The total number of received ICMP packets      |
-| upf_rx_icmpv6    | The total number of received ICMPv6 packets    |
-| upf_rx_ip4       | The total number of received IPv4 packets      |
-| upf_rx_ip6       | The total number of received IPv6 packets      |
-| upf_rx_tcp       | The total number of received TCP packets       |
-| upf_rx_udp       | The total number of received UDP packets       |
-| upf_rx_other     | The total number of received other packets     |
-| upf_rx_gtp_echo  | The total number of received GTP echo packets  |
-| upf_rx_gtp_pdu   | The total number of received GTP PDU packets   |
-| upf_rx_gtp_other | The total number of received GTP other packets |
-| upf_rx_gtp_error | The total number of received GTP error packets |
+| Metric Name | Description                              |
+| ----------- | ---------------------------------------- |
+| upf_rx      | The total number of received ARP packets |

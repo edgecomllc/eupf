@@ -225,7 +225,7 @@ func displayFar(far *ie.IE) {
 }
 
 func displayPdr(pdr *ie.IE) {
-	log.Printf("------ PDR: %+v", pdr)
+	log.Printf("------ PDR: \n")
 	var sb strings.Builder
 	pdrId, err := pdr.PDRID()
 	if err == nil {

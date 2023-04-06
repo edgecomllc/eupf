@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -9,29 +10,20 @@ import (
 )
 
 var (
-	// Association setup requests
-	AsrRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "upf_association_setup_requests",
-		Help: "The total number of association setup requests",
-	}, []string{"result"})
+	PfcpMessageRx = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "upf_pfcp_msg_rx",
+		Help: "The total number of received PFCP messages",
+	}, []string{"message_name"})
 
-	// Session establishment requests
-	SerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "upf_session_establishment_requests",
-		Help: "The total number of session establishment requests",
-	}, []string{"result"})
+	PfcpMessageTx = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "upf_pfcp_msg_tx",
+		Help: "The total number of transmitted PFCP messages",
+	}, []string{"message_name"})
 
-	// Session Deletion requests
-	SdrRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "upf_session_deletion_requests",
-		Help: "The total number of session deletion requests",
-	}, []string{"result"})
-
-	// Session modification requests
-	SmrRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "upf_session_modification_requests",
-		Help: "The total number of session modification requests",
-	}, []string{"result"})
+	PfcpMessageRxWithCauseCode = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "upf_pfcp_msg_rx_with_cause_code",
+		Help: "The total number of received PFCP messages with cause code",
+	}, []string{"message_name", "cause_code"})
 
 	UpfXdpAborted  prometheus.CounterFunc
 	UpfXdpDrop     prometheus.CounterFunc
@@ -39,18 +31,10 @@ var (
 	UpfXdpTx       prometheus.CounterFunc
 	UpfXdpRedirect prometheus.CounterFunc
 
-	UpfRxArp      prometheus.CounterFunc
-	UpfRxIcmp     prometheus.CounterFunc
-	UpfRxIcmpv6   prometheus.CounterFunc
-	UpfRxIp4      prometheus.CounterFunc
-	UpfRxIp6      prometheus.CounterFunc
-	UpfRxTcp      prometheus.CounterFunc
-	UpfRxUdp      prometheus.CounterFunc
-	UpfRxOther    prometheus.CounterFunc
-	UpfRxGptEcho  prometheus.CounterFunc
-	UpfRxGtpPdu   prometheus.CounterFunc
-	UpfRxGtpOther prometheus.CounterFunc
-	UpfRxGtpUnexp prometheus.CounterFunc
+	UpfRx = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "upf_rx",
+		Help: "The total number of received packets",
+	}, []string{"packet_type"})
 
 	UpfMessageProcessingDuration = promauto.NewSummaryVec(prometheus.SummaryOpts{
 		Name:       "upf_message_processing_duration",
@@ -59,13 +43,6 @@ var (
 		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 	}, []string{"message_type"})
 )
-
-// PacketCounter usage
-/*
-	PacketCounter.WithLabelValues("SOMELABLEVALUE").Add(1)
-	PacketCounter.WithLabelValues("SOMELABLEVALUE").Add(10)
-	PacketCounter.WithLabelValues("SOMELABLEVALUE2").Add(1)
-*/
 
 func StartMetrics(addr string) {
 	http.Handle("/metrics", promhttp.Handler())
@@ -76,7 +53,6 @@ func StartMetrics(addr string) {
 func RegisterMetrics(stats UpfXdpActionStatistic) {
 
 	// Metrics for the upf_xdp_statistic (xdp_action)
-
 	UpfXdpAborted = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_aborted",
 		Help: "The total number of aborted packets",
@@ -118,101 +94,24 @@ func RegisterMetrics(stats UpfXdpActionStatistic) {
 	prometheus.MustRegister(UpfXdpTx)
 	prometheus.MustRegister(UpfXdpRedirect)
 
-	// Metrics for the upf_ext_stat (upf_counters)
-	UpfRxArp = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_arp",
-		Help: "The total number of received ARP packets",
-	}, func() float64 {
-		return float64(stats.GetRxArp())
-	})
+	// Used for getting diffrence between two counters to increment the prometheus counter (counters cannot be written only incremented)
+	var prevUpfCounters UpfCounters
+	go func() {
+		time.Sleep(2 * time.Second)
+		RxPacketCounters := stats.getUpfExtStatField()
+		UpfRx.WithLabelValues("Arp").Add(float64(RxPacketCounters.RxArp - prevUpfCounters.RxArp))
+		UpfRx.WithLabelValues("Icmp").Add(float64(RxPacketCounters.RxIcmp - prevUpfCounters.RxIcmp))
+		UpfRx.WithLabelValues("Icmp6").Add(float64(RxPacketCounters.RxIcmp6 - prevUpfCounters.RxIcmp6))
+		UpfRx.WithLabelValues("Ip4").Add(float64(RxPacketCounters.RxIp4 - prevUpfCounters.RxIp4))
+		UpfRx.WithLabelValues("Ip6").Add(float64(RxPacketCounters.RxIp6 - prevUpfCounters.RxIp6))
+		UpfRx.WithLabelValues("Tcp").Add(float64(RxPacketCounters.RxTcp - prevUpfCounters.RxTcp))
+		UpfRx.WithLabelValues("Udp").Add(float64(RxPacketCounters.RxUdp - prevUpfCounters.RxUdp))
+		UpfRx.WithLabelValues("Other").Add(float64(RxPacketCounters.RxOther - prevUpfCounters.RxOther))
+		UpfRx.WithLabelValues("GtpEcho").Add(float64(RxPacketCounters.RxGtpEcho - prevUpfCounters.RxGtpEcho))
+		UpfRx.WithLabelValues("GtpPdu").Add(float64(RxPacketCounters.RxGtpPdu - prevUpfCounters.RxGtpPdu))
+		UpfRx.WithLabelValues("GtpOther").Add(float64(RxPacketCounters.RxGtpOther - prevUpfCounters.RxGtpOther))
+		UpfRx.WithLabelValues("GtpUnexp").Add(float64(RxPacketCounters.RxGtpUnexp - prevUpfCounters.RxGtpUnexp))
 
-	UpfRxIcmp = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_icmp",
-		Help: "The total number of received ICMP packets",
-	}, func() float64 {
-		return float64(stats.GetRxIcmp())
-	})
-
-	UpfRxIcmpv6 = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_icmpv6",
-		Help: "The total number of received ICMPv6 packets",
-	}, func() float64 {
-		return float64(stats.GetRxIcmp6())
-	})
-
-	UpfRxIp4 = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_ip4",
-		Help: "The total number of received IPv4 packets",
-	}, func() float64 {
-		return float64(stats.GetRxIp4())
-	})
-
-	UpfRxIp6 = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_ip6",
-		Help: "The total number of received IPv6 packets",
-	}, func() float64 {
-		return float64(stats.GetRxIp6())
-	})
-
-	UpfRxTcp = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_tcp",
-		Help: "The total number of received TCP packets",
-	}, func() float64 {
-		return float64(stats.GetRxTcp())
-	})
-
-	UpfRxUdp = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_udp",
-		Help: "The total number of received UDP packets",
-	}, func() float64 {
-		return float64(stats.GetRxUdp())
-	})
-
-	UpfRxOther = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_other",
-		Help: "The total number of received other packets",
-	}, func() float64 {
-		return float64(stats.GetRxOther())
-	})
-
-	UpfRxGptEcho = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_gtp_echo",
-		Help: "The total number of received GTP echo packets",
-	}, func() float64 {
-		return float64(stats.GetRxGtpEcho())
-	})
-
-	UpfRxGtpPdu = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_gtp_pdu",
-		Help: "The total number of received GTP PDU packets",
-	}, func() float64 {
-		return float64(stats.GetRxGtpPdu())
-	})
-
-	UpfRxGtpOther = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_gtp_other",
-		Help: "The total number of received GTP other packets",
-	}, func() float64 {
-		return float64(stats.GetRxGtpOther())
-	})
-
-	UpfRxGtpUnexp = prometheus.NewCounterFunc(prometheus.CounterOpts{
-		Name: "upf_rx_gtp_error",
-		Help: "The total number of received GTP error packets",
-	}, func() float64 {
-		return float64(stats.GetRxGtpUnexp())
-	})
-
-	prometheus.MustRegister(UpfRxArp)
-	prometheus.MustRegister(UpfRxIcmp)
-	prometheus.MustRegister(UpfRxIcmpv6)
-	prometheus.MustRegister(UpfRxIp4)
-	prometheus.MustRegister(UpfRxIp6)
-	prometheus.MustRegister(UpfRxTcp)
-	prometheus.MustRegister(UpfRxUdp)
-	prometheus.MustRegister(UpfRxOther)
-	prometheus.MustRegister(UpfRxGptEcho)
-	prometheus.MustRegister(UpfRxGtpPdu)
-	prometheus.MustRegister(UpfRxGtpOther)
-	prometheus.MustRegister(UpfRxGtpUnexp)
+		prevUpfCounters = RxPacketCounters
+	}()
 }
