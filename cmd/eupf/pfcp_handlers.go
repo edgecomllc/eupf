@@ -59,7 +59,8 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	if asreq.NodeID == nil {
 		log.Printf("Got Association Setup Request without NodeID from: %s", addr)
 		// Reject with cause
-		AsrReject.Inc()
+
+		AsrRequests.WithLabelValues("reject").Inc()
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
@@ -69,7 +70,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	remote_nodeID, err := asreq.NodeID.NodeID()
 	if err != nil {
 		log.Printf("Got Association Setup Request with invalid NodeID from: %s", addr)
-		AsrReject.Inc()
+		AsrRequests.WithLabelValues("reject").Inc()
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
@@ -108,7 +109,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	)
 
 	// Send AssociationSetupResponse
-	AsrSuccess.Inc()
+	AsrRequests.WithLabelValues("success").Inc()
 	return asres, nil
 }
 
