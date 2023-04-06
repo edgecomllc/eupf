@@ -185,6 +185,47 @@ static __always_inline void ipv4_csum(void *data_start, int data_size, __u64 *cs
 //   *csum = csum_fold_helper(*csum);
 // }
 
+static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, const struct iphdr *ip4)
+{
+    struct bpf_fib_lookup fib_params = {};
+    fib_params.family = AF_INET;
+    fib_params.tos = ip4->tos;
+    fib_params.l4_protocol = ip4->protocol;
+    fib_params.sport = 0;
+    fib_params.dport = 0;
+    fib_params.tot_len = bpf_ntohs(ip4->tot_len);
+    fib_params.ipv4_src = ip4->saddr;
+    fib_params.ipv4_dst = ip4->daddr;
+    fib_params.ifindex = ctx->ingress_ifindex;
+
+    int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), BPF_FIB_LOOKUP_OUTPUT);
+    bpf_printk("upf: bpf_fib_lookup %d: %pI4 -> %pI4", rc, &ip4->saddr, &ip4->daddr);
+    bpf_printk("upf: bpf_fib_lookup nexthop: %pI4", &fib_params.ipv4_dst);
+
+    switch(rc) {
+        case BPF_FIB_LKUP_RET_SUCCESS:  
+            //_decr_ttl(ether_proto, l3hdr);
+            __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
+            __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);          
+            bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
+            return bpf_redirect(fib_params.ifindex, 0);
+            //return XDP_TX;
+            //return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
+        case BPF_FIB_LKUP_RET_BLACKHOLE:
+        case BPF_FIB_LKUP_RET_UNREACHABLE:
+        case BPF_FIB_LKUP_RET_PROHIBIT:
+            return XDP_DROP;
+        case BPF_FIB_LKUP_RET_NOT_FWDED:
+        case BPF_FIB_LKUP_RET_FWD_DISABLED:
+        case BPF_FIB_LKUP_RET_UNSUPP_LWT:
+        case BPF_FIB_LKUP_RET_NO_NEIGH:
+        case BPF_FIB_LKUP_RET_FRAG_NEEDED:
+            return XDP_PASS; // Let's kernel takes care
+    }
+
+    return XDP_PASS; // Let's kernel takes care
+}
+
 static __always_inline __u32 handle_echo_request(struct packet_context *ctx, struct gtpuhdr *gtpu)
 {
     struct ethhdr *eth = ctx->eth;
@@ -327,58 +368,7 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
     //udp->check = cs;
 
     bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ip->saddr, &ip->daddr);
-
-    struct bpf_fib_lookup fib_params = {};
-    fib_params.family = AF_INET;
-    fib_params.tos = ip->tos;
-    fib_params.l4_protocol = ip->protocol;
-    fib_params.sport = 0;
-    fib_params.dport = 0;
-    fib_params.tot_len = bpf_ntohs(ip->tot_len);
-    fib_params.ipv4_src = ip->saddr;
-    fib_params.ipv4_dst = ip->daddr;
-    fib_params.ifindex = ctx->ingress_ifindex;
-
-    int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), BPF_FIB_LOOKUP_OUTPUT);
-    bpf_printk("upf: bpf_fib_lookup %d: %pI4 -> %pI4", rc, &ip->saddr, &ip->daddr);
-    bpf_printk("upf: bpf_fib_lookup nexthop: %pI4", &fib_params.ipv4_dst);
-
-    switch(rc) {
-        case BPF_FIB_LKUP_RET_SUCCESS:  
-            //_decr_ttl(ether_proto, l3hdr);
-            __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
-            __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);          
-            bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
-            return bpf_redirect(fib_params.ifindex, 0);
-            //return XDP_TX;
-            //return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
-        case BPF_FIB_LKUP_RET_BLACKHOLE:
-        case BPF_FIB_LKUP_RET_UNREACHABLE:
-        case BPF_FIB_LKUP_RET_PROHIBIT:
-            return XDP_DROP;
-        case BPF_FIB_LKUP_RET_NOT_FWDED:
-        case BPF_FIB_LKUP_RET_FWD_DISABLED:
-        case BPF_FIB_LKUP_RET_UNSUPP_LWT:
-        case BPF_FIB_LKUP_RET_NO_NEIGH:
-        case BPF_FIB_LKUP_RET_FRAG_NEEDED:
-            return XDP_PASS;
-    }
-
-    return XDP_PASS; // Let's kernel takes care
-
-    //__builtin_memcpy(eth->h_dest, orig_eth->h_source, sizeof(orig_eth->h_source));
-    //__builtin_memcpy(eth->h_source, orig_eth->h_dest, sizeof(orig_eth->h_dest));
-    // eth->h_proto = orig_eth->h_proto;
-    // return XDP_TX;
-
-    // // Compute l3 checksum
-    // __wsum l3sum = pcn_csum_diff(0, 0, (__be32 *)p_ip, sizeof(*p_ip), 0);
-    // pcn_l3_csum_replace(p_ctx, IP_CSUM_OFFSET, 0, l3sum, 0);
-
-    // bpf_printk("tail call to UPF_PROG_TYPE_MAIN key");
-    // bpf_tail_call(ctx, &upf_pipeline, UPF_PROG_TYPE_MAIN);
-    // bpf_printk("tail call to UPF_PROG_TYPE_MAIN key failed");
-    // return DEFAULT_XDP_ACTION;
+    return route_ipv4(ctx, eth, ip);
 }
 
 static __always_inline __u32 handle_core_packet_ipv6(struct xdp_md *ctx, struct ipv6hdr *ip6)
@@ -435,6 +425,30 @@ static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __
         __builtin_memcpy(new_eth, eth, sizeof(*eth));
 
         bpf_xdp_adjust_head(ctx->ctx, GTP_ENCAPSULATED_SIZE);
+    }
+
+    void *data = (void *)(long)ctx->ctx->data;
+    void *data_end = (void *)(long)ctx->ctx->data_end;
+    struct packet_context context = {.data = data, .data_end = data_end, .ctx = ctx->ctx};
+    struct ethhdr *eth;
+    __u16 l3_protocol = parse_ethernet(&context, &eth);
+    switch (l3_protocol)
+    {
+    case ETH_P_IPV6:
+    {
+        return DEFAULT_XDP_ACTION;
+    }
+    case ETH_P_IP:
+    {
+        struct iphdr *ip4;
+        int l4_protocol = parse_ip4(&context, &ip4);
+        if(l4_protocol != -1)
+        {
+            return route_ipv4(context.ctx, eth, ip4);
+        }
+    }
+    default:
+        return DEFAULT_XDP_ACTION;
     }
 
     return XDP_PASS; // Now lets kernel takes care
