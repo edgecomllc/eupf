@@ -1,0 +1,93 @@
+---
+
+image:
+  registry: ghcr.io
+  repository: edgecomllc
+  name: eupf
+  tag: main
+
+args:
+  - --config
+  - /app/conf/config.yml
+
+securityContext:
+  privileged: true
+
+configMaps:
+  config:
+    data:
+      config.yml: |
+        interface_name: lo
+        api_address: :8080
+        pfcp_address: :8805
+        pfcp_node_id: localhost
+        metrics_address: :9090
+
+volumes:
+  - name: sys
+    hostPath:
+      path: /sys
+  - name: config
+    configMap:
+      name: edgecomllc-eupf-universal-chart-config
+
+volumeMounts:
+  - name: sys
+    mountPath: /sys
+    readOnly:  true
+  - name: config
+    mountPath: /app/conf
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+    endpoints:
+      port: metrics
+      path: "/metrics"
+
+imagePullSecrets:
+  - name: gh-container-registry
+
+extraContainerPorts:
+  - name: pfcp
+    containerPort: 8805
+    protocol: UDP
+  - name: metrics
+    containerPort: 9090
+    protocol: TCP
+
+service:
+  type: ClusterIP
+  port: 8080
+  extraPorts:
+    - port: 8805
+      targetPort: pfcp
+      protocol: UDP
+      name: pfcp
+    - port: 9090
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10

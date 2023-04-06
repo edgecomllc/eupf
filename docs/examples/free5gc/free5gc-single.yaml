@@ -1,0 +1,69 @@
+---
+
+# mongodb chart settings
+mongodb:
+  persistence:
+    enabled: false
+
+global:
+  name: free5gc
+  userPlaneArchitecture: single
+  nrf:
+    service:
+      name: nrf-nnrf
+      type: ClusterIP
+      port: "8000"
+      nodePort: "30800"
+  sbi:
+    scheme: http
+  amf:
+    n2if:
+      ipAddress: 10.100.50.249
+  smf:
+    n4if:
+      ipAddress: 10.100.50.244
+  n2network:
+    name: n2network
+    masterIf: ens3
+    subnetIP: 10.100.50.248
+    cidr: 29
+    gatewayIP: 10.100.50.254
+    excludeIP: 10.100.50.254
+  n3network:
+    name: n3network
+    masterIf: ens3
+    subnetIP: 10.100.50.232
+    cidr: 29
+    gatewayIP: 10.100.50.238
+    excludeIP: 10.100.50.238
+  n4network:
+    name: n4network
+    masterIf: ens3
+    subnetIP: 10.100.50.240
+    cidr: 29
+    gatewayIP: 10.100.50.246
+    excludeIP: 10.100.50.246
+  n6network:
+    name: n6network
+    masterIf: ens3
+    subnetIP: 10.100.100.0
+    cidr: 24
+    gatewayIP: 10.100.100.1
+    excludeIP: 10.100.100.254
+  n9network:
+    name: n9network
+    masterIf: ens3
+    subnetIP: 10.100.50.224
+    cidr: 29
+    gatewayIP: 10.100.50.230
+    excludeIP: 10.100.50.230
+
+# webui chart settings
+free5gc-webui:
+  webui:
+    service:
+      type: ClusterIP
+      nodePort: ""
+
+deployUpf: false
+deployDbPython: false
