@@ -129,3 +129,11 @@ helm upgrade --install \
 ```
 helm delete free5gc ueransim edgecomllc-eupf -n free5gc
 ```
+
+## Test scenarios
+
+## case 0 (ue can send packet to internet and get response)
+
+TODO:
+- how to check it for open5gs
+- how to check it for free5gc
