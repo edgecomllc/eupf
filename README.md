@@ -174,20 +174,18 @@ Various packet counters
 
 To install eupf application, you must have:
 
-* Kubernetes cluster
+1. Kubernetes cluster
 
-in our case, we used the `kubespray` tool. An example configs can be seen in [repo](https://github.com/edgecomllc/ansible/edgecomllc/ansible)
+   in our case, we used the `kubespray` tool. An example configs can be seen in [repo](https://github.com/edgecomllc/ansible/edgecomllc/ansible)
 
-* installed and configured 5G core `free5gc` or `open5gs`
+2. installed and configured one of 5G core: `free5gc` or `open5gs`
 
-to install free5gc you can use our example in [repo](https://github.com/edgecomllc/free5gc)
+   - to install free5gc you can use our example in [repo](https://github.com/edgecomllc/free5gc)
+   - to install open5gs you can use our example in [repo](https://github.com/edgecomllc/open5gs)
 
-to install open5gs you can use our example in [repo](https://github.com/edgecomllc/open5gs)
+3. install eupf application to namespace `free5gc`:
 
-* install eupf application to namespace `free5gc`
-
-for installation use helm chart `.deploy/helm/charts/universal-chart`
-
-```
-helm install edgecomllc-eupf .deploy/helm/charts/universal-chart -n free5gc --create-namespace
-```
+   using helm chart `.deploy/helm/charts/universal-chart` as follows:
+   ```
+   helm install edgecomllc-eupf .deploy/helm/charts/universal-chart -n free5gc --create-namespace
+   ```
