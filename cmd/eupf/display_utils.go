@@ -56,7 +56,7 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	}
 
 	if req.UpdateBAR != nil {
-		log.Printf("------ BAR: %+v", req.UpdateBAR)
+		log.Printf("------ BAR")
 		var sb strings.Builder
 		barId, err := req.UpdateBAR.BARID()
 		if err == nil {
@@ -94,7 +94,7 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	}
 
 	if req.RemoveBAR != nil {
-		log.Printf("------ BAR: %+v", req.RemoveBAR)
+		log.Print("------ BAR:")
 		var sb strings.Builder
 		barId, err := req.RemoveBAR.BARID()
 		if err == nil {
@@ -104,7 +104,7 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 }
 
 func displayBar(req *message.SessionEstablishmentRequest) {
-	log.Printf("------ BAR: %+v", req.CreateBAR)
+	log.Print("------ BAR:")
 	var sb strings.Builder
 	barId, err := req.CreateBAR.BARID()
 	if err == nil {
@@ -125,7 +125,7 @@ func displayBar(req *message.SessionEstablishmentRequest) {
 }
 
 func displayUrr(urr *ie.IE) {
-	log.Printf("------ URR: %+v", urr)
+	log.Print("------ URR:")
 	var sb strings.Builder
 	urrId, err := urr.URRID()
 	if err == nil {
@@ -181,7 +181,7 @@ func displayQer(qer *ie.IE) {
 }
 
 func displayFar(far *ie.IE) {
-	log.Printf("------ FAR: %+v", far)
+	log.Print("------ FAR:")
 	var sb strings.Builder
 	farId, err := far.FARID()
 	if err == nil {
@@ -225,7 +225,7 @@ func displayFar(far *ie.IE) {
 }
 
 func displayPdr(pdr *ie.IE) {
-	log.Printf("------ PDR: %+v", pdr)
+	log.Print("------ PDR:")
 	var sb strings.Builder
 	pdrId, err := pdr.PDRID()
 	if err == nil {
