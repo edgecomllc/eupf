@@ -19,7 +19,7 @@ configMaps:
   config:
     data:
       config.yml: |
-        interface_name: lo
+        interface_name: eth0
         api_address: :8080
         pfcp_address: :8805
         pfcp_node_id: localhost
