@@ -16,7 +16,7 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
-	log.Printf("Got Session Establishment Request from: %s. \n %s", addr, req)
+	log.Printf("Got Session Establishment Request from: %s.", addr)
 	_, remoteSEID, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
 	if err != nil {
 		log.Printf("Rejecting Session Establishment Request from: %s (missing NodeID or F-SEID)", addr)
