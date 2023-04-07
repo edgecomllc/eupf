@@ -508,7 +508,7 @@ func validateRequest(conn *PfcpConnection, addr *net.UDPAddr, nodeId *ie.IE, cpf
 
 func ip2int(ip net.IP) uint32 {
 	if len(ip) == 16 {
-		panic("no sane way to convert ipv6 into uint32")
+		log.Println("WARN: no sane way to convert ipv6 into uint32: %+v", ip)
 	}
 	return binary.LittleEndian.Uint32(ip.To4())
 }
