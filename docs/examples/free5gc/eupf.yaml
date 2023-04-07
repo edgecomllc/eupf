@@ -4,7 +4,7 @@ image:
   registry: ghcr.io
   repository: edgecomllc
   name: eupf
-  tag: main
+  tag: e83818f4eb00499a4f70e3b67cdf6dcf1e182102
 
 args:
   - --config
