@@ -211,7 +211,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionDeletionRequest)
-	log.Printf("Got Session Deletion Request from: %s. \n %s", addr, req)
+	log.Printf("Got Session Deletion Request from: %s. \n", addr)
 	association, ok := conn.nodeAssociations[addr.String()]
 	if !ok {
 		log.Printf("Rejecting Session Deletion Request from: %s (no association)", addr)
