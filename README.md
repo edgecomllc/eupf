@@ -128,14 +128,14 @@
 
 ### PFCP message metrics
 This set of metrics describes how many requests of each type has been processed with outcome specified.
-All metrics except for `upf_message_processing_duration` are counters and labeled with `result` indicating if message was successfuly processed or rejected.
-**Note:** `upf_pfcp_msg_rx` and `upf_pfcp_msg_rx_with_cause_code` have different implementation and counted at different points, we will drop one or another after evaluation, or implement a different counters altogether.
-| Metric Name                     | Description                                                |
-| ------------------------------- | ---------------------------------------------------------- |
-| upf_pfcp_msg_rx                 | The total number of received PFCP messages                 |
-| upf_pfcp_msg_tx                 | The total number of transmitted PFCP messages              |
-| upf_pfcp_msg_rx_with_cause_code | The total number of received PFCP messages with cause code |
-| upf_message_processing_duration | The total number of PFCP messages processing duration      |
+All metrics except for `upf_pfcp_rx_latency` are counters and labeled with `result` indicating if message was successfuly processed or rejected.
+**Note:** `upf_pfcp_rx` and `upf_pfcp_rx_errors` have different implementation and counted at different points, we will drop one or another after evaluation, or implement a different counters altogether.
+| Metric Name         | Description                                                |
+| ------------------- | ---------------------------------------------------------- |
+| upf_pfcp_rx         | The total number of received PFCP messages                 |
+| upf_pfcp_tx         | The total number of transmitted PFCP messages              |
+| upf_pfcp_rx_errors  | The total number of received PFCP messages with cause code |
+| upf_pfcp_rx_latency | The total number of PFCP messages processing duration      |
 
 ### XDP Action metrics
 This set of metrics are used to count the number of packets with different outcomes, such as the total number of aborted, dropped, passed, transmitted, and redirected packets.
