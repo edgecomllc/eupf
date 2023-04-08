@@ -4,7 +4,11 @@ image:
   registry: ghcr.io
   repository: edgecomllc
   name: eupf
-  tag: e83818f4eb00499a4f70e3b67cdf6dcf1e182102
+  tag: main
+  pullPolicy: Always
+
+deploymentStrategy:
+  type: Recreate
 
 args:
   - --config
@@ -17,11 +21,13 @@ configMaps:
   config:
     data:
       config.yml: |
-        interface_name: lo
+        interface_name: eth0
         api_address: :8080
         pfcp_address: :8805
-        pfcp_node_id: localhost
         metrics_address: :9090
+
+env:
+  UPF_PFCP_NODE_ID: 10.100.50.241  # address on n4 interface
 
 volumes:
   - name: sys
@@ -91,3 +97,106 @@ readinessProbe:
     port: http
   initialDelaySeconds: 5
   periodSeconds: 10
+
+podAnnotations:
+  k8s.v1.cni.cncf.io/networks: |
+    [
+      { "name": "n3network-upf",
+        "interface": "n3",
+        "ips": [ "10.100.50.233/29" ],
+        "gateway": [ "10.100.50.238" ]
+      },
+      { "name": "n4network-upf",
+        "interface": "n4",
+        "ips": [ "10.100.50.241/29" ],
+        "gateway": [ "10.100.50.246" ]
+      },
+      { "name": "n6network-upf",
+        "interface": "n6",
+        "ips": [ "10.100.100.12/24" ],
+        "gateway": [ "10.100.100.1" ]
+      }
+    ]
+
+extraDeploy:
+  - apiVersion: k8s.cni.cncf.io/v1
+    kind: NetworkAttachmentDefinition
+    metadata:
+      name: n3network-upf
+      namespace: free5gc
+    spec:
+      config: |
+        {
+          "cniVersion": "0.3.1",
+          "plugins": [
+            {
+              "type": "ipvlan",
+              "capabilities": { "ips": true },
+              "master": "ens3",
+              "mode": "l2",
+              "ipam": {
+                "type": "static",
+                "routes": [
+                  {
+                    "dst": "0.0.0.0/0",
+                    "gw": "10.100.50.238"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+  - apiVersion: k8s.cni.cncf.io/v1
+    kind: NetworkAttachmentDefinition
+    metadata:
+      name: n4network-upf
+      namespace: free5gc
+    spec:
+      config: |
+        {
+          "cniVersion": "0.3.1",
+          "plugins": [
+            {
+              "type": "ipvlan",
+              "capabilities": { "ips": true },
+              "master": "ens3",
+              "mode": "l2",
+              "ipam": {
+                "type": "static",
+                "routes": [
+                  {
+                    "dst": "0.0.0.0/0",
+                    "gw": "10.100.50.246"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+  - apiVersion: k8s.cni.cncf.io/v1
+    kind: NetworkAttachmentDefinition
+    metadata:
+      name: n6network-upf
+      namespace: free5gc
+    spec:
+      config: |
+        {
+          "cniVersion": "0.3.1",
+          "plugins": [
+            {
+              "type": "ipvlan",
+              "capabilities": { "ips": true },
+              "master": "ens3",
+              "mode": "l2",
+              "ipam": {
+                "type": "static",
+                "routes": [
+                  {
+                    "dst": "0.0.0.0/0",
+                    "gw": "10.100.100.1"
+                  }
+                ]
+              }
+            }
+          ]
+        }

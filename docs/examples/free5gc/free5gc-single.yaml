@@ -8,14 +8,6 @@ mongodb:
 global:
   name: free5gc
   userPlaneArchitecture: single
-  nrf:
-    service:
-      name: nrf-nnrf
-      type: ClusterIP
-      port: "8000"
-      nodePort: "30800"
-  sbi:
-    scheme: http
   amf:
     n2if:
       ipAddress: 10.100.50.249

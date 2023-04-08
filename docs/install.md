@@ -88,7 +88,7 @@ check that the module is loaded:
 * add towards5gs helm repo
 
 ```
-helm repo add towards5gs 'https://raw.githubusercontent.com/Orange-OpenSource/towards5gs-helm/main/repo/'
+helm repo add towards5gs https://raw.githubusercontent.com/Orange-OpenSource/towards5gs-helm/main/repo/
 helm repo update
 ```
 
@@ -113,12 +113,24 @@ helm upgrade --install \
     --wait --timeout 100s --create-namespace
 ```
 
+* create susbscriber in freee5gc via WebUI
+
+redirect port from webui pod to localhost
+
+```
+kubectl port-forward service/webui-service 5000:5000 -n free5gc
+```
+
+open http://127.0.0.1:5000 in your browser (for auth use user "admin" with password "free5gc"), go to menu "subscribers", click "new subscriber", leave all values as is, press "submit"
+
+close port forward with `Ctrl + C`
+
 * install ueransim chart
 
 ```
 helm upgrade --install \
     ueransim towards5gs/ueransim \
-    --values docs/examples/free5gc/ueransim-gnb.yaml \
+    --values docs/examples/free5gc/ueransim.yaml \
     -n free5gc \
     --version 2.0.17 \
     --wait --timeout 100s --create-namespace
@@ -132,8 +144,37 @@ helm delete free5gc ueransim edgecomllc-eupf -n free5gc
 
 ## Test scenarios
 
-## case 0 (ue can send packet to internet and get response)
+## case 0
 
-TODO:
-- how to check it for open5gs
-- how to check it for free5gc
+<b>description:</b>
+
+UE can send packet to internet and get response
+
+<b>actions:</b>
+
+for open5gs
+
+* get ue pod name and save to variable and run shell in pod
+
+```
+export NS_NAME=open5gs
+export UE_POD_NAME=$(kubectl get pods -l "app.kubernetes.io/name=ueransim-gnb,app.kubernetes.io/component=ues" --output=jsonpath="{.items..metadata.name}" -n ${NS_NAME})`
+kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
+```
+
+for free5gc
+
+```
+export NS_NAME=free5gc
+export UE_POD_NAME=$(kubectl get pods -l "app=ueransim,component=ue" --output=jsonpath="{.items..metadata.name}" -n ${NS_NAME})`
+kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
+```
+
+* run command
+
+`$ ping -I uesimtun0 google.com`
+
+
+<b>expected result:</b>
+
+ping command successful
