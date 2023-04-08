@@ -20,7 +20,7 @@ var (
 		Help: "The total number of transmitted PFCP messages",
 	}, []string{"message_name"})
 
-	PfcpMessageRxWithCauseCode = promauto.NewCounterVec(prometheus.CounterOpts{
+	PfcpMessageRxErrors = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "upf_pfcp_rx_errors",
 		Help: "The total number of received PFCP messages with cause code",
 	}, []string{"message_name", "cause_code"})
@@ -36,7 +36,7 @@ var (
 		Help: "The total number of received packets",
 	}, []string{"packet_type"})
 
-	UpfMessageProcessingDuration = promauto.NewSummaryVec(prometheus.SummaryOpts{
+	UpfMessageRxLatency = promauto.NewSummaryVec(prometheus.SummaryOpts{
 		Name:       "upf_pfcp_rx_latency",
 		Subsystem:  "pfcp",
 		Help:       "Duration of the PFCP message processing",

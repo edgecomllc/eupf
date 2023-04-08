@@ -29,7 +29,7 @@ func (handlerMap PfcpHanderMap) Handle(conn *PfcpConnection, buf []byte, addr *n
 			return err
 		}
 		duration := time.Since(startTime)
-		UpfMessageProcessingDuration.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
+		UpfMessageRxLatency.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
 		PfcpMessageTx.WithLabelValues(outgoingMsg.MessageTypeName()).Inc()
 		return conn.SendMessage(outgoingMsg, addr)
 	} else {
@@ -62,7 +62,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		log.Printf("Got Association Setup Request without NodeID from: %s", addr)
 		// Reject with cause
 
-		PfcpMessageRxWithCauseCode.WithLabelValues(msg.MessageTypeName(), string(ie.CauseMandatoryIEMissing)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), string(ie.CauseMandatoryIEMissing)).Inc()
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
@@ -72,7 +72,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	remote_nodeID, err := asreq.NodeID.NodeID()
 	if err != nil {
 		log.Printf("Got Association Setup Request with invalid NodeID from: %s", addr)
-		PfcpMessageRxWithCauseCode.WithLabelValues(msg.MessageTypeName(), string(ie.CauseMandatoryIEMissing)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), string(ie.CauseMandatoryIEMissing)).Inc()
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
@@ -111,7 +111,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	)
 
 	// Send AssociationSetupResponse
-	PfcpMessageRxWithCauseCode.WithLabelValues(msg.MessageTypeName(), string(ie.CauseRequestAccepted)).Inc()
+	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), string(ie.CauseRequestAccepted)).Inc()
 	return asres, nil
 }
 
