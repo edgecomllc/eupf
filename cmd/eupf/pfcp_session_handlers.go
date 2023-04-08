@@ -75,7 +75,6 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			session.CreateFAR(farid, farInfo)
 			if err := mapOperations.PutFar(farid, farInfo); err != nil {
 				log.Printf("Can't put FAR: %s", err)
-				return err
 			}
 		}
 
@@ -100,37 +99,41 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
 			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
 			// #TODO: Rework Uplink/Downlink decesion making
-			if srcInterface == ie.SrcInterfaceAccess {
-				teidPdiId := findIEindex(pdi, 21) // IE Type F-TEID
-
-				if teidPdiId == -1 {
-					log.Println("F-TEID IE missing")
-					return fmt.Errorf("F-TEID IE missing")
-				}
-				if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-					spdrInfo.Teid = fteid.TEID
-					session.CreateUpLinkPDR(pdrId, spdrInfo)
-					if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
-						log.Printf("Can't put uplink PDR: %s", err)
-						return err
+			switch srcInterface {
+			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
+				{
+					// IE Type F-TEID
+					if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 {
+						if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+							spdrInfo.Teid = fteid.TEID
+							session.CreateUpLinkPDR(pdrId, spdrInfo)
+							if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
+								log.Printf("Can't put uplink PDR: %s", err)
+							}
+						} else {
+							log.Println(err)
+							return err
+						}
+					} else {
+						log.Println("F-TEID IE missing")
 					}
-				} else {
-					log.Println(err)
-					return err
 				}
-			} else {
-				ueipPdiId := findIEindex(pdi, 93) // IE Type UE IP Address
-				if ueipPdiId == -1 {
-					log.Println("UE IP Address IE missing")
-					return fmt.Errorf("UE IP Address IE missing")
+			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
+				{
+					// IE Type UE IP Address
+					if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
+						ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
+						spdrInfo.Ipv4 = ue_ip.IPv4Address
+						session.CreateDownLinkPDR(pdrId, spdrInfo)
+						if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+							log.Printf("Can't put uplink PDR: %s", err)
+						}
+					} else {
+						log.Println("UE IP Address IE missing")
+					}
 				}
-				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
-				spdrInfo.Ipv4 = ue_ip.IPv4Address
-				session.CreateDownLinkPDR(pdrId, spdrInfo)
-				if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-					log.Printf("Can't put uplink PDR: %s", err)
-					return err
-				}
+			default:
+				log.Printf("WARN: Unsupported Source Interface type: %d", srcInterface)
 			}
 		}
 
@@ -173,7 +176,6 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			if err := mapOperations.PutQer(qerId, qerInfo); err != nil {
 				log.Printf("Can't put QER: %s", err)
-				return err
 			}
 		}
 
@@ -312,7 +314,6 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			session.UpdateFAR(farid, farInfo)
 			if err := mapOperations.UpdateFar(farid, farInfo); err != nil {
 				log.Printf("Can't update FAR: %s", err)
-				return err
 			}
 		}
 
@@ -321,7 +322,6 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			session.RemoveFAR(farid)
 			if err := mapOperations.DeleteFar(farid); err != nil {
 				log.Printf("Can't remove FAR: %s", err)
-				return err
 			}
 		}
 
@@ -331,14 +331,12 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				session.RemoveUplinkPDR(pdrId)
 				if err := mapOperations.DeletePdrUpLink(session.UplinkPDRs[uint32(pdrId)].Teid); err != nil {
 					log.Printf("Failed to remove uplink PDR: %v", err)
-					return err
 				}
 			}
 			if _, ok := session.DownlinkPDRs[uint32(pdrId)]; ok {
 				session.RemoveDownlinkPDR(pdrId)
 				if err := mapOperations.DeletePdrDownLink(session.DownlinkPDRs[uint32(pdrId)].Ipv4); err != nil {
 					log.Printf("Failed to remove downlink PDR: %v", err)
-					return err
 				}
 			}
 		}
@@ -352,7 +350,6 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			log.Printf("Removing QER ID: %d", qerId)
 			if err := mapOperations.DeleteQer(qerId); err != nil {
 				log.Printf("Can't remove QER: %s", err)
-				return err
 			}
 		}
 
@@ -377,37 +374,41 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
 			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
 			// #TODO: Rework Uplink/Downlink decesion making
-			if srcInterface == ie.SrcInterfaceAccess {
-				teidPdiId := findIEindex(pdi, 21) // IE Type F-TEID
-
-				if teidPdiId == -1 {
-					log.Println("F-TEID IE missing")
-					return fmt.Errorf("F-TEID IE missing")
-				}
-				if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-					spdrInfo.Teid = fteid.TEID
-					session.UpdateUpLinkPDR(pdrId, spdrInfo)
-					if err := mapOperations.UpdatePdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
-						log.Printf("Can't update uplink PDR: %s", err)
-						return err
+			switch srcInterface {
+			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
+				{
+					// IE Type F-TEID
+					if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 {
+						if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+							spdrInfo.Teid = fteid.TEID
+							session.CreateUpLinkPDR(pdrId, spdrInfo)
+							if err := mapOperations.UpdatePdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
+								log.Printf("Can't update uplink PDR: %s", err)
+							}
+						} else {
+							log.Println(err)
+							return err
+						}
+					} else {
+						log.Println("F-TEID IE missing")
 					}
-				} else {
-					log.Println(err)
-					return err
 				}
-			} else {
-				ueipPdiId := findIEindex(pdi, 93) // IE Type UE IP Address
-				if ueipPdiId == -1 {
-					log.Println("UE IP Address IE missing")
-					return fmt.Errorf("UE IP Address IE missing")
+			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
+				{
+					// IE Type UE IP Address
+					if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
+						ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
+						spdrInfo.Ipv4 = ue_ip.IPv4Address
+						session.UpdateDownLinkPDR(pdrId, spdrInfo)
+						if err := mapOperations.UpdatePdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+							log.Printf("Can't update uplink PDR: %s", err)
+						}
+					} else {
+						log.Println("UE IP Address IE missing")
+					}
 				}
-				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
-				spdrInfo.Ipv4 = ue_ip.IPv4Address
-				session.UpdateDownLinkPDR(pdrId, spdrInfo)
-				if err := mapOperations.UpdatePdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-					log.Printf("Can't update uplink PDR: %s", err)
-					return err
-				}
+			default:
+				log.Printf("WARN: Unsupported Source Interface type: %d", srcInterface)
 			}
 		}
 
@@ -452,7 +453,6 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			log.Printf("Updating QER ID: %d, QER Info: %+v", qerId, qerInfo)
 			if err := mapOperations.UpdateQer(qerId, qerInfo); err != nil {
 				log.Printf("Can't update QER: %s", err)
-				return err
 			}
 		}
 		return nil
@@ -510,7 +510,7 @@ func validateRequest(conn *PfcpConnection, addr *net.UDPAddr, nodeId *ie.IE, cpf
 
 func ip2int(ip net.IP) uint32 {
 	if len(ip) == 16 {
-		log.Println("WARN: no sane way to convert ipv6 into uint32: %+v", ip)
+		log.Println("WARN: no sane way to convert ipv6 into uint32: ", ip)
 	}
 	return binary.LittleEndian.Uint32(ip.To4())
 }
