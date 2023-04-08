@@ -4,7 +4,8 @@ image:
   registry: ghcr.io
   repository: edgecomllc
   name: eupf
-  tag: e83818f4eb00499a4f70e3b67cdf6dcf1e182102
+  tag: main
+  pullPolicy: Always
 
 args:
   - --config
@@ -20,8 +21,10 @@ configMaps:
         interface_name: eth0
         api_address: :8080
         pfcp_address: :8805
-        pfcp_node_id: localhost
         metrics_address: :9090
+
+env:
+  UPF_PFCP_NODE_ID: $(MY_POD_IP)
 
 volumes:
   - name: sys
