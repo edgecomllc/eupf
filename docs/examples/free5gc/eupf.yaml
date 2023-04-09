@@ -123,7 +123,6 @@ extraDeploy:
     kind: NetworkAttachmentDefinition
     metadata:
       name: n3network-upf
-      namespace: free5gc
     spec:
       config: |
         {
@@ -150,7 +149,6 @@ extraDeploy:
     kind: NetworkAttachmentDefinition
     metadata:
       name: n4network-upf
-      namespace: free5gc
     spec:
       config: |
         {
@@ -177,7 +175,6 @@ extraDeploy:
     kind: NetworkAttachmentDefinition
     metadata:
       name: n6network-upf
-      namespace: free5gc
     spec:
       config: |
         {
