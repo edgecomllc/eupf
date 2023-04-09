@@ -258,7 +258,7 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 
 func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionModificationRequest)
-	log.Printf("Got Session Modification Request from: %s. \n %s", addr, req)
+	log.Printf("Got Session Modification Request from: %s. \n", addr)
 
 	log.Printf("Finding association for %s", addr)
 	association, ok := conn.nodeAssociations[addr.String()]

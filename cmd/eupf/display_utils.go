@@ -21,7 +21,7 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, "Session Establishment Request:", 0)
 
-	writeLineTabbed(&sb, "Create: ", 1)
+	writeLineTabbed(&sb, "Create: ", 0)
 	for _, pdr := range req.CreatePDR {
 		displayPdr(&sb, pdr)
 	}
@@ -264,7 +264,7 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 }
 
 func displayPdr(sb *strings.Builder, pdr *ie.IE) {
-	writeLineTabbed(sb, "PDR:", 2)
+	writeLineTabbed(sb, "PDR:", 1)
 	pdrId, err := pdr.PDRID()
 	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("PDR ID: %d ", pdrId), 2)
