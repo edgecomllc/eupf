@@ -57,7 +57,7 @@ func handlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr 
 // https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/16.04.00_60/ts_129244v160400p.pdf page 95
 func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	asreq := msg.(*message.AssociationSetupRequest)
-	log.Printf("Got Association Setup Request from: %s. \n %s", addr, asreq)
+	log.Printf("Got Association Setup Request from: %s. \n", addr)
 	if asreq.NodeID == nil {
 		log.Printf("Got Association Setup Request without NodeID from: %s", addr)
 		// Reject with cause
@@ -98,7 +98,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	}
 	// Add or replace RemoteNode to NodeAssociationMap
 	conn.nodeAssociations[addr.String()] = remoteNode
-	log.Printf("Added RemoteNode: %s to NodeAssociationMap", remoteNode.ID)
+	log.Printf("Saving new association: %+v", remoteNode)
 
 	// shall send a PFCP Association Setup Response including:
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,

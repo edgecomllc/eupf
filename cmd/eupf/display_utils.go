@@ -121,6 +121,13 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	log.Print(sb.String())
 }
 
+func printSessionDeleteRequest(req *message.SessionDeletionRequest) {
+	var sb strings.Builder
+	sb.WriteString("\n")
+	writeLineTabbed(&sb, "Session Deletion Request:", 0)
+	writeLineTabbed(&sb, fmt.Sprintf("SEID: %d", req.SEID()), 1)
+}
+
 func displayBar(sb *strings.Builder, req *message.SessionEstablishmentRequest) {
 	sb.WriteString("------ BAR:")
 	barId, err := req.CreateBAR.BARID()
