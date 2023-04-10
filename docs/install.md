@@ -1,4 +1,4 @@
-# Install and run eUPF
+# How to Install and run eUPF
 
 ## To run eUPF you must have:
 
@@ -21,42 +21,42 @@ in our environments, we use one node Kubernetes cluster deployed by [kubespray](
 * [install helm](https://helm.sh/docs/intro/install/)
 * add openverso helm repo
 
-```
-helm repo add openverso https://gradiant.github.io/openverso-charts/
-helm repo update
-```
+   ```
+   helm repo add openverso https://gradiant.github.io/openverso-charts/
+   helm repo update
+   ```
 
 * install eUPF chart
 
-```
-helm upgrade --install \
-    edgecomllc-eupf .deploy/helm/universal-chart \
-    --values docs/examples/open5gs/eupf.yaml \
-    -n open5gs \
-    --wait --timeout 100s --create-namespace
-```
+   ```
+   helm upgrade --install \
+       edgecomllc-eupf .deploy/helm/universal-chart \
+       --values docs/examples/open5gs/eupf.yaml \
+       -n open5gs \
+       --wait --timeout 100s --create-namespace
+   ```
 
 * install open5gs chart
 
-```
-helm upgrade --install \
-    open5gs openverso/open5gs \
-    --values docs/examples/open5gs/open5gs.yaml \
-    -n open5gs \
-    --version 2.0.9 \
-    --wait --timeout 100s --create-namespace
-```
+   ```
+   helm upgrade --install \
+       open5gs openverso/open5gs \
+       --values docs/examples/open5gs/open5gs.yaml \
+       -n open5gs \
+       --version 2.0.9 \
+       --wait --timeout 100s --create-namespace
+   ```
 
 * install ueransim chart
 
-```
-helm upgrade --install \
-    ueransim openverso/ueransim-gnb \
-    --values docs/examples/open5gs/ueransim-gnb.yaml \
-    -n open5gs \
-    --version 0.2.5 \
-    --wait --timeout 100s --create-namespace
-```
+   ```
+   helm upgrade --install \
+       ueransim openverso/ueransim-gnb \
+       --values docs/examples/open5gs/ueransim-gnb.yaml \
+       -n open5gs \
+       --version 0.2.5 \
+       --wait --timeout 100s --create-namespace
+   ```
 
 ### undeploy everything
 
@@ -87,54 +87,54 @@ check that the module is loaded:
 * [install helm](https://helm.sh/docs/intro/install/)
 * add towards5gs helm repo
 
-```
-helm repo add towards5gs https://raw.githubusercontent.com/Orange-OpenSource/towards5gs-helm/main/repo/
-helm repo update
-```
+	```
+	helm repo add towards5gs https://raw.githubusercontent.com/Orange-OpenSource/towards5gs-helm/main/repo/
+	helm repo update
+	```
 
 * install eUPF chart
 
-```
-helm upgrade --install \
-    edgecomllc-eupf .deploy/helm/universal-chart \
-    --values docs/examples/free5gc/eupf.yaml \
-    -n free5gc \
-    --wait --timeout 100s --create-namespace
-```
+	```
+	helm upgrade --install \
+		edgecomllc-eupf .deploy/helm/universal-chart \
+		--values docs/examples/free5gc/eupf.yaml \
+		-n free5gc \
+		--wait --timeout 100s --create-namespace
+	```
 
 * install free5gc chart
 
-```
-helm upgrade --install \
-    free5gc towards5gs/free5gc \
-    --values docs/examples/free5gc/free5gc-single.yaml \
-    -n free5gc \
-    --version 1.1.6 \
-    --wait --timeout 100s --create-namespace
-```
+	```
+	helm upgrade --install \
+		free5gc towards5gs/free5gc \
+		--values docs/examples/free5gc/free5gc-single.yaml \
+		-n free5gc \
+		--version 1.1.6 \
+		--wait --timeout 100s --create-namespace
+	```
 
-* create susbscriber in freee5gc via WebUI
+* create susbscriber in free5gc via WebUI
 
-redirect port from webui pod to localhost
+   redirect port from webui pod to localhost
 
-```
-kubectl port-forward service/webui-service 5000:5000 -n free5gc
-```
+   ```
+   kubectl port-forward service/webui-service 5000:5000 -n free5gc
+   ```
 
-open http://127.0.0.1:5000 in your browser (for auth use user "admin" with password "free5gc"), go to menu "subscribers", click "new subscriber", leave all values as is, press "submit"
+   open http://127.0.0.1:5000 in your browser (for auth use user "admin" with password "free5gc"), go to menu "subscribers", click "new subscriber", leave all values as is, press "submit"
 
-close port forward with `Ctrl + C`
+   close port forward with `Ctrl + C`
 
 * install ueransim chart
 
-```
-helm upgrade --install \
-    ueransim towards5gs/ueransim \
-    --values docs/examples/free5gc/ueransim.yaml \
-    -n free5gc \
-    --version 2.0.17 \
-    --wait --timeout 100s --create-namespace
-```
+	```
+	helm upgrade --install \
+		ueransim towards5gs/ueransim \
+		--values docs/examples/free5gc/ueransim.yaml \
+		-n free5gc \
+		--version 2.0.17 \
+		--wait --timeout 100s --create-namespace
+	```
 
 ### undeploy everything
 
