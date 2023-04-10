@@ -129,22 +129,22 @@ func printSessionDeleteRequest(req *message.SessionDeletionRequest) {
 }
 
 func displayBar(sb *strings.Builder, req *message.SessionEstablishmentRequest) {
-	sb.WriteString("------ BAR:")
+	writeLineTabbed(sb, "BAR:", 1)
 	barId, err := req.CreateBAR.BARID()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("BAR ID: %d ", barId))
+		writeLineTabbed(sb, fmt.Sprintf("BAR ID: %d ", barId), 2)
 	}
 	downlink, err := req.CreateBAR.DownlinkDataNotificationDelay()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Downlink Data Notification Delay: %s ", downlink))
+		writeLineTabbed(sb, fmt.Sprintf("Downlink Data Notification Delay: %s ", downlink), 2)
 	}
 	suggestedBufferingPackets, err := req.CreateBAR.SuggestedBufferingPacketsCount()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("Suggested Buffering Packets Count: %d ", suggestedBufferingPackets))
+		writeLineTabbed(sb, fmt.Sprintf("Suggested Buffering Packets Count: %d ", suggestedBufferingPackets), 2)
 	}
 	mtEdtControl, err := req.CreateBAR.MTEDTControlInformation()
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("MT EDI: %d ", mtEdtControl))
+		writeLineTabbed(sb, fmt.Sprintf("MT EDI: %d ", mtEdtControl), 2)
 	}
 }
 
