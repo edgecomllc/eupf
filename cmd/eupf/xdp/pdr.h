@@ -2,6 +2,7 @@
 
 #include <bpf/bpf_helpers.h>
 #include <linux/bpf.h>
+#include <linux/ipv6.h>
 
 
 enum outer_header_removal_values {
@@ -23,14 +24,21 @@ struct pdr_info
 };
 
 #ifdef __RELEASE
-struct bpf_map_def SEC("maps") pdr_map_uplink_ip4 = {
+struct bpf_map_def SEC("maps") pdr_map_downlink_ip4 = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(__u32), // IPv4
     .value_size = sizeof(struct pdr_info),
     .max_entries = 1024, // FIXME
 };
 
-struct bpf_map_def SEC("maps") pdr_map_downlink_ip4 = {
+struct bpf_map_def SEC("maps") pdr_map_downlink_ip6 = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(struct in6_addr), // IPv6
+    .value_size = sizeof(struct pdr_info),
+    .max_entries = 1024, // FIXME
+};
+
+struct bpf_map_def SEC("maps") pdr_map_uplink = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(__u32), // TEID
     .value_size = sizeof(struct pdr_info),
@@ -43,7 +51,15 @@ struct
     __type(key, __u32); // ipv4
     __type(value, struct pdr_info);
     __uint(max_entries, 1024);
-} pdr_map_uplink_ip4 SEC(".maps");
+} pdr_map_downlink_ip4 SEC(".maps");
+
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, struct in6_addr); // ipv6
+    __type(value, struct pdr_info);
+    __uint(max_entries, 1024);
+} pdr_map_downlink_ip6 SEC(".maps");
 
 struct
 {
@@ -51,7 +67,7 @@ struct
     __type(key, __u32); // teid
     __type(value, struct pdr_info);
     __uint(max_entries, 1024);
-} pdr_map_downlink_ip4 SEC(".maps");
+} pdr_map_uplink_ip4 SEC(".maps");
 #endif
 
 enum far_action_mask {
