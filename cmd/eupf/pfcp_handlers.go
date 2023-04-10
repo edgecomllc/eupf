@@ -20,6 +20,7 @@ func (handlerMap PfcpHanderMap) Handle(conn *PfcpConnection, buf []byte, addr *n
 		log.Printf("Ignored undecodable message: %x, error: %s", buf, err)
 		return err
 	}
+	PfcpMessageRx.WithLabelValues(incomingMsg.MessageTypeName()).Inc()
 	if handler, ok := handlerMap[incomingMsg.MessageType()]; ok {
 		startTime := time.Now()
 		outgoingMsg, err := handler(conn, incomingMsg, addr)
@@ -28,7 +29,8 @@ func (handlerMap PfcpHanderMap) Handle(conn *PfcpConnection, buf []byte, addr *n
 			return err
 		}
 		duration := time.Since(startTime)
-		UpfMessageProcessingDuration.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
+		UpfMessageRxLatency.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
+		PfcpMessageTx.WithLabelValues(outgoingMsg.MessageTypeName()).Inc()
 		return conn.SendMessage(outgoingMsg, addr)
 	} else {
 		log.Printf("Got unexpected message %s: %s, from: %s", incomingMsg.MessageTypeName(), incomingMsg, addr)
@@ -59,7 +61,8 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	if asreq.NodeID == nil {
 		log.Printf("Got Association Setup Request without NodeID from: %s", addr)
 		// Reject with cause
-		AsrReject.Inc()
+
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), string(ie.CauseMandatoryIEMissing)).Inc()
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
@@ -69,7 +72,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	remote_nodeID, err := asreq.NodeID.NodeID()
 	if err != nil {
 		log.Printf("Got Association Setup Request with invalid NodeID from: %s", addr)
-		AsrReject.Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), string(ie.CauseMandatoryIEMissing)).Inc()
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
@@ -108,7 +111,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	)
 
 	// Send AssociationSetupResponse
-	AsrSuccess.Inc()
+	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), string(ie.CauseRequestAccepted)).Inc()
 	return asres, nil
 }
 
