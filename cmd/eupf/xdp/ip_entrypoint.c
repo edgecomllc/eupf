@@ -268,7 +268,7 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
 {
     struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
     if(!pdr) {
-            bpf_printk("upf: no downlink session for ip:%pI4", ip4->daddr);
+            bpf_printk("upf: no downlink session for ip:%pI4", &ip4->daddr);
             return DEFAULT_XDP_ACTION;
     }
 
