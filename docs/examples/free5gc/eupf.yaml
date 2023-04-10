@@ -21,7 +21,7 @@ configMaps:
   config:
     data:
       config.yml: |
-        interface_name: eth0
+        interface_name: n3
         api_address: :8080
         pfcp_address: :8805
         metrics_address: :9090
