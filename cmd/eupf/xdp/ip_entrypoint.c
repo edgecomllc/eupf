@@ -383,6 +383,27 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
 
 static __always_inline __u32 handle_core_packet_ipv6(struct xdp_md *ctx, struct ipv6hdr *ip6)
 {
+    struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6 &ip6->daddr);
+    if(!pdr) {
+            bpf_printk("upf: no downlink session for ip:%pI6c", ip6->daddr);
+            return DEFAULT_XDP_ACTION;
+    }
+
+    struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+    if(!far) {
+        bpf_printk("upf: no downlink session far for ip:%pI6c far:%d", &ip6->daddr, pdr->far_id);
+            return XDP_DROP;
+    }
+
+    bpf_printk("upf: downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, pdr->far_id, far->action);
+
+    //Only forwarding action supported at the moment
+    if(!(far->action & FAR_FORW))
+        return XDP_DROP;
+
+    bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
+
+    //TODO: incapsulate & apply routing
     return XDP_DROP;
 }
 
