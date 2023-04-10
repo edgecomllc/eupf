@@ -68,6 +68,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		)
 		return asres, nil
 	}
+	printAssociationSetupRequest(asreq)
 	// Get NodeID
 	remote_nodeID, err := asreq.NodeID.NodeID()
 	if err != nil {

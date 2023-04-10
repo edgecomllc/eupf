@@ -16,6 +16,21 @@ func writeLineTabbed(sb *strings.Builder, s string, tab int) {
 	sb.WriteString("\n")
 }
 
+func printAssociationSetupRequest(req *message.AssociationSetupRequest) {
+	var sb strings.Builder
+	sb.WriteString("\n")
+	writeLineTabbed(&sb, "Association Setup Request:", 0)
+	nodeId, err := req.NodeID.NodeID()
+	if err == nil {
+		writeLineTabbed(&sb, fmt.Sprintf("Node ID: %s", nodeId), 1)
+	}
+	recoveryTime, err := req.RecoveryTimeStamp.RecoveryTimeStamp()
+	if err == nil {
+		writeLineTabbed(&sb, fmt.Sprintf("Recovery Time: %s", recoveryTime.String()), 1)
+	}
+	log.Print(sb.String())
+}
+
 func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
