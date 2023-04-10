@@ -11,7 +11,7 @@ import (
 )
 
 func writeLineTabbed(sb *strings.Builder, s string, tab int) {
-	sb.WriteString(strings.Repeat("\t", tab))
+	sb.WriteString(strings.Repeat("  ", tab))
 	sb.WriteString(s)
 	sb.WriteString("\n")
 }
