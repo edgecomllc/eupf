@@ -383,9 +383,9 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
 
 static __always_inline __u32 handle_core_packet_ipv6(struct xdp_md *ctx, struct ipv6hdr *ip6)
 {
-    struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6 &ip6->daddr);
+    struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6, &ip6->daddr);
     if(!pdr) {
-            bpf_printk("upf: no downlink session for ip:%pI6c", ip6->daddr);
+            bpf_printk("upf: no downlink session for ip:%pI6c", &ip6->daddr);
             return DEFAULT_XDP_ACTION;
     }
 
@@ -404,7 +404,7 @@ static __always_inline __u32 handle_core_packet_ipv6(struct xdp_md *ctx, struct 
     bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
 
     //TODO: incapsulate & apply routing
-    return XDP_DROP;
+    return XDP_PASS;
 }
 
 static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __u32 teid)
