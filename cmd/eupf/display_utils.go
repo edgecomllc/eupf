@@ -36,23 +36,27 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, "Session Establishment Request:", 0)
 	for _, pdr := range req.CreatePDR {
-		displayPdr(&sb, pdr, "Create ")
+		sb.WriteString("  Create")
+		displayPdr(&sb, pdr)
 	}
 
 	for _, far := range req.CreateFAR {
-		displayFar(&sb, far, "Create ")
+		sb.WriteString("  Create")
+		displayFar(&sb, far)
 	}
 
 	for _, qer := range req.CreateQER {
-		displayQer(&sb, qer, "Create ")
+		sb.WriteString("  Create")
+		displayQer(&sb, qer)
 	}
 
 	for _, urr := range req.CreateURR {
-		displayUrr(&sb, urr, "Create ")
+		sb.WriteString("  Create")
+		displayUrr(&sb, urr)
 	}
 
 	if req.CreateBAR != nil {
-		displayBar(&sb, req, "Create ")
+		displayBar(&sb, req)
 	}
 	log.Print(sb.String())
 }
@@ -64,19 +68,23 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	//log.Printf("Session Modification Request:")
 	writeLineTabbed(&sb, "Session Modification Request:", 0)
 	for _, pdr := range req.UpdatePDR {
-		displayPdr(&sb, pdr, "Update ")
+		sb.WriteString("  Update")
+		displayPdr(&sb, pdr)
 	}
 
 	for _, far := range req.UpdateFAR {
-		displayFar(&sb, far, "Update ")
+		sb.WriteString("  Update")
+		displayFar(&sb, far)
 	}
 
 	for _, qer := range req.UpdateQER {
-		displayQer(&sb, qer, "Update ")
+		sb.WriteString("  Update")
+		displayQer(&sb, qer)
 	}
 
 	for _, urr := range req.UpdateURR {
-		displayUrr(&sb, urr, "Update ")
+		sb.WriteString("  Update")
+		displayUrr(&sb, urr)
 	}
 
 	if req.UpdateBAR != nil {
@@ -106,19 +114,23 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 
 	//log.Println("------ Remove:")
 	for _, pdr := range req.RemovePDR {
-		displayPdr(&sb, pdr, "Remove")
+		sb.WriteString("  Remove")
+		displayPdr(&sb, pdr)
 	}
 
 	for _, far := range req.RemoveFAR {
-		displayFar(&sb, far, "Remove")
+		sb.WriteString("  Remove")
+		displayFar(&sb, far)
 	}
 
 	for _, qer := range req.RemoveQER {
-		displayQer(&sb, qer, "Remove")
+		sb.WriteString("  Remove")
+		displayQer(&sb, qer)
 	}
 
 	for _, urr := range req.RemoveURR {
-		displayUrr(&sb, urr, "Remove")
+		sb.WriteString("  Remove")
+		displayUrr(&sb, urr)
 	}
 
 	if req.RemoveBAR != nil {
@@ -138,9 +150,10 @@ func printSessionDeleteRequest(req *message.SessionDeletionRequest) {
 	writeLineTabbed(&sb, fmt.Sprintf("SEID: %d", req.SEID()), 1)
 }
 
-func displayBar(sb *strings.Builder, req *message.SessionEstablishmentRequest, prefix string) {
+func displayBar(sb *strings.Builder, req *message.SessionEstablishmentRequest) {
 	barId, _ := req.CreateBAR.BARID()
-	writeLineTabbed(sb, prefix+fmt.Sprintf("BAR ID: %d ", barId), 1)
+	sb.WriteString(fmt.Sprintf("BAR ID: %d\n", barId))
+
 	downlink, err := req.CreateBAR.DownlinkDataNotificationDelay()
 	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Downlink Data Notification Delay: %s ", downlink), 2)
@@ -155,9 +168,9 @@ func displayBar(sb *strings.Builder, req *message.SessionEstablishmentRequest, p
 	}
 }
 
-func displayUrr(sb *strings.Builder, urr *ie.IE, prefix string) {
+func displayUrr(sb *strings.Builder, urr *ie.IE) {
 	urrId, _ := urr.URRID()
-	writeLineTabbed(sb, prefix+fmt.Sprintf("URR ID: %d ", urrId), 1)
+	sb.WriteString(fmt.Sprintf("URR ID: %d \n", urrId))
 
 	measurementMethod, err := urr.MeasurementMethod()
 	if err == nil {
@@ -181,9 +194,9 @@ func displayUrr(sb *strings.Builder, urr *ie.IE, prefix string) {
 	}
 }
 
-func displayQer(sb *strings.Builder, qer *ie.IE, prefix string) {
+func displayQer(sb *strings.Builder, qer *ie.IE) {
 	qerId, _ := qer.QERID()
-	writeLineTabbed(sb, prefix+fmt.Sprintf("QER ID: %d ", qerId), 1)
+	sb.WriteString(fmt.Sprintf("QER ID: %d \n", qerId))
 
 	gateStatusDL, err := qer.GateStatusDL()
 	if err == nil {
@@ -213,9 +226,10 @@ func displayQer(sb *strings.Builder, qer *ie.IE, prefix string) {
 	log.Println(sb.String())
 }
 
-func displayFar(sb *strings.Builder, far *ie.IE, prefix string) {
+func displayFar(sb *strings.Builder, far *ie.IE) {
 	farId, _ := far.FARID()
-	writeLineTabbed(sb, prefix+fmt.Sprintf("FAR ID: %d ", farId), 1)
+	sb.WriteString(fmt.Sprintf("FAR ID: %d \n", farId))
+
 	applyAction, err := far.ApplyAction()
 	if err == nil {
 		writeLineTabbed(sb, (fmt.Sprintf("Apply Action: %+v ", applyAction)), 2)
@@ -260,9 +274,9 @@ func displayFar(sb *strings.Builder, far *ie.IE, prefix string) {
 	}
 }
 
-func displayPdr(sb *strings.Builder, pdr *ie.IE, prefix string) {
+func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 	pdrId, _ := pdr.PDRID()
-	writeLineTabbed(sb, prefix+fmt.Sprintf("PDR ID: %d ", pdrId), 1)
+	sb.WriteString(fmt.Sprintf("PDR ID: %d \n", pdrId))
 
 	outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription()
 	if err == nil {
