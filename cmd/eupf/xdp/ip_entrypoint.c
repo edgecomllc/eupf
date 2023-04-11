@@ -39,15 +39,15 @@ enum default_action
 /* Header cursor to keep track of current parsing position */
 struct packet_context
 {
-    void *data;
-    void *data_end;
+    void            *data;
+    void            *data_end;
     struct upf_counters *counters;
-    struct xdp_md *ctx;
-    struct ethhdr *eth;
-    struct iphdr *ip4;
-    struct ipv6hdr *ip6;
-    struct udphdr *udp;
-    struct gtpuhdr *gtp;
+    struct xdp_md   *ctx;
+    struct ethhdr   *eth;
+    struct iphdr    *ip4;
+    struct ipv6hdr  *ip6;
+    struct udphdr   *udp;
+    struct gtpuhdr  *gtp;
 };
 
 static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct ethhdr **ethhdr)
@@ -202,68 +202,25 @@ static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, 
     bpf_printk("upf: bpf_fib_lookup %d: %pI4 -> %pI4", rc, &ip4->saddr, &ip4->daddr);
     bpf_printk("upf: bpf_fib_lookup nexthop: %pI4", &fib_params.ipv4_dst);
 
-    switch (rc)
-    {
-    case BPF_FIB_LKUP_RET_SUCCESS:
-        //_decr_ttl(ether_proto, l3hdr);
-        __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
-        __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);
-        bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
-        return bpf_redirect(fib_params.ifindex, 0);
-        // return XDP_TX;
-        // return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
-    case BPF_FIB_LKUP_RET_BLACKHOLE:
-    case BPF_FIB_LKUP_RET_UNREACHABLE:
-    case BPF_FIB_LKUP_RET_PROHIBIT:
-        return XDP_DROP;
-    case BPF_FIB_LKUP_RET_NOT_FWDED:
-    case BPF_FIB_LKUP_RET_FWD_DISABLED:
-    case BPF_FIB_LKUP_RET_UNSUPP_LWT:
-    case BPF_FIB_LKUP_RET_NO_NEIGH:
-    case BPF_FIB_LKUP_RET_FRAG_NEEDED:
-        return XDP_PASS; // Let's kernel takes care
-    }
-
-    return XDP_PASS; // Let's kernel takes care
-}
-
-static __always_inline __u32 route_ipv6(struct xdp_md *ctx, struct ethhdr *eth, const struct ipv6hdr *ip6)
-{
-    struct bpf_fib_lookup fib_params = {};
-    fib_params.family = AF_INET;
-    //fib_params.flowinfo = ip6->flow_lbl;
-    fib_params.l4_protocol = ip6->nexthdr;
-    fib_params.sport = 0;
-    fib_params.dport = 0;
-    fib_params.tot_len = bpf_ntohs(ip6->payload_len);
-    __builtin_memcpy(fib_params.ipv6_src, ip6->saddr.in6_u.u6_addr32, 16);
-    __builtin_memcpy(fib_params.ipv6_dst, ip6->daddr.in6_u.u6_addr32, 16);
-    fib_params.ifindex = ctx->ingress_ifindex;
-
-    int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), BPF_FIB_LOOKUP_OUTPUT);
-    bpf_printk("upf: bpf_fib_lookup %d: %pI6c -> %pI6c", rc, &ip6->saddr, &ip6->daddr);
-    bpf_printk("upf: bpf_fib_lookup nexthop: %pI6c", &fib_params.ipv6_dst);
-
-    switch (rc)
-    {
-    case BPF_FIB_LKUP_RET_SUCCESS:
-        //_decr_ttl(ether_proto, l3hdr);
-        __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
-        __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);
-        bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
-        return bpf_redirect(fib_params.ifindex, 0);
-        // return XDP_TX;
-        // return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
-    case BPF_FIB_LKUP_RET_BLACKHOLE:
-    case BPF_FIB_LKUP_RET_UNREACHABLE:
-    case BPF_FIB_LKUP_RET_PROHIBIT:
-        return XDP_DROP;
-    case BPF_FIB_LKUP_RET_NOT_FWDED:
-    case BPF_FIB_LKUP_RET_FWD_DISABLED:
-    case BPF_FIB_LKUP_RET_UNSUPP_LWT:
-    case BPF_FIB_LKUP_RET_NO_NEIGH:
-    case BPF_FIB_LKUP_RET_FRAG_NEEDED:
-        return XDP_PASS; // Let's kernel takes care
+    switch(rc) {
+        case BPF_FIB_LKUP_RET_SUCCESS:  
+            //_decr_ttl(ether_proto, l3hdr);
+            __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
+            __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);          
+            bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
+            return bpf_redirect(fib_params.ifindex, 0);
+            //return XDP_TX;
+            //return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
+        case BPF_FIB_LKUP_RET_BLACKHOLE:
+        case BPF_FIB_LKUP_RET_UNREACHABLE:
+        case BPF_FIB_LKUP_RET_PROHIBIT:
+            return XDP_DROP;
+        case BPF_FIB_LKUP_RET_NOT_FWDED:
+        case BPF_FIB_LKUP_RET_FWD_DISABLED:
+        case BPF_FIB_LKUP_RET_UNSUPP_LWT:
+        case BPF_FIB_LKUP_RET_NO_NEIGH:
+        case BPF_FIB_LKUP_RET_FRAG_NEEDED:
+            return XDP_PASS; // Let's kernel takes care
     }
 
     return XDP_PASS; // Let's kernel takes care
@@ -294,9 +251,9 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx, str
     udp->source = tmp;
     // Update UDP checksum
     udp->check = 0;
-    // cs = 0;
-    // ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
-    // udp->check = cs;
+    //cs = 0;
+    //ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
+    //udp->check = cs;
 
     __u8 mac[6];
     __builtin_memcpy(mac, eth->h_source, sizeof(mac));
@@ -309,24 +266,22 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx, str
 
 static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const struct iphdr *ip4)
 {
-    struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
-    if (!pdr)
-    {
-        bpf_printk("upf: no downlink session for ip:%pI4", &ip4->daddr);
-        return DEFAULT_XDP_ACTION;
+    struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
+    if(!pdr) {
+            bpf_printk("upf: no downlink session for ip:%pI4", &ip4->daddr);
+            return DEFAULT_XDP_ACTION;
     }
 
-    struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
-    if (!far)
-    {
+    struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+    if(!far) {
         bpf_printk("upf: no downlink session far for ip:%pI4 far:%d", &ip4->daddr, pdr->far_id);
-        return XDP_DROP;
+            return XDP_DROP;
     }
 
     bpf_printk("upf: downlink session for ip:%pI4  far:%d action:%d", &ip4->daddr, pdr->far_id, far->action);
 
-    // Only forwarding action supported at the moment
-    if (!(far->action & FAR_FORW))
+    //Only forwarding action supported at the moment
+    if(!(far->action & FAR_FORW))
         return XDP_DROP;
 
     bpf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
@@ -396,14 +351,21 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
     }
 
     __u8 flags = GTP_FLAGS;
-    __builtin_memcpy(gtp, &flags, sizeof(__u8));TODO
+    __builtin_memcpy(gtp, &flags, sizeof(__u8));
+    gtp->message_type = GTPU_G_PDU;
+    gtp->message_length = inner_ip->tot_len;
+    gtp->teid = bpf_htonl(far->teid);
 
-    // Fuck ebpf verifier. I give up
-    // cs = 0;
-    // const void* udp_start = (void*)udp;
-    // const __u16 udp_len = bpf_htons(udp->len);
-    // ipv4_l4_csum(udp, udp_len, &cs, ip);
-    // udp->check = cs;
+    __u64 cs = 0;
+    ipv4_csum(ip, sizeof(*ip), &cs);
+    ip->check = cs;
+
+    //Fuck ebpf verifier. I give up
+    //cs = 0;
+    //const void* udp_start = (void*)udp;
+    //const __u16 udp_len = bpf_htons(udp->len);
+    //ipv4_l4_csum(udp, udp_len, &cs, ip);
+    //udp->check = cs;
 
     bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ip->saddr, &ip->daddr);
     return route_ipv4(ctx, eth, ip);
@@ -411,64 +373,59 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
 
 static __always_inline __u32 handle_core_packet_ipv6(struct xdp_md *ctx, struct ipv6hdr *ip6)
 {
-    struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6, &ip6->daddr);
-    if (!pdr)
-    {
-        bpf_printk("upf: no downlink session for ip:%pI6c", &ip6->daddr);
-        return DEFAULT_XDP_ACTION;
+    struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6, &ip6->daddr);
+    if(!pdr) {
+            bpf_printk("upf: no downlink session for ip:%pI6c", &ip6->daddr);
+            return DEFAULT_XDP_ACTION;
     }
 
-    struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
-    if (!far)
-    {
+    struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+    if(!far) {
         bpf_printk("upf: no downlink session far for ip:%pI6c far:%d", &ip6->daddr, pdr->far_id);
-        return XDP_DROP;
+            return XDP_DROP;
     }
 
     bpf_printk("upf: downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, pdr->far_id, far->action);
 
-    // Only forwarding action supported at the moment
-    if (!(far->action & FAR_FORW))
+    //Only forwarding action supported at the moment
+    if(!(far->action & FAR_FORW))
         return XDP_DROP;
 
     bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
 
-    // TODO: incapsulate & apply routing
+    //TODO: incapsulate & apply routing
     return XDP_PASS;
 }
 
 static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __u32 teid)
 {
-    struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
-    if (!pdr)
-    {
-        bpf_printk("upf: no uplink session for teid:%d", teid);
-        return DEFAULT_XDP_ACTION;
+    struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
+    if(!pdr) {
+            bpf_printk("upf: no uplink session for teid:%d", teid);
+            return DEFAULT_XDP_ACTION;
     }
 
     bpf_printk("upf: uplink session for teid:%d far:%d headrm:%d", teid, pdr->far_id, pdr->outer_header_removal);
 
-    struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
-    if (!far)
-    {
+    struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+    if(!far) {
         bpf_printk("upf: no uplink session far for teid:%d far:%d", teid, pdr->far_id);
-        return XDP_DROP;
+            return XDP_DROP;
     }
 
     bpf_printk("upf: far for teid:%d far:%d action:%d", teid, pdr->far_id, far->action);
 
-    // Only forwarding action supported at the moment
-    if (!(far->action & FAR_FORW))
+    //Only forwarding action supported at the moment
+    if(!(far->action & FAR_FORW))
         return XDP_DROP;
 
-    if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4)
+    if(pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) 
     {
         void *data = (void *)(long)ctx->ctx->data;
         void *data_end = (void *)(long)ctx->ctx->data_end;
 
         int ext_gtp_header_size = 0;
-        if (ctx->gtp)
-        {
+        if(ctx->gtp) {
             struct gtpuhdr *gtp = ctx->gtp;
             if (gtp->e || gtp->s || gtp->pn)
                 ext_gtp_header_size += sizeof(struct gtp_hdr_ext) + 4;
@@ -500,19 +457,13 @@ static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __
     {
     case ETH_P_IPV6:
     {
-        struct ipv6hdr *ip6;
-        int l4_protocol = parse_ip6(&context, &ip6);
-        if (l4_protocol != -1)
-        {
-            return route_ipv6(context.ctx, eth, ip6);
-        }
         return DEFAULT_XDP_ACTION;
     }
     case ETH_P_IP:
     {
         struct iphdr *ip4;
         int l4_protocol = parse_ip4(&context, &ip4);
-        if (l4_protocol != -1)
+        if(l4_protocol != -1)
         {
             return route_ipv4(context.ctx, eth, ip4);
         }
@@ -542,7 +493,7 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
         }
         if (ctx->counters)
             __sync_fetch_and_add(&ctx->counters->rx_gtp_pdu, 1);
-
+        
         ctx->gtp = gtp;
         return handle_access_packet(ctx, bpf_htonl(gtp->teid));
     case GTPU_ECHO_REQUEST:
@@ -578,13 +529,12 @@ static __always_inline __u32 handle_ip4(struct packet_context *ctx)
 
     switch (l4_protocol)
     {
-    case IPPROTO_ICMP:
-    {
+    case IPPROTO_ICMP: {
         if (ctx->counters)
             __sync_fetch_and_add(&ctx->counters->rx_icmp, 1);
         break;
-        // bpf_printk("upf: icmp received. passing to kernel");
-        // return XDP_PASS; // Let kernel stack takes care
+        //bpf_printk("upf: icmp received. passing to kernel");
+        //return XDP_PASS; // Let kernel stack takes care
     }
     case IPPROTO_UDP:
         if (ctx->counters)
