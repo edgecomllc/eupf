@@ -1,12 +1,11 @@
 ---
 
-replicaCount: 1
-
 image:
   registry: ghcr.io
   repository: edgecomllc
   name: eupf
-  tag: ""
+  tag: main
+  pullPolicy: Always
 
 args:
   - --config
@@ -22,8 +21,10 @@ configMaps:
         interface_name: eth0
         api_address: :8080
         pfcp_address: :8805
-        pfcp_node_id: localhost
         metrics_address: :9090
+
+env:
+  UPF_PFCP_NODE_ID: $(MY_POD_IP)
 
 volumes:
   - name: sys
@@ -31,7 +32,7 @@ volumes:
       path: /sys
   - name: config
     configMap:
-      name: eupf-universal-chart-config
+      name: edgecomllc-eupf-universal-chart-config
 
 volumeMounts:
   - name: sys
@@ -54,6 +55,12 @@ imagePullSecrets:
   - name: gh-container-registry
 
 extraContainerPorts:
+  - name: gtpu
+    containerPort: 2152
+    protocol: UDP
+  - name: pfcp
+    containerPort: 8805
+    protocol: UDP
   - name: metrics
     containerPort: 9090
     protocol: TCP
@@ -62,6 +69,14 @@ service:
   type: ClusterIP
   port: 8080
   extraPorts:
+    - port: 2152
+      targetPort: gtpu
+      protocol: UDP
+      name: gtpu
+    - port: 8805
+      targetPort: pfcp
+      protocol: UDP
+      name: pfcp
     - port: 9090
       targetPort: metrics
       protocol: TCP

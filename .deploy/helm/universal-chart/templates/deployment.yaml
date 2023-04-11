@@ -47,6 +47,10 @@ spec:
           {{- end }}
           {{- if .Values.env }}
           env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
             {{- include "helpers.pod.envs" . | indent 12 }}
           {{- end }}
           ports:

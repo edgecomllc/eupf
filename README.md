@@ -74,7 +74,7 @@
 ### Current limitation
 
 - Only one PDR in PFCP session per direction
-- Only single FAR supported 
+- Only single FAR supported
 
 ### Packet forwarding pipeline
 
@@ -151,6 +151,21 @@ This set of metrics are used to count the number of packets with different outco
 ### Packet metrics
 Various packet counters with `packet_type` label.
 
-| Metric Name | Description                              |
-| ----------- | ---------------------------------------- |
-| upf_rx      | The total number of received ARP packets |
+| Metric Name        | Description                                |
+|--------------------|--------------------------------------------|
+| upf_rx_arp         | The total number of received ARP packets   |
+| upf_rx_icmp        | The total number of received ICMP packets  |
+| upf_rx_icmpv6      | The total number of received ICMPv6 packets|
+| upf_rx_ip4         | The total number of received IPv4 packets  |
+| upf_rx_ip6         | The total number of received IPv6 packets  |
+| upf_rx_tcp         | The total number of received TCP packets   |
+| upf_rx_udp         | The total number of received UDP packets   |
+| upf_rx_other       | The total number of received other packets |
+| upf_rx_gtp_echo    | The total number of received GTP echo packets |
+| upf_rx_gtp_pdu     | The total number of received GTP PDU packets |
+| upf_rx_gtp_other   | The total number of received GTP other packets |
+| upf_rx_gtp_error   | The total number of received GTP error packets |
+
+## Quick start
+
+read [documentation about install](./docs/install.md)

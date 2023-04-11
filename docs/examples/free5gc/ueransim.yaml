@@ -1,0 +1,18 @@
+---
+
+global:
+  multiCluster: false
+  n2network:
+    name: n2network
+    masterIf: ens3
+    subnetIP: 10.100.50.248
+    cidr: 29
+    gatewayIP: 10.100.50.254
+    excludeIP: 10.100.50.254
+  n3network:
+    name: n3network
+    masterIf: ens3
+    subnetIP: 10.100.50.232
+    cidr: 29
+    gatewayIP: 10.100.50.238
+    excludeIP: 10.100.50.238

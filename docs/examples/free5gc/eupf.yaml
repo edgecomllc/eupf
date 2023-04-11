@@ -1,0 +1,199 @@
+---
+
+image:
+  registry: ghcr.io
+  repository: edgecomllc
+  name: eupf
+  tag: main
+  pullPolicy: Always
+
+deploymentStrategy:
+  type: Recreate
+
+args:
+  - --config
+  - /app/conf/config.yml
+
+securityContext:
+  privileged: true
+
+configMaps:
+  config:
+    data:
+      config.yml: |
+        interface_name: n3
+        api_address: :8080
+        pfcp_address: :8805
+        metrics_address: :9090
+
+env:
+  UPF_PFCP_NODE_ID: 10.100.50.241  # address on n4 interface
+
+volumes:
+  - name: sys
+    hostPath:
+      path: /sys
+  - name: config
+    configMap:
+      name: edgecomllc-eupf-universal-chart-config
+
+volumeMounts:
+  - name: sys
+    mountPath: /sys
+    readOnly:  true
+  - name: config
+    mountPath: /app/conf
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+    endpoints:
+      port: metrics
+      path: "/metrics"
+
+imagePullSecrets:
+  - name: gh-container-registry
+
+extraContainerPorts:
+  - name: pfcp
+    containerPort: 8805
+    protocol: UDP
+  - name: metrics
+    containerPort: 9090
+    protocol: TCP
+
+service:
+  type: ClusterIP
+  port: 8080
+  extraPorts:
+    - port: 8805
+      targetPort: pfcp
+      protocol: UDP
+      name: pfcp
+    - port: 9090
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+podAnnotations:
+  k8s.v1.cni.cncf.io/networks: |
+    [
+      { "name": "n3network-upf",
+        "interface": "n3",
+        "ips": [ "10.100.50.233/29" ],
+        "gateway": [ "10.100.50.238" ]
+      },
+      { "name": "n4network-upf",
+        "interface": "n4",
+        "ips": [ "10.100.50.241/29" ],
+        "gateway": [ "10.100.50.246" ]
+      },
+      { "name": "n6network-upf",
+        "interface": "n6",
+        "ips": [ "10.100.100.12/24" ],
+        "gateway": [ "10.100.100.1" ]
+      }
+    ]
+
+extraDeploy:
+  - apiVersion: k8s.cni.cncf.io/v1
+    kind: NetworkAttachmentDefinition
+    metadata:
+      name: n3network-upf
+    spec:
+      config: |
+        {
+          "cniVersion": "0.3.1",
+          "plugins": [
+            {
+              "type": "ipvlan",
+              "capabilities": { "ips": true },
+              "master": "ens3",
+              "mode": "l2",
+              "ipam": {
+                "type": "static",
+                "routes": [
+                  {
+                    "dst": "0.0.0.0/0",
+                    "gw": "10.100.50.238"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+  - apiVersion: k8s.cni.cncf.io/v1
+    kind: NetworkAttachmentDefinition
+    metadata:
+      name: n4network-upf
+    spec:
+      config: |
+        {
+          "cniVersion": "0.3.1",
+          "plugins": [
+            {
+              "type": "ipvlan",
+              "capabilities": { "ips": true },
+              "master": "ens3",
+              "mode": "l2",
+              "ipam": {
+                "type": "static",
+                "routes": [
+                  {
+                    "dst": "0.0.0.0/0",
+                    "gw": "10.100.50.246"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+  - apiVersion: k8s.cni.cncf.io/v1
+    kind: NetworkAttachmentDefinition
+    metadata:
+      name: n6network-upf
+    spec:
+      config: |
+        {
+          "cniVersion": "0.3.1",
+          "plugins": [
+            {
+              "type": "ipvlan",
+              "capabilities": { "ips": true },
+              "master": "ens3",
+              "mode": "l2",
+              "ipam": {
+                "type": "static",
+                "routes": [
+                  {
+                    "dst": "0.0.0.0/0",
+                    "gw": "10.100.100.1"
+                  }
+                ]
+              }
+            }
+          ]
+        }
