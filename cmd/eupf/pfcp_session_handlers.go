@@ -21,14 +21,14 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	_, remoteSEID, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
 	if err != nil {
 		log.Printf("Rejecting Session Establishment Request from: %s (missing NodeID or F-SEID)", addr)
-		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseMandatoryIEMissing), 10)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseMandatoryIEMissing)).Inc()
 		return message.NewSessionEstablishmentResponse(0, 0, 0, req.Sequence(), 0, convertErrorToIeCause(err)), nil
 	}
 
 	association, ok := conn.nodeAssociations[addr.String()]
 	if !ok {
 		log.Printf("Rejecting Session Establishment Request from: %s (no association)", addr)
-		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseNoEstablishedPFCPAssociation), 10)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
 		return message.NewSessionEstablishmentResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
 	}
 
@@ -181,7 +181,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	if err != nil {
 		log.Printf("Rejecting Session Establishment Request from: %s (error in applying IEs)", err)
-		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseRuleCreationModificationFailure), 10)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseRuleCreationModificationFailure)).Inc()
 		return message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), nil
 	}
 
@@ -204,7 +204,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		newIeNodeID(conn.nodeId),
 		ie.NewFSEID(localSEID, conn.nodeAddrV4, v6),
 	)
-	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseRequestAccepted), 10)).Inc()
+	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseRequestAccepted)).Inc()
 	return estResp, nil
 }
 
@@ -214,7 +214,7 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	association, ok := conn.nodeAssociations[addr.String()]
 	if !ok {
 		log.Printf("Rejecting Session Deletion Request from: %s (no association)", addr)
-		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseNoEstablishedPFCPAssociation), 10)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
 	}
 	printSessionDeleteRequest(req)
@@ -222,38 +222,38 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	session, ok := association.Sessions[req.SEID()]
 	if !ok {
 		log.Printf("Rejecting Session Deletion Request from: %s (unknown SEID)", addr)
-		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseSessionContextNotFound), 10)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseSessionContextNotFound)).Inc()
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 	mapOperations := conn.mapOperations
 	for _, pdrInfo := range session.UplinkPDRs {
 		if err := mapOperations.DeletePdrUpLink(pdrInfo.Teid); err != nil {
-			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseRuleCreationModificationFailure), 10)).Inc()
+			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
 	for _, pdrInfo := range session.DownlinkPDRs {
 		if err := mapOperations.DeletePdrDownLink(pdrInfo.Ipv4); err != nil {
-			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseRuleCreationModificationFailure), 10)).Inc()
+			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
 	for id := range session.FARs {
 		if err := mapOperations.DeleteFar(id); err != nil {
-			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseRuleCreationModificationFailure), 10)).Inc()
+			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
 	for id := range session.QERs {
 		if err := mapOperations.DeleteQer(id); err != nil {
-			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseRuleCreationModificationFailure), 10)).Inc()
+			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
 	log.Printf("Deleting session: %d", req.SEID())
 	delete(association.Sessions, req.SEID())
 
-	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseRequestAccepted), 10)).Inc()
+	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseRequestAccepted)).Inc()
 	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted)), nil
 }
 
@@ -265,7 +265,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	association, ok := conn.nodeAssociations[addr.String()]
 	if !ok {
 		log.Printf("Rejecting Session Modification Request from: %s (no association)", addr)
-		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseNoEstablishedPFCPAssociation), 10)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
 		return message.NewSessionModificationResponse(0, 0, req.SEID(), req.Sequence(), 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
 	}
 
@@ -273,7 +273,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	session, ok := association.Sessions[req.SEID()]
 	if !ok {
 		log.Printf("Rejecting Session Modification Request from: %s (unknown SEID)", addr)
-		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseSessionContextNotFound), 10)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseSessionContextNotFound)).Inc()
 		return message.NewSessionModificationResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 
@@ -471,7 +471,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	}()
 	if err != nil {
 		log.Printf("Rejecting Session Modification Request from: %s (failed to apply rules)", err)
-		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseRuleCreationModificationFailure), 10)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseRuleCreationModificationFailure)).Inc()
 		return message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), nil
 	}
 
@@ -485,7 +485,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		0,
 		ie.NewCause(ie.CauseRequestAccepted),
 	)
-	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseRequestAccepted), 10)).Inc()
+	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), uint8ToString(ie.CauseRequestAccepted)).Inc()
 	return modResp, nil
 }
 
@@ -531,4 +531,8 @@ func findIEindex(ieArr []*ie.IE, ieType uint16) int {
 		return ie.Type == ieType
 	})
 	return arrIndex
+}
+
+func uint8ToString(u uint8) string {
+	return strconv.FormatUint(uint64(u), 10)
 }
