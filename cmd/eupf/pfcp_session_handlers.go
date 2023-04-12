@@ -519,10 +519,11 @@ func validateRequest(conn *PfcpConnection, addr *net.UDPAddr, nodeId *ie.IE, cpf
 }
 
 func ip2int(ip net.IP) uint32 {
-	if len(ip) == 16 {
+	Ipv4 := ip.To4()
+	if Ipv4 == nil {
 		log.Println("WARN: no sane way to convert ipv6 into uint32: ", ip)
 	}
-	return binary.LittleEndian.Uint32(ip.To4())
+	return binary.LittleEndian.Uint32(Ipv4)
 }
 
 func findIEindex(ieArr []*ie.IE, ieType uint16) int {
