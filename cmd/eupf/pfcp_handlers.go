@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/wmnsk/go-pfcp/ie"
@@ -62,7 +63,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		log.Printf("Got Association Setup Request without NodeID from: %s", addr)
 		// Reject with cause
 
-		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), string(ie.CauseMandatoryIEMissing)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseMandatoryIEMissing), 10)).Inc()
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
@@ -73,7 +74,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	remote_nodeID, err := asreq.NodeID.NodeID()
 	if err != nil {
 		log.Printf("Got Association Setup Request with invalid NodeID from: %s", addr)
-		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), string(ie.CauseMandatoryIEMissing)).Inc()
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseMandatoryIEMissing), 10)).Inc()
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
@@ -112,7 +113,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	)
 
 	// Send AssociationSetupResponse
-	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), string(ie.CauseRequestAccepted)).Inc()
+	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), strconv.FormatUint(uint64(ie.CauseRequestAccepted), 10)).Inc()
 	return asres, nil
 }
 
