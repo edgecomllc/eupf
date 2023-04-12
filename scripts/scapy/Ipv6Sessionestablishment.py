@@ -27,7 +27,7 @@ pfcpSESReq = PFCP(version=1, S=1, seq=2, seid=0, spare_oct=0) / \
          ]),
          IE_CreatePDR(IE_list=[
              IE_FAR_Id(id=2),
-             IE_OuterHeaderRemoval(header="GTP-U/UDP/IPv4"),
+             IE_OuterHeaderRemoval(header="GTP-U/UDP/IPv6"),
              IE_PDI(IE_list=[
                  IE_FTEID(V6=1, TEID=0x104c9033, ipv6="2a00:1370:8194:29d2:4d63:196d:41bd:3bf2"),
                  IE_NetworkInstance(instance="cp"),
@@ -74,9 +74,9 @@ pfcpSESReqNoSDF = PFCP(version=1, S=1, seq=2, seid=0, spare_oct=0) / \
          ]),
          IE_CreatePDR(IE_list=[
              IE_FAR_Id(id=1),
-             IE_OuterHeaderRemoval(header="GTP-U/UDP/IPv4"),
+             IE_OuterHeaderRemoval(header="GTP-U/UDP/IPv6"),
              IE_PDI(IE_list=[
-                 IE_FTEID(V4=1, TEID=0x104c9033, ipv6="2a00:1370:8194:29d2:4d63:196d:41bd:3bf2"),
+                 IE_FTEID(V6=1, TEID=0x104c9033, ipv6="2a00:1370:8194:29d2:4d63:196d:41bd:3bf2"),
                  IE_NetworkInstance(instance="access"),
                  IE_SourceInterface(interface="Access"),
              ]),

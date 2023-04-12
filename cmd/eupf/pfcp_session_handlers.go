@@ -60,7 +60,12 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 					outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
 					farInfo.OuterHeaderCreation = 1
 					farInfo.Teid = outerHeaderCreation.TEID
-					farInfo.RemoteIP = ip2int(outerHeaderCreation.IPv4Address)
+					if outerHeaderCreation.HasIPv4() {
+						farInfo.RemoteIP = ip2int(outerHeaderCreation.IPv4Address)
+					}
+					if outerHeaderCreation.HasIPv6() {
+						log.Print("WARN: IPv6 not supported yet")
+					}
 					farInfo.LocalIP = ip2int(conn.nodeAddrV4)
 				}
 			}
@@ -119,7 +124,14 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 					// IE Type UE IP Address
 					if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
 						ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
-						spdrInfo.Ipv4 = ue_ip.IPv4Address
+						if ue_ip.IPv4Address != nil {
+							spdrInfo.Ipv4 = ue_ip.IPv4Address
+						} else {
+							log.Print("WARN: No IPv4 address")
+						}
+						if ue_ip.IPv6Address != nil {
+							log.Print("WARN: IPv6 not supported yet")
+						}
 						log.Printf("Saving downlink PDR info to session: %d, %+v", pdrId, spdrInfo)
 						session.CreateDownLinkPDR(pdrId, spdrInfo)
 						if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {

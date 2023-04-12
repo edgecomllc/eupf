@@ -300,13 +300,20 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 				fteid, err := pdi[teidPdiId].FTEID()
 				if err == nil {
 					writeLineTabbed(sb, (fmt.Sprintf("TEID: %d ", fteid.TEID)), 2)
+					writeLineTabbed(sb, (fmt.Sprintf("Ipv4: %+v ", fteid.IPv4Address)), 2)
+					writeLineTabbed(sb, (fmt.Sprintf("Ipv6: %+v ", fteid.IPv6Address)), 2)
 				}
 			}
 		} else {
 			ueipPdiId := findIEindex(pdi, 93) // IE Type UE IP Address
 			if ueipPdiId != -1 {
 				ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
-				writeLineTabbed(sb, (fmt.Sprintf("UE IP Address: %s ", ue_ip.IPv4Address)), 2)
+				if ue_ip.IPv4Address != nil {
+					writeLineTabbed(sb, (fmt.Sprintf("UE IPv4 Address: %s ", ue_ip.IPv4Address)), 2)
+				}
+				if ue_ip.IPv6Address != nil {
+					writeLineTabbed(sb, (fmt.Sprintf("UE IPv6 Address: %s ", ue_ip.IPv6Address)), 2)
+				}
 			}
 		}
 	}
