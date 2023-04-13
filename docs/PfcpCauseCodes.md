@@ -1,20 +1,20 @@
 # Possible cause codes
 
-| Cause Name                          | Value (uint8) |
-|-------------------------------------|---------------|
-| CauseRequestAccepted                | 1             |
-| CauseRequestRejected                | 64            |
-| CauseSessionContextNotFound         | 65            |
-| CauseMandatoryIEMissing             | 66            |
-| CauseConditionalIEMissing           | 67            |
-| CauseInvalidLength                  | 68            |
-| CauseMandatoryIEIncorrect           | 69            |
-| CauseInvalidForwardingPolicy        | 70            |
-| CauseInvalidFTEIDAllocationOption   | 71            |
-| CauseNoEstablishedPFCPAssociation   | 72            |
-| CauseRuleCreationModificationFailure| 73            |
-| CausePFCPEntityInCongestion         | 74            |
-| CauseNoResourcesAvailable           | 75            |
-| CauseServiceNotSupported            | 76            |
-| CauseSystemFailure                  | 77            |
-| CauseRedirectionRequested           | 78            |
+| Cause Name                           | Value (uint8) | Possible causes                                          |
+| ------------------------------------ | ------------- | -------------------------------------------------------- |
+| CauseRequestAccepted                 | 1             | Request sucsessfuly processed                            |
+| CauseRequestRejected                 | 64            | Encountered unknown error                                |
+| CauseSessionContextNotFound          | 65            | Tryning to delete or modify session that does not exists |
+| CauseMandatoryIEMissing              | 66            | Got message without NodeID or other mandatory IE         |
+| CauseConditionalIEMissing            | 67            | Currently not in use                                     |
+| CauseInvalidLength                   | 68            | Currently not in use                                     |
+| CauseMandatoryIEIncorrect            | 69            | Currently not in use                                     |
+| CauseInvalidForwardingPolicy         | 70            | Currently not in use                                     |
+| CauseInvalidFTEIDAllocationOption    | 71            | Currently not in use                                     |
+| CauseNoEstablishedPFCPAssociation    | 72            | Trying to create session, but no association is present  |
+| CauseRuleCreationModificationFailure | 73            | There was an error in applying session rules             |
+| CausePFCPEntityInCongestion          | 74            | Currently not in use                                     |
+| CauseNoResourcesAvailable            | 75            | Currently not in use                                     |
+| CauseServiceNotSupported             | 76            | Currently not in use                                     |
+| CauseSystemFailure                   | 77            | Currently not in use                                     |
+| CauseRedirectionRequested            | 78            | Currently not in use                                     |
