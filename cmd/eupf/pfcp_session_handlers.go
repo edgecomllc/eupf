@@ -64,7 +64,8 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 						farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
 					}
 					if outerHeaderCreation.HasIPv6() {
-						log.Print("WARN: IPv6 not supported yet")
+						log.Print("WARN: IPv6 not supported yet, ignoring")
+						continue
 					}
 					// #TODO: Add support for IPv6 on control plane
 					farInfo.LocalIP = binary.LittleEndian.Uint32(conn.nodeAddrV4)
@@ -131,7 +132,8 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 							log.Print("WARN: No IPv4 address")
 						}
 						if ue_ip.IPv6Address != nil {
-							log.Print("WARN: IPv6 not supported yet")
+							log.Print("WARN: UE IPv6 not supported yet, ignoring")
+							continue
 						}
 						log.Printf("Saving downlink PDR info to session: %d, %+v", pdrId, spdrInfo)
 						session.CreateDownLinkPDR(pdrId, spdrInfo)
@@ -323,7 +325,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 					if outerHeaderCreation.HasIPv4() {
 						farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
 					} else if outerHeaderCreation.HasIPv6() {
-						log.Println("WARN: IPv6 not supported")
+						log.Println("WARN: IPv6 not supported yet, ignoring")
+						continue
 					}
 					// #TODO: Add support for IPv6 on control plane
 					farInfo.LocalIP = binary.LittleEndian.Uint32(conn.nodeAddrV4)
