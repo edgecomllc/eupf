@@ -535,37 +535,37 @@ func findIEindex(ieArr []*ie.IE, ieType uint16) int {
 func causeToString(cause uint8) string {
 	switch cause {
 	case ie.CauseRequestAccepted:
-		return "CauseRequestAccepted"
+		return "RequestAccepted"
 	case ie.CauseRequestRejected:
-		return "CauseRequestRejected"
+		return "RequestRejected"
 	case ie.CauseSessionContextNotFound:
-		return "CauseSessionContextNotFound"
+		return "SessionContextNotFound"
 	case ie.CauseMandatoryIEMissing:
-		return "CauseMandatoryIEMissing"
+		return "MandatoryIEMissing"
 	case ie.CauseConditionalIEMissing:
-		return "CauseConditionalIEMissing"
+		return "ConditionalIEMissing"
 	case ie.CauseInvalidLength:
-		return "CauseInvalidLength"
+		return "InvalidLength"
 	case ie.CauseMandatoryIEIncorrect:
-		return "CauseMandatoryIEIncorrect"
+		return "MandatoryIEIncorrect"
 	case ie.CauseInvalidForwardingPolicy:
-		return "CauseInvalidForwardingPolicy"
+		return "InvalidForwardingPolicy"
 	case ie.CauseInvalidFTEIDAllocationOption:
-		return "CauseInvalidFTEIDAllocationOption"
+		return "InvalidFTEIDAllocationOption"
 	case ie.CauseNoEstablishedPFCPAssociation:
-		return "CauseNoEstablishedPFCPAssociation"
+		return "NoEstablishedPFCPAssociation"
 	case ie.CauseRuleCreationModificationFailure:
-		return "CauseRuleCreationModificationFailure"
+		return "RuleCreationModificationFailure"
 	case ie.CausePFCPEntityInCongestion:
-		return "CausePFCPEntityInCongestion"
+		return "PFCPEntityInCongestion"
 	case ie.CauseNoResourcesAvailable:
-		return "CauseNoResourcesAvailable"
+		return "NoResourcesAvailable"
 	case ie.CauseServiceNotSupported:
-		return "CauseServiceNotSupported"
+		return "ServiceNotSupported"
 	case ie.CauseSystemFailure:
-		return "CauseSystemFailure"
+		return "SystemFailure"
 	case ie.CauseRedirectionRequested:
-		return "CauseRedirectionRequested"
+		return "RedirectionRequested"
 	default:
 		return "UnknownCause"
 	}
