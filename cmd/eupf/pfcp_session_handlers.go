@@ -61,12 +61,13 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 					farInfo.OuterHeaderCreation = 1
 					farInfo.Teid = outerHeaderCreation.TEID
 					if outerHeaderCreation.HasIPv4() {
-						farInfo.RemoteIP = ip2int(outerHeaderCreation.IPv4Address)
+						farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
 					}
 					if outerHeaderCreation.HasIPv6() {
 						log.Print("WARN: IPv6 not supported yet")
 					}
-					farInfo.LocalIP = ip2int(conn.nodeAddrV4)
+					// #TODO: Add support for IPv6 on control plane
+					farInfo.LocalIP = binary.LittleEndian.Uint32(conn.nodeAddrV4)
 				}
 			}
 
@@ -319,8 +320,13 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 					outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
 					farInfo.OuterHeaderCreation = 1
 					farInfo.Teid = outerHeaderCreation.TEID
-					farInfo.RemoteIP = ip2int(outerHeaderCreation.IPv4Address)
-					farInfo.LocalIP = ip2int(conn.nodeAddrV4)
+					if outerHeaderCreation.HasIPv4() {
+						farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
+					} else if outerHeaderCreation.HasIPv6() {
+						log.Println("WARN: IPv6 not supported")
+					}
+					// #TODO: Add support for IPv6 on control plane
+					farInfo.LocalIP = binary.LittleEndian.Uint32(conn.nodeAddrV4)
 				}
 			} else {
 				log.Println("WARN: No UpdateForwardingParameters")
@@ -528,14 +534,6 @@ func validateRequest(conn *PfcpConnection, addr *net.UDPAddr, nodeId *ie.IE, cpf
 	remoteNodeID, _ := nodeId.NodeID()
 	fseid, _ := cpfseid.FSEID()
 	return remoteNodeID, fseid, nil
-}
-
-func ip2int(ip net.IP) uint32 {
-	Ipv4 := ip.To4()
-	if Ipv4 == nil {
-		log.Println("WARN: no sane way to convert ipv6 into uint32: ", ip)
-	}
-	return binary.LittleEndian.Uint32(Ipv4)
 }
 
 func findIEindex(ieArr []*ie.IE, ieType uint16) int {
