@@ -115,8 +115,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -130,7 +129,7 @@
               {
                 "matcher": {
                   "id": "byRegexp",
-                  "options": "/_ip|_other/"
+                  "options": "/Ip|Other|_ip|_other/"
                 },
                 "properties": [
                   {
@@ -212,11 +211,11 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_rx_.*\", job=~\"eupf.*\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
+              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_rx_.*\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
               "hide": false,
               "legendFormat": "{{nname}}",
               "range": true,
-              "refId": "E"
+              "refId": "obsolete edgecomllc/eupf/issues/63"
             },
             {
               "datasource": {
@@ -236,37 +235,11 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "exemplar": false,
-              "expr": "rate(upf_xdp_pass{job=~\"eupf.*\"}[$__rate_interval])",
-              "hide": true,
-              "instant": false,
-              "legendFormat": "upf_xdp_pass",
+              "expr": "sum by(packet_type) (rate(upf_rx[$__rate_interval]))",
+              "hide": false,
+              "legendFormat": "__auto",
               "range": true,
-              "refId": "B"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "builder",
-              "expr": "rate(upf_xdp_redirect{job=~\"eupf.*\"}[$__rate_interval])",
-              "hide": true,
-              "legendFormat": "upf_xdp_redirect",
-              "range": true,
-              "refId": "C"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "builder",
-              "expr": "rate(upf_xdp_tx{job=~\"eupf.*\"}[$__rate_interval])",
-              "hide": true,
-              "legendFormat": "upf_xdp_tx",
-              "range": true,
-              "refId": "D"
+              "refId": "actual edgecomllc/eupf/pull/95"
             }
           ],
           "title": "Sum rx packets rate per sec",
@@ -333,8 +306,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -350,7 +322,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 10
+            "y": 2
           },
           "id": 4,
           "options": {
@@ -375,7 +347,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_xdp_.*\", job=~\"eupf.*\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
+              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_xdp_.*\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
               "hide": false,
               "legendFormat": "{{nname}}",
               "range": true,
@@ -431,8 +403,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -448,7 +419,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 10
+            "y": 2
           },
           "id": 5,
           "options": {
@@ -474,7 +445,7 @@
               },
               "editorMode": "builder",
               "exemplar": false,
-              "expr": "sum by(__name__) (rate(upf_xdp_aborted{job=~\"eupf.*\"}[$__rate_interval]))",
+              "expr": "sum by(__name__) (rate(upf_xdp_aborted[$__rate_interval]))",
               "hide": false,
               "instant": false,
               "legendFormat": "upf_xdp_aborted",
@@ -543,8 +514,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -560,7 +530,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 18
+            "y": 10
           },
           "id": 6,
           "options": {
@@ -585,7 +555,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "sum by(__name__) ({__name__=~\"upf_xdp_.*\", job=~\"eupf.*\"})",
+              "expr": "sum by(__name__) ({__name__=~\"upf_xdp_.*\"})",
               "hide": false,
               "legendFormat": "{{__name__}}",
               "range": true,
@@ -615,7 +585,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "description": "The counts per sec of successful session requests",
+          "description": "The counts per sec of upf_pfcp_rx/tx The  number of PFCP messages\n//successful session requests",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -656,8 +626,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -699,15 +668,39 @@
               },
               "editorMode": "builder",
               "exemplar": false,
-              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_.*_success\", job=~\"eupf.*\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
+              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_.*_success\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
               "hide": false,
               "instant": false,
               "legendFormat": "{{nname}}",
               "range": true,
+              "refId": "obsolete edgecomllc/eupf/issues/63"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "sum by(message_name) (rate(upf_pfcp_rx[$__rate_interval]))",
+              "hide": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "actual edgecomllc/eupf/pull/95"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "sum by(message_name) (rate(upf_pfcp_tx[$__rate_interval]))",
+              "hide": false,
+              "legendFormat": "__auto",
+              "range": true,
               "refId": "A"
             }
           ],
-          "title": "Success requests rate per sec",
+          "title": "PFCP messages rate per sec",
           "transformations": [],
           "type": "timeseries"
         },
@@ -716,7 +709,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "description": "The counts per sec of rejeted session requests",
+          "description": "The counts per sec of upf_pfcp_rx_errors number of received PFCP messages with cause code.\nrejeted session requests",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -757,8 +750,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -800,12 +792,26 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_.*_reject\", job=~\"eupf.*\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
+              "expr": "rate(label_join(sum by(__name__) ({__name__=~\"upf_.*_reject\"}), \"nname\", \",\", \"__name__\")[$__rate_interval:1s])",
               "hide": false,
               "instant": false,
               "legendFormat": "{{nname}}",
               "range": true,
-              "refId": "A"
+              "refId": "obsolete edgecomllc/eupf/issues/63"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "rate(sum by(cause_code, message_name) (upf_pfcp_rx_errors)[$__rate_interval:1s])",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "{{nname}}",
+              "range": true,
+              "refId": "actual edgecomllc/eupf/pull/95"
             }
           ],
           "title": "Rejected requests rate per sec",
@@ -817,7 +823,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "description": "The total number of successful session requests",
+          "description": "upf_pfcp_rx The total number of received PFCP messages\nThe total number of transmitted PFCP messages\nThe total number of successful session requests",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -858,8 +864,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -900,14 +905,38 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "sum by(__name__) ({__name__=~\"upf_.*_success\", job=~\"eupf.*\"})",
+              "expr": "sum by(__name__) ({__name__=~\"upf_.*_success\"})",
+              "hide": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "obsolete edgecomllc/eupf/issues/63"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "sum by(message_name) (upf_pfcp_rx)",
+              "hide": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "actual edgecomllc/eupf/pull/95"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "sum by(message_name) (upf_pfcp_tx)",
               "hide": false,
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Success requests total altogether",
+          "title": "upf_pfcp_rx/tx The total number of PFCP messages total // Success requests total altogether",
           "transformations": [],
           "type": "timeseries"
         },
@@ -916,7 +945,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "description": "The total number of rejected session requests",
+          "description": "upf_pfcp_rx_errors The total number of received PFCP messages with cause code\nThe total number of rejected session requests",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -957,8 +986,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -999,15 +1027,191 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "sum by(__name__) ({__name__=~\"upf_.*_reject\", job=~\"eupf.*\"})",
+              "expr": "sum by(__name__) ({__name__=~\"upf_.*_reject\"})",
               "hide": false,
               "legendFormat": "__auto",
               "range": true,
-              "refId": "A"
+              "refId": "obsolete edgecomllc/eupf/issues/63"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "sum by(cause_code, message_name) (upf_pfcp_rx_errors)",
+              "hide": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "actual edgecomllc/eupf/pull/95"
             }
           ],
-          "title": "Rejected requests total altogether",
+          "title": "upf_pfcp_rx_errors The total number of received PFCP messages with cause code //Rejected requests total altogether",
           "transformations": [],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "pfcp_upf_pfcp_rx_latency Duration of the PFCP message processing, Microseconds",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": ".*count rate"
+                },
+                "properties": [
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "unit",
+                    "value": "cps"
+                  }
+                ]
+              },
+              {
+                "__systemRef": "hideSeriesFrom",
+                "matcher": {
+                  "id": "byNames",
+                  "options": {
+                    "mode": "exclude",
+                    "names": [
+                      "{message_type=\"Session Deletion Request\", quantile=\"0.5\"}",
+                      "{message_type=\"Session Deletion Request\", quantile=\"0.9\"}",
+                      "{message_type=\"Session Deletion Request\", quantile=\"0.99\"}",
+                      "Session Deletion Request latency_sum rate"
+                    ],
+                    "prefix": "All except:",
+                    "readOnly": true
+                  }
+                },
+                "properties": [
+                  {
+                    "id": "custom.hideFrom",
+                    "value": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": true
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 19
+          },
+          "id": 20,
+          "options": {
+            "legend": {
+              "calcs": [
+                "min",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "sum by(message_type, quantile) (pfcp_upf_pfcp_rx_latency)",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "sum by(message_type) (rate(pfcp_upf_pfcp_rx_latency_sum[$__rate_interval]))",
+              "hide": false,
+              "legendFormat": "{{message_type}} latency_sum rate",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "builder",
+              "expr": "sum by(message_type) (rate(pfcp_upf_pfcp_rx_latency_count[$__rate_interval]))",
+              "hide": false,
+              "legendFormat": "{{message_type}} latency_count rate",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Duration of the PFCP message processing",
           "type": "timeseries"
         }
       ],
@@ -1070,8 +1274,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1115,7 +1318,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "sum by(__name__) ({__name__=~\"upf_.*\", job=~\"eupf.*\"})",
+              "expr": "sum by(__name__) ({__name__=~\"upf_.*\"})",
               "hide": false,
               "legendFormat": "__auto",
               "range": true,
@@ -1147,9 +1350,9 @@
         "filters": [
           {
             "condition": "",
-            "key": "namespace",
+            "key": "job",
             "operator": "=",
-            "value": "free5gc"
+            "value": "edgecomllc-eupf-universal-chart"
           }
         ],
         "hide": 0,
@@ -1167,6 +1370,6 @@
   "timezone": "",
   "title": "5G core / eUPF",
   "uid": "1b4DK5f4z",
-  "version": 11,
+  "version": 14,
   "weekStart": ""
 }
