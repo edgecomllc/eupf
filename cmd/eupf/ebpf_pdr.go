@@ -13,6 +13,7 @@ import (
 type PdrInfo struct {
 	OuterHeaderRemoval uint8
 	FarId              uint32
+	QerId              uint32
 }
 
 func (o *BpfObjects) PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error {
@@ -77,6 +78,8 @@ type QerInfo struct {
 	Qfi          uint8
 	MaxBitrateUL uint32
 	MaxBitrateDL uint32
+	StartUL      uint64
+	StartDL      uint64
 }
 
 func (o *BpfObjects) PutQer(i uint32, qerInfo QerInfo) error {
