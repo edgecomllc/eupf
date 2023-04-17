@@ -50,7 +50,7 @@ TODO
 	helm upgrade --install \
 		nginx .deploy/helm/universal-chart \
 		--values docs/examples/load-testing/nginx.yaml \
-		-n free5gc \
+		-n open5gs \
 		--wait --timeout 100s --create-namespace
 ```
 
@@ -62,7 +62,7 @@ TODO
 
 ```
 wget https://github.com/grafana/k6/releases/download/v0.43.1/k6-v0.43.1-linux-amd64.tar.gz
-kubectl cp ./k6-v0.43.1-linux-amd64.tar.gz ueransim-ue-7f76db59c9-r67st:/tmp/k6.tar.gz -n free5gc
+kubectl cp ./k6-v0.43.1-linux-amd64.tar.gz ueransim-ue-7f76db59c9-r67st:/tmp/k6.tar.gz -n open5gs
 ```
 
 * run test via k6
