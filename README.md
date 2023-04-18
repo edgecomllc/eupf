@@ -1,5 +1,15 @@
 # eupf
 
+eUPF is the opensource User Plane Function (UPF) project for using inside or "outside" of any 3GPP 5G core. The goal of the project is to provide high-observability and easily-deployed software for a various cases like multi-access edge computing (MEC) and local traffic breakout. 
+
+ 
+
+## What is 5G core and CUPS
+
+5G core uses network virtualized functions (NVF) to provide connectivity and services. 
+Control and user plane separation (CUPS) is important architecture enhancement that separates control plane and user plane insde 5G core. 
+User plane function (UPF) is the "decapsulating and routing" function that decapsulates user plane traffic from GTPS transport protocol (GTP) and route it to the public data network or local network via the best available path. 
+
 ## UPF features
 
 <details><summary>3GPP features support</summary>
@@ -169,3 +179,6 @@ Various packet counters with `packet_type` label.
 ## Quick start
 
 read [documentation about install](./docs/install.md)
+
+## License
+This project is licensed under the [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details
