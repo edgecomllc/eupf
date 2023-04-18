@@ -1,0 +1,37 @@
+---
+
+image:
+  registry: docker.io
+  repository: library
+  name: nginx
+  tag: 1.24-alpine
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+podAnnotations:
+  k8s.v1.cni.cncf.io/networks: |
+    [
+      { "name": "n6network-upf",
+        "interface": "n6",
+        "ips": [ "10.100.100.100/24" ],
+        "gateway": [ "10.100.100.1" ]
+      }
+    ]
