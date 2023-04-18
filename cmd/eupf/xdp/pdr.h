@@ -21,6 +21,7 @@ struct pdr_info
 {
     __u8 outer_header_removal;
     __u32 far_id;
+    __u32 qer_id;
 };
 
 #ifdef __RELEASE
