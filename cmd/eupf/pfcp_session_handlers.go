@@ -93,6 +93,9 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			if farid, err := pdr.FARID(); err == nil {
 				spdrInfo.PdrInfo.FarId = uint32(farid)
 			}
+			if qerid, err := pdr.QERID(); err == nil {
+				spdrInfo.PdrInfo.QerId = uint32(qerid)
+			}
 			pdi, err := pdr.PDI()
 			if err != nil {
 				log.Print(err)
@@ -170,18 +173,21 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			maxBitrateDL, err := qer.MBRDL()
 			if err == nil {
-				qerInfo.MaxBitrateDL = uint32(maxBitrateDL)
+				qerInfo.MaxBitrateDL = uint32(maxBitrateDL) * 1000
 			}
 
 			maxBitrateUL, err := qer.MBRUL()
 			if err == nil {
-				qerInfo.MaxBitrateUL = uint32(maxBitrateUL)
+				qerInfo.MaxBitrateUL = uint32(maxBitrateUL) * 1000
 			}
 
 			qfi, err := qer.QFI()
 			if err == nil {
 				qerInfo.Qfi = qfi
 			}
+
+			qerInfo.StartUL = 0
+			qerInfo.StartDL = 0
 			log.Printf("Saving QER info to session: %d, %+v", qerId, qerInfo)
 			session.CreateQER(qerId, qerInfo)
 			log.Printf("Creating QER ID: %d, QER Info: %+v", qerId, qerInfo)
@@ -396,6 +402,9 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if farid, err := pdr.FARID(); err == nil {
 				spdrInfo.PdrInfo.FarId = uint32(farid)
 			}
+			if qerid, err := pdr.QERID(); err == nil {
+				spdrInfo.PdrInfo.QerId = uint32(qerid)
+			}
 			pdi, err := pdr.PDI()
 			if err != nil {
 				log.Print(err)
@@ -467,19 +476,21 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err != nil {
 				return fmt.Errorf("Max Bitrate DL missing")
 			}
-			qerInfo.MaxBitrateDL = uint32(maxBitrateDL)
+			qerInfo.MaxBitrateDL = uint32(maxBitrateDL) * 1000
 
 			maxBitrateUL, err := qer.MBRUL()
 			if err != nil {
 				return fmt.Errorf("Max Bitrate UL missing")
 			}
-			qerInfo.MaxBitrateUL = uint32(maxBitrateUL)
+			qerInfo.MaxBitrateUL = uint32(maxBitrateUL) * 1000
 
 			qfi, err := qer.QFI()
 			if err != nil {
 				return fmt.Errorf("QFI missing")
 			}
 			qerInfo.Qfi = qfi
+			qerInfo.StartUL = 0
+			qerInfo.StartDL = 0
 
 			log.Printf("Updating QER ID: %d, QER Info: %+v", qerId, qerInfo)
 			session.UpdateQER(qerId, qerInfo)

@@ -4,10 +4,10 @@
 #include <linux/bpf.h>
 
 enum gate_status {
-    OPEN        = 0,
-    CLOSED      = 1,
-    RESERVED1   = 2,
-    RESERVED2   = 3,
+    GATE_STATUS_OPEN        = 0,
+    GATE_STATUS_CLOSED      = 1,
+    GATE_STATUS_RESERVED1   = 2,
+    GATE_STATUS_RESERVED2   = 3,
 };
 
 struct qer_info
@@ -17,6 +17,8 @@ struct qer_info
     __u8    qfi;
     __u32   ul_maximum_bitrate;
     __u32   dl_maximum_bitrate;
+    __u64   ul_start;
+    __u64   dl_start;
 };
 
 #ifdef __RELEASE
