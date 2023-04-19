@@ -1,4 +1,14 @@
-# eupf
+# eUPF
+
+eUPF is the opensource User Plane Function (UPF) project for using inside or "outside" of any 3GPP 5G core. The goal of the project is to provide high-observability and easily-deployed software for a various cases like multi-access edge computing (MEC) and local traffic breakout. eUPF is built with eBPF to provide high observability and performance. 
+
+ eUPF is tested with Free5GC and Open5GS 5G cores. 
+
+## What is 5G core and CUPS
+
+5G core uses network virtualized functions (NVF) to provide connectivity and services. 
+Control and user plane separation (CUPS) is important architecture enhancement that separates control plane and user plane insde 5G core. 
+User plane function (UPF) is the "decapsulating and routing" function that extracts user plane traffic from GPRS tunneling protocol (GTP) and route it to the public data network or local network via the best available path. 
 
 ## UPF features
 
@@ -84,22 +94,22 @@
 
 ### Management Layer
 
-- [ ]  PFCP Association Setup/Release and Heartbeats
-- [ ]  Session Establishment/Modification with support for PFCP entities such as Packet Detection Rules (PDRs), Forwarding Action Rules (FARs), QoS Enforcement Rules (QERs).
+- [x]  PFCP Association Setup/Release and Heartbeats
+- [x]  Session Establishment/Modification with support for PFCP entities such as Packet Detection Rules (PDRs), Forwarding Action Rules (FARs), QoS Enforcement Rules (QERs).
 - [ ]  UPF-initiated PFCP association
 - [ ]  UPF-based UE IP address assignment
-- [ ]  Integration with Prometheus for exporting PFCP and data plane-level metrics.
+- [x]  Integration with Prometheus for exporting PFCP and data plane-level metrics.
 
 ### Datapath Layer
 
-- [ ]  IPv4 support
+- [x]  IPv4 support
 - [ ]  N3, N4, N6, N9 interfacing
 - [ ]  Single & Multi-port support
 - [ ]  Monitoring/Debugging capabilties using
     - tcpdump on individual modules
     - visualization web interface
     - command line shell interface for displaying statistics
-- [ ]  Static IP routing
+- [x]  Static IP routing
 - [ ]  I-UPF/A-UPF ULCL/Branching i.e., simultaneous N6/N9 support within PFCP session
 - [ ]  Basic QoS support, with per-slice and per-session rate limiting
 
@@ -169,3 +179,6 @@ Various packet counters with `packet_type` label.
 ## Quick start
 
 read [documentation about install](./docs/install.md)
+
+## License
+This project is licensed under the [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details
