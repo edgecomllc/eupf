@@ -152,5 +152,9 @@ Read [documentation about install with Open5GS or Free5GC core](./docs/install.m
 
 Read [documentation about metrics and monitoring](./docs/metrics.md)
 
+## Contribution
+
+Please create an issue to report a bug or share an idea.
+
 ## License
 This project is licensed under the [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details
