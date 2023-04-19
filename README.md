@@ -2,7 +2,7 @@
 
 eUPF is the opensource User Plane Function (UPF) project for using inside or "outside" of any 3GPP 5G core. The goal of the project is to provide high-observability and easily-deployed software for a various cases like multi-access edge computing (MEC) and local traffic breakout. eUPF is built with eBPF to provide high observability and performance. 
 
- eUPF is tested with Free5GC and Open5GS 5G cores. 
+ eUPF is tested with the Free5GC and Open5GS 5G cores. 
 
 ## What is 5G core and CUPS
 
@@ -10,7 +10,11 @@ eUPF is the opensource User Plane Function (UPF) project for using inside or "ou
 Control and user plane separation (CUPS) is important architecture enhancement that separates control plane and user plane insde 5G core. 
 User plane function (UPF) is the "decapsulating and routing" function that extracts user plane traffic from GPRS tunneling protocol (GTP) and route it to the public data network or local network via the best available path. 
 
-## UPF features
+![image](https://user-images.githubusercontent.com/119619173/233130952-e5634aff-b177-4274-a2d7-0e51a5488e5d.png)
+
+## Details about eUPF
+
+### eUPF features
 
 <details><summary>3GPP features support</summary>
 
@@ -72,14 +76,16 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 |   N    | `UPIDP`    | UP function supports User Plane Inactivity Detection and reporting per PDR feature                                    |
 </details>
 
-## Architecture
+## eUPF architecture
+
+<details><summary> eUPF architecture </summary>
 
 ### Eagle-eye overview
+
 ![UPF-Arch2](https://user-images.githubusercontent.com/20152142/207142700-cc3f17a5-203f-4b43-b712-a518cb627968.png)
 
 ### Detailed architecture
 ![image](https://user-images.githubusercontent.com/20152142/228003420-0a2be83e-095e-4ad4-8635-0eb434951a3e.png)
-
 
 ### Current limitation
 
@@ -89,8 +95,11 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 ### Packet forwarding pipeline
 
 ![UPF-Forwarding](https://user-images.githubusercontent.com/20152142/207142725-0af400bb-8ff8-4f36-93bd-3c461c0e7ce4.png)
+</details>
 
-## Roadmap
+## eUPF roadmap
+
+<details><summary>Roadmap</summary>
 
 ### Management Layer
 
@@ -112,8 +121,10 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 - [x]  Static IP routing
 - [ ]  I-UPF/A-UPF ULCL/Branching i.e., simultaneous N6/N9 support within PFCP session
 - [ ]  Basic QoS support, with per-slice and per-session rate limiting
+ 
+ </details>
 
-## Backlog
+<details><summary>Backlog</summary>
 
 ### Management Layer
 
@@ -133,52 +144,13 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 - [ ]  Downlink Data Notification (DDN) - notification only (no buffering)
 - [ ]  Per-flow latency and throughput metrics
 - [ ]  Network Token Functions
+</details>
 
-## Metrics
+## Quick start guide
 
-### PFCP message metrics
-This set of metrics describes how many requests of each type has been processed with outcome specified.
-All metrics except for `upf_pfcp_rx_latency` are counters and labeled with `result` indicating if message was successfuly processed or rejected.
-**Note:** `upf_pfcp_rx` and `upf_pfcp_rx_errors` have different implementation and counted at different points, we will drop one or another after evaluation, or implement a different counters altogether.
-| Metric Name         | Description                                                |
-| ------------------- | ---------------------------------------------------------- |
-| upf_pfcp_rx         | The total number of received PFCP messages                 |
-| upf_pfcp_tx         | The total number of transmitted PFCP messages              |
-| upf_pfcp_rx_errors  | The total number of received PFCP messages with cause code |
-| upf_pfcp_rx_latency | The total number of PFCP messages processing duration      |
+Read [documentation about install with Open5GS or Free5GC core](./docs/install.md)
 
-### XDP Action metrics
-This set of metrics are used to count the number of packets with different outcomes, such as the total number of aborted, dropped, passed, transmitted, and redirected packets.
-
-| Metric Name      | Description                             |
-| ---------------- | --------------------------------------- |
-| upf_xdp_aborted  | The total number of aborted packets     |
-| upf_xdp_drop     | The total number of dropped packets     |
-| upf_xdp_pass     | The total number of passed packets      |
-| upf_xdp_tx       | The total number of transmitted packets |
-| upf_xdp_redirect | The total number of redirected packets  |
-
-### Packet metrics
-Various packet counters with `packet_type` label.
-
-| Metric Name        | Description                                |
-|--------------------|--------------------------------------------|
-| upf_rx_arp         | The total number of received ARP packets   |
-| upf_rx_icmp        | The total number of received ICMP packets  |
-| upf_rx_icmpv6      | The total number of received ICMPv6 packets|
-| upf_rx_ip4         | The total number of received IPv4 packets  |
-| upf_rx_ip6         | The total number of received IPv6 packets  |
-| upf_rx_tcp         | The total number of received TCP packets   |
-| upf_rx_udp         | The total number of received UDP packets   |
-| upf_rx_other       | The total number of received other packets |
-| upf_rx_gtp_echo    | The total number of received GTP echo packets |
-| upf_rx_gtp_pdu     | The total number of received GTP PDU packets |
-| upf_rx_gtp_other   | The total number of received GTP other packets |
-| upf_rx_gtp_error   | The total number of received GTP error packets |
-
-## Quick start
-
-read [documentation about install](./docs/install.md)
+Read [documentation about metrics and monitoring](./docs/metrics.md)
 
 ## License
 This project is licensed under the [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details
