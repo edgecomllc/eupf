@@ -13,7 +13,7 @@ Currently UPF have several config parameters shown below. Parameters can be chan
 | PFCP address    | Address that PFCP server will bind to                               | `pfcp_address`    | `UPF_PFCP_ADDRESS`    | `--paddr`  | `:8805`     |
 | PFCP NodeID     | Local NodeID for PFCP protocol                                      | `pfcp_node_id`    | `UPF_PFCP_NODE_ID`    | `--nodeid` | `localhost` |
 | Metrics address | Address for serving Prometheus mertrics                             | `metrics_address` | `UPF_METRICS_ADDRESS` | `--maddr`  | `:9090`     |
-| N3IP            | This ip will be used for N3 interface and in ebpf maps as local ip. | `n3ip`            | `UPF_N3IP`            | `--n3ip`   | None        |
+| N3IP            | This ip will be used for N3 interface and in ebpf maps as local ip. | `n3_address`      | `UPF_N3_ADDRESS`      | `--n3addr` | `127.0.0.1` |
 We are using [Viper](https://github.com/spf13/viper) for configuration handling, [Viper](https://github.com/spf13/viper) uses the following precedence order. Each item takes precedence over the item below it:
 
 - explicit call to Set
