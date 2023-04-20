@@ -124,28 +124,6 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
  
  </details>
 
-<details><summary>Backlog</summary>
-
-### Management Layer
-
-- [ ]  Application filtering using SDF filters
-- [ ]  Generation of End Marker Packets
-- [ ]  Downlink Data Notification (DDN) using PFCP Session Report
-- [ ]  Application filtering using application PFDs
-
-### Datapath Layer
-
-- [ ]  IPv6 support
-- [ ]  Dynamic IP routing
-- [ ]  Support for IPv4 datagrams reassembly
-- [ ]  Support for IPv4 packets fragmentation
-- [ ]  Support for UE IP NAT
-- [ ]  Service Data Flow (SDF) configuration via N4/PFCP.
-- [ ]  Downlink Data Notification (DDN) - notification only (no buffering)
-- [ ]  Per-flow latency and throughput metrics
-- [ ]  Network Token Functions
-</details>
-
 ## Quick start guide
 
 Read [documentation about install with Open5GS or Free5GC core](./docs/install.md)
