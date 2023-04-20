@@ -92,7 +92,7 @@ type PfcpConnection struct {
 	nodeAssociations NodeAssociationMap
 	nodeId           string
 	nodeAddrV4       net.IP
-	N3Address        net.IP
+	n3Address        net.IP
 	mapOperations    ForwardingPlaneController
 }
 
@@ -126,7 +126,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		nodeAssociations: NodeAssociationMap{},
 		nodeId:           nodeId,
 		nodeAddrV4:       addrv4.IP,
-		N3Address:        n3Addr.IP,
+		n3Address:        n3Addr.IP,
 		mapOperations:    mapOperations,
 	}, nil
 }
