@@ -14,6 +14,7 @@ type UpfConfig struct {
 	PfcpAddress    string `mapstructure:"pfcp_address"`
 	PfcpNodeId     string `mapstructure:"pfcp_node_id"`
 	MetricsAddress string `mapstructure:"metrics_address"`
+	N3Address      string `mapstructure:"n3_address"`
 }
 
 var config UpfConfig
@@ -26,6 +27,7 @@ func LoadConfig() error {
 	pflag.String("paddr", ":8805", "Address to bind PFCP server to")
 	pflag.String("nodeid", "localhost", "PFCP Server Node ID")
 	pflag.String("maddr", ":9090", "Address to bind metrics server to")
+	pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
 	pflag.Parse()
 
 	viper.BindPFlag("interface_name", pflag.Lookup("iface"))
@@ -34,6 +36,7 @@ func LoadConfig() error {
 	viper.BindPFlag("pfcp_address", pflag.Lookup("paddr"))
 	viper.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
 	viper.BindPFlag("metrics_address", pflag.Lookup("maddr"))
+	viper.BindPFlag("n3_address", pflag.Lookup("n3addr"))
 
 	viper.SetDefault("interface_name", "lo")
 	viper.SetDefault("xdp_attach_mode", "generic")
@@ -41,6 +44,7 @@ func LoadConfig() error {
 	viper.SetDefault("pfcp_address", ":8805")
 	viper.SetDefault("pfcp_node_id", "localhost")
 	viper.SetDefault("metrics_address", ":9090")
+	viper.SetDefault("n3_address", "127.0.0.1")
 
 	viper.SetConfigFile(*configPath)
 

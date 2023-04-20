@@ -61,7 +61,7 @@ func main() {
 		message.MsgTypeSessionModificationRequest:  handlePfcpSessionModificationRequest,
 	}
 
-	pfcp_conn, err := CreatePfcpConnection(config.PfcpAddress, pfcpHandlers, config.PfcpNodeId, bpfObjects)
+	pfcp_conn, err := CreatePfcpConnection(config.PfcpAddress, pfcpHandlers, config.PfcpNodeId, config.N3Address, bpfObjects)
 
 	if err != nil {
 		log.Printf("Could not create PFCP connection: %s", err)
