@@ -68,7 +68,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 						continue
 					}
 					// #TODO: Add support for IPv6 on control plane
-					farInfo.LocalIP = binary.LittleEndian.Uint32(conn.nodeAddrV4)
+					farInfo.LocalIP = binary.LittleEndian.Uint32(conn.N3Address)
 				}
 			}
 
@@ -335,7 +335,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 						continue
 					}
 					// #TODO: Add support for IPv6 on control plane
-					farInfo.LocalIP = binary.LittleEndian.Uint32(conn.nodeAddrV4)
+					farInfo.LocalIP = binary.LittleEndian.Uint32(conn.N3Address)
 				}
 			} else {
 				log.Println("WARN: No UpdateForwardingParameters")

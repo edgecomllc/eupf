@@ -92,6 +92,7 @@ type PfcpConnection struct {
 	nodeAssociations NodeAssociationMap
 	nodeId           string
 	nodeAddrV4       net.IP
+	N3Address        net.IP
 	mapOperations    ForwardingPlaneController
 }
 
@@ -108,23 +109,24 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 	}
 
 	log.Printf("Start PFCP connection: %s", addr)
-	var addrv4 *net.IPAddr
-	if n3Ip != "" {
-		log.Printf("Found N3 IP: %s", n3Ip)
-		addrv4, err = net.ResolveIPAddr("ip4", n3Ip)
-	} else {
-		log.Printf("Found Node ID: %s", nodeId)
-		addrv4, err = net.ResolveIPAddr("ip4", nodeId)
-	}
+	addrv4, err := net.ResolveIPAddr("ip4", nodeId)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("Parsing N3 address")
+	n3Addr, err := net.ResolveIPAddr("ip4", n3Ip)
+	if err != nil {
+		return nil, err
+	}
+
 	return &PfcpConnection{
 		udpConn:          udpConn,
 		pfcpHandlerMap:   pfcpHandlerMap,
 		nodeAssociations: NodeAssociationMap{},
 		nodeId:           nodeId,
 		nodeAddrV4:       addrv4.IP,
+		N3Address:        n3Addr.IP,
 		mapOperations:    mapOperations,
 	}, nil
 }
