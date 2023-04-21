@@ -33,24 +33,25 @@ func main() {
 
 	bpfObjects.buildPipeline()
 
-	iface, err := net.InterfaceByName(config.InterfaceName)
-	if err != nil {
-		log.Fatalf("Lookup network iface %q: %s", config.InterfaceName, err)
-	}
+	for _, ifaceName := range config.InterfaceName {
+		iface, err := net.InterfaceByName(ifaceName)
+		if err != nil {
+			log.Fatalf("Lookup network iface %q: %s", ifaceName, err)
+		}
 
-	// Attach the program.
-	l, err := link.AttachXDP(link.XDPOptions{
-		Program:   bpfObjects.UpfIpEntrypointFunc,
-		Interface: iface.Index,
-		Flags:     StringToXDPAttachMode(config.XDPAttachMode),
-	})
-	if err != nil {
-		log.Fatalf("Could not attach XDP program: %s", err)
-	}
-	defer l.Close()
+		// Attach the program.
+		l, err := link.AttachXDP(link.XDPOptions{
+			Program:   bpfObjects.UpfIpEntrypointFunc,
+			Interface: iface.Index,
+			Flags:     StringToXDPAttachMode(config.XDPAttachMode),
+		})
+		if err != nil {
+			log.Fatalf("Could not attach XDP program: %s", err)
+		}
+		defer l.Close()
 
-	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
-	log.Printf("Press Ctrl-C to exit and remove the program")
+		log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
+	}
 
 	// Create PFCP connection
 	var pfcpHandlers PfcpHanderMap = PfcpHanderMap{

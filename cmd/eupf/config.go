@@ -8,20 +8,20 @@ import (
 )
 
 type UpfConfig struct {
-	InterfaceName  string `mapstructure:"interface_name"`
-	XDPAttachMode  string `mapstructure:"xdp_attach_mode" validate:"oneof='' 'generic' 'native' 'offload'"`
-	ApiAddress     string `mapstructure:"api_address"`
-	PfcpAddress    string `mapstructure:"pfcp_address"`
-	PfcpNodeId     string `mapstructure:"pfcp_node_id"`
-	MetricsAddress string `mapstructure:"metrics_address"`
-	N3Address      string `mapstructure:"n3_address"`
+	InterfaceName  []string `mapstructure:"interface_name"`
+	XDPAttachMode  string   `mapstructure:"xdp_attach_mode" validate:"oneof='' 'generic' 'native' 'offload'"`
+	ApiAddress     string   `mapstructure:"api_address"`
+	PfcpAddress    string   `mapstructure:"pfcp_address"`
+	PfcpNodeId     string   `mapstructure:"pfcp_node_id"`
+	MetricsAddress string   `mapstructure:"metrics_address"`
+	N3Address      string   `mapstructure:"n3_address"`
 }
 
 var config UpfConfig
 
 func LoadConfig() error {
 	var configPath = pflag.String("config", "./config.yml", "Path to config file")
-	pflag.String("iface", "lo", "Interface to bind XDP program to")
+	pflag.StringArray("iface", []string{"lo"}, "Interface to bind XDP program to")
 	pflag.String("attach", "generic", "XDP attach mode")
 	pflag.String("aaddr", ":8080", "Address to bind api server to")
 	pflag.String("paddr", ":8805", "Address to bind PFCP server to")
