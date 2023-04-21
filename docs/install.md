@@ -1,9 +1,11 @@
 # How to Install and run eUPF
+The easyest way is to use our docker container image. And simple deploy by our helm charts in your kubernetes cluster.
 
-## To run eUPF you must have:
+So, to run eUPF you must have:
 
 - kubernetes cluster
-- deployed 5g core (open5gs or free5gc)
+- [helm](https://helm.sh/docs/intro/install/) installed
+<!-- - deployed 5g core (open5gs or free5gc) -->
 
 ## Requirements for a Kubernetes cluster:
 
@@ -14,11 +16,15 @@ cluster should have:
 
 in our environments, we use one node Kubernetes cluster deployed by [kubespray](https://github.com/kubernetes-sigs/kubespray). You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible)
 
-## How to deploy open5gs core:
+We have prepared templates to deploy with two opensource environments: open5gs and free5gc, for you to choose. Both with UERANSIM project emulating radio endpoint, so you'll be able to check end-to-end connectivity. 
 
-### deploy
+## How to deploy eUPF with open5gs core:
+<details><summary>Instructions</summary>
+<p>
 
-* [install helm](https://helm.sh/docs/intro/install/)
+### To deploy:
+
+* [install helm](https://helm.sh/docs/intro/install/) if it's not
 * add openverso helm repo
 
    ```
@@ -28,17 +34,18 @@ in our environments, we use one node Kubernetes cluster deployed by [kubespray](
 
 * install eUPF chart
 
-   ```
+   ```powershell
    helm upgrade --install \
        edgecomllc-eupf .deploy/helm/universal-chart \
        --values docs/examples/open5gs/eupf.yaml \
        -n open5gs \
        --wait --timeout 100s --create-namespace
    ```
+   📝Here we use subnet `10.100.111.0/24` for n6 interface as exit to the world, so make sure it's not occupied at your node host.
 
 * install open5gs chart
 
-   ```
+   ```powershell
    helm upgrade --install \
        open5gs openverso/open5gs \
        --values docs/examples/open5gs/open5gs.yaml \
@@ -49,7 +56,7 @@ in our environments, we use one node Kubernetes cluster deployed by [kubespray](
 
 * install ueransim chart
 
-   ```
+   ```powershell
    helm upgrade --install \
        ueransim openverso/ueransim-gnb \
        --values docs/examples/open5gs/ueransim-gnb.yaml \
@@ -58,19 +65,24 @@ in our environments, we use one node Kubernetes cluster deployed by [kubespray](
        --wait --timeout 100s --create-namespace
    ```
 
-### undeploy everything
+### To undeploy everything:
 
 ```
 helm delete open5gs ueransim edgecomllc-eupf -n open5gs
 ```
 
-## How to deploy free5gc core
+</p>
+</details> 
+
+## How to deploy eUPF with free5gc core
+<details><summary>Instructions</summary>
+<p>
 
 ### prepare Kubernetes nodes
 
 You should compile and install gtp5g kernel module on every worker node:
 
-```
+```powershell
 apt-get update; apt-get install git build-essential -y; \
 cd /tmp; \
 git clone --depth 1 --branch v0.7.3 https://github.com/free5gc/gtp5g.git; \
@@ -84,27 +96,28 @@ check that the module is loaded:
 
 ### deploy
 
-* [install helm](https://helm.sh/docs/intro/install/)
-* add towards5gs helm repo
+0. [install helm](https://helm.sh/docs/intro/install/) if it's not
+0. add towards5gs helm repo
 
-	```
+	```powershell
 	helm repo add towards5gs https://raw.githubusercontent.com/Orange-OpenSource/towards5gs-helm/main/repo/
 	helm repo update
 	```
 
-* install eUPF chart
+0. install eUPF chart
 
-	```
+	```powershell
 	helm upgrade --install \
 		edgecomllc-eupf .deploy/helm/universal-chart \
 		--values docs/examples/free5gc/eupf.yaml \
 		-n free5gc \
 		--wait --timeout 100s --create-namespace
 	```
+   📝Here we use subnet `10.100.100.0/24` for n6 interface as exit to the world, so make sure it's not occupied at your node host.
 
-* install free5gc chart
+0. install free5gc chart
 
-	```
+	```powershell
 	helm upgrade --install \
 		free5gc towards5gs/free5gc \
 		--values docs/examples/free5gc/free5gc-single.yaml \
@@ -113,11 +126,11 @@ check that the module is loaded:
 		--wait --timeout 100s --create-namespace
 	```
 
-* create susbscriber in free5gc via WebUI
+0. create susbscriber in free5gc via WebUI
 
    redirect port from webui pod to localhost
 
-   ```
+   ```powershell
    kubectl port-forward service/webui-service 5000:5000 -n free5gc
    ```
 
@@ -125,9 +138,9 @@ check that the module is loaded:
 
    close port forward with `Ctrl + C`
 
-* install ueransim chart
+0. install ueransim chart
 
-	```
+	```powershell
 	helm upgrade --install \
 		ueransim towards5gs/ueransim \
 		--values docs/examples/free5gc/ueransim.yaml \
@@ -136,11 +149,27 @@ check that the module is loaded:
 		--wait --timeout 100s --create-namespace
 	```
 
-### undeploy everything
+### To undeploy everything
 
 ```
 helm delete free5gc ueransim edgecomllc-eupf -n free5gc
 ```
+
+</p>
+</details> 
+</p>
+
+## Option NAT at the node
+eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
+
+If you need NAT (Network Address Translation, or Masqerading) at your node to access Internet, the easiest way is to use standart daemonset [IP Masquerade Agent](https://kubernetes.io/docs/tasks/administer-cluster/ip-masq-agent/):
+```powershell
+sudo kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/ip-masq-agent/master/ip-masq-agent.yaml
+```
+   > The below entries show the default set of rules that are applied by the ip-masq-agent:
+    ` iptables -t nat -L IP-MASQ-AGENT`     
+
+---
 
 ## Test scenarios
 
@@ -152,29 +181,28 @@ UE can send packet to internet and get response
 
 <b>actions:</b>
 
-for open5gs
+1. run shell in pod
 
-* get ue pod name and save to variable and run shell in pod
+   for open5gs:
+   ```powershell
+   export NS_NAME=open5gs
+   export UE_POD_NAME=$(kubectl get pods -l "app.kubernetes.io/name=ueransim-gnb,app.kubernetes.io/component=ues" --output=jsonpath="{.items..metadata.name}" -n ${NS_NAME})
+   kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
+   ```
 
-```
-export NS_NAME=open5gs
-export UE_POD_NAME=$(kubectl get pods -l "app.kubernetes.io/name=ueransim-gnb,app.kubernetes.io/component=ues" --output=jsonpath="{.items..metadata.name}" -n ${NS_NAME})`
-kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
-```
+   for free5gc:
 
-for free5gc
+   ```powershell
+   export NS_NAME=free5gc
+   export UE_POD_NAME=$(kubectl get pods -l "app=ueransim,component=ue" --output=jsonpath="{.items..metadata.name}" -n ${NS_NAME})
+   kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
+   ```
 
-```
-export NS_NAME=free5gc
-export UE_POD_NAME=$(kubectl get pods -l "app=ueransim,component=ue" --output=jsonpath="{.items..metadata.name}" -n ${NS_NAME})`
-kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
-```
+1. run command from UE pod's shell. 
 
-* run command
-
-`$ ping -I uesimtun0 google.com`
+   `$ ping -I uesimtun0 google.com`
 
 
-<b>expected result:</b>
+   <b>expected result:</b>
 
-ping command successful
+   ping command successful
