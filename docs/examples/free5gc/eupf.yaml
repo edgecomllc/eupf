@@ -34,13 +34,15 @@ configMaps:
   config:
     data:
       config.yml: |
-        interface_name: n3
+        interface_name: [n3, n6] 
         api_address: :8080
         pfcp_address: :8805
         metrics_address: :9090
+        n3_address: 10.100.50.233
 
 env:
   UPF_PFCP_NODE_ID: 10.100.50.241  # address on n4 interface
+  # UPF_N3_ADDRESS: 10.100.50.233
 
 volumes:
   - name: sys
