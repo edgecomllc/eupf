@@ -201,7 +201,7 @@ static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, 
     int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), NULL /*BPF_FIB_LOOKUP_OUTPUT*/);
     switch(rc) {
         case BPF_FIB_LKUP_RET_SUCCESS:
-            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: nexthop: %pI4", rc, &ip4->saddr, &ip4->daddr, &fib_params.ipv4_dst);
+            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: nexthop: %pI4", &ip4->saddr, &ip4->daddr, &fib_params.ipv4_dst);
             //_decr_ttl(ether_proto, l3hdr);
             __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
             __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);          
