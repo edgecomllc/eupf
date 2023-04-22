@@ -41,6 +41,20 @@ Reverse mode, remote host iperf3 is sending
 iperf Done.
 ```
 
+* check tcp throughput (with open5gs upf)
+
+```bash
+$
+
+```
+
+* check tcp throughput (with eUPF)
+
+```bash
+$
+
+```
+
 ### mtr
 
 * run shell in ueransim ue pod, [see instruction here](./install.md#case-0)
@@ -51,11 +65,26 @@ iperf Done.
 apk add mtr
 ```
 
-* check latency (without mtr)
+* check latency (without upf) to google.com
 
-```
+```bash
 $ mtr --no-dns --report --report-cycles 60 iperf3
 ...
 HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
   1.|-- 10.233.57.202              0.0%    60    0.1   0.1   0.1   0.2   0.0
+```
+
+* check latency (wiht open5gs upf) to google.com
+
+```bash
+$
+
+```
+
+
+* check latency (with eUPF) to google.com
+
+```bash
+$
+
 ```
