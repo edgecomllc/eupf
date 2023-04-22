@@ -65,7 +65,7 @@ func main() {
 	pfcp_conn, err := CreatePfcpConnection(config.PfcpAddress, pfcpHandlers, config.PfcpNodeId, config.N3Address, bpfObjects)
 
 	if err != nil {
-		log.Printf("Could not create PFCP connection: %s", err)
+		log.Fatalf("Could not create PFCP connection: %s", err)
 	}
 	go pfcp_conn.Run()
 	defer pfcp_conn.Close()

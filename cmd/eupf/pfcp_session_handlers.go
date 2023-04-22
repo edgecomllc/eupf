@@ -62,13 +62,12 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 					farInfo.Teid = outerHeaderCreation.TEID
 					if outerHeaderCreation.HasIPv4() {
 						farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
+						farInfo.LocalIP = binary.LittleEndian.Uint32(conn.n3Address.To4())
 					}
 					if outerHeaderCreation.HasIPv6() {
 						log.Print("WARN: IPv6 not supported yet, ignoring")
 						continue
 					}
-					// #TODO: Add support for IPv6 on control plane
-					farInfo.LocalIP = binary.LittleEndian.Uint32(conn.n3Address)
 				}
 			}
 
@@ -330,12 +329,11 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 					farInfo.Teid = outerHeaderCreation.TEID
 					if outerHeaderCreation.HasIPv4() {
 						farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
+						farInfo.LocalIP = binary.LittleEndian.Uint32(conn.n3Address.To4())
 					} else if outerHeaderCreation.HasIPv6() {
 						log.Println("WARN: IPv6 not supported yet, ignoring")
 						continue
 					}
-					// #TODO: Add support for IPv6 on control plane
-					farInfo.LocalIP = binary.LittleEndian.Uint32(conn.n3Address)
 				}
 			} else {
 				log.Println("WARN: No UpdateForwardingParameters")
