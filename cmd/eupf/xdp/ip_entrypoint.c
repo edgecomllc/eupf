@@ -199,12 +199,10 @@ static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, 
     fib_params.ipv4_dst = ip4->daddr;
     fib_params.ifindex = ctx->ingress_ifindex;
 
-    int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), BPF_FIB_LOOKUP_OUTPUT);
-    bpf_printk("upf: bpf_fib_lookup %d: %pI4 -> %pI4", rc, &ip4->saddr, &ip4->daddr);
-    bpf_printk("upf: bpf_fib_lookup nexthop: %pI4", &fib_params.ipv4_dst);
-
+    int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), 0 /*BPF_FIB_LOOKUP_OUTPUT*/);
     switch(rc) {
-        case BPF_FIB_LKUP_RET_SUCCESS:  
+        case BPF_FIB_LKUP_RET_SUCCESS:
+            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: nexthop: %pI4", &ip4->saddr, &ip4->daddr, &fib_params.ipv4_dst);
             //_decr_ttl(ether_proto, l3hdr);
             __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
             __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);          
@@ -215,16 +213,17 @@ static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, 
         case BPF_FIB_LKUP_RET_BLACKHOLE:
         case BPF_FIB_LKUP_RET_UNREACHABLE:
         case BPF_FIB_LKUP_RET_PROHIBIT:
+            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
             return XDP_DROP;
         case BPF_FIB_LKUP_RET_NOT_FWDED:
         case BPF_FIB_LKUP_RET_FWD_DISABLED:
         case BPF_FIB_LKUP_RET_UNSUPP_LWT:
         case BPF_FIB_LKUP_RET_NO_NEIGH:
         case BPF_FIB_LKUP_RET_FRAG_NEEDED:
+        default:
+            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
             return XDP_PASS; // Let's kernel takes care
     }
-
-    return XDP_PASS; // Let's kernel takes care
 }
 
 static __always_inline __u32 handle_echo_request(struct packet_context *ctx, struct gtpuhdr *gtpu)
