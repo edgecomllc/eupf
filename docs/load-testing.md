@@ -1,72 +1,61 @@
 # Load testing
 
-## iperf
+we are testing with 2 tools:
+* iperf
+* mtr
+
+## Open5gs
+
+### iperf
 
 * install iperf server
 
-```
+```bash
 helm upgrade --install \
   iperf3 openverso/iperf3 \
   --set-string service.type=ClusterIP \
-  -n open5gs \
   --version 0.1.2 \
-  --wait --timeout 100s --create-namespace
+  --namespace open5gs \
+  --wait --timeout 30s --create-namespace
 ```
 
-* run shell in ueransim ue pod (see instruction above for it)
+* run shell in ueransim ue pod, [see instruction here](./install.md#case-0)
 
-* run test via default network
+* install iperf3
 
+```bash
+apk add iperf3
 ```
-$ iperf3 -c iperf3 -p 5201 -t 30
+
+* check tcp throughput (without upf)
+
+```bash
+$ iperf3 -c iperf3 -p 5201 -t 30 -R
+Connecting to host iperf3, port 5201
+Reverse mode, remote host iperf3 is sending
 ...
 [ ID] Interval           Transfer     Bitrate         Retr
-[  5]   0.00-30.00  sec  40.2 GBytes  11.5 Gbits/sec  9942             sender
-[  5]   0.00-30.00  sec  40.2 GBytes  11.5 Gbits/sec                  receiver
+[  5]   0.00-30.00  sec  45.8 GBytes  13.1 Gbits/sec  4369             sender
+[  5]   0.00-30.00  sec  45.8 GBytes  13.1 Gbits/sec                  receiver
 
 iperf Done.
 ```
 
-* run test via open5gs UPF
+### mtr
+
+* run shell in ueransim ue pod, [see instruction here](./install.md#case-0)
+
+* install mtr
+
+```bash
+apk add mtr
+```
+
+* check latency (without mtr)
 
 ```
-$ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
-$ iperf3 -c iperf3 -p 5201 -t 30 -B ${UESIMTUNO_IP}
+$ mtr --no-dns --report --report-cycles 60 iperf3
 ...
-[ ID] Interval           Transfer     Bitrate         Retr
-[  5]   0.00-30.00  sec   597 MBytes   167 Mbits/sec  730             sender
-[  5]   0.00-30.00  sec   597 MBytes   167 Mbits/sec                  receiver
+HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
+  1.|-- 10.233.57.202              0.0%    60    0.1   0.1   0.1   0.2   0.0
 ```
-
-* run test via eUPF
-
-TODO
-
-## grafana k6
-
-* create test container with simple http server (nginx)
-
-```
-	helm upgrade --install \
-		nginx .deploy/helm/universal-chart \
-		--values docs/examples/load-testing/nginx.yaml \
-		-n open5gs \
-		--wait --timeout 100s --create-namespace
-```
-
-* copy test scenario `script.js` to ueransim pod
-
-TODO
-
-* install k6
-
-```
-wget https://github.com/grafana/k6/releases/download/v0.43.1/k6-v0.43.1-linux-amd64.tar.gz
-kubectl cp ./k6-v0.43.1-linux-amd64.tar.gz ueransim-ue-7f76db59c9-r67st:/tmp/k6.tar.gz -n open5gs
-```
-
-* run test via k6
-
-`k6 run script.js`
-
-* run shell in ueransim ue pod (see instruction above for it)
