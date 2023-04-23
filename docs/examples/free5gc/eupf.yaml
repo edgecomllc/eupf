@@ -41,7 +41,8 @@ configMaps:
         n3_address: 10.100.50.233
 
 env:
-  UPF_PFCP_NODE_ID: 10.100.50.241  # address on n4 interface
+  UPF_PFCP_NODE_ID: open5gs-smf-pfcp.$(MY_POD_NAMESPACE)
+  # UPF_PFCP_NODE_ID: 10.100.50.241  # address on n4 interface
   # UPF_N3_ADDRESS: 10.100.50.233
 
 volumes:
