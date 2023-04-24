@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"time"
@@ -108,26 +109,24 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		log.Printf("Can't listen UDP address: %s", err)
 		return nil, err
 	}
-	log.Printf("Start PFCP connection: %v", udpAddr)
 
-	addrv4, err := net.ResolveIPAddr("ip4", nodeId)
-	if err != nil {
-		return nil, err
+	addrv4 := net.ParseIP(nodeId)
+	if addrv4 == nil {
+		return nil, fmt.Errorf("failed to parse Node ID: %s", nodeId)
 	}
 
-	log.Printf("Verifying N3 address %s", n3Ip)
 	n3Addr := net.ParseIP(n3Ip)
 	if n3Addr == nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse N3 IP address ID: %s", n3Ip)
 	}
-	log.Printf("N3 address verified: %v", n3Addr)
+	log.Printf("Starting PFCP connection: %v with Node ID: %v and N3 address: %v", udpAddr, addrv4, n3Addr)
 
 	return &PfcpConnection{
 		udpConn:          udpConn,
 		pfcpHandlerMap:   pfcpHandlerMap,
 		nodeAssociations: NodeAssociationMap{},
 		nodeId:           nodeId,
-		nodeAddrV4:       addrv4.IP,
+		nodeAddrV4:       addrv4,
 		n3Address:        n3Addr,
 		mapOperations:    mapOperations,
 	}, nil
