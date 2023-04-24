@@ -22,6 +22,12 @@ configMaps:
         api_address: :8080
         pfcp_address: :8805
         metrics_address: :9090
+      run.sh: |
+        #!/bin/bash
+        mkdir -p /etc/iproute2
+        echo "1000 n6if" >> /etc/iproute2/rt_tables
+        ip rule add from 10.45.0.0/16 table n6if
+        ip route add default via 10.99.0.254 dev n6 table n6if
 
 env:
   UPF_PFCP_NODE_ID: $(MY_POD_IP)
@@ -101,3 +107,45 @@ readinessProbe:
     port: http
   initialDelaySeconds: 5
   periodSeconds: 10
+
+podSecurityContext:
+  sysctls:
+    - name: net.ipv4.ip_forward
+      value: "1"
+
+podAnnotations:
+  k8s.v1.cni.cncf.io/networks: |
+    [
+      { "name": "eupf-n6",
+        "interface": "n6",
+        "ips": [ "10.99.0.2/24" ]
+      }
+    ]
+
+extraDeploy:
+  - apiVersion: k8s.cni.cncf.io/v1
+    kind: NetworkAttachmentDefinition
+    metadata:
+      name: eupf-n6
+    spec:
+      config: |
+        {
+          "cniVersion": "0.3.1",
+          "plugins": [
+            {
+              "type": "ipvlan",
+              "capabilities": { "ips": true },
+              "master": "ens3",
+              "mode": "l2",
+              "ipam": {
+                "type": "static",
+                "routes": [
+                  {
+                    "dst": "0.0.0.0/0",
+                    "gw": "10.99.0.1"
+                  }
+                ]
+              }
+            }
+          ]
+        }

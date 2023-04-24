@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: edgecomllc-eupf
+    app.kubernetes.io/name: nat
+  name: edgecomllc-eupf-nat
+  namespace: open5gs
+data:
+  run.sh: |
+    #!/bin/bash
+
+    iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o eth0 -j MASQUERADE
+
+    while true; do sleep 30; done;
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: edgecomllc-eupf
+    app.kubernetes.io/name: nat
+  name: edgecomllc-eupf-nat
+  namespace: open5gs
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: edgecomllc-eupf
+      app.kubernetes.io/name: nat
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        k8s.v1.cni.cncf.io/networks: |
+          [
+            {
+              "name": "eupf-n6",
+              "interface": "n6",
+              "ips": [ "10.99.0.254/24" ]
+            }
+          ]
+      labels:
+        app.kubernetes.io/instance: edgecomllc-eupf
+        app.kubernetes.io/name: nat
+    spec:
+      containers:
+      - name: nat
+        image: praqma/network-multitool:c3d4e04
+        imagePullPolicy: Always
+        command: [ "/conf/run.sh" ]
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - mountPath: /conf
+            name: config
+      securityContext:
+        sysctls:
+        - name: net.ipv4.ip_forward
+          value: "1"
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+            - key: run.sh
+              mode: 493
+              path: run.sh
+          name: edgecomllc-eupf-nat
+        name: config
+
+# mkdir -p /etc/iproute2
+# echo "1000 n6if" >> /etc/iproute2/rt_tables
+# ip rule add from 10.45.0.0/16 table n6if
+# ip route add default via 10.99.0.254 dev n6 table n6if

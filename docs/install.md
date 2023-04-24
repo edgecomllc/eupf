@@ -30,32 +30,32 @@ in our environments, we use one node Kubernetes cluster deployed by [kubespray](
 
    ```
    helm upgrade --install \
-       edgecomllc-eupf .deploy/helm/universal-chart \
-       --values docs/examples/open5gs/eupf.yaml \
-       -n open5gs \
-       --wait --timeout 100s --create-namespace
+      edgecomllc-eupf .deploy/helm/universal-chart \
+      --values docs/examples/open5gs/eupf.yaml \
+      -n open5gs \
+      --wait --timeout 100s --create-namespace
    ```
 
 * install open5gs chart
 
    ```
    helm upgrade --install \
-       open5gs openverso/open5gs \
-       --values docs/examples/open5gs/open5gs.yaml \
-       -n open5gs \
-       --version 2.0.9 \
-       --wait --timeout 100s --create-namespace
+      open5gs openverso/open5gs \
+      --values docs/examples/open5gs/open5gs.yaml \
+      -n open5gs \
+      --version 2.0.9 \
+      --wait --timeout 100s --create-namespace
    ```
 
 * install ueransim chart
 
    ```
    helm upgrade --install \
-       ueransim openverso/ueransim-gnb \
-       --values docs/examples/open5gs/ueransim-gnb.yaml \
-       -n open5gs \
-       --version 0.2.5 \
-       --wait --timeout 100s --create-namespace
+      ueransim openverso/ueransim-gnb \
+      --values docs/examples/open5gs/ueransim-gnb.yaml \
+      -n open5gs \
+      --version 0.2.5 \
+      --wait --timeout 100s --create-namespace
    ```
 
 ### undeploy everything
