@@ -3,25 +3,34 @@ package main
 import (
 	"log"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 type UpfConfig struct {
-	InterfaceName  string `mapstructure:"interface_name"`
-	XDPAttachMode  string `mapstructure:"xdp_attach_mode" validate:"oneof='' 'generic' 'native' 'offload'"`
-	ApiAddress     string `mapstructure:"api_address"`
-	PfcpAddress    string `mapstructure:"pfcp_address"`
-	PfcpNodeId     string `mapstructure:"pfcp_node_id"`
-	MetricsAddress string `mapstructure:"metrics_address"`
-	N3Address      string `mapstructure:"n3_address"`
+	InterfaceName  []string `mapstructure:"interface_name"`
+	XDPAttachMode  string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload"`
+	ApiAddress     string   `mapstructure:"api_address" validate:"hostname_port"`
+	PfcpAddress    string   `mapstructure:"pfcp_address" validate:"hostname_port"`
+	PfcpNodeId     string   `mapstructure:"pfcp_node_id" validate:"fqdn"`
+	MetricsAddress string   `mapstructure:"metrics_address" validate:"hostname_port"`
+	N3Address      string   `mapstructure:"n3_address" validate:"ip"`
+}
+
+func (c *UpfConfig) Validate() error {
+	if err := validator.New().Struct(c); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 var config UpfConfig
 
 func LoadConfig() error {
 	var configPath = pflag.String("config", "./config.yml", "Path to config file")
-	pflag.String("iface", "lo", "Interface to bind XDP program to")
+	pflag.StringArray("iface", []string{"lo"}, "Interface list to bind XDP program to")
 	pflag.String("attach", "generic", "XDP attach mode")
 	pflag.String("aaddr", ":8080", "Address to bind api server to")
 	pflag.String("paddr", ":8805", "Address to bind PFCP server to")
@@ -42,7 +51,7 @@ func LoadConfig() error {
 	viper.SetDefault("xdp_attach_mode", "generic")
 	viper.SetDefault("api_address", ":8080")
 	viper.SetDefault("pfcp_address", ":8805")
-	viper.SetDefault("pfcp_node_id", "localhost")
+	viper.SetDefault("pfcp_node_id", "upf.edgecom.ru")
 	viper.SetDefault("metrics_address", ":9090")
 	viper.SetDefault("n3_address", "127.0.0.1")
 
@@ -55,11 +64,17 @@ func LoadConfig() error {
 		log.Printf("Unable to read config file, %v", err)
 	}
 
-	log.Println(viper.AllSettings())
+	log.Printf("Get raw config: %+v", viper.AllSettings())
 	if err := viper.UnmarshalExact(&config); err != nil {
 		log.Printf("Unable to decode into struct, %v", err)
 		return err
 	}
-	log.Println(config)
+
+	if err := config.Validate(); err != nil {
+		log.Printf("eUPF config is invalid: %v", err)
+		return err
+	}
+
+	log.Printf("Apply eUPF config: %+v", config)
 	return nil
 }

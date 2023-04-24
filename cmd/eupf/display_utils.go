@@ -234,14 +234,18 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 	if err == nil {
 		writeLineTabbed(sb, (fmt.Sprintf("Apply Action: %+v ", applyAction)), 2)
 	}
-	forwardingParameters, err := far.ForwardingParameters()
-	writeLineTabbed(sb, ("Forwarding Parameters:"), 2)
-	if err == nil {
+	if forwardingParameters, err := far.ForwardingParameters(); err == nil {
+		writeLineTabbed(sb, ("Forwarding Parameters:"), 2)
 		for _, forwardingParameter := range forwardingParameters {
 			networkInstance, err := forwardingParameter.NetworkInstance()
 			if err == nil {
 				//sb.WriteString(fmt.Sprintf("Network Instance: %s ", networkInstance))
 				writeLineTabbed(sb, (fmt.Sprintf("Network Instance: %s ", networkInstance)), 3)
+			}
+			outerHeaderCreation, err := forwardingParameter.OuterHeaderCreation()
+			if err == nil {
+				// sb.WriteString(fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation))
+				writeLineTabbed(sb, (fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation)), 3)
 			}
 			redirectInformation, err := forwardingParameter.RedirectInformation()
 			if err == nil {
@@ -257,6 +261,34 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 			}
 		}
 	}
+	if updateForwardingParameters, err := far.UpdateForwardingParameters(); err == nil {
+		writeLineTabbed(sb, ("Update forwarding Parameters:"), 2)
+		for _, updateForwardingParameter := range updateForwardingParameters {
+			networkInstance, err := updateForwardingParameter.NetworkInstance()
+			if err == nil {
+				//sb.WriteString(fmt.Sprintf("Network Instance: %s ", networkInstance))
+				writeLineTabbed(sb, (fmt.Sprintf("Network Instance: %s ", networkInstance)), 3)
+			}
+			outerHeaderCreation, err := updateForwardingParameter.OuterHeaderCreation()
+			if err == nil {
+				// sb.WriteString(fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation))
+				writeLineTabbed(sb, (fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation)), 3)
+			}
+			redirectInformation, err := updateForwardingParameter.RedirectInformation()
+			if err == nil {
+				// sb.WriteString(fmt.Sprintf("Redirect Information, server address: %s ", redirectInformation.RedirectServerAddress))
+				// sb.WriteString(fmt.Sprintf("Redirect Information, other server address: %s ", redirectInformation.OtherRedirectServerAddress))
+				writeLineTabbed(sb, (fmt.Sprintf("Redirect Information, server address: %s ", redirectInformation.RedirectServerAddress)), 3)
+				writeLineTabbed(sb, (fmt.Sprintf("Redirect Information, other server address: %s ", redirectInformation.OtherRedirectServerAddress)), 3)
+			}
+			headerEnrichment, err := updateForwardingParameter.HeaderEnrichment()
+			if err == nil {
+				// sb.WriteString(fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue))
+				writeLineTabbed(sb, (fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue)), 3)
+			}
+		}
+	}
+
 	duplicatingParameters, err := far.DuplicatingParameters()
 	if err == nil {
 		// sb.WriteString(fmt.Sprintf("Duplicating Parameters: %+v ", duplicatingParameters))
@@ -266,11 +298,6 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 	if err == nil {
 		// sb.WriteString(fmt.Sprintf("BAR ID: %d ", barId))
 		writeLineTabbed(sb, (fmt.Sprintf("BAR ID: %d ", barId)), 2)
-	}
-	outerHeaderCreation, err := far.OuterHeaderCreation()
-	if err == nil {
-		// sb.WriteString(fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation))
-		writeLineTabbed(sb, (fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation)), 2)
 	}
 }
 

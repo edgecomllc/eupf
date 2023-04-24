@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"time"
 
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -107,18 +108,19 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		log.Printf("Can't listen UDP address: %s", err)
 		return nil, err
 	}
+	log.Printf("Start PFCP connection: %v", udpAddr)
 
-	log.Printf("Start PFCP connection: %s", addr)
 	addrv4, err := net.ResolveIPAddr("ip4", nodeId)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("Parsing N3 address")
-	n3Addr, err := net.ResolveIPAddr("ip4", n3Ip)
-	if err != nil {
+	log.Printf("Verifying N3 address %s", n3Ip)
+	n3Addr := net.ParseIP(n3Ip)
+	if n3Addr == nil {
 		return nil, err
 	}
+	log.Printf("N3 address verified: %v", n3Addr)
 
 	return &PfcpConnection{
 		udpConn:          udpConn,
@@ -126,7 +128,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 		nodeAssociations: NodeAssociationMap{},
 		nodeId:           nodeId,
 		nodeAddrV4:       addrv4.IP,
-		n3Address:        n3Addr.IP,
+		n3Address:        n3Addr,
 		mapOperations:    mapOperations,
 	}, nil
 }
@@ -134,18 +136,27 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId stri
 func (connection *PfcpConnection) Run() {
 	buf := make([]byte, 1500)
 	for {
-		n, addr, err := connection.udpConn.ReadFromUDP(buf)
+		n, addr, err := connection.Receive(buf)
 		if err != nil {
 			log.Printf("Error reading from UDP socket: %s", err)
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		log.Printf("Received %d bytes from %s", n, addr)
-		connection.pfcpHandlerMap.Handle(connection, buf[:n], addr)
+		connection.Handle(buf[:n], addr)
 	}
 }
 
 func (connection *PfcpConnection) Close() {
 	connection.udpConn.Close()
+}
+
+func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, err error) {
+	return connection.udpConn.ReadFromUDP(b)
+}
+
+func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
+	connection.pfcpHandlerMap.Handle(connection, b, addr)
 }
 
 func (connection *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error) {
