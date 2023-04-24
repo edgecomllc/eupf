@@ -13,9 +13,9 @@ type UpfConfig struct {
 	XDPAttachMode  string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload"`
 	ApiAddress     string   `mapstructure:"api_address" validate:"hostname_port"`
 	PfcpAddress    string   `mapstructure:"pfcp_address" validate:"hostname_port"`
-	PfcpNodeId     string   `mapstructure:"pfcp_node_id" validate:"fqdn"`
+	PfcpNodeId     string   `mapstructure:"pfcp_node_id" validate:"ipv4"`
 	MetricsAddress string   `mapstructure:"metrics_address" validate:"hostname_port"`
-	N3Address      string   `mapstructure:"n3_address" validate:"ip"`
+	N3Address      string   `mapstructure:"n3_address" validate:"ipv4"`
 }
 
 func (c *UpfConfig) Validate() error {
