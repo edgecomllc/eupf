@@ -37,7 +37,7 @@ configMaps:
         metrics_address: :9090
 
 env:
-  UPF_PFCP_NODE_ID: open5gs-smf-pfcp.$(MY_POD_NAMESPACE)
+  UPF_PFCP_NODE_ID: $(MY_POD_IP)
   UPF_N3_ADDRESS: $(MY_POD_IP)
 
 volumes:
