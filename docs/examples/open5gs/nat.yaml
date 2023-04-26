@@ -1,3 +1,18 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: edgecomllc-eupf-nat-n6
+  namespace: open5gs
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "edgecomllc-eupf-nat-n6",
+      "type": "bridge",
+      "bridge": "eupf-n6",
+      "ipam": { "type": "static" }
+    }
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -10,9 +25,14 @@ data:
   run.sh: |
     #!/bin/bash
 
-    iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o eth0 -j MASQUERADE
+    set -x
 
-    while true; do sleep 30; done;
+    ip ro add 10.45.0.0/16 via 10.99.0.1
+    iptables -t nat -A POSTROUTING -s 10.45.0.0/16 -o eth0 -j MASQUERADE
+
+    set +x
+
+    while true; do echo "i am alive"; sleep 30; done;
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -27,15 +47,13 @@ spec:
     matchLabels:
       app.kubernetes.io/instance: edgecomllc-eupf
       app.kubernetes.io/name: nat
-  strategy:
-    type: Recreate
   template:
     metadata:
       annotations:
         k8s.v1.cni.cncf.io/networks: |
           [
             {
-              "name": "eupf-n6",
+              "name": "edgecomllc-eupf-nat-n6",
               "interface": "n6",
               "ips": [ "10.99.0.254/24" ]
             }
@@ -43,6 +61,7 @@ spec:
       labels:
         app.kubernetes.io/instance: edgecomllc-eupf
         app.kubernetes.io/name: nat
+        version: latest
     spec:
       containers:
       - name: nat
@@ -74,8 +93,3 @@ spec:
               path: run.sh
           name: edgecomllc-eupf-nat
         name: config
-
-# mkdir -p /etc/iproute2
-# echo "1000 n6if" >> /etc/iproute2/rt_tables
-# ip rule add from 10.45.0.0/16 table n6if
-# ip route add default via 10.99.0.254 dev n6 table n6if

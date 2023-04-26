@@ -63,8 +63,8 @@ iperf Done.
 * check tcp throughput (with eUPF)
 
 ```bash
-$
-
+20:46:43.399431 n6    In  IP 188.120.253.172.2031 > 10.233.10.221.5201:
+20:46:43.399455 eth0  Out IP 188.120.253.172.2031 > 10.233.10.221.5201:
 ```
 
 ### mtr
@@ -96,9 +96,9 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 $ mtr --no-dns --report --report-cycles 60 -T -P 443 1.1.1.1
 ...
 HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
-  1.|-- 188.120.253.172            0.0%    60    0.2   0.1   0.1   0.2   0.0
+  1.|-- 188.120.253.172            0.0%    60    0.1   0.2   0.1   0.3   0.0
 ...
- 10.|-- 1.1.1.1                    0.0%    60   20.7  21.0  20.0  22.6   0.6
+  7.|-- 1.1.1.1                    0.0%    60    1.2   1.2   1.1   1.7   0.1
 ```
 
 ==============================================
@@ -106,7 +106,7 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 * check latency (with open5gs upf) to iperf3 pod
 
 ```bash
-$ mtr --no-dns --report --report-cycles 10 -T -P 5201 -I uesimtun0 iperf3
+$ mtr --no-dns --report --report-cycles 60 -T -P 5201 -I uesimtun0 iperf3
 ...
 HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
   1.|-- 10.45.0.1                  0.0%    60    1.0   1.0   0.7   1.7   0.2
@@ -124,9 +124,19 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 11.|-- 1.1.1.1                    0.0%    60   21.4  22.3  21.2  25.7   0.8
 ```
 
-* check latency (with eUPF) to google.com
+* check latency (with eUPF) to iperf3 pod
 
 ```bash
-$
+$ mtr --no-dns --report --report-cycles 60 -T -P 5201 -I uesimtun0 iperf3
+```
 
+* check latency (with eUPF) to CloudFlare
+
+```bash
+$ mtr --no-dns --report --report-cycles 60 -T -P 443 -I uesimtun0 1.1.1.1
+...
+HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
+  1.|-- 10.99.0.254                0.0%    60    1.1   1.0   0.8   1.5   0.1
+...
+  8.|-- 1.1.1.1                    0.0%    60    2.1   2.3   1.8   4.7   0.5
 ```

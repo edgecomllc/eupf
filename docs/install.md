@@ -26,6 +26,12 @@ in our environments, we use one node Kubernetes cluster deployed by [kubespray](
    helm repo update
    ```
 
+* install nat instance
+
+   ```
+   kubectl apply -f docs/examples/open5gs/nat.yaml
+   ```
+
 * install eUPF chart
 
    ```
@@ -62,6 +68,7 @@ in our environments, we use one node Kubernetes cluster deployed by [kubespray](
 
 ```
 helm delete open5gs ueransim edgecomllc-eupf -n open5gs
+kubectl delete -f docs/examples/open5gs/nat.yaml
 ```
 
 ## How to deploy free5gc core
