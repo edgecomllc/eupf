@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"unsafe"
 
 	"github.com/cilium/ebpf"
 	"golang.org/x/sys/unix"
@@ -139,17 +140,35 @@ func ListQerMapContents(m *ebpf.Map) ([]QerMapElement, error) {
 		return nil, fmt.Errorf("map %s is not a hash", m)
 	}
 
-	contextMap := []QerMapElement{}
+	var contextMap []QerMapElement
+	// #FIXME: cmd/eupf/xdp/qer.h:29
+	//var key uint32
+	//var value QerInfo
+	//iter := m.Iterate()
+	//for iter.Next(&key, &value) {
+	//	id := key
+	//	contextMap = append(contextMap,
+	//		QerMapElement{
+	//			Id:           id,
+	//			GateStatusUL: value.GateStatusUL,
+	//			GateStatusDL: value.GateStatusDL,
+	//			Qfi:          value.Qfi,
+	//			MaxBitrateUL: value.MaxBitrateUL,
+	//			MaxBitrateDL: value.MaxBitrateDL,
+	//		},
+	//	)
+	//}
+	// return contextMap, iter.Err()
 
-	var key uint32
 	var value QerInfo
-
-	iter := m.Iterate()
-	for iter.Next(&key, &value) {
-		id := key
+	for i := uint32(0); i < 1024; i++ {
+		err := m.Lookup(i, unsafe.Pointer(&value))
+		if err != nil {
+			return nil, err
+		}
 		contextMap = append(contextMap,
 			QerMapElement{
-				Id:           id,
+				Id:           i,
 				GateStatusUL: value.GateStatusUL,
 				GateStatusDL: value.GateStatusDL,
 				Qfi:          value.Qfi,
@@ -157,7 +176,7 @@ func ListQerMapContents(m *ebpf.Map) ([]QerMapElement, error) {
 				MaxBitrateDL: value.MaxBitrateDL,
 			},
 		)
-
 	}
-	return contextMap, iter.Err()
+
+	return contextMap, nil
 }
