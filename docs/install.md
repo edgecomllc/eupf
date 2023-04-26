@@ -70,6 +70,10 @@ We have prepared templates to deploy with two opensource environments: open5gs a
 ```
 helm delete open5gs ueransim edgecomllc-eupf -n open5gs
 ```
+📝 Pod's interconnection. openverso-charts uses default interfaces of your kubernetes cluster. It is Calico CNI interfaces in our environment, type ipvlan. And it uses k8s services names to resolve endpoints.
+The only added is ptp type interface `n6` as a door to the outer world for our eUPF. 
+
+For more details refer to openverso-charts [Open5gs and UERANSIM](https://gradiant.github.io/openverso-charts/open5gs-ueransim-gnb.html)
 
 </p>
 </details> 
@@ -154,6 +158,13 @@ check that the module is loaded:
 ```
 helm delete free5gc ueransim edgecomllc-eupf -n free5gc
 ```
+📝 Pod's interconnection. towards5gs-helm uses separate subnets with ipvlan type interfaces with internal addressing.
+The only added is ptp type interface `n6` as a door to the outer world for our eUPF. 
+
+
+### Architecture is nested from towards5gs-helm project [Setup free5gc](https://github.com/Orange-OpenSource/towards5gs-helm/blob/main/docs/demo/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM.md)
+![Architecture](pictures/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM-Architecture.png)
+
 
 </p>
 </details> 
