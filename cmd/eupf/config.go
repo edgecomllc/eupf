@@ -30,13 +30,14 @@ var config UpfConfig
 
 func LoadConfig() error {
 	var configPath = pflag.String("config", "./config.yml", "Path to config file")
-	pflag.StringArray("iface", []string{"lo"}, "Interface list to bind XDP program to")
-	pflag.String("attach", "generic", "XDP attach mode")
-	pflag.String("aaddr", ":8080", "Address to bind api server to")
-	pflag.String("paddr", ":8805", "Address to bind PFCP server to")
-	pflag.String("nodeid", "localhost", "PFCP Server Node ID")
-	pflag.String("maddr", ":9090", "Address to bind metrics server to")
-	pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
+	// pflags defaults are ignored in this setup
+	pflag.StringArray("iface", []string{}, "Interface list to bind XDP program to")
+	pflag.String("attach", "", "XDP attach mode")
+	pflag.String("aaddr", "", "Address to bind api server to")
+	pflag.String("paddr", "", "Address to bind PFCP server to")
+	pflag.String("nodeid", "", "PFCP Server Node ID")
+	pflag.String("maddr", "", "Address to bind metrics server to")
+	pflag.String("n3addr", "", "Address for communication over N3 interface")
 	pflag.Parse()
 
 	viper.BindPFlag("interface_name", pflag.Lookup("iface"))
@@ -51,7 +52,7 @@ func LoadConfig() error {
 	viper.SetDefault("xdp_attach_mode", "generic")
 	viper.SetDefault("api_address", ":8080")
 	viper.SetDefault("pfcp_address", ":8805")
-	viper.SetDefault("pfcp_node_id", "upf.edgecom.ru")
+	viper.SetDefault("pfcp_node_id", "127.0.0.1")
 	viper.SetDefault("metrics_address", ":9090")
 	viper.SetDefault("n3_address", "127.0.0.1")
 
