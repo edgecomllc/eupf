@@ -486,7 +486,7 @@ func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Sessi
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 			spdrInfo.Teid = fteid.TEID
 			log.Printf("Saving uplink PDR info to session: %d, %+v", pdrId, spdrInfo)
-			session.PutUpLinkPDR(pdrId, spdrInfo)
+			session.PutUplinkPDR(pdrId, spdrInfo)
 			if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
 				log.Printf("Can't put uplink PDR: %s", err)
 			}
@@ -514,7 +514,7 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Ses
 			return fmt.Errorf("IPv6 not supported")
 		}
 		log.Printf("Saving downlink PDR info to session: %d, %+v", pdrId, spdrInfo)
-		session.PutDownLinkPDR(pdrId, spdrInfo)
+		session.PutDownlinkPDR(pdrId, spdrInfo)
 		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
 			log.Printf("Can't put uplink PDR: %s", err)
 		}

@@ -32,11 +32,11 @@ func (s *Session) PutQER(id uint32, qerInfo QerInfo) {
 	s.QERs[id] = qerInfo
 }
 
-func (s *Session) PutUpLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
+func (s *Session) PutUplinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
 	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
 }
 
-func (s *Session) PutDownLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
+func (s *Session) PutDownlinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
 	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
 }
 
