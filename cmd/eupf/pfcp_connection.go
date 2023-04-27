@@ -24,36 +24,20 @@ type SPDRInfo struct {
 	Ipv4    net.IP
 }
 
-func (s *Session) CreateUpLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
-	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
-}
-
-func (s *Session) CreateDownLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
-	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
-}
-
-func (s *Session) CreateFAR(id uint32, farInfo FarInfo) {
+func (s *Session) PutFAR(id uint32, farInfo FarInfo) {
 	s.FARs[id] = farInfo
 }
 
-func (s *Session) CreateQER(id uint32, qerInfo QerInfo) {
+func (s *Session) PutQER(id uint32, qerInfo QerInfo) {
 	s.QERs[id] = qerInfo
 }
 
-func (s *Session) UpdateUpLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
+func (s *Session) PutUpLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
 	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
 }
 
-func (s *Session) UpdateDownLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
+func (s *Session) PutDownLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
 	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
-}
-
-func (s *Session) UpdateFAR(id uint32, farInfo FarInfo) {
-	s.FARs[id] = farInfo
-}
-
-func (s *Session) UpdateQER(id uint32, qerInfo QerInfo) {
-	s.QERs[id] = qerInfo
 }
 
 func (s *Session) RemoveUplinkPDR(pdrId uint16) {
