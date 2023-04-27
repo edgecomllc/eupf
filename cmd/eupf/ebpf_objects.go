@@ -22,7 +22,7 @@ type BpfObjects struct {
 	gtp_entrypointObjects
 }
 
-func (o *BpfObjects) Load() error {
+func (bpfObjects *BpfObjects) Load() error {
 
 	pinPath := "/sys/fs/bpf/upf_pipeline"
 	if err := os.MkdirAll(pinPath, os.ModePerm); err != nil {
@@ -41,20 +41,20 @@ func (o *BpfObjects) Load() error {
 	}
 
 	return LoadAllObjects(&collectionOptions,
-		Loader{loadUpf_xdpObjects, &o.upf_xdpObjects},
-		Loader{loadFar_programObjects, &o.far_programObjects},
-		Loader{loadQer_programObjects, &o.qer_programObjects},
-		Loader{loadIp_entrypointObjects, &o.ip_entrypointObjects},
-		Loader{loadGtp_entrypointObjects, &o.gtp_entrypointObjects})
+		Loader{loadUpf_xdpObjects, &bpfObjects.upf_xdpObjects},
+		Loader{loadFar_programObjects, &bpfObjects.far_programObjects},
+		Loader{loadQer_programObjects, &bpfObjects.qer_programObjects},
+		Loader{loadIp_entrypointObjects, &bpfObjects.ip_entrypointObjects},
+		Loader{loadGtp_entrypointObjects, &bpfObjects.gtp_entrypointObjects})
 }
 
-func (o *BpfObjects) Close() error {
+func (bpfObjects *BpfObjects) Close() error {
 	return CloseAllObjects(
-		&o.upf_xdpObjects,
-		&o.far_programObjects,
-		&o.qer_programObjects,
-		&o.ip_entrypointObjects,
-		&o.gtp_entrypointObjects,
+		&bpfObjects.upf_xdpObjects,
+		&bpfObjects.far_programObjects,
+		&bpfObjects.qer_programObjects,
+		&bpfObjects.ip_entrypointObjects,
+		&bpfObjects.gtp_entrypointObjects,
 	)
 }
 

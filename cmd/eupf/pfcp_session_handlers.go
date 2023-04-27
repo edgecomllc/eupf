@@ -17,7 +17,7 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
-	_, remoteSEID, err := validateRequest(conn, addr, req.NodeID, req.CPFSEID)
+	_, remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
 	if err != nil {
 		log.Printf("Rejecting Session Establishment Request from: %s (missing NodeID or F-SEID)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
@@ -90,10 +90,10 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 			}
 			if farid, err := pdr.FARID(); err == nil {
-				spdrInfo.PdrInfo.FarId = uint32(farid)
+				spdrInfo.PdrInfo.FarId = farid
 			}
 			if qerid, err := pdr.QERID(); err == nil {
-				spdrInfo.PdrInfo.QerId = uint32(qerid)
+				spdrInfo.PdrInfo.QerId = qerid
 			}
 			pdi, err := pdr.PDI()
 			if err != nil {
@@ -127,13 +127,13 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				{
 					// IE Type UE IP Address
 					if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
-						ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
-						if ue_ip.IPv4Address != nil {
-							spdrInfo.Ipv4 = ue_ip.IPv4Address
+						ueIp, _ := pdi[ueipPdiId].UEIPAddress()
+						if ueIp.IPv4Address != nil {
+							spdrInfo.Ipv4 = ueIp.IPv4Address
 						} else {
 							log.Print("WARN: No IPv4 address")
 						}
-						if ue_ip.IPv6Address != nil {
+						if ueIp.IPv6Address != nil {
 							log.Print("WARN: UE IPv6 not supported yet, ignoring")
 							continue
 						}
@@ -160,7 +160,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			gateStatusDL, err := qer.GateStatusDL()
 			if err != nil {
-				return fmt.Errorf("Gate Status DL missing")
+				return fmt.Errorf("gate Status DL missing")
 			}
 			qerInfo.GateStatusDL = gateStatusDL
 
@@ -398,10 +398,10 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 			}
 			if farid, err := pdr.FARID(); err == nil {
-				spdrInfo.PdrInfo.FarId = uint32(farid)
+				spdrInfo.PdrInfo.FarId = farid
 			}
 			if qerid, err := pdr.QERID(); err == nil {
-				spdrInfo.PdrInfo.QerId = uint32(qerid)
+				spdrInfo.PdrInfo.QerId = qerid
 			}
 			pdi, err := pdr.PDI()
 			if err != nil {
@@ -435,8 +435,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				{
 					// IE Type UE IP Address
 					if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
-						ue_ip, _ := pdi[ueipPdiId].UEIPAddress()
-						spdrInfo.Ipv4 = ue_ip.IPv4Address
+						ueIp, _ := pdi[ueipPdiId].UEIPAddress()
+						spdrInfo.Ipv4 = ueIp.IPv4Address
 						log.Printf("Updating downlink PDR: %d, %+v", pdrId, spdrInfo)
 						session.UpdateDownLinkPDR(pdrId, spdrInfo)
 						if err := mapOperations.UpdatePdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
@@ -530,7 +530,7 @@ func convertErrorToIeCause(err error) *ie.IE {
 	}
 }
 
-func validateRequest(conn *PfcpConnection, addr *net.UDPAddr, nodeId *ie.IE, cpfseid *ie.IE) (string, *ie.FSEIDFields, error) {
+func validateRequest(nodeId *ie.IE, cpfseid *ie.IE) (string, *ie.FSEIDFields, error) {
 	if nodeId == nil || cpfseid == nil {
 		return "", nil, errMandatoryIeMissing
 	}

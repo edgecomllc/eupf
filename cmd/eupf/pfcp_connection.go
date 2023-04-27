@@ -90,7 +90,7 @@ func (association *NodeAssociation) NewLocalSEID() uint64 {
 
 type PfcpConnection struct {
 	udpConn          *net.UDPConn
-	pfcpHandlerMap   PfcpHanderMap
+	pfcpHandlerMap   PfcpHandlerMap
 	nodeAssociations NodeAssociationMap
 	nodeId           string
 	nodeAddrV4       net.IP
@@ -98,7 +98,7 @@ type PfcpConnection struct {
 	mapOperations    ForwardingPlaneController
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string, n3Ip string, mapOperations ForwardingPlaneController) (*PfcpConnection, error) {
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ForwardingPlaneController) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Panicf("Can't resolve UDP address: %s", err)
@@ -155,7 +155,10 @@ func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, e
 }
 
 func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
-	connection.pfcpHandlerMap.Handle(connection, b, addr)
+	err := connection.pfcpHandlerMap.Handle(connection, b, addr)
+	if err != nil {
+		log.Printf("Error handling PFCP message: %s", err)
+	}
 }
 
 func (connection *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error) {
