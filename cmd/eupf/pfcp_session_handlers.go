@@ -47,28 +47,10 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	err = func() error {
 		mapOperations := conn.mapOperations
 		for _, far := range req.CreateFAR {
-			// #TODO: Extract to standalone function to avoid code duplication
-			farInfo := FarInfo{}
-			if applyAction, err := far.ApplyAction(); err == nil {
-				farInfo.Action = applyAction[0]
-			}
-			if forward, err := far.ForwardingParameters(); err == nil {
-				outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
-				if outerHeaderCreationIndex == -1 {
-					log.Println("WARN: No OuterHeaderCreation")
-				} else {
-					outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
-					farInfo.OuterHeaderCreation = 1
-					farInfo.Teid = outerHeaderCreation.TEID
-					if outerHeaderCreation.HasIPv4() {
-						farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
-						farInfo.LocalIP = binary.LittleEndian.Uint32(conn.n3Address.To4())
-					}
-					if outerHeaderCreation.HasIPv6() {
-						log.Print("WARN: IPv6 not supported yet, ignoring")
-						continue
-					}
-				}
+			farInfo, err := composeFarInfo(far, conn.n3Address.To4())
+			if err != nil {
+				log.Printf("Error extracting FAR info: %s", err)
+				continue
 			}
 
 			farid, _ := far.FARID()
@@ -79,25 +61,9 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 		}
 
-		//#TODO: Extract to standalone function to avoid code duplication
 		for _, pdr := range req.CreatePDR {
-			spdrInfo := SPDRInfo{}
-			pdrId, err := pdr.PDRID()
+			spdrInfo, pdrId, pdi, err := composeSPDRInfo(pdr)
 			if err != nil {
-				return fmt.Errorf("PDR ID missing")
-			}
-			if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
-				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
-			}
-			if farid, err := pdr.FARID(); err == nil {
-				spdrInfo.PdrInfo.FarId = farid
-			}
-			if qerid, err := pdr.QERID(); err == nil {
-				spdrInfo.PdrInfo.QerId = qerid
-			}
-			pdi, err := pdr.PDI()
-			if err != nil {
-				log.Print(err)
 				return err
 			}
 			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
@@ -313,30 +279,11 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	// #TODO: Implement rollback on error
 	err := func() error {
 		mapOperations := conn.mapOperations
-		// #TODO: Extract to standalone function to avoid code duplication
 		for _, far := range req.UpdateFAR {
-			farInfo := FarInfo{}
-			if applyAction, err := far.ApplyAction(); err == nil {
-				farInfo.Action = applyAction[0]
-			}
-			if forward, err := far.UpdateForwardingParameters(); err == nil {
-				outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
-				if outerHeaderCreationIndex == -1 {
-					log.Println("WARN: No OuterHeaderCreation")
-				} else {
-					outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
-					farInfo.OuterHeaderCreation = 1
-					farInfo.Teid = outerHeaderCreation.TEID
-					if outerHeaderCreation.HasIPv4() {
-						farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
-						farInfo.LocalIP = binary.LittleEndian.Uint32(conn.n3Address.To4())
-					} else if outerHeaderCreation.HasIPv6() {
-						log.Println("WARN: IPv6 not supported yet, ignoring")
-						continue
-					}
-				}
-			} else {
-				log.Println("WARN: No UpdateForwardingParameters")
+			farInfo, err := composeFarInfo(far, conn.n3Address.To4())
+			if err != nil {
+				log.Printf("Error extracting FAR info: %s", err)
+				continue
 			}
 
 			farid, _ := far.FARID()
@@ -387,25 +334,9 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 		}
 
-		// #TODO: Extract to standalone function to avoid code duplication
 		for _, pdr := range req.UpdatePDR {
-			spdrInfo := SPDRInfo{}
-			pdrId, err := pdr.PDRID()
+			spdrInfo, pdrId, pdi, err := composeSPDRInfo(pdr)
 			if err != nil {
-				return fmt.Errorf("PDR ID missing")
-			}
-			if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
-				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
-			}
-			if farid, err := pdr.FARID(); err == nil {
-				spdrInfo.PdrInfo.FarId = farid
-			}
-			if qerid, err := pdr.QERID(); err == nil {
-				spdrInfo.PdrInfo.QerId = qerid
-			}
-			pdi, err := pdr.PDI()
-			if err != nil {
-				log.Print(err)
 				return err
 			}
 			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
@@ -592,4 +523,64 @@ func causeToString(cause uint8) string {
 	default:
 		return "UnknownCause"
 	}
+}
+
+func composeFarInfo(far *ie.IE, localIp net.IP) (FarInfo, error) {
+	farInfo := FarInfo{}
+	if applyAction, err := far.ApplyAction(); err == nil {
+		farInfo.Action = applyAction[0]
+	}
+	var forward []*ie.IE
+	var err error
+	if far.Type == ie.CreateFAR {
+		forward, err = far.ForwardingParameters()
+		if err != nil {
+			return FarInfo{}, err
+		}
+	} else if far.Type == ie.UpdateFAR {
+		forward, err = far.UpdateForwardingParameters()
+		if err != nil {
+			return FarInfo{}, err
+		}
+	}
+	outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
+	if outerHeaderCreationIndex == -1 {
+		log.Println("WARN: No OuterHeaderCreation")
+	} else {
+		outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
+		farInfo.OuterHeaderCreation = 1
+		farInfo.Teid = outerHeaderCreation.TEID
+		if outerHeaderCreation.HasIPv4() {
+			farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
+			farInfo.LocalIP = binary.LittleEndian.Uint32(localIp)
+		}
+		if outerHeaderCreation.HasIPv6() {
+			log.Print("WARN: IPv6 not supported yet, ignoring")
+			return FarInfo{}, fmt.Errorf("IPv6 not supported yet")
+		}
+	}
+	return farInfo, nil
+}
+
+func composeSPDRInfo(pdr *ie.IE) (SPDRInfo, uint16, []*ie.IE, error) {
+	spdrInfo := SPDRInfo{}
+	pdrId, err := pdr.PDRID()
+	if err != nil {
+		return SPDRInfo{}, 0, nil, fmt.Errorf("PDR ID missing")
+	}
+	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+	}
+	if farid, err := pdr.FARID(); err == nil {
+		spdrInfo.PdrInfo.FarId = farid
+	}
+	if qerid, err := pdr.QERID(); err == nil {
+		spdrInfo.PdrInfo.QerId = qerid
+	}
+	pdi, err := pdr.PDI()
+	if err != nil {
+		log.Print(err)
+		return SPDRInfo{}, 0, nil, err
+	}
+	return spdrInfo, pdrId, pdi, nil
 }
