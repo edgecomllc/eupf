@@ -14,8 +14,9 @@ command:
   - /bin/sh
   - -c
   - |
-      set -x ; ip rule add from 10.1.0.0/16 lookup 111; \
-      ip route add default via 10.100.100.1 dev n6 table 111 ;\
+      set -x ; mkdir /etc/iproute2 ; echo "111 fromn3gtp" >> /etc/iproute2/rt_tables ; \
+      ip rule add from 10.1.0.0/16 lookup fromn3gtp; \
+      ip route add default via 10.100.100.1 dev n6 table fromn3gtp ;\
       /app/bin/eupf $0 $@
 
 args:

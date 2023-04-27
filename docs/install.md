@@ -130,7 +130,7 @@ check that the module is loaded:
 		--wait --timeout 100s --create-namespace
 	```
 
-0. create susbscriber in free5gc via WebUI
+0. create subscriber in free5gc via WebUI
 
    redirect port from webui pod to localhost
 
