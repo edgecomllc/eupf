@@ -126,9 +126,11 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 ## Quick start guide
 
-Read [documentation about install with Open5GS or Free5GC core](./docs/install.md)
+Read [eUPF intallation guide with Open5GS or Free5GC core](./docs/install.md)
 
-Read [documentation about metrics and monitoring](./docs/metrics.md)
+Read [eUPF configuration guide](./docs/Config.md)
+
+Read [documentation about eUPF metrics and monitoring](./docs/metrics.md)
 
 ## Contribution
 
