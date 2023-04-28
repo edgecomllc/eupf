@@ -3,7 +3,8 @@
 ## To run eUPF you must have:
 
 - kubernetes cluster
-- deployed 5g core (open5gs or free5gc)
+- deployed 5g core (open5gs or free5gc or any other)
+- deployed UE and RAN (euransim or any other)
 
 ## Requirements for a Kubernetes cluster:
 
@@ -14,7 +15,7 @@ cluster should have:
 
 in our environments, we use one node Kubernetes cluster deployed by [kubespray](https://github.com/kubernetes-sigs/kubespray). You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible)
 
-## How to deploy open5gs core:
+## How to deploy eUPF with open5gs core:
 
 ### deploy
 
@@ -64,7 +65,7 @@ in our environments, we use one node Kubernetes cluster deployed by [kubespray](
 helm delete open5gs ueransim edgecomllc-eupf -n open5gs
 ```
 
-## How to deploy free5gc core
+## How to deploy eUPF with free5gc core
 
 ### prepare Kubernetes nodes
 
