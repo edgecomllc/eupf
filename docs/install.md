@@ -243,3 +243,210 @@ UE can send packet to internet and get response
    <b>expected result:</b>
 
    ping command successful
+
+# Information for troubleshooting
+
+To see debug log from eBPF programs, at the **node** console start command:
+`sudo cat /sys/kernel/debug/tracing/trace_pipe`
+
+Then switch to UE pod's shell. Sending a single packet `ping -I uesimtun0 -c1 1.1.1.1` with successfull responce, normally you will see such debug output:
+```ruby
+sergo@edgecom:~$ sudo cat /sys/kernel/debug/tracing/trace_pipe
+
+          nr-gnb-4117277 [003] d.s11 266111.395788: bpf_trace_printk: upf: gtp-u received
+          nr-gnb-4117277 [003] d.s11 266111.395819: bpf_trace_printk: upf: gtp pdu [ 10.100.50.236 -> 10.100.50.233 ]
+          nr-gnb-4117277 [003] d.s11 266111.395825: bpf_trace_printk: upf: uplink session for teid:1 far:1 headrm:0
+          nr-gnb-4117277 [003] d.s11 266111.395828: bpf_trace_printk: upf: far:1 action:2 outer_header_creation:0
+          nr-gnb-4117277 [003] d.s11 266111.395831: bpf_trace_printk: upf: qer:1 gate_status:0 mbr:200000000
+          nr-gnb-4117277 [003] d.s11 266111.395857: bpf_trace_printk: upf: bpf_fib_lookup 10.1.0.1 -> 1.1.1.1: nexthop: 10.100.100.1
+          nr-gnb-4117277 [003] d.s11 266111.395861: bpf_trace_printk: upf: bpf_redirect: if=6 18446669071770913972 -> 18446669071770913978
+          <idle>-0       [007] d.s.1 266111.396975: bpf_trace_printk: upf: downlink session for ip:10.1.0.1  far:2 action:2
+          <idle>-0       [007] dNs.1 266111.396983: bpf_trace_printk: upf: qer:0 gate_status:0 mbr:0
+          <idle>-0       [007] dNs.1 266111.396985: bpf_trace_printk: upf: use mapping 10.1.0.1 -> TEID:1
+          <idle>-0       [007] dNs.1 266111.396987: bpf_trace_printk: upf: send gtp pdu 10.100.50.233 -> 10.100.50.236
+          <idle>-0       [007] dNs.1 266111.396996: bpf_trace_printk: upf: bpf_fib_lookup 10.100.50.233 -> 10.100.50.236: nexthop: 10.100.50.236
+          <idle>-0       [007] dNs.1 266111.396998: bpf_trace_printk: upf: bpf_redirect: if=4 18446669071771765924 -> 18446669071771765930
+```
+
+## Components logs then successfully connected:
+<details><summary>eUPF successfull connections log output (stdout)</summary>
+<p>
+
+```ruby
+2023/04/17 16:09:39 map[api_address::8080 interface_name:n3 metrics_address::9090 pfcp_address::8805 pfcp_node_id:10.100.50.241 xdp_attach_mode:generic]
+2023/04/17 16:09:39 {n3 generic :8080 :8805 10.100.50.241 :9090}
+2023/04/17 16:09:40 Attached XDP program to iface "n3" (index 4)
+2023/04/17 16:09:40 Press Ctrl-C to exit and remove the program
+2023/04/17 16:09:40 Start PFCP connection: :8805
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:    export GIN_MODE=release
+ - using code:    gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /upf_pipeline             --> main.CreateApiServer.func1 (3 handlers)
+[GIN-debug] GET    /qer_map                  --> main.CreateApiServer.func2 (3 handlers)
+[GIN-debug] GET    /pfcp_associations        --> main.CreateApiServer.func3 (3 handlers)
+[GIN-debug] GET    /config                   --> main.CreateApiServer.func4 (3 handlers)
+[GIN-debug] GET    /xdp_stats                --> main.CreateApiServer.func5 (3 handlers)
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8080
+2023/04/17 16:11:13 Received 30 bytes from 10.100.50.244:8805
+2023/04/17 16:11:13 Handling PFCP message from 10.100.50.244:8805
+2023/04/17 16:11:13 Got Association Setup Request from: 10.100.50.244:8805. 
+2023/04/17 16:11:13 
+Association Setup Request:
+  Node ID: 10.100.50.244
+  Recovery Time: 2023-04-17 16:11:13 +0000 UTC
+2023/04/17 16:11:13 Saving new association: {ID:10.100.50.244 Addr:10.100.50.244:8805 NextSessionID:1 Sessions:map[]}
+2023/04/17 16:11:50 Received 287 bytes from 10.100.50.244:8805
+2023/04/17 16:11:50 Handling PFCP message from 10.100.50.244:8805
+2023/04/17 16:11:50 Got Session Establishment Request from: 10.100.50.244:8805.
+2023/04/17 16:11:50 
+Session Establishment Request:
+  CreatePDR ID: 1 
+    Outer Header Removal: 0 
+    FAR ID: 1 
+    Source Interface: 0 
+    TEID: 1 
+    Ipv4: 10.100.50.233 
+    Ipv6: <nil> 
+  CreatePDR ID: 2 
+    FAR ID: 2 
+    Source Interface: 2 
+    UE IPv4 Address: 10.1.0.1 
+  CreateFAR ID: 1 
+    Apply Action: [2] 
+    Forwarding Parameters:
+      Network Instance: internet 
+  CreateFAR ID: 2 
+    Apply Action: [2] 
+    Forwarding Parameters:
+  CreateQER ID: 1 
+    Gate Status DL: 0 
+    Gate Status UL: 0 
+    Max Bitrate DL: 100000 
+    Max Bitrate UL: 200000 
+    QFI: 9 
+
+2023/04/17 16:11:50 
+Session Establishment Request:
+  CreatePDR ID: 1 
+    Outer Header Removal: 0 
+    FAR ID: 1 
+    Source Interface: 0 
+    TEID: 1 
+    Ipv4: 10.100.50.233 
+    Ipv6: <nil> 
+  CreatePDR ID: 2 
+    FAR ID: 2 
+    Source Interface: 2 
+    UE IPv4 Address: 10.1.0.1 
+  CreateFAR ID: 1 
+    Apply Action: [2] 
+    Forwarding Parameters:
+      Network Instance: internet 
+  CreateFAR ID: 2 
+    Apply Action: [2] 
+    Forwarding Parameters:
+  CreateQER ID: 1 
+    Gate Status DL: 0 
+    Gate Status UL: 0 
+    Max Bitrate DL: 100000 
+    Max Bitrate UL: 200000 
+    QFI: 9 
+2023/04/17 16:11:50 WARN: No OuterHeaderCreation
+2023/04/17 16:11:50 Saving FAR info to session: 1, {Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0 LocalIP:0}
+2023/04/17 16:11:50 EBPF: Put FAR: i=1, farInfo={Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0 LocalIP:0}
+2023/04/17 16:11:50 Saving FAR info to session: 2, {Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0 LocalIP:0}
+2023/04/17 16:11:50 EBPF: Put FAR: i=2, farInfo={Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0 LocalIP:0}
+2023/04/17 16:11:50 Saving uplink PDR info to session: 1, {PdrInfo:{OuterHeaderRemoval:0 FarId:1} Teid:1 Ipv4:<nil>}
+2023/04/17 16:11:50 EBPF: Put PDR Uplink: teid=1, pdrInfo={OuterHeaderRemoval:0 FarId:1}
+2023/04/17 16:11:50 Saving downlink PDR info to session: 2, {PdrInfo:{OuterHeaderRemoval:0 FarId:2} Teid:0 Ipv4:10.1.0.1}
+2023/04/17 16:11:50 EBPF: Put PDR Downlink: ipv4=10.1.0.1, pdrInfo={OuterHeaderRemoval:0 FarId:2}
+2023/04/17 16:11:50 Saving QER info to session: 1, {GateStatusUL:0 GateStatusDL:0 Qfi:9 MaxBitrateUL:200000 MaxBitrateDL:100000}
+2023/04/17 16:11:50 Creating QER ID: 1, QER Info: {GateStatusUL:0 GateStatusDL:0 Qfi:9 MaxBitrateUL:200000 MaxBitrateDL:100000}
+2023/04/17 16:11:50 EBPF: Put QER: i=1, qerInfo={GateStatusUL:0 GateStatusDL:0 Qfi:9 MaxBitrateUL:200000 MaxBitrateDL:100000}
+2023/04/17 16:11:50 Received 148 bytes from 10.100.50.244:8805
+2023/04/17 16:11:50 Handling PFCP message from 10.100.50.244:8805
+2023/04/17 16:11:50 Got Session Modification Request from: 10.100.50.244:8805. 
+2023/04/17 16:11:50 Finding association for 10.100.50.244:8805
+2023/04/17 16:11:50 Finding session 2
+2023/04/17 16:11:50 
+Session Modification Request:
+  UpdatePDR ID: 2 
+    FAR ID: 2 
+    Source Interface: 2 
+    UE IPv4 Address: 10.1.0.1 
+  UpdateFAR ID: 2 
+    Apply Action: [2] 
+    Forwarding Parameters:
+2023/04/17 16:11:50 Updating FAR info: 2, {Action:2 OuterHeaderCreation:1 Teid:2 RemoteIP:3962725386 LocalIP:0}
+2023/04/17 16:11:50 EBPF: Update FAR: i=2, farInfo={Action:2 OuterHeaderCreation:1 Teid:2 RemoteIP:3962725386 LocalIP:0}
+2023/04/17 16:11:50 Updating downlink PDR: 2, {PdrInfo:{OuterHeaderRemoval:0 FarId:2} Teid:0 Ipv4:10.1.0.1}
+2023/04/17 16:11:50 EBPF: Update PDR Downlink: ipv4=10.1.0.1, pdrInfo={OuterHeaderRemoval:0 FarId:2}
+Stream closed EOF for free5gc/edgecomllc-eupf-universal-chart-d4b54d4b7-t2hr6 (app)
+```
+
+</p>
+</details> 
+
+<details><summary>SMF free5gc successfull connection log (stdout)</summary>
+<p>
+
+```ruby
+2023-04-17T16:11:13Z [INFO][SMF][CFG] SMF config version [1.0.2]
+2023-04-17T16:11:13Z [INFO][SMF][CFG] UE-Routing config version [1.0.1]
+2023-04-17T16:11:13Z [INFO][SMF][Init] SMF Log level is set to [info] level
+2023-04-17T16:11:13Z [INFO][LIB][NAS] set log level : info
+2023-04-17T16:11:13Z [INFO][LIB][NAS] set report call : false
+2023-04-17T16:11:13Z [INFO][LIB][NGAP] set log level : info
+2023-04-17T16:11:13Z [INFO][LIB][NGAP] set report call : false
+2023-04-17T16:11:13Z [INFO][LIB][Aper] set log level : info
+2023-04-17T16:11:13Z [INFO][LIB][Aper] set report call : false
+2023-04-17T16:11:13Z [INFO][LIB][PFCP] set log level : info
+2023-04-17T16:11:13Z [INFO][LIB][PFCP] set report call : false
+2023-04-17T16:11:13Z [INFO][SMF][App] smf
+2023-04-17T16:11:13Z [INFO][SMF][App] SMF version:  
+    free5GC version: v3.2.1
+    build time:      2023-03-13T18:13:22Z
+    commit hash:     de70bf6c
+    commit time:     2022-06-28T04:52:40Z
+    go version:      go1.14.4 linux/amd64
+2023-04-17T16:11:13Z [INFO][SMF][CTX] smfconfig Info: Version[1.0.2] Description[SMF initial local configuration]
+2023-04-17T16:11:13Z [INFO][SMF][CTX] Endpoints: [10.100.50.233]
+2023-04-17T16:11:13Z [INFO][SMF][Init] Server started
+2023-04-17T16:11:13Z [INFO][SMF][Init] SMF Registration to NRF {4892acc3-b6b3-418f-b791-f2b300277fe9 SMF REGISTERED 0 0xc00024f480 0xc00024f4c0 [] []   [free5gc-free5gc-smf-service] [] <nil> [] [] <nil> 0 0 0 area1 <nil> <nil> <nil> <nil> 0xc00002ee40 <nil> <nil> <nil> <nil> <nil> map[] <nil> false 0xc00024f300 false false []}
+2023-04-17T16:11:13Z [INFO][SMF][PFCP] Listen on 10.100.50.244:8805
+2023-04-17T16:11:13Z [INFO][SMF][App] Sending PFCP Association Request to UPF[10.100.50.241]
+2023-04-17T16:11:13Z [INFO][LIB][PFCP] Remove Request Transaction [1]
+2023-04-17T16:11:13Z [INFO][SMF][App] Received PFCP Association Setup Accepted Response from UPF[10.100.50.241]
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] Receive Create SM Context Request
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] In HandlePDUSessionSMContextCreate
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] Send NF Discovery Serving UDM Successfully
+2023-04-17T16:11:50Z [INFO][SMF][CTX] Allocated UE IP address: 10.1.0.1
+2023-04-17T16:11:50Z [INFO][SMF][CTX] Selected UPF: UPF
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] UE[imsi-208930000000003] PDUSessionID[1] IP[10.1.0.1]
+2023-04-17T16:11:50Z [INFO][SMF][GSM] In HandlePDUSessionEstablishmentRequest
+2023-04-17T16:11:50Z [INFO][NAS][Convert] ProtocolOrContainerList:  [0xc0004aaa80 0xc0004aaac0]
+2023-04-17T16:11:50Z [INFO][SMF][GSM] Protocol Configuration Options
+2023-04-17T16:11:50Z [INFO][SMF][GSM] &{[0xc0004aaa80 0xc0004aaac0]}
+2023-04-17T16:11:50Z [INFO][SMF][GSM] Didn't Implement container type IPAddressAllocationViaNASSignallingUL
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] PCF Selection for SMContext SUPI[imsi-208930000000003] PDUSessionID[1]
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] SUPI[imsi-208930000000003] has no pre-config route
+2023-04-17T16:11:50Z [INFO][SMF][Consumer] SendNFDiscoveryServingAMF ok
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] Sending PFCP Session Establishment Request
+2023-04-17T16:11:50Z [INFO][SMF][GIN] | 201 |   10.233.78.130 | POST    | /nsmf-pdusession/v1/sm-contexts |
+2023-04-17T16:11:50Z [INFO][LIB][PFCP] Remove Request Transaction [2]
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] Received PFCP Session Establishment Accepted Response
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] Receive Update SM Context Request
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] In HandlePDUSessionSMContextUpdate
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] Sending PFCP Session Modification Request to AN UPF
+2023-04-17T16:11:50Z [INFO][LIB][PFCP] Remove Request Transaction [3]
+2023-04-17T16:11:50Z [INFO][SMF][PduSess] Received PFCP Session Modification Accepted Response from AN UPF
+2023-04-17T16:11:50Z [INFO][SMF][GIN] | 200 |   10.233.78.130 | POST    | /nsmf-pdusession/v1/sm-contexts/urn:uuid:6dffeab5-0861-490d-8cb0-f5528e8e21a9/modify |
+```
+
+</p>
+</details> 
