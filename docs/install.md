@@ -16,7 +16,7 @@ cluster should have:
 
 in our environments, we use one node Kubernetes cluster deployed by [kubespray](https://github.com/kubernetes-sigs/kubespray). You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible)
 
-We have prepared templates to deploy with two opensource environments: open5gs and free5gc, for you to choose. Both with UERANSIM project emulating radio endpoint, so you'll be able to check end-to-end connectivity. 
+We have prepared templates to deploy with two opensource environments: open5gs and free5gc, for you to choose. Both with [UERANSIM](https://github.com/aligungr/UERANSIM) project emulating radio endpoint, so you'll be able to check end-to-end connectivity. 
 
 ## How to deploy eUPF with open5gs core:
 <details><summary>Instructions</summary>
@@ -79,10 +79,8 @@ For more details refer to openverso-charts [Open5gs and UERANSIM](https://gradia
 </details> 
 
 ## How to deploy eUPF with free5gc core
-<details><summary>Instructions</summary>
-<p>
 
-### prepare Kubernetes nodes
+### Prepare nodes
 
 You should compile and install gtp5g kernel module on every worker node:
 
@@ -98,7 +96,10 @@ check that the module is loaded:
 
 `lsmod | grep ^gtp5g`
 
-### deploy
+<details><summary>Instruction for Kubernetes</summary>
+<p>
+
+### Deploy in Kubernetes cluster
 
 0. [install helm](https://helm.sh/docs/intro/install/) if it's not
 0. add towards5gs helm repo
@@ -169,6 +170,31 @@ The only added is ptp type interface `n6` as a door to the outer world for our e
 </p>
 </details> 
 </p>
+
+<details><summary>Instruction to deploy as docker-compose</summary>
+<p>
+
+### Deploy as docker-compose
+Prerequisites
+
+- Prepared [GTP5G kernel module](https://github.com/free5gc/gtp5g): needed to run the UPF
+- [Docker Engine](https://docs.docker.com/engine/install): needed to run the Free5GC containers
+- [Docker Compose v2](https://docs.docker.com/compose/install): needed to bootstrap the free5GC stack
+
+0. pull repository: `git clone https://github.com/edgecomllc/free5gc-compose.git`
+0. Run containers based on docker hub images:
+   ```bash
+   cd free5gc-compose
+   docker compose pull
+   docker compose up -d 
+   ```
+### To undeploy everything
+   ```
+   docker compose rm
+   ```
+</p>
+</details> 
+
 
 ## Option NAT at the node
 eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
