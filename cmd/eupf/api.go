@@ -58,6 +58,7 @@ func CreateApiServer(bpfObjects *BpfObjects, pfcp_srv *PfcpConnection, forwardPl
 	return &ApiServer{router: router}
 }
 
-func (server *ApiServer) Run(addr string) {
-	server.router.Run(addr)
+func (server *ApiServer) Run(addr string) error {
+	err := server.router.Run(addr)
+	return err
 }

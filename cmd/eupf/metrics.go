@@ -44,14 +44,13 @@ var (
 	}, []string{"message_type"})
 )
 
-func StartMetrics(addr string) {
+func StartMetrics(addr string) error {
 	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(addr, nil)
+	err := http.ListenAndServe(addr, nil)
+	return err
 }
 
-// Register eBPF metrics
 func RegisterMetrics(stats UpfXdpActionStatistic) {
-
 	// Metrics for the upf_xdp_statistic (xdp_action)
 	UpfXdpAborted = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_aborted",
@@ -94,7 +93,7 @@ func RegisterMetrics(stats UpfXdpActionStatistic) {
 	prometheus.MustRegister(UpfXdpTx)
 	prometheus.MustRegister(UpfXdpRedirect)
 
-	// Used for getting diffrence between two counters to increment the prometheus counter (counters cannot be written only incremented)
+	// Used for getting difference between two counters to increment the prometheus counter (counters cannot be written only incremented)
 	var prevUpfCounters UpfCounters
 	go func() {
 		time.Sleep(2 * time.Second)

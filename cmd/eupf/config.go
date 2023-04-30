@@ -40,13 +40,14 @@ func LoadConfig() error {
 	pflag.String("n3addr", "", "Address for communication over N3 interface")
 	pflag.Parse()
 
-	viper.BindPFlag("interface_name", pflag.Lookup("iface"))
-	viper.BindPFlag("xdp_attach_mode", pflag.Lookup("attach"))
-	viper.BindPFlag("api_address", pflag.Lookup("aaddr"))
-	viper.BindPFlag("pfcp_address", pflag.Lookup("paddr"))
-	viper.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
-	viper.BindPFlag("metrics_address", pflag.Lookup("maddr"))
-	viper.BindPFlag("n3_address", pflag.Lookup("n3addr"))
+	// Bind flag errors only when flag is nil, and we ignore empty cli args
+	_ = viper.BindPFlag("interface_name", pflag.Lookup("iface"))
+	_ = viper.BindPFlag("xdp_attach_mode", pflag.Lookup("attach"))
+	_ = viper.BindPFlag("api_address", pflag.Lookup("aaddr"))
+	_ = viper.BindPFlag("pfcp_address", pflag.Lookup("paddr"))
+	_ = viper.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
+	_ = viper.BindPFlag("metrics_address", pflag.Lookup("maddr"))
+	_ = viper.BindPFlag("n3_address", pflag.Lookup("n3addr"))
 
 	viper.SetDefault("interface_name", "lo")
 	viper.SetDefault("xdp_attach_mode", "generic")
