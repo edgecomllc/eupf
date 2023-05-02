@@ -16,35 +16,35 @@ type PdrInfo struct {
 	QerId              uint32
 }
 
-func (o *BpfObjects) PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error {
+func (bpfObjects *BpfObjects) PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error {
 	log.Printf("EBPF: Put PDR Uplink: teid=%d, pdrInfo=%+v", teid, pdrInfo)
-	return o.ip_entrypointMaps.PdrMapUplinkIp4.Put(teid, unsafe.Pointer(&pdrInfo))
+	return bpfObjects.ip_entrypointMaps.PdrMapUplinkIp4.Put(teid, unsafe.Pointer(&pdrInfo))
 }
 
-func (o *BpfObjects) PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
+func (bpfObjects *BpfObjects) PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
 	log.Printf("EBPF: Put PDR Downlink: ipv4=%s, pdrInfo=%+v", ipv4, pdrInfo)
-	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Put(ipv4, unsafe.Pointer(&pdrInfo))
+	return bpfObjects.ip_entrypointMaps.PdrMapDownlinkIp4.Put(ipv4, unsafe.Pointer(&pdrInfo))
 }
 
-func (o *BpfObjects) UpdatePdrUpLink(teid uint32, pdrInfo PdrInfo) error {
+func (bpfObjects *BpfObjects) UpdatePdrUpLink(teid uint32, pdrInfo PdrInfo) error {
 	log.Printf("EBPF: Update PDR Uplink: teid=%d, pdrInfo=%+v", teid, pdrInfo)
-	return o.ip_entrypointMaps.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&pdrInfo), ebpf.UpdateExist)
+	return bpfObjects.ip_entrypointMaps.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&pdrInfo), ebpf.UpdateExist)
 }
 
-func (o *BpfObjects) UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
+func (bpfObjects *BpfObjects) UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
 	log.Printf("EBPF: Update PDR Downlink: ipv4=%s, pdrInfo=%+v", ipv4, pdrInfo)
-	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(&pdrInfo), ebpf.UpdateExist)
+	return bpfObjects.ip_entrypointMaps.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(&pdrInfo), ebpf.UpdateExist)
 }
 
-func (o *BpfObjects) DeletePdrUpLink(teid uint32) error {
+func (bpfObjects *BpfObjects) DeletePdrUpLink(teid uint32) error {
 	log.Printf("EBPF: Delete PDR Uplink: teid=%d", teid)
-	return o.ip_entrypointMaps.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&PdrInfo{}), ebpf.UpdateExist)
+	return bpfObjects.ip_entrypointMaps.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&PdrInfo{}), ebpf.UpdateExist)
 	//return o.ip_entrypointMaps.PdrMapUplinkIp4.Delete(teid)
 }
 
-func (o *BpfObjects) DeletePdrDownLink(ipv4 net.IP) error {
+func (bpfObjects *BpfObjects) DeletePdrDownLink(ipv4 net.IP) error {
 	log.Printf("EBPF: Delete PDR Downlink: ipv4=%s", ipv4)
-	return o.ip_entrypointMaps.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(&PdrInfo{}), ebpf.UpdateExist)
+	return bpfObjects.ip_entrypointMaps.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(&PdrInfo{}), ebpf.UpdateExist)
 	//return o.ip_entrypointMaps.PdrMapDownlinkIp4.Delete(ipv4)
 }
 
@@ -56,19 +56,19 @@ type FarInfo struct {
 	LocalIP             uint32
 }
 
-func (o *BpfObjects) PutFar(i uint32, farInfo FarInfo) error {
+func (bpfObjects *BpfObjects) PutFar(i uint32, farInfo FarInfo) error {
 	log.Printf("EBPF: Put FAR: i=%d, farInfo=%+v", i, farInfo)
-	return o.ip_entrypointMaps.FarMap.Put(i, unsafe.Pointer(&farInfo))
+	return bpfObjects.ip_entrypointMaps.FarMap.Put(i, unsafe.Pointer(&farInfo))
 }
 
-func (o *BpfObjects) UpdateFar(i uint32, farInfo FarInfo) error {
+func (bpfObjects *BpfObjects) UpdateFar(i uint32, farInfo FarInfo) error {
 	log.Printf("EBPF: Update FAR: i=%d, farInfo=%+v", i, farInfo)
-	return o.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&farInfo), ebpf.UpdateExist)
+	return bpfObjects.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&farInfo), ebpf.UpdateExist)
 }
 
-func (o *BpfObjects) DeleteFar(i uint32) error {
+func (bpfObjects *BpfObjects) DeleteFar(i uint32) error {
 	log.Printf("EBPF: Delete FAR: i=%d", i)
-	return o.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
+	return bpfObjects.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
 	//return o.ip_entrypointMaps.FarMap.Delete(i)
 }
 
@@ -82,19 +82,19 @@ type QerInfo struct {
 	StartDL      uint64
 }
 
-func (o *BpfObjects) PutQer(i uint32, qerInfo QerInfo) error {
+func (bpfObjects *BpfObjects) PutQer(i uint32, qerInfo QerInfo) error {
 	log.Printf("EBPF: Put QER: i=%d, qerInfo=%+v", i, qerInfo)
-	return o.ip_entrypointMaps.QerMap.Put(i, unsafe.Pointer(&qerInfo))
+	return bpfObjects.ip_entrypointMaps.QerMap.Put(i, unsafe.Pointer(&qerInfo))
 }
 
-func (o *BpfObjects) UpdateQer(i uint32, qerInfo QerInfo) error {
+func (bpfObjects *BpfObjects) UpdateQer(i uint32, qerInfo QerInfo) error {
 	log.Printf("EBPF: Update QER: i=%d, qerInfo=%+v", i, qerInfo)
-	return o.ip_entrypointMaps.QerMap.Update(i, unsafe.Pointer(&qerInfo), ebpf.UpdateExist)
+	return bpfObjects.ip_entrypointMaps.QerMap.Update(i, unsafe.Pointer(&qerInfo), ebpf.UpdateExist)
 }
 
-func (o *BpfObjects) DeleteQer(i uint32) error {
+func (bpfObjects *BpfObjects) DeleteQer(i uint32) error {
 	log.Printf("EBPF: Delete QER: i=%d", i)
-	return o.ip_entrypointMaps.QerMap.Update(i, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
+	return bpfObjects.ip_entrypointMaps.QerMap.Update(i, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
 }
 
 type ForwardingPlaneController interface {

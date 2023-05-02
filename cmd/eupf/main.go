@@ -33,27 +33,28 @@ func main() {
 
 	bpfObjects.buildPipeline()
 
-	iface, err := net.InterfaceByName(config.InterfaceName)
-	if err != nil {
-		log.Fatalf("Lookup network iface %q: %s", config.InterfaceName, err)
-	}
+	for _, ifaceName := range config.InterfaceName {
+		iface, err := net.InterfaceByName(ifaceName)
+		if err != nil {
+			log.Fatalf("Lookup network iface %q: %s", ifaceName, err)
+		}
 
-	// Attach the program.
-	l, err := link.AttachXDP(link.XDPOptions{
-		Program:   bpfObjects.UpfIpEntrypointFunc,
-		Interface: iface.Index,
-		Flags:     StringToXDPAttachMode(config.XDPAttachMode),
-	})
-	if err != nil {
-		log.Fatalf("Could not attach XDP program: %s", err)
-	}
-	defer l.Close()
+		// Attach the program.
+		l, err := link.AttachXDP(link.XDPOptions{
+			Program:   bpfObjects.UpfIpEntrypointFunc,
+			Interface: iface.Index,
+			Flags:     StringToXDPAttachMode(config.XDPAttachMode),
+		})
+		if err != nil {
+			log.Fatalf("Could not attach XDP program: %s", err)
+		}
+		defer l.Close()
 
-	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
-	log.Printf("Press Ctrl-C to exit and remove the program")
+		log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
+	}
 
 	// Create PFCP connection
-	var pfcpHandlers PfcpHanderMap = PfcpHanderMap{
+	var pfcpHandlers = PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            handlePfcpHeartbeatRequest,
 		message.MsgTypeAssociationSetupRequest:     handlePfcpAssociationSetupRequest,
 		message.MsgTypeSessionEstablishmentRequest: handlePfcpSessionEstablishmentRequest,
@@ -61,24 +62,34 @@ func main() {
 		message.MsgTypeSessionModificationRequest:  handlePfcpSessionModificationRequest,
 	}
 
-	pfcp_conn, err := CreatePfcpConnection(config.PfcpAddress, pfcpHandlers, config.PfcpNodeId, config.N3Address, bpfObjects)
+	pfcpConn, err := CreatePfcpConnection(config.PfcpAddress, pfcpHandlers, config.PfcpNodeId, config.N3Address, bpfObjects)
 
 	if err != nil {
-		log.Printf("Could not create PFCP connection: %s", err)
+		log.Fatalf("Could not create PFCP connection: %s", err)
 	}
-	go pfcp_conn.Run()
-	defer pfcp_conn.Close()
+	go pfcpConn.Run()
+	defer pfcpConn.Close()
 
 	ForwardPlaneStats := UpfXdpActionStatistic{
 		bpfObjects: bpfObjects,
 	}
 
 	// Start api server
-	api := CreateApiServer(bpfObjects, pfcp_conn, ForwardPlaneStats)
-	go api.Run(config.ApiAddress)
+	api := CreateApiServer(bpfObjects, pfcpConn, ForwardPlaneStats)
+	go func() {
+		err := api.Run(config.ApiAddress)
+		if err != nil {
+			log.Fatalf("Could not start api server: %s", err)
+		}
+	}()
 
 	RegisterMetrics(ForwardPlaneStats)
-	go StartMetrics(config.MetricsAddress)
+	go func() {
+		err := StartMetrics(config.MetricsAddress)
+		if err != nil {
+			log.Fatalf("Could not start metrics server: %s", err)
+		}
+	}()
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()

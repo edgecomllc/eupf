@@ -11,9 +11,9 @@ import (
 
 type PfcpFunc func(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error)
 
-type PfcpHanderMap map[uint8]PfcpFunc
+type PfcpHandlerMap map[uint8]PfcpFunc
 
-func (handlerMap PfcpHanderMap) Handle(conn *PfcpConnection, buf []byte, addr *net.UDPAddr) error {
+func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *net.UDPAddr) error {
 	log.Printf("Handling PFCP message from %s", addr)
 	incomingMsg, err := message.Parse(buf)
 	if err != nil {
@@ -38,7 +38,7 @@ func (handlerMap PfcpHanderMap) Handle(conn *PfcpConnection, buf []byte, addr *n
 	return nil
 }
 
-func handlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+func handlePfcpHeartbeatRequest(_ *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	hbreq := msg.(*message.HeartbeatRequest)
 
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
@@ -70,7 +70,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	}
 	printAssociationSetupRequest(asreq)
 	// Get NodeID
-	remote_nodeID, err := asreq.NodeID.NodeID()
+	remoteNodeID, err := asreq.NodeID.NodeID()
 	if err != nil {
 		log.Printf("Got Association Setup Request with invalid NodeID from: %s", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
@@ -80,8 +80,8 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		return asres, nil
 	}
 	// Check if the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
-	if _, ok := conn.nodeAssociations[remote_nodeID]; ok {
-		log.Printf("Association Setup Request with NodeID: %s from: %s already exists", remote_nodeID, addr)
+	if _, ok := conn.nodeAssociations[remoteNodeID]; ok {
+		log.Printf("Association Setup Request with NodeID: %s from: %s already exists", remoteNodeID, addr)
 		// retain the PFCP sessions that were established with the existing PFCP association and that are requested to be retained, if the PFCP Session Retention Information IE was received in the request; otherwise, delete the PFCP sessions that were established with the existing PFCP association;
 		log.Println("Session retention is not yet implemented")
 	}
@@ -92,7 +92,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	// shall store the Node ID of the CP function as the identifier of the PFCP association;
 	// Create RemoteNode from AssociationSetupRequest
 	remoteNode := NodeAssociation{
-		ID:            remote_nodeID,
+		ID:            remoteNodeID,
 		Addr:          addr.String(),
 		NextSessionID: 1,
 		Sessions:      SessionMap{},
