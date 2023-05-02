@@ -130,7 +130,7 @@ Read [eUPF intallation guide with Open5GS or Free5GC core](./docs/install.md)
 
 Read [eUPF configuration guide](./docs/Config.md)
 
-Read [documentation about eUPF metrics and monitoring](./docs/metrics.md)
+Read [eUPF metrics and monitoring guide](./docs/metrics.md)
 
 ## Contribution
 
