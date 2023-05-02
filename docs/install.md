@@ -181,6 +181,8 @@ Prerequisites
 - [Docker Engine](https://docs.docker.com/engine/install): needed to run the Free5GC containers
 - [Docker Compose v2](https://docs.docker.com/compose/install): needed to bootstrap the free5GC stack
 
+Actually we use vanilla free5gc-docker-compose with some overrides. So you can clone free5gc docker-compose and test free5gc upf, then add edgecom override files and feel the differences of eupf.
+
 0. pull repository: `git clone https://github.com/edgecomllc/free5gc-compose.git`
 0. Run containers based on docker hub images:
    ```bash
@@ -450,3 +452,144 @@ Stream closed EOF for free5gc/edgecomllc-eupf-universal-chart-d4b54d4b7-t2hr6 (a
 
 </p>
 </details> 
+
+<details><summary>UERANSIM UE successfully connection log output:</summary>
+<p>
+
+```ruby
+UERANSIM v3.2.6
+[2023-04-25 14:36:41.461] [nas] [info] UE switches to state [MM-DEREGISTERED/PLMN-SEARCH]
+[2023-04-25 14:36:41.462] [rrc] [warning] Acceptable cell selection failed, no cell is in coverage
+[2023-04-25 14:36:41.462] [rrc] [error] Cell selection failure, no suitable or acceptable cell found
+[2023-04-25 14:36:42.464] [rrc] [debug] New signal detected for cell[1], total [1] cells in coverage
+[2023-04-25 14:36:43.663] [nas] [error] PLMN selection failure, no cells in coverage
+[2023-04-25 14:36:45.865] [nas] [error] PLMN selection failure, no cells in coverage
+[2023-04-25 14:36:46.966] [nas] [info] UE switches to state [MM-DEREGISTERED/NO-CELL-AVAILABLE]
+[2023-04-25 14:36:47.939] [nas] [info] Selected plmn[208/93]
+[2023-04-25 14:36:47.939] [rrc] [info] Selected cell plmn[208/93] tac[1] category[SUITABLE]
+[2023-04-25 14:36:47.940] [nas] [info] UE switches to state [MM-DEREGISTERED/PS]
+[2023-04-25 14:36:47.940] [nas] [info] UE switches to state [MM-DEREGISTERED/NORMAL-SERVICE]
+[2023-04-25 14:36:47.940] [nas] [debug] Initial registration required due to [MM-DEREG-NORMAL-SERVICE]
+[2023-04-25 14:36:47.940] [nas] [debug] UAC access attempt is allowed for identity[0], category[MO_sig]
+[2023-04-25 14:36:47.940] [nas] [debug] Sending Initial Registration
+[2023-04-25 14:36:47.940] [nas] [info] UE switches to state [MM-REGISTER-INITIATED]
+[2023-04-25 14:36:47.940] [rrc] [debug] Sending RRC Setup Request
+[2023-04-25 14:36:47.941] [rrc] [info] RRC connection established
+[2023-04-25 14:36:47.941] [rrc] [info] UE switches to state [RRC-CONNECTED]
+[2023-04-25 14:36:47.941] [nas] [info] UE switches to state [CM-CONNECTED]
+[2023-04-25 14:36:47.993] [nas] [debug] Authentication Request received
+[2023-04-25 14:36:47.994] [nas] [debug] Sending Authentication Failure due to SQN out of range
+[2023-04-25 14:36:48.020] [nas] [debug] Authentication Request received
+[2023-04-25 14:36:48.048] [nas] [debug] Security Mode Command received
+[2023-04-25 14:36:48.048] [nas] [debug] Selected integrity[2] ciphering[0]
+[2023-04-25 14:36:48.137] [nas] [debug] Registration accept received
+[2023-04-25 14:36:48.137] [nas] [info] UE switches to state [MM-REGISTERED/NORMAL-SERVICE]
+[2023-04-25 14:36:48.137] [nas] [debug] Sending Registration Complete
+[2023-04-25 14:36:48.137] [nas] [info] Initial Registration is successful
+[2023-04-25 14:36:48.137] [nas] [debug] Sending PDU Session Establishment Request
+[2023-04-25 14:36:48.137] [nas] [debug] UAC access attempt is allowed for identity[0], category[MO_sig]
+[2023-04-25 14:36:48.447] [nas] [debug] PDU Session Establishment Accept received
+[2023-04-25 14:36:48.447] [nas] [info] PDU Session establishment is successful PSI[1]
+[2023-04-25 14:36:48.478] [app] [info] Connection setup for PDU session[1] is successful, TUN interface[uesimtun0, 10.1.0.1] is up.
+Stream closed EOF for free5gc/ueransim-ue-7f76db59c9-c4ltw (ue)
+```
+
+</p>
+</details> 
+
+<details><summary>UERANSIM UE successfully connected status "<strong>cm-state: CM-CONNECTED</strong>"</summary>
+<p>
+
+Open UE pod's shell. `kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash`
+
+- Command for open5gs openverso: `nr-cli imsi-999700000000001 -e status`
+
+- Command for free5gc towards5gs: `./nr-cli imsi-208930000000003 -e status`
+
+```ruby
+<<K9s-Shell>> Pod: open5gs/ueransim-ueransim-gnb-ues-5b9d9c577b-zwb6d | Container: ues
+bash-5.1# nr-cli imsi-999700000000001 -e status
+cm-state: CM-CONNECTED
+rm-state: RM-REGISTERED
+mm-state: MM-REGISTERED/NORMAL-SERVICE
+5u-state: 5U1-UPDATED
+sim-inserted: true
+selected-plmn: 999/70
+current-cell: 1
+current-plmn: 999/70
+current-tac: 1
+last-tai: PLMN[999/70] TAC[1]
+stored-suci: no-identity
+stored-guti:
+ plmn: 999/70
+ amf-region-id: 0x02
+ amf-set-id: 1
+ amf-pointer: 0
+ tmsi: 0xf9007746
+has-emergency: false
+bash-5.1#
+bash-5.1# ping -I uesimtun0 -c1 1.1.1.1
+PING 1.1.1.1 (1.1.1.1): 56 data bytes
+64 bytes from 1.1.1.1: seq=0 ttl=57 time=2.360 ms
+
+--- 1.1.1.1 ping statistics ---
+1 packets transmitted, 1 packets received, 0% packet loss
+round-trip min/avg/max = 2.360/2.360/2.360 ms
+bash-5.1#
+bash-5.1# traceroute -i uesimtun0 www.google.com
+traceroute to www.google.com (74.125.205.99), 30 hops max, 46 byte packets
+ 1  10.100.111.1 (10.100.111.1)  1.524 ms  1.246 ms  0.928 ms
+ 2  10.0.0.1 (10.0.0.1)  0.946 ms  1.722 ms  1.116 ms
+ 3  172.31.141.1 (172.31.141.1)  1.778 ms  1.990 ms  1.691 ms
+ 4  172.17.23.111 (172.17.23.111)  1.268 ms  1.822 ms  1.535 ms
+ ......
+```
+
+</p>
+</details> 
+
+## Then UE disconnected
+
+<details><summary>UERANSIM UE disconnected:</summary>
+<p>
+
+**cm-state: CM-IDLE**
+```ruby
+root@ueransim-ue-7f76db59c9-c4ltw:/ueransim/build# ./nr-cli imsi-208930000000003 -e status
+cm-state: CM-IDLE
+rm-state: RM-REGISTERED
+mm-state: MM-REGISTERED/NORMAL-SERVICE
+5u-state: 5U1-UPDATED
+sim-inserted: true
+selected-plmn: 208/93
+current-cell: 2
+current-plmn: 208/93
+current-tac: 1
+last-tai: PLMN[208/93] TAC[1]
+stored-suci: no-identity
+stored-guti:
+ plmn: 208/93
+ amf-region-id: 0xca
+ amf-set-id: 1016
+ amf-pointer: 0
+ tmsi: 0x00000001
+has-emergency: false
+root@ueransim-ue-7f76db59c9-c4ltw:/ueransim/build#
+```
+
+Then you can try to reconnect:
+
+- Command for open5gs openverso: `nr-cli imsi-999700000000001 -e "deregister normal"`
+
+- Command for free5gc towards5gs: `./nr-cli imsi-208930000000003 -e "deregister normal"`
+
+UE will send Initial Registration after 10 seconds.
+
+</p>
+</details> 
+
+If connection can not set up, we recommend to restart components in next sequence:
+1. SMF
+1. AMF
+1. UERANSIM GnB
+1. UERANSIM UE
