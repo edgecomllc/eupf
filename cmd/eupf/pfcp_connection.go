@@ -24,36 +24,20 @@ type SPDRInfo struct {
 	Ipv4    net.IP
 }
 
-func (s *Session) CreateUpLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
-	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
-}
-
-func (s *Session) CreateDownLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
-	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
-}
-
-func (s *Session) CreateFAR(id uint32, farInfo FarInfo) {
+func (s *Session) PutFAR(id uint32, farInfo FarInfo) {
 	s.FARs[id] = farInfo
 }
 
-func (s *Session) CreateQER(id uint32, qerInfo QerInfo) {
+func (s *Session) PutQER(id uint32, qerInfo QerInfo) {
 	s.QERs[id] = qerInfo
 }
 
-func (s *Session) UpdateUpLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
+func (s *Session) PutUplinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
 	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
 }
 
-func (s *Session) UpdateDownLinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
+func (s *Session) PutDownlinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
 	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
-}
-
-func (s *Session) UpdateFAR(id uint32, farInfo FarInfo) {
-	s.FARs[id] = farInfo
-}
-
-func (s *Session) UpdateQER(id uint32, qerInfo QerInfo) {
-	s.QERs[id] = qerInfo
 }
 
 func (s *Session) RemoveUplinkPDR(pdrId uint16) {
@@ -90,7 +74,7 @@ func (association *NodeAssociation) NewLocalSEID() uint64 {
 
 type PfcpConnection struct {
 	udpConn          *net.UDPConn
-	pfcpHandlerMap   PfcpHanderMap
+	pfcpHandlerMap   PfcpHandlerMap
 	nodeAssociations NodeAssociationMap
 	nodeId           string
 	nodeAddrV4       net.IP
@@ -98,7 +82,7 @@ type PfcpConnection struct {
 	mapOperations    ForwardingPlaneController
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHanderMap, nodeId string, n3Ip string, mapOperations ForwardingPlaneController) (*PfcpConnection, error) {
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ForwardingPlaneController) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Panicf("Can't resolve UDP address: %s", err)
@@ -155,7 +139,10 @@ func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, e
 }
 
 func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
-	connection.pfcpHandlerMap.Handle(connection, b, addr)
+	err := connection.pfcpHandlerMap.Handle(connection, b, addr)
+	if err != nil {
+		log.Printf("Error handling PFCP message: %s", err)
+	}
 }
 
 func (connection *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error) {

@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// Create PFCP connection
-	var pfcpHandlers PfcpHanderMap = PfcpHanderMap{
+	var pfcpHandlers = PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            handlePfcpHeartbeatRequest,
 		message.MsgTypeAssociationSetupRequest:     handlePfcpAssociationSetupRequest,
 		message.MsgTypeSessionEstablishmentRequest: handlePfcpSessionEstablishmentRequest,
@@ -62,24 +62,34 @@ func main() {
 		message.MsgTypeSessionModificationRequest:  handlePfcpSessionModificationRequest,
 	}
 
-	pfcp_conn, err := CreatePfcpConnection(config.PfcpAddress, pfcpHandlers, config.PfcpNodeId, config.N3Address, bpfObjects)
+	pfcpConn, err := CreatePfcpConnection(config.PfcpAddress, pfcpHandlers, config.PfcpNodeId, config.N3Address, bpfObjects)
 
 	if err != nil {
 		log.Fatalf("Could not create PFCP connection: %s", err)
 	}
-	go pfcp_conn.Run()
-	defer pfcp_conn.Close()
+	go pfcpConn.Run()
+	defer pfcpConn.Close()
 
 	ForwardPlaneStats := UpfXdpActionStatistic{
 		bpfObjects: bpfObjects,
 	}
 
 	// Start api server
-	api := CreateApiServer(bpfObjects, pfcp_conn, ForwardPlaneStats)
-	go api.Run(config.ApiAddress)
+	api := CreateApiServer(bpfObjects, pfcpConn, ForwardPlaneStats)
+	go func() {
+		err := api.Run(config.ApiAddress)
+		if err != nil {
+			log.Fatalf("Could not start api server: %s", err)
+		}
+	}()
 
 	RegisterMetrics(ForwardPlaneStats)
-	go StartMetrics(config.MetricsAddress)
+	go func() {
+		err := StartMetrics(config.MetricsAddress)
+		if err != nil {
+			log.Fatalf("Could not start metrics server: %s", err)
+		}
+	}()
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()

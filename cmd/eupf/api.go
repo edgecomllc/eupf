@@ -122,6 +122,7 @@ func ListUpfPipeline(bpfObjects *BpfObjects) func(c *gin.Context) {
 	}
 }
 
-func (server *ApiServer) Run(addr string) {
-	server.router.Run(addr)
+func (server *ApiServer) Run(addr string) error {
+	err := server.router.Run(addr)
+	return err
 }
