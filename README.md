@@ -14,6 +14,14 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 ## Details about eUPF
 
+eUPF as a part of 5G mobile core network implements data network gateway function. It communicates with SMF via PFCP protocol (N4 interface) and forwards packets between core and data networks(N3 and N6 interfaces correspondingly). These two main UPF parts are implemented in two separate components: control plane and forwarding plane.
+
+The eUPF control plane is an userspace application which receives packet processing rules from SMF and configures forwarding plane for proper forwarding. 
+
+The eUPF forwarding plane is based on eBPF packet processing. When started eUPF adds eBPF XDP hook program in order to process network packets as close to NIC as possible. eBPF program consists of several pipeline steps: determine PDR, apply gating, qos and forwardning rules.
+
+eUPF relies on kernel routing when making routing decision for incomming network packets. When it is not possible to deternime packet route via kernel FIB lookup, eUPF passes such packet to kernel as a fallback path. This approach obviously affects performance but allows maintaining correct kernel routing process (ex., filling arp tables).   
+
 ### eUPF features
 
 <details><summary>3GPP features support</summary>
