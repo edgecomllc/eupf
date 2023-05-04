@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/cilium/ebpf"
 	"golang.org/x/sys/unix"
+	"unsafe"
 )
 
 // IncreaseResourceLimits https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits
@@ -75,15 +76,15 @@ func ListQerMapContents(m *ebpf.Map) ([]QerMapElement, error) {
 
 	contextMap := make([]QerMapElement, 0)
 
-	var key uint32
 	var value QerInfo
-
-	iter := m.Iterate()
-	for iter.Next(&key, &value) {
-		id := key
+	for i := uint32(0); i < 1024; i++ {
+		err := m.Lookup(i, unsafe.Pointer(&value))
+		if err != nil {
+			return nil, err
+		}
 		contextMap = append(contextMap,
 			QerMapElement{
-				Id:           id,
+				Id:           i,
 				GateStatusUL: value.GateStatusUL,
 				GateStatusDL: value.GateStatusDL,
 				Qfi:          value.Qfi,
@@ -91,7 +92,7 @@ func ListQerMapContents(m *ebpf.Map) ([]QerMapElement, error) {
 				MaxBitrateDL: value.MaxBitrateDL,
 			},
 		)
-
 	}
-	return contextMap, iter.Err()
+
+	return contextMap, nil
 }
