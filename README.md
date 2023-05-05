@@ -69,13 +69,20 @@ eUPF relies on kernel routing when making routing decision for incomming network
 - [x]  N3, N4, N6 interfaces 
 - [ ]  N9 interface
 - [x]  Single & Multi-port support
-- [ ]  Monitoring/Debugging capabilties using
-    - tcpdump on individual modules
-    - command line shell interface for displaying statistics
+- [ ]  Monitoring/Debugging capabilties using tcpdump and cli
 - [x]  Static IP routing
 - [ ]  I-UPF/A-UPF ULCL/Branching i.e., simultaneous N6/N9 support within PFCP session
 - [x]  Basic QoS support with per-session rate limiting
  
+### 3GPP compliance
+- [ ]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
+- [ ]  `UEIP` Allocating UE IP addresses or prefixes.
+- [ ]  `SSET` PFCP sessions successively controlled by different SMFs of a same SMF Set.
+- [ ]  `MPAS` Multiple PFCP associations to the SMFs in an SMF set.
+- [ ]  `QFQM` Per QoS flow per UE QoS monitoring. 
+- [ ]  `GPQM` Per GTP-U Path QoS monitoring.
+- [ ]  `RTTWP` RTT measurements towards the UE Without PMF.
+
  </details>
 
 ## Contribution
