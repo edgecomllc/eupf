@@ -13,8 +13,7 @@ we are testing with 2 tools:
 ```bash
 helm upgrade --install \
   iperf3 openverso/iperf3 \
-  --set-string service.type=ClusterIP \
-  --set containerSecurityContext.runAsUser=0 \
+  --values docs/examples/open5gs/iperf.yaml \
   --version 0.1.2 \
   --namespace open5gs \
   --wait --timeout 30s --create-namespace
@@ -127,7 +126,7 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 * check latency (with eUPF) to iperf3 pod
 
 ```bash
-$ mtr --no-dns --report --report-cycles 60 -T -P 5201 -I uesimtun0 iperf3
+$ mtr --no-dns --report --report-cycles 60 -T -P 5201 -I uesimtun0 10.99.0.11
 ?
 ```
 

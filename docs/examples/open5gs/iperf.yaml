@@ -1,0 +1,16 @@
+---
+
+service:
+  type: ClusterIP
+
+containerSecurityContext:
+  runAsUser: 0
+
+podAnnotations:
+  k8s.v1.cni.cncf.io/networks: |
+    [
+      { "name": "edgecomllc-eupf-nat-n6",
+        "interface": "n6",
+        "ips": [ "10.99.0.11/24" ]
+      }
+    ]

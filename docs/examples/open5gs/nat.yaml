@@ -9,7 +9,7 @@ spec:
   #     "cniVersion": "0.3.1",
   #     "name": "edgecomllc-eupf-nat-n6",
   #     "type": "ptp",
-  #     "ipMasq": true,
+  #     "ipMasq": false,
   #     "ipam": {
   #       "type": "host-local",
   #       "subnet": "10.99.0.0/24"
@@ -23,7 +23,15 @@ spec:
       "type": "bridge",
       "bridge": "eupf-n6",
       "ipMasq": false,
-      "ipam": { "type": "static" }
+      "ipam": {
+        "type": "static",
+        "routes": [
+          {
+            "dst": "10.45.0.0/16",
+            "gw": "10.99.0.10"
+          }
+        ]
+      }
     }
 ---
 apiVersion: v1
@@ -40,7 +48,7 @@ data:
 
     set -x
 
-    ip ro add 10.45.0.0/16 via 10.99.0.10
+    # ip ro add 10.45.0.0/16 via 10.99.0.10
     iptables -t nat -A POSTROUTING -s 10.45.0.0/16 -o eth0 -j MASQUERADE
 
     set +x
