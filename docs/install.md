@@ -28,22 +28,35 @@ We have prepared templates to deploy with two opensource environments: **open5gs
    helm repo update
    ```
 
-* install nat instance
+* install eUPF chart
+
+   option 1 (host nat):
+
+   📝 Here we use subnet `10.100.111.0/24` for n6 interface as exit to the world, so make sure it's not occupied at your node host.
+
+   ```powershell
+   helm upgrade --install \
+      edgecomllc-eupf .deploy/helm/universal-chart \
+      --values docs/examples/open5gs/eupf-host-nat.yaml \
+      -n open5gs \
+      --wait --timeout 100s --create-namespace
+   ```
+
+   option 2 (container nat):
+
+   📝 Here we use separate container for NAT:
 
    ```
    kubectl apply -f docs/examples/open5gs/nat.yaml
    ```
 
-* install eUPF chart
-
    ```powershell
    helm upgrade --install \
       edgecomllc-eupf .deploy/helm/universal-chart \
-      --values docs/examples/open5gs/eupf.yaml \
+      --values docs/examples/open5gs/eupf-container-nat.yaml \
       -n open5gs \
       --wait --timeout 100s --create-namespace
    ```
-   📝Here we use subnet `10.100.111.0/24` for n6 interface as exit to the world, so make sure it's not occupied at your node host.
 
 * install open5gs chart
 
