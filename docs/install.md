@@ -1,24 +1,18 @@
-# How to Install and run eUPF
-The easyest way is to use our docker container image. And simple deploy by our helm charts in your kubernetes cluster.
+# How to install and run eUPF
+The easyest way to install eUPF is to use helm charts for one of the supported opensource 5G core projects in your own kubernetes cluster.
+Alternatively, eUPF could be deployed in docker-compose(free5gc only at the moment).
 
-So, to run eUPF you must have:
+## Kubenetes environment
 
-- kubernetes cluster
+- Kubernetes cluster with Calico and Multus CNI
 - [helm](https://helm.sh/docs/intro/install/) installed
 <!-- - deployed 5g core (open5gs or free5gc) -->
 
+in our environments, we use one node K8s cluster deployed by means of [kubespray](https://github.com/kubernetes-sigs/kubespray). You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible)
 
-## Requirements for a Kubernetes cluster:
+We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose. 
 
-cluster should have:
-
-- Calico CNI
-- Multus CNI
-
-in our environments, we use one node Kubernetes cluster deployed by [kubespray](https://github.com/kubernetes-sigs/kubespray). You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible)
-
-We have prepared templates to deploy with two opensource environments: open5gs and free5gc, for you to choose. Both with [UERANSIM](https://github.com/aligungr/UERANSIM) project emulating radio endpoint, so you'll be able to check end-to-end connectivity. 
-
+[UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity. 
 
 ## How to deploy eUPF with open5gs core:
 <details><summary>Instructions</summary>
@@ -81,7 +75,9 @@ For more details refer to openverso-charts [Open5gs and UERANSIM](https://gradia
 </details> 
 
 ## How to deploy eUPF with free5gc core
-
+<details><summary>Instruction</summary>
+<p>
+	
 ### Prepare nodes
 
 You should compile and install gtp5g kernel module on every worker node:
@@ -98,10 +94,11 @@ check that the module is loaded:
 
 `lsmod | grep ^gtp5g`
 
-<details><summary>Instruction for Kubernetes</summary>
-<p>
-
 ### Deploy in Kubernetes cluster
+	
+Deployment configuration is derived from towards5gs-helm project [Setup free5gc](https://github.com/Orange-OpenSource/towards5gs-helm/blob/main/docs/demo/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM.md)
+![Architecture](pictures/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM-Architecture.png)
+	
 
 0. [install helm](https://helm.sh/docs/intro/install/) if it's not
 0. add towards5gs helm repo
@@ -164,14 +161,11 @@ helm delete free5gc ueransim edgecomllc-eupf -n free5gc
 📝 Pod's interconnection. towards5gs-helm uses separate subnets with ipvlan type interfaces with internal addressing.
 The only added is ptp type interface `n6` as a door to the outer world for our eUPF. 
 
-
-### Architecture is nested from towards5gs-helm project [Setup free5gc](https://github.com/Orange-OpenSource/towards5gs-helm/blob/main/docs/demo/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM.md)
-![Architecture](pictures/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM-Architecture.png)
-
-
 </p>
 </details> 
 </p>
+
+## How to deploy eUPF with free5gc core (docker-compose)
 
 <details><summary>Instruction to deploy as docker-compose</summary>
 <p>
