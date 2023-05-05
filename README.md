@@ -77,9 +77,8 @@ eUPF relies on kernel routing when making routing decision for incomming network
 - [x]  Open5gs compatibility
 - [x]  Integration with Prometheus for exporting PFCP and data plane-level metrics
 - [ ]  Monitoring/Debugging capabilties using tcpdump and cli
-- [ ]  
 
-### 3GPP compliance
+### 3GPP specs compatibility
 - [ ]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
 - [ ]  `UEIP` Allocating UE IP addresses or prefixes.
 - [ ]  `SSET` PFCP sessions successively controlled by different SMFs of a same SMF Set.
