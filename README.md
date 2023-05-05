@@ -45,6 +45,7 @@ eUPF relies on kernel routing when making routing decision for incomming network
 
 - Only one PDR in PFCP session per direction
 - Only single FAR supported
+- Only XDP generic mode
 
 ### Packet forwarding pipeline
 
@@ -55,25 +56,29 @@ eUPF relies on kernel routing when making routing decision for incomming network
 
 <details><summary>Show me</summary>
 
-### Controlplane Layer
+### Control plane
 
 - [x]  PFCP Association Setup/Release and Heartbeats
 - [x]  Session Establishment/Modification with support for PFCP entities such as Packet Detection Rules (PDRs), Forwarding Action Rules (FARs), QoS Enforcement Rules (QERs).
 - [ ]  UPF-initiated PFCP association
 - [ ]  UPF-based UE IP address assignment
-- [x]  Integration with Prometheus for exporting PFCP and data plane-level metrics.
 
-### Dataplane Layer
+### Data plane
 
 - [x]  IPv4 support
 - [x]  N3, N4, N6 interfaces 
-- [ ]  N9 interface
 - [x]  Single & Multi-port support
-- [ ]  Monitoring/Debugging capabilties using tcpdump and cli
 - [x]  Static IP routing
-- [ ]  I-UPF/A-UPF ULCL/Branching i.e., simultaneous N6/N9 support within PFCP session
 - [x]  Basic QoS support with per-session rate limiting
+- [ ]  I-UPF/A-UPF ULCL/Branching (N9 interface)
  
+### Management plane
+- [x]  Free5gc compatibility 
+- [x]  Open5gs compatibility
+- [x]  Integration with Prometheus for exporting PFCP and data plane-level metrics
+- [ ]  Monitoring/Debugging capabilties using tcpdump and cli
+- [ ]  
+
 ### 3GPP compliance
 - [ ]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
 - [ ]  `UEIP` Allocating UE IP addresses or prefixes.
