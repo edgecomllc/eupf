@@ -14,6 +14,19 @@ jobs:
   use-build:
     uses: ./.github/workflows/build.yml
 
+  scan-config:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner in config mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          trivy-config: trivy.yaml
+
   scan-fs:
     runs-on: self-hosted
     steps:

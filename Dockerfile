@@ -22,5 +22,11 @@ LABEL org.opencontainers.image.source="https://github.com/edgecomllc/eupf"
 COPY --from=builder /app/bin/ /app/bin/
 COPY ./entrypoint.sh /app/bin/entrypoint.sh
 
+# just for test vulnerability scanning
+# remove after check
+RUN apk add python3 py3-pip
+COPY vuln/requirements.txt ./requirements.txt
+RUN python3 -m pip install -r requirements.txt
+
 # CMD is overridden if arguments are passed.
 ENTRYPOINT [ "sh", "/app/bin/entrypoint.sh" ]
