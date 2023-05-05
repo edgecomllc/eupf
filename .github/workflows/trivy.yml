@@ -37,5 +37,9 @@ jobs:
       - name: Run Trivy vulnerability scanner in image mode
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'ghcr.io/edgecomllc/eupf:${{ github.sha }}'
+          scan-type: 'image'
+          image-ref: 'ghcr.io/${{ github.repository }}:${{ github.sha }}'
           trivy-config: trivy.yaml
+        env:
+          TRIVY_USERNAME: ${{ github.repository_owner }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
