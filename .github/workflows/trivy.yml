@@ -11,6 +11,9 @@ on:
     types: [started]
 
 jobs:
+  use-build:
+    uses: ./.github/workflows/build.yml
+
   scan-fs:
     runs-on: self-hosted
     steps:
@@ -22,4 +25,16 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
+          trivy-config: trivy.yaml
+
+  scan-image:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner in image mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'ghcr.io/edgecomllc/eupf:${{ github.sha }}'
           trivy-config: trivy.yaml
