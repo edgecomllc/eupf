@@ -14,6 +14,7 @@ we are testing with 2 tools:
 helm upgrade --install \
   iperf3 openverso/iperf3 \
   --set-string service.type=ClusterIP \
+  --set containerSecurityContext.runAsUser=0 \
   --version 0.1.2 \
   --namespace open5gs \
   --wait --timeout 30s --create-namespace
@@ -63,8 +64,9 @@ iperf Done.
 * check tcp throughput (with eUPF)
 
 ```bash
-20:46:43.399431 n6    In  IP 188.120.253.172.2031 > 10.233.10.221.5201:
-20:46:43.399455 eth0  Out IP 188.120.253.172.2031 > 10.233.10.221.5201:
+$ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
+$ iperf3 -c iperf3 -p 5201 -t 30 -R -B ${UESIMTUNO_IP}
+?
 ```
 
 ### mtr
@@ -90,18 +92,16 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
   1.|-- 10.233.10.221              0.0%    60    0.2   0.2   0.1   0.3   0.0
 ```
 
-* check latency (without upf) to google.com
+* check latency (without upf) to google public dns
 
 ```bash
-$ mtr --no-dns --report --report-cycles 60 -T -P 443 1.1.1.1
+$ mtr --no-dns --report --report-cycles 60 -T -P 443 8.8.8.8
 ...
 HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
   1.|-- 188.120.253.172            0.0%    60    0.1   0.2   0.1   0.3   0.0
 ...
-  7.|-- 1.1.1.1                    0.0%    60    1.2   1.2   1.1   1.7   0.1
+ 16.|-- 8.8.8.8                   96.7%    60   16.8  15.7  14.7  16.8   1.5
 ```
-
-==============================================
 
 * check latency (with open5gs upf) to iperf3 pod
 
@@ -113,30 +113,41 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
   2.|-- 10.233.10.221              0.0%    60    1.0   1.2   0.8   2.5   0.3
 ```
 
-* check latency (with open5gs upf) to google.com
+* check latency (with open5gs upf) to google public dns
 
 ```bash
-$ mtr --no-dns --report --report-cycles 60 -T -P 443 -I uesimtun0 1.1.1.1
+$ mtr --no-dns --report --report-cycles 60 -T -P 443 -I uesimtun0 8.8.8.8
 ...
 HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
  1.|-- 10.45.0.1                  0.0%    60    1.3   1.1   0.7   2.4   0.3
 ...
-11.|-- 1.1.1.1                    0.0%    60   21.4  22.3  21.2  25.7   0.8
+ 17.|-- 8.8.8.8                   96.7%    60   17.2  19.2  17.2  21.2   2.9
 ```
 
 * check latency (with eUPF) to iperf3 pod
 
 ```bash
 $ mtr --no-dns --report --report-cycles 60 -T -P 5201 -I uesimtun0 iperf3
+?
 ```
 
-* check latency (with eUPF) to CloudFlare
+* check latency (with eUPF) to google public dns
 
 ```bash
-$ mtr --no-dns --report --report-cycles 60 -T -P 443 -I uesimtun0 1.1.1.1
+$ mtr --no-dns --report --report-cycles 60 -T -P 443 -I uesimtun0 8.8.8.8
 ...
 HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
   1.|-- 10.99.0.254                0.0%    60    1.1   1.0   0.8   1.5   0.1
 ...
-  8.|-- 1.1.1.1                    0.0%    60    2.1   2.3   1.8   4.7   0.5
+ 17.|-- 8.8.8.8                   95.0%    60   14.6  16.9  14.6  21.3   3.8
 ```
+
+
+
+## results
+
+|scenario | raw | open5gs upf | eupf |
+|---|---|---|---|
+| tcp throughput (to neighbor pod) | 13.1 Gbit/sec | 171 Mbit/sec | ? |
+| latency (to neighbor pod) | 0.2 | 1.2 | ? |
+| latency (to google public DNS) | 15.7 | 19.2 | 16.9 |

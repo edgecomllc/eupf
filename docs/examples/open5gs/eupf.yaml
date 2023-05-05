@@ -138,6 +138,6 @@ podAnnotations:
       {
         "name": "edgecomllc-eupf-nat-n6",
         "interface": "n6",
-        "ips": [ "10.99.0.1/24" ]
+        "ips": [ "10.99.0.10/24" ]
       }
     ]
