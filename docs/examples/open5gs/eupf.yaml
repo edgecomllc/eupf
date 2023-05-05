@@ -8,7 +8,13 @@ image:
   pullPolicy: Always
 
 command:
-  - /app/conf/run.sh
+  - /bin/sh
+  - -c
+  - |
+      set -x ; mkdir /etc/iproute2 ; echo "111 fromn3gtp" >> /etc/iproute2/rt_tables; \
+      ip rule add from 10.45.0.0/16 lookup fromn3gtp; \
+      ip route add default via 10.100.111.1 dev n6 table fromn3gtp ;\
+      /app/bin/eupf $0 $@
 
 args:
   - --config
@@ -16,6 +22,11 @@ args:
 
 securityContext:
   privileged: true
+
+podSecurityContext:
+  sysctls:
+  - name: net.ipv4.ip_forward
+    value: "1"
 
 configMaps:
   config:
@@ -127,17 +138,94 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 10
 
-podSecurityContext:
-  sysctls:
-    - name: net.ipv4.ip_forward
-      value: "1"
-
 podAnnotations:
   k8s.v1.cni.cncf.io/networks: |
     [
-      {
-        "name": "edgecomllc-eupf-nat-n6",
+      { "name": "n6ptp-upf",
         "interface": "n6",
-        "ips": [ "10.99.0.10/24" ]
+        "ips": [ "10.100.111.12/24" ]
       }
     ]
+
+extraDeploy:
+  - apiVersion: k8s.cni.cncf.io/v1
+    kind: NetworkAttachmentDefinition
+    metadata:
+      name: n6ptp-upf
+    spec:
+      config: |
+        {
+          "cniVersion": "0.3.1",
+          "plugins": [
+            {
+              "type": "ptp",
+              "capabilities": { "ips": true },
+              "ipam": {
+                "type": "host-local",
+                "ranges": [
+                    [
+                        {
+                            "subnet": "10.100.111.0/24",
+                            "gateway": "10.100.111.1"
+                        }
+                    ]
+                ],
+                "routes": [
+                  { "dst": "8.0.0.0/8" }
+                ]
+              }
+            }
+          ]
+        }
+
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: rout4eupf
+      # labels:
+        # app: rout4eupf  # Deployment labels to match with replicaset labels and pods labels
+    spec:
+      # selector:
+        # matchLabels:
+          # app: rout4eupf # Replicaset to manage pods with labels
+      template:
+        # metadata:
+          # labels:
+            # app: rout4eupf  # Pods labels
+        spec:
+          hostNetwork: true
+          restartPolicy: Never
+          containers:
+            - name: iprouteadd
+              env:
+              - name: UPF_POD_IP
+                value: "10.100.111.12"  #addr at n6 in eupf pod
+              - name: UPF_POOLS_CIDR
+                value: "10.45.0.0/16"    # {{ .Values.config.subnetList.addr }} in https://github.com/Gradiant/openverso-charts/blob/master/charts/open5gs-smf/values.yaml
+              image: alpine:3.17.3
+              imagePullPolicy: IfNotPresent
+              resources: {}
+              securityContext:
+                capabilities:
+                  add:
+                  - NET_ADMIN
+                privileged: true
+                runAsNonRoot: false
+              command:
+              - /bin/sh
+              - -c
+              - |
+                  echo "start script"; set -x ;\
+                  i=0; DEVNAME_PTP=""; \
+                  while [ -z "$DEVNAME_PTP" ]; \
+                  do \
+                    echo "$i: wait 1 sec for DEVNAME_PTP"; sleep 1; \
+                    DEVNAME_PTP=$(ip route list ${UPF_POD_IP} | awk '{print $3}'); \
+                    i=$((i+1)); \
+                  done ;\
+                  ip route add ${UPF_POOLS_CIDR} via ${UPF_POD_IP} dev ${DEVNAME_PTP} onlink ;\
+                  if [ $? = 0 ]; then \
+                      echo "OK";  \
+                  else \
+                      echo "If ERR is File exists, possible it's OK, route already created.";  \
+                  fi

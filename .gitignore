@@ -5,6 +5,7 @@ launch.json
 settings.json
 .vscode/
 bin
+cmd/eupf/docs
 
 *.o
 *_bpf.go

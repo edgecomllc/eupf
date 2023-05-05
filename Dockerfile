@@ -7,9 +7,12 @@ RUN apt update \
     && apt install --no-install-recommends -y clang llvm gcc-multilib libbpf-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
 COPY go.mod go.sum ./
 COPY cmd/eupf cmd/eupf
 
+RUN cd cmd/eupf && swag init --parseDependency
 RUN go generate -v cmd/eupf/ebpf_objects.go
 RUN CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/eupf
 
