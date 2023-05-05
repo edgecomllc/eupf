@@ -7,6 +7,7 @@ So, to run eUPF you must have:
 - [helm](https://helm.sh/docs/intro/install/) installed
 <!-- - deployed 5g core (open5gs or free5gc) -->
 
+
 ## Requirements for a Kubernetes cluster:
 
 cluster should have:
@@ -17,6 +18,7 @@ cluster should have:
 in our environments, we use one node Kubernetes cluster deployed by [kubespray](https://github.com/kubernetes-sigs/kubespray). You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible)
 
 We have prepared templates to deploy with two opensource environments: open5gs and free5gc, for you to choose. Both with [UERANSIM](https://github.com/aligungr/UERANSIM) project emulating radio endpoint, so you'll be able to check end-to-end connectivity. 
+
 
 ## How to deploy eUPF with open5gs core:
 <details><summary>Instructions</summary>
