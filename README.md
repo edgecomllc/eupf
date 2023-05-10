@@ -2,9 +2,9 @@
 
 <div align="center">
 
+[![Build][build-img]][build]
 [![Test][test-img]][test]
-[![Vulnerability][security-test-img]][security-test]
-[![Go Report Card][go-report-img]][go-report]
+[![Security][security-test-img]][security-test]
 [![License: Apache-2.0][license-img]][license]
 
 </div>
@@ -107,6 +107,8 @@ This project is licensed under the [Apache-2.0 Creative Commons License](https:/
 
 ---
 
+[build]: https://github.com/edgecomllc/eupf/actions/workflows/build.yml
+[build-img]: https://github.com/edgecomllc/eupf/actions/workflows/build.yml/badge.svg
 [test]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml
 [test-img]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml/badge.svg
 [security-test]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml
