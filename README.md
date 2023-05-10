@@ -5,7 +5,6 @@
 [![Test][test-img]][test]
 [![Go Report Card][go-report-img]][go-report]
 [![License: Apache-2.0][license-img]][license]
-[![GitHub Downloads][github-downloads-img]][release]
 
 </div>
 
@@ -111,6 +110,5 @@ This project is licensed under the [Apache-2.0 Creative Commons License](https:/
 [test-img]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml/badge.svg
 [go-report]: https://goreportcard.com/report/github.com/edgecomllc/eupf
 [go-report-img]: https://goreportcard.com/badge/github.com/edgecomllc/eupf
-[github-downloads-img]: https://img.shields.io/github/downloads/edgecomllc/eupf/total?logo=github
 [license]: https://github.com/edgecomllc/eupf/blob/main/LICENSE
 [license-img]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
