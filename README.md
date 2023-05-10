@@ -3,6 +3,7 @@
 <div align="center">
 
 [![Test][test-img]][test]
+[![Vulnerability][security-test-img]][security-test]
 [![Go Report Card][go-report-img]][go-report]
 [![License: Apache-2.0][license-img]][license]
 
@@ -108,6 +109,8 @@ This project is licensed under the [Apache-2.0 Creative Commons License](https:/
 
 [test]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml
 [test-img]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml/badge.svg
+[security-test]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml
+[security-test-img]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml/badge.svg
 [go-report]: https://goreportcard.com/report/github.com/edgecomllc/eupf
 [go-report-img]: https://goreportcard.com/badge/github.com/edgecomllc/eupf
 [license]: https://github.com/edgecomllc/eupf/blob/main/LICENSE
