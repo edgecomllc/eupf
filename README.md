@@ -2,12 +2,10 @@
 
 <div align="center">
 
-[![GitHub Release][release-img]][release]
 [![Test][test-img]][test]
 [![Go Report Card][go-report-img]][go-report]
 [![License: Apache-2.0][license-img]][license]
 [![GitHub Downloads][github-downloads-img]][release]
-![Docker Pulls][docker-pulls]
 
 </div>
 
@@ -109,27 +107,10 @@ This project is licensed under the [Apache-2.0 Creative Commons License](https:/
 
 ---
 
-[test]: https://github.com/aquasecurity/trivy/actions/workflows/test.yaml
-[test-img]: https://github.com/aquasecurity/trivy/actions/workflows/test.yaml/badge.svg
-[go-report]: https://goreportcard.com/report/github.com/aquasecurity/trivy
-[go-report-img]: https://goreportcard.com/badge/github.com/aquasecurity/trivy
-[release]: https://github.com/aquasecurity/trivy/releases
-[release-img]: https://img.shields.io/github/release/aquasecurity/trivy.svg?logo=github
-[github-downloads-img]: https://img.shields.io/github/downloads/aquasecurity/trivy/total?logo=github
-[docker-pulls]: https://img.shields.io/docker/pulls/aquasec/trivy?logo=docker&label=docker%20pulls%20%2F%20trivy
-[license]: https://github.com/aquasecurity/trivy/blob/main/LICENSE
+[test]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml
+[test-img]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml/badge.svg
+[go-report]: https://goreportcard.com/report/github.com/edgecomllc/eupf
+[go-report-img]: https://goreportcard.com/badge/github.com/edgecomllc/eupf
+[github-downloads-img]: https://img.shields.io/github/downloads/edgecomllc/eupf/total?logo=github
+[license]: https://github.com/edgecomllc/eupf/blob/main/LICENSE
 [license-img]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
-[homepage]: https://trivy.dev
-[docs]: https://aquasecurity.github.io/trivy
-[pronunciation]: #how-to-pronounce-the-name-trivy
-
-[Installation]:https://aquasecurity.github.io/trivy/latest/getting-started/installation/
-[Ecosystem]: https://aquasecurity.github.io/trivy/latest/ecosystem/
-
-[alpine]: https://ariadne.space/2021/06/08/the-vulnerability-remediation-lifecycle-of-alpine-containers/
-[rego]: https://www.openpolicyagent.org/docs/latest/#rego
-[sigstore]: https://www.sigstore.dev/
-
-[aquasec]: https://aquasec.com
-[oss]: https://www.aquasec.com/products/open-source-projects/
-[discussions]: https://github.com/aquasecurity/trivy/discussions
