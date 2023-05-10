@@ -109,8 +109,8 @@ This project is licensed under the [Apache-2.0 Creative Commons License](https:/
 
 [build]: https://github.com/edgecomllc/eupf/actions/workflows/build.yml
 [build-img]: https://github.com/edgecomllc/eupf/actions/workflows/build.yml/badge.svg
-[test]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml?branch=169-add-some-bages-to-readme
-[test-img]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml/badge.svg?branch=169-add-some-bages-to-readme
+[test]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml
+[test-img]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml/badge.svg
 [security-test]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml
 [security-test-img]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml/badge.svg
 [license]: https://github.com/edgecomllc/eupf/blob/main/LICENSE
