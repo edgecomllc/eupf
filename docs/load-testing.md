@@ -4,6 +4,20 @@ we are testing with 2 tools:
 * iperf
 * mtr
 
+Testing scenarios:
+
+* tcp throughput to iperf via cluster network
+* tcp throughput to iperf via open5gs upf
+* tcp throughput to iperf via eupf
+
+* latency to iperf via cluster network
+* latency to iperf via open5gs upf
+* latency to iperf via eupf
+
+* latency to google public DNS via cluster network
+* latency to google public DNS via open5gs upf
+* latency to google public DNS via eupf
+
 ## Open5gs
 
 ### iperf
@@ -63,8 +77,7 @@ iperf Done.
 * check tcp throughput (with eUPF)
 
 ```bash
-$ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
-$ iperf3 -c iperf3 -p 5201 -t 30 -R -B ${UESIMTUNO_IP}
+$ iperf3 -c 10.99.0.11 -p 5201 -t 30 -R --bind-dev uesimtun0
 ?
 ```
 
@@ -127,7 +140,8 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 
 ```bash
 $ mtr --no-dns --report --report-cycles 60 -T -P 5201 -I uesimtun0 10.99.0.11
-?
+HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
+  1.|-- 10.99.0.11                 0.0%    60    1.3   1.1   0.8   1.7   0.2
 ```
 
 * check latency (with eUPF) to google public dns

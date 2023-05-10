@@ -37,10 +37,14 @@ configMaps:
 
         mkdir -p /etc/iproute2
         echo "1000 n6if" >> /etc/iproute2/rt_tables
-        ip rule add from 10.45.0.0/16 table n6if
+        ip rule add from 10.45.0.0/16 to 1.1.1.1 table n6if
         ip route add default via 10.99.0.254 dev n6 table n6if
 
         set +x
+
+        apk add ethtool
+        ethtool -K eth0 tx off
+        ethtool -K n6 tx off
 
         exec /app/bin/eupf $@
 

@@ -5,6 +5,7 @@ service:
 
 containerSecurityContext:
   runAsUser: 0
+  privileged: true
 
 podAnnotations:
   k8s.v1.cni.cncf.io/networks: |
@@ -14,3 +15,20 @@ podAnnotations:
         "ips": [ "10.99.0.11/24" ]
       }
     ]
+
+podSecurityContext:
+  sysctls:
+    - name: net.ipv4.ip_forward
+      value: "1"
+
+command:
+  - /bin/sh
+  - -c
+  - |
+    ip route add 10.45.0.0/16 via 10.99.0.10; \
+    apk add ethtool; \
+    ethtool -K eth0 tx off; \
+    ethtool -K n6 tx off; \
+    iperf3 -s --interval=1 --format=M
+
+args: []
