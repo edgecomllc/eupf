@@ -18,22 +18,22 @@ jobs:
           go-version: '>=1.20.0'
           cache: true
 
-      - name: Generate Swagger API
-        run: go install github.com/swaggo/swag/cmd/swag@latest && cd cmd/eupf && swag init --parseDependency
+      - name: Install swaggo
+        run: go install github.com/swaggo/swag/cmd/swag@v1.8.12
 
       - name: Generate Go ebpf objects
-        run: go generate -v cmd/eupf/ebpf_objects.go
-
-      - name: Build
-        run: go build -v -o bin/eupf ./cmd/eupf
+        run: go generate -v ./cmd/eupf
 
       - name: Go vet
         run: go vet ./cmd/eupf
-
-      - name: Test
-        run: go test -v -o bin/eupf ./cmd/eupf
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
           working-directory: ./cmd/eupf
+
+      - name: Test
+        run: go test -v -o bin/eupf ./cmd/eupf
+
+      - name: Build
+        run: go build -v -o bin/eupf ./cmd/eupf

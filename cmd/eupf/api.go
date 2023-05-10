@@ -9,6 +9,8 @@ import (
 	"net/http"
 )
 
+//go:generate swag init --parseDependency
+
 // @BasePath /api/v1
 
 type ApiServer struct {

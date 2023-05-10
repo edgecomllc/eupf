@@ -89,6 +89,106 @@ eUPF relies on kernel routing when making routing decision for incomming network
 
  </details>
 
+## Building and running from sources
+
+**Prerequisites:**
+
+- Git
+- Golang
+- Clang
+- LLVM
+- gcc
+- libbpf-dev
+
+**On Ubuntu 22.04**, you can install these using the following command:
+
+```bash
+sudo apt install git golang clang llvm gcc-multilib libbpf-dev
+```
+
+**On Rocky Linux 9**, use the following command:
+
+```bash
+sudo dnf install git golang clang llvm gcc libbpf libbpf-devel libxdp libxdp-devel xdp-tools bpftool kernel-headers
+```
+
+**Steps:**
+
+1. Install the Swag command line tool for Golang. This is used to automatically generate RESTful API documentation.
+
+```bash
+go install github.com/swaggo/swag/cmd/swag@v1.8.12
+```
+
+2. Clone the eUPF repository and change to the directory:
+
+```bash
+git clone https://github.com/edgecomllc/eupf.git
+cd eupf
+```
+
+3. Run the code generators:
+
+```bash
+go generate -v ./cmd/eupf
+```
+
+4. Build eUPF:
+
+```bash
+CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/eupf
+```
+
+5. Create a configuration file:
+
+   You can use either a JSON or YAML configuration file. Here's an example of how you can create a YAML configuration file with default values:
+
+    ```bash
+    echo 'interface_name: [lo]
+    xdp_attach_mode: generic
+    api_address: :8080
+    pfcp_address: :8805
+    pfcp_node_id: 127.0.0.1
+    metrics_address: :9090
+    n3_address: 127.0.0.1' > config.yaml
+    ```
+
+6. Run the application:
+
+   Run binary with privileges allowing to increase [memory-ulimits](https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits)
+
+    ```bash
+    ./bin/eupf --config ./config.yaml
+    ```
+
+   Please replace `--config` with the actual flag your application uses to accept a configuration file if it's different.
+
+This should start application with the specified configuration. Please adjust the contents of the configuration file and the command-line arguments as needed for your application and environment.
+
+## Running the eUPF with Docker
+
+1. Pull the Docker image from GitHub Packages:
+
+```bash
+docker pull ghcr.io/edgecomllc/eupf:main
+```
+
+2. Run a Docker container from the image. Replace `your-container-name` with a name for your Docker container:
+
+```bash
+docker run --name your-container-name ghcr.io/edgecomllc/eupf:main
+```
+
+3. If you need to pass in environment variables, you can do so with the `-e` option:
+
+```bash
+docker run --name your-container-name -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 -e UPF_N3_ADDRESS=10.100.50.233 your-image-name
+```
+
+This will start the Docker container and run your application with the specified environment variables.
+
+Please note that in a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment.
+
 ## Contribution
 
 Please create an issue to report a bug or share an idea.

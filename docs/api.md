@@ -33,7 +33,7 @@ To explore and test the API, you can use the Swagger API documentation. To acces
 ## API docs generation 
 (Reference documentation)[https://github.com/swaggo/gin-swagger]
 ```bash
-go install github.com/swaggo/swag/cmd/swag@latest
+go install github.com/swaggo/swag/cmd/swag@v1.8.12
 cd {repo_root}/cmd/eupf
 swag init --parseDependency
 ```
