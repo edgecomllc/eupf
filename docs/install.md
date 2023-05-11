@@ -589,3 +589,105 @@ If connection can not set up, we recommend to restart components in next sequenc
 1. AMF
 1. UERANSIM GnB
 1. UERANSIM UE
+
+## eUPF useful [API](api.md)
+- To check currently applied config use GET `/api/v1/config`
+- To check connected sessions use GET `/api/v1/pfcp_associations`
+
+You can forward api-port (8080 by default) from eUPF running container to your machine and use pretty GUI interface by opening the link http://localhost:8080/swagger/index.html in browser.
+
+Or you can simply open shell inside the container and run commands:
+`wget  -O - http://localhost:8080/api/v1/config` and `wget  -O - http://localhost:8080/api/v1/pfcp_associations`
+
+<details><summary>API json output example of successfully connected UE</summary>
+<p>
+
+```json
+/ # wget  -O - http://localhost:8080/api/v1/config
+Connecting to localhost:8080 ([::1]:8080)
+writing to stdout
+{
+    "InterfaceName": [
+        "n3",
+        "n6"
+    ],
+    "XDPAttachMode": "generic",
+    "ApiAddress": ":8080",
+    "PfcpAddress": ":8805",
+    "PfcpNodeId": "10.100.50.241",
+    "MetricsAddress": ":9090",
+    "N3Address": "10.100.50.233"
+-                    100% |************************************************************************************************************|   246  0:00:00 ETA
+written to stdout
+/ #
+/ # wget  -O - http://localhost:8080/api/v1/pfcp_associations
+Connecting to localhost:8080 ([::1]:8080)
+writing to stdout
+{
+    "10.100.50.244:8805": {
+        "ID": "10.100.50.244",
+        "Addr": "10.100.50.244:8805",
+        "NextSessionID": 2,
+        "Sessions": {
+            "2": {
+                "LocalSEID": 2,
+                "RemoteSEID": 1,
+                "UplinkPDRs": {
+                    "1": {
+                        "PdrInfo": {
+                            "OuterHeaderRemoval": 0,
+                            "FarId": 1,
+                            "QerId": 1
+                        },
+                        "Teid": 1,
+                        "Ipv4": ""
+                    }
+                },
+                "DownlinkPDRs": {
+                    "2": {
+                        "PdrInfo": {
+                            "OuterHeaderRemoval": 0,
+                            "FarId": 2,
+                            "QerId": 0
+                        },
+                        "Teid": 0,
+                        "Ipv4": "10.1.0.1"
+                    }
+                },
+                "FARs": {
+                    "1": {
+                        "Action": 2,
+                        "OuterHeaderCreation": 0,
+                        "Teid": 0,
+                        "RemoteIP": 0,
+                        "LocalIP": 0
+                    },
+                    "2": {
+                        "Action": 2,
+                        "OuterHeaderCreation": 1,
+                        "Teid": 3,
+                        "RemoteIP": 3962725386,
+                        "LocalIP": 3912393738
+                    }
+                },
+                "QERs": {
+                    "1": {
+                        "GateStatusUL": 0,
+                        "GateStatusDL": 0,
+                        "Qfi": 9,
+                        "MaxBitrateUL": 200000000,
+                        "MaxBitrateDL": 100000000,
+                        "StartUL": 0,
+                        "StartDL": 0
+                    }
+                }
+            }
+        }
+    }
+-                    100% |************************************************************************************************************|  1954  0:00:00 ETA
+written to stdout
+/ #
+```
+
+</p>
+</details> 
