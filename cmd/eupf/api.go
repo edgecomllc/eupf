@@ -6,7 +6,9 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
+	"net"
 	"net/http"
+	"strconv"
 )
 
 // @BasePath /api/v1
@@ -22,7 +24,16 @@ func CreateApiServer(bpfObjects *BpfObjects, pfcpSrv *PfcpConnection, forwardPla
 	{
 		v1.GET("/upf_pipeline", ListUpfPipeline(bpfObjects))
 		v1.GET("/qer_map", ListQerMapContent(bpfObjects))
-		v1.GET("/pfcp_associations", ListPfcpAssociations(pfcpSrv))
+		associations := v1.Group("/associations")
+		{
+			associations.GET("", ListPfcpAssociations(pfcpSrv))
+			associations.GET("/full", ListPfcpAssociationsFull(pfcpSrv))
+		}
+		sessions := v1.Group("/sessions")
+		{
+			sessions.GET("", ListPfcpSessions(pfcpSrv))
+			sessions.GET(":arg", ListPfcpSessionsFiltered(pfcpSrv))
+		}
 		v1.GET("/config", DisplayConfig())
 		v1.GET("/xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
 	}
@@ -71,16 +82,149 @@ func DisplayConfig() func(c *gin.Context) {
 	}
 }
 
-// ListPfcpAssociations godoc
+// ListPfcpAssociationsFull godoc
 // @Summary List PFCP associations
 // @Description List PFCP associations
 // @Tags PFCP
 // @Produce  json
 // @Success 200 {object} NodeAssociationMap
-// @Router /pfcp_associations [get]
-func ListPfcpAssociations(pfcpSrv *PfcpConnection) func(c *gin.Context) {
+// @Router /associations/full [get]
+func ListPfcpAssociationsFull(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		c.IndentedJSON(http.StatusOK, pfcpSrv.nodeAssociations)
+	}
+}
+
+type NodeAssociationNoSession struct {
+	ID            string
+	Addr          string
+	NextSessionID uint64
+}
+type NodeAssociationMapNoSession map[string]NodeAssociationNoSession
+
+// ListPfcpAssociations godoc
+// @Summary List PFCP associations
+// @Description List PFCP associations
+// @Tags PFCP
+// @Produce  json
+// @Success 200 {object} NodeAssociationMapNoSession
+// @Router /associations [get]
+func ListPfcpAssociations(pfcpSrv *PfcpConnection) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		nodeAssociationsNoSession := make(NodeAssociationMapNoSession)
+		for k, v := range pfcpSrv.nodeAssociations {
+			nodeAssociationsNoSession[k] = NodeAssociationNoSession{
+				ID:            v.ID,
+				Addr:          v.Addr,
+				NextSessionID: v.NextSessionID,
+			}
+		}
+		c.IndentedJSON(http.StatusOK, nodeAssociationsNoSession)
+	}
+}
+
+func GetAllSessions(nodeMap NodeAssociationMap) []Session {
+	var sessions []Session
+	for _, nodeAssoc := range nodeMap {
+		for _, session := range nodeAssoc.Sessions {
+			sessions = append(sessions, session)
+		}
+	}
+	return sessions
+}
+
+// ListPfcpSessions godoc
+// @Summary List all PFCP sessions
+// @Tags PFCP
+// @Produce  json
+// @Success 200 {object} []Session
+// @Router /sessions [get]
+func ListPfcpSessions(pfcpSrv *PfcpConnection) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		sessions := GetAllSessions(pfcpSrv.nodeAssociations)
+		c.IndentedJSON(http.StatusOK, sessions)
+	}
+}
+
+func FilterSessionsByIP(sessions []Session, filterByIP net.IP) []Session {
+	var filteredSessions []Session
+
+	for _, session := range sessions {
+		ipMatch := false
+
+		for _, uplinkPDR := range session.UplinkPDRs {
+			if uplinkPDR.Ipv4.Equal(filterByIP) {
+				ipMatch = true
+				break
+			}
+		}
+
+		if !ipMatch {
+			for _, downlinkPDR := range session.DownlinkPDRs {
+				if downlinkPDR.Ipv4.Equal(filterByIP) {
+					ipMatch = true
+					break
+				}
+			}
+		}
+
+		if ipMatch {
+			filteredSessions = append(filteredSessions, session)
+		}
+	}
+
+	return filteredSessions
+}
+
+func FilterSessionsByTeid(sessions []Session, filterByTeid uint32) []Session {
+	var filteredSessions []Session
+
+	for _, session := range sessions {
+		teidMatch := false
+
+		for _, uplinkPDR := range session.UplinkPDRs {
+			if uplinkPDR.Teid == filterByTeid {
+				teidMatch = true
+				break
+			}
+		}
+
+		if !teidMatch {
+			for _, downlinkPDR := range session.DownlinkPDRs {
+				if downlinkPDR.Teid == filterByTeid {
+					teidMatch = true
+					break
+				}
+			}
+		}
+
+		if teidMatch {
+			filteredSessions = append(filteredSessions, session)
+		}
+	}
+
+	return filteredSessions
+}
+
+// ListPfcpSessionsFiltered godoc
+// @Summary List PFCP sessions filtered by TEID or IP
+// @Tags PFCP
+// @Produce  json
+// @Param arg path string true "Ip or TEID"
+// @Success 200 {object} []Session
+// @Router /sessions/{arg} [get]
+func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		sessions := GetAllSessions(pfcpSrv.nodeAssociations)
+		arg := c.Param("arg")
+		if ip := net.ParseIP(arg); ip != nil {
+			sessions = FilterSessionsByIP(sessions, ip)
+		}
+		steid := c.Param("id")
+		if teid, err := strconv.Atoi(steid); err == nil {
+			sessions = FilterSessionsByTeid(sessions, uint32(teid))
+		}
+		c.IndentedJSON(http.StatusOK, sessions)
 	}
 }
 
