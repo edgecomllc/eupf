@@ -1,6 +1,10 @@
-name: Run tests on pr
+name: Test
 
-on: [pull_request]
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
 
 jobs:
   build:
