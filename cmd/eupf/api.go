@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	eupfDocs "github.com/edgecomllc/eupf/cmd/eupf/docs"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -154,7 +153,6 @@ func ListPfcpSessions(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 
 func FilterSessionsByIP(sessions []Session, filterByIP net.IP) []Session {
 	var filteredSessions []Session
-	filterIP := binary.LittleEndian.Uint32(filterByIP.To4())
 	for _, session := range sessions {
 		ipMatch := false
 		for _, uplinkPDR := range session.UplinkPDRs {
@@ -166,14 +164,6 @@ func FilterSessionsByIP(sessions []Session, filterByIP net.IP) []Session {
 		if !ipMatch {
 			for _, downlinkPDR := range session.DownlinkPDRs {
 				if downlinkPDR.Ipv4.Equal(filterByIP) {
-					ipMatch = true
-					break
-				}
-			}
-		}
-		if !ipMatch {
-			for _, far := range session.FARs {
-				if far.LocalIP == filterIP || far.RemoteIP == filterIP {
 					ipMatch = true
 					break
 				}
@@ -200,14 +190,6 @@ func FilterSessionsByTeid(sessions []Session, filterByTeid uint32) []Session {
 		if !teidMatch {
 			for _, downlinkPDR := range session.DownlinkPDRs {
 				if downlinkPDR.Teid == filterByTeid {
-					teidMatch = true
-					break
-				}
-			}
-		}
-		if !teidMatch {
-			for _, far := range session.FARs {
-				if far.Teid == filterByTeid {
 					teidMatch = true
 					break
 				}
