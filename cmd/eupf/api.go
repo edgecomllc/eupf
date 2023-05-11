@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	eupfDocs "github.com/edgecomllc/eupf/cmd/eupf/docs"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -148,17 +149,15 @@ func ListPfcpSessions(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 
 func FilterSessionsByIP(sessions []Session, filterByIP net.IP) []Session {
 	var filteredSessions []Session
-
+	filterIP := binary.LittleEndian.Uint32(filterByIP.To4())
 	for _, session := range sessions {
 		ipMatch := false
-
 		for _, uplinkPDR := range session.UplinkPDRs {
 			if uplinkPDR.Ipv4.Equal(filterByIP) {
 				ipMatch = true
 				break
 			}
 		}
-
 		if !ipMatch {
 			for _, downlinkPDR := range session.DownlinkPDRs {
 				if downlinkPDR.Ipv4.Equal(filterByIP) {
@@ -167,12 +166,18 @@ func FilterSessionsByIP(sessions []Session, filterByIP net.IP) []Session {
 				}
 			}
 		}
-
+		if !ipMatch {
+			for _, far := range session.FARs {
+				if far.LocalIP == filterIP || far.RemoteIP == filterIP {
+					ipMatch = true
+					break
+				}
+			}
+		}
 		if ipMatch {
 			filteredSessions = append(filteredSessions, session)
 		}
 	}
-
 	return filteredSessions
 }
 
@@ -181,14 +186,12 @@ func FilterSessionsByTeid(sessions []Session, filterByTeid uint32) []Session {
 
 	for _, session := range sessions {
 		teidMatch := false
-
 		for _, uplinkPDR := range session.UplinkPDRs {
 			if uplinkPDR.Teid == filterByTeid {
 				teidMatch = true
 				break
 			}
 		}
-
 		if !teidMatch {
 			for _, downlinkPDR := range session.DownlinkPDRs {
 				if downlinkPDR.Teid == filterByTeid {
@@ -197,12 +200,18 @@ func FilterSessionsByTeid(sessions []Session, filterByTeid uint32) []Session {
 				}
 			}
 		}
-
+		if !teidMatch {
+			for _, far := range session.FARs {
+				if far.Teid == filterByTeid {
+					teidMatch = true
+					break
+				}
+			}
+		}
 		if teidMatch {
 			filteredSessions = append(filteredSessions, session)
 		}
 	}
-
 	return filteredSessions
 }
 
@@ -220,8 +229,7 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 		if ip := net.ParseIP(arg); ip != nil {
 			sessions = FilterSessionsByIP(sessions, ip)
 		}
-		steid := c.Param("id")
-		if teid, err := strconv.Atoi(steid); err == nil {
+		if teid, err := strconv.Atoi(arg); err == nil {
 			sessions = FilterSessionsByTeid(sessions, uint32(teid))
 		}
 		c.IndentedJSON(http.StatusOK, sessions)
