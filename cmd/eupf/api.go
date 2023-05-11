@@ -30,12 +30,12 @@ func CreateApiServer(bpfObjects *BpfObjects, pfcpSrv *PfcpConnection, forwardPla
 			qerMap.GET("", ListQerMapContent(bpfObjects))
 			qerMap.GET(":id", GetQerContent(bpfObjects))
 		}
-		associations := v1.Group("/associations")
+		associations := v1.Group("/pfcp_associations")
 		{
 			associations.GET("", ListPfcpAssociations(pfcpSrv))
 			associations.GET("/full", ListPfcpAssociationsFull(pfcpSrv))
 		}
-		sessions := v1.Group("/sessions")
+		sessions := v1.Group("/pfcp_sessions")
 		{
 			sessions.GET("", ListPfcpSessions(pfcpSrv))
 			sessions.GET(":arg", ListPfcpSessionsFiltered(pfcpSrv))
