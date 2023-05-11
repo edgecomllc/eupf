@@ -315,6 +315,21 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 		writeLineTabbed(sb, fmt.Sprintf("FAR ID: %d ", farid), 2)
 	}
 
+	qerid, err := pdr.QERID()
+	if err == nil {
+		writeLineTabbed(sb, fmt.Sprintf("QER ID: %d ", qerid), 2)
+	}
+
+	urrid, err := pdr.URRID()
+	if err == nil {
+		writeLineTabbed(sb, fmt.Sprintf("URR ID: %d ", urrid), 2)
+	}
+
+	barid, err := pdr.BARID()
+	if err == nil {
+		writeLineTabbed(sb, fmt.Sprintf("BAR ID: %d ", barid), 2)
+	}
+
 	pdi, err := pdr.PDI()
 	if err == nil {
 		srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
