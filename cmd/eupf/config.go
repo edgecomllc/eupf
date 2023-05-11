@@ -16,6 +16,9 @@ type UpfConfig struct {
 	PfcpNodeId     string   `mapstructure:"pfcp_node_id" validate:"ipv4"`
 	MetricsAddress string   `mapstructure:"metrics_address" validate:"hostname_port"`
 	N3Address      string   `mapstructure:"n3_address" validate:"ipv4"`
+	QerMapSize     uint32   `mapstructure:"qer_map_size" validate:"min=1"`
+	FarMapSize     uint32   `mapstructure:"far_map_size" validate:"min=1"`
+	PdrMapSize     uint32   `mapstructure:"pdr_map_size" validate:"min=1"`
 }
 
 func (c *UpfConfig) Validate() error {
@@ -38,6 +41,9 @@ func LoadConfig() error {
 	pflag.String("nodeid", "", "PFCP Server Node ID")
 	pflag.String("maddr", "", "Address to bind metrics server to")
 	pflag.String("n3addr", "", "Address for communication over N3 interface")
+	pflag.String("qersize", "", "Size of the QER ebpf map")
+	pflag.String("farsize", "", "Size of the FAR ebpf map")
+	pflag.String("pdrsize", "", "Size of the PDR ebpf map")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -48,6 +54,9 @@ func LoadConfig() error {
 	_ = viper.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
 	_ = viper.BindPFlag("metrics_address", pflag.Lookup("maddr"))
 	_ = viper.BindPFlag("n3_address", pflag.Lookup("n3addr"))
+	_ = viper.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
+	_ = viper.BindPFlag("far_map_size", pflag.Lookup("farsize"))
+	_ = viper.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
 
 	viper.SetDefault("interface_name", "lo")
 	viper.SetDefault("xdp_attach_mode", "generic")
@@ -56,6 +65,9 @@ func LoadConfig() error {
 	viper.SetDefault("pfcp_node_id", "127.0.0.1")
 	viper.SetDefault("metrics_address", ":9090")
 	viper.SetDefault("n3_address", "127.0.0.1")
+	viper.SetDefault("qer_map_size", "1024")
+	viper.SetDefault("far_map_size", "1024")
+	viper.SetDefault("pdr_map_size", "1024")
 
 	viper.SetConfigFile(*configPath)
 
