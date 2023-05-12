@@ -193,10 +193,14 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 			return // early return if no parameters are given
 		}
 		if ip := net.ParseIP(sIp); ip != nil {
-			sessions = append(sessions, *FilterSessionsByIP(&pfcpSrv.nodeAssociations, ip)) // Append session by IP match
+			if session := FilterSessionsByIP(&pfcpSrv.nodeAssociations, ip); session != nil {
+				sessions = append(sessions, *session) // Append session by IP match
+			}
 		}
 		if teid, err := strconv.Atoi(sTeid); err == nil {
-			sessions = append(sessions, *FilterSessionsByTeid(&pfcpSrv.nodeAssociations, uint32(teid))) // Append session by TEID match
+			if session := FilterSessionsByTeid(&pfcpSrv.nodeAssociations, uint32(teid)); session != nil {
+				sessions = append(sessions, *session) // Append session by TEID match
+			}
 		}
 		c.IndentedJSON(http.StatusOK, sessions)
 	}
