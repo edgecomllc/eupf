@@ -23,6 +23,8 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 ## Quick start guide
 
+To run standalone eBPF download and run docker image
+
 Read [eUPF installation guide with Open5GS or Free5GC core](./docs/install.md)
 
 Read [eUPF configuration guide](./docs/Configuration.md)

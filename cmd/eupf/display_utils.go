@@ -315,6 +315,21 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 		writeLineTabbed(sb, fmt.Sprintf("FAR ID: %d ", farid), 2)
 	}
 
+	qerid, err := pdr.QERID()
+	if err == nil {
+		writeLineTabbed(sb, fmt.Sprintf("QER ID: %d ", qerid), 2)
+	}
+
+	urrid, err := pdr.URRID()
+	if err == nil {
+		writeLineTabbed(sb, fmt.Sprintf("URR ID: %d ", urrid), 2)
+	}
+
+	barid, err := pdr.BARID()
+	if err == nil {
+		writeLineTabbed(sb, fmt.Sprintf("BAR ID: %d ", barid), 2)
+	}
+
 	pdi, err := pdr.PDI()
 	if err == nil {
 		srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
@@ -331,6 +346,15 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 					writeLineTabbed(sb, fmt.Sprintf("Ipv6: %+v ", fteid.IPv6Address), 2)
 				}
 			}
+
+			sdfFilterId := findIEindex(pdi, 23) // IE Type SDF Filter
+			if sdfFilterId != -1 {
+				sdfFilter, err := pdi[sdfFilterId].SDFFilter()
+				if err == nil {
+					writeLineTabbed(sb, fmt.Sprintf("SDF Filter: %s ", sdfFilter.FlowDescription), 2)
+				}
+			}
+
 		} else {
 			ueipPdiId := findIEindex(pdi, 93) // IE Type UE IP Address
 			if ueipPdiId != -1 {

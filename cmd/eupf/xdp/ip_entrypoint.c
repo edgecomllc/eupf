@@ -20,13 +20,16 @@
 #include "xdp/pdr.h"
 
 #undef bpf_printk
-//#define bpf_printk(fmt, ...)
+#ifdef ENABLE_LOG //trace_pipe logs disabled by default
 #define bpf_printk(fmt, ...)                       \
     ({                                             \
         static const char ____fmt[] = fmt;         \
         bpf_trace_printk(____fmt, sizeof(____fmt), \
                          ##__VA_ARGS__);           \
     })
+#else
+#define bpf_printk(fmt, ...)
+#endif
 
 #ifndef NULL
 #define NULL 0
@@ -199,7 +202,7 @@ static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, 
     fib_params.ipv4_dst = ip4->daddr;
     fib_params.ifindex = ctx->ingress_ifindex;
 
-    int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), 0 /*BPF_FIB_LOOKUP_OUTPUT*/);
+    int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), NULL /*BPF_FIB_LOOKUP_OUTPUT*/);
     switch(rc) {
         case BPF_FIB_LKUP_RET_SUCCESS:
             bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: nexthop: %pI4", &ip4->saddr, &ip4->daddr, &fib_params.ipv4_dst);
@@ -223,7 +226,7 @@ static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, 
         default:
             bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
             return XDP_PASS; // Let's kernel takes care
-    }
+    }    
 }
 
 static __always_inline __u32 handle_echo_request(struct packet_context *ctx, struct gtpuhdr *gtpu)
@@ -264,32 +267,6 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx, str
     return XDP_TX;
 }
 
-static __always_inline __u32 limit_rate_sliding_window(struct xdp_md *ctx, __u64* windows_start, const __u64 rate)
-{
-	void *data = (void *)(long)ctx->data;
-	void *data_end = (void *)(long)ctx->data_end;
-
-	static const __u64 NSEC_PER_SEC = 1000000000ULL;
-    static const __u64 window_size = 5000000ULL;
-	__u64 tx_time = (data_end - data) * 8 * NSEC_PER_SEC / rate;
-	__u64 now = bpf_ktime_get_ns();
-
-	__u64 start = *(volatile __u64 *)windows_start;
-	if (start + tx_time > now)
-		return XDP_DROP;
-
-	if (start + window_size < now)
-	{
-		*(volatile __u64 *)&windows_start = now - window_size + tx_time;
-		return XDP_PASS;
-	}
-
-	*(volatile __u64 *)&windows_start = start + tx_time;
-	//__sync_fetch_and_add(&window->start, tx_time);
-	return XDP_PASS;
-}
-
-
 static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const struct iphdr *ip4)
 {
     struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
@@ -308,20 +285,6 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
 
     //Only forwarding action supported at the moment
     if(!(far->action & FAR_FORW))
-        return XDP_DROP;
-
-    struct qer_info* qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
-    if(!qer) {
-        bpf_printk("upf: no downlink session qer for ip:%pI4 qer:%d", &ip4->daddr, pdr->qer_id);
-            return XDP_DROP;
-    }
-
-    bpf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
-
-    if(qer->dl_gate_status != GATE_STATUS_OPEN)
-        return XDP_DROP;
-
-    if(XDP_DROP == limit_rate_sliding_window(ctx, &qer->dl_start, qer->dl_maximum_bitrate))
         return XDP_DROP;
 
     bpf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
@@ -453,24 +416,10 @@ static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __
             return XDP_DROP;
     }
 
-    bpf_printk("upf: far:%d action:%d outer_header_creation:%d", pdr->far_id, far->action, far->outer_header_creation);
+    bpf_printk("upf: far for teid:%d far:%d action:%d", teid, pdr->far_id, far->action);
 
     //Only forwarding action supported at the moment
     if(!(far->action & FAR_FORW))
-        return XDP_DROP;
-
-    struct qer_info* qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
-    if(!qer) {
-        bpf_printk("upf: no uplink session qer for teid:%d qer:%d", teid, pdr->qer_id);
-            return XDP_DROP;
-    }
-
-    bpf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->ul_gate_status, qer->ul_maximum_bitrate);
-
-    if(qer->ul_gate_status != GATE_STATUS_OPEN)
-        return XDP_DROP;
-
-    if(XDP_DROP == limit_rate_sliding_window(ctx->ctx, &qer->ul_start, qer->ul_maximum_bitrate))
         return XDP_DROP;
 
     if(pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) 
@@ -677,11 +626,11 @@ static __always_inline __u32 process_packet(struct packet_context *ctx)
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
-    //bpf_printk("upf_ip_entrypoint start");
+    bpf_printk("upf_ip_entrypoint start");
     void *data_end = (void *)(long)ctx->data_end;
     void *data = (void *)(long)ctx->data;
 
-    __u32 cpu_ip = 0;
+    __u32 cpu_ip = bpf_get_smp_processor_id();
     struct upf_counters *upf_counters = bpf_map_lookup_elem(&upf_ext_stat, &cpu_ip);
 
     /* These keep track of the next header type and iterator pointer */

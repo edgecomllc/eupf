@@ -7,6 +7,8 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
 	"net/http"
+	"strconv"
+	"unsafe"
 )
 
 //go:generate swag init --parseDependency
@@ -23,7 +25,11 @@ func CreateApiServer(bpfObjects *BpfObjects, pfcpSrv *PfcpConnection, forwardPla
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("/upf_pipeline", ListUpfPipeline(bpfObjects))
-		v1.GET("/qer_map", ListQerMapContent(bpfObjects))
+		qerMap := v1.Group("/qer_map")
+		{
+			qerMap.GET("", ListQerMapContent(bpfObjects))
+			qerMap.GET(":id", GetQerContent(bpfObjects))
+		}
 		v1.GET("/pfcp_associations", ListPfcpAssociations(pfcpSrv))
 		v1.GET("/config", DisplayConfig())
 		v1.GET("/xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
@@ -102,6 +108,41 @@ func ListQerMapContent(bpfObjects *BpfObjects) func(c *gin.Context) {
 			return
 		}
 		c.IndentedJSON(http.StatusOK, elements)
+	}
+}
+
+// GetQerContent godoc
+// @Summary List QER map content
+// @Description List QER map content
+// @Tags QER
+// @Produce  json
+// @Param id path int true "Qer ID"
+// @Success 200 {object} []QerMapElement
+// @Router /qer_map/{id} [get]
+func GetQerContent(bpfObjects *BpfObjects) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		id := c.Param("id")
+		aid, err := strconv.Atoi(id)
+		if err != nil {
+			log.Printf("Error converting id to int: %s", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		var value QerInfo
+		err = bpfObjects.ip_entrypointObjects.QerMap.Lookup(uint32(aid), unsafe.Pointer(&value))
+		if err != nil {
+			log.Printf("Error reading map: %s", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.IndentedJSON(http.StatusOK, QerMapElement{
+			Id:           uint32(aid),
+			GateStatusUL: value.GateStatusUL,
+			GateStatusDL: value.GateStatusDL,
+			Qfi:          value.Qfi,
+			MaxBitrateUL: value.MaxBitrateUL,
+			MaxBitrateDL: value.MaxBitrateDL,
+		})
 	}
 }
 
