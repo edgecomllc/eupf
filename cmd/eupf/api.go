@@ -128,9 +128,9 @@ func ListPfcpAssociations(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 	}
 }
 
-func GetAllSessions(nodeMap NodeAssociationMap) []Session {
+func GetAllSessions(nodeMap *NodeAssociationMap) []Session {
 	var sessions []Session
-	for _, nodeAssoc := range nodeMap {
+	for _, nodeAssoc := range *nodeMap {
 		for _, session := range nodeAssoc.Sessions {
 			sessions = append(sessions, session)
 		}
@@ -138,72 +138,44 @@ func GetAllSessions(nodeMap NodeAssociationMap) []Session {
 	return sessions
 }
 
-// ListPfcpSessions godoc
-// @Summary List all PFCP sessions
-// @Tags PFCP
-// @Produce  json
-// @Success 200 {object} []Session
-// @Router /pfcp_sessions [get]
-//func ListPfcpSessions(pfcpSrv *PfcpConnection) func(c *gin.Context) {
-//	return func(c *gin.Context) {
-//		sessions := GetAllSessions(pfcpSrv.nodeAssociations)
-//		c.IndentedJSON(http.StatusOK, sessions)
-//	}
-//}
-
-func FilterSessionsByIP(sessions []Session, filterByIP net.IP) []Session {
-	var filteredSessions []Session
-	for _, session := range sessions {
-		ipMatch := false
-		for _, uplinkPDR := range session.UplinkPDRs {
-			if uplinkPDR.Ipv4.Equal(filterByIP) {
-				ipMatch = true
-				break
+func FilterSessionsByIP(nodeMap *NodeAssociationMap, filterByIP net.IP) *Session {
+	for _, nodeAssoc := range *nodeMap {
+		for _, session := range nodeAssoc.Sessions {
+			for _, uplinkPDR := range session.UplinkPDRs {
+				if uplinkPDR.Ipv4.Equal(filterByIP) {
+					return &session
+				}
 			}
-		}
-		if !ipMatch {
 			for _, downlinkPDR := range session.DownlinkPDRs {
 				if downlinkPDR.Ipv4.Equal(filterByIP) {
-					ipMatch = true
-					break
+					return &session
 				}
 			}
 		}
-		if ipMatch {
-			filteredSessions = append(filteredSessions, session)
-		}
 	}
-	return filteredSessions
+	return nil
 }
 
-func FilterSessionsByTeid(sessions []Session, filterByTeid uint32) []Session {
-	var filteredSessions []Session
-
-	for _, session := range sessions {
-		teidMatch := false
-		for _, uplinkPDR := range session.UplinkPDRs {
-			if uplinkPDR.Teid == filterByTeid {
-				teidMatch = true
-				break
+func FilterSessionsByTeid(nodeMap *NodeAssociationMap, filterByTeid uint32) *Session {
+	for _, nodeAssoc := range *nodeMap {
+		for _, session := range nodeAssoc.Sessions {
+			for _, uplinkPDR := range session.UplinkPDRs {
+				if uplinkPDR.Teid == filterByTeid {
+					return &session
+				}
 			}
-		}
-		if !teidMatch {
 			for _, downlinkPDR := range session.DownlinkPDRs {
 				if downlinkPDR.Teid == filterByTeid {
-					teidMatch = true
-					break
+					return &session
 				}
 			}
 		}
-		if teidMatch {
-			filteredSessions = append(filteredSessions, session)
-		}
 	}
-	return filteredSessions
+	return nil
 }
 
 // ListPfcpSessionsFiltered godoc
-// @Summary List PFCP sessions filtered by TEID or IP
+// @Summary If no parameters are given, list all PFCP sessions. If ip or teid is given, single session will be returned. If both ip and teid are given, it is possible to return two sessions.
 // @Tags PFCP
 // @Produce  json
 // @Param ip query string false "ip"
@@ -212,14 +184,19 @@ func FilterSessionsByTeid(sessions []Session, filterByTeid uint32) []Session {
 // @Router /pfcp_sessions [get]
 func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		sessions := GetAllSessions(pfcpSrv.nodeAssociations)
+		var sessions []Session
 		sIp := c.Query("ip")
-		if ip := net.ParseIP(sIp); ip != nil {
-			sessions = FilterSessionsByIP(sessions, ip)
-		}
 		sTeid := c.Query("teid")
+		if sIp == "" && sTeid == "" {
+			sessions = GetAllSessions(&pfcpSrv.nodeAssociations)
+			c.IndentedJSON(http.StatusOK, sessions)
+			return // early return if no parameters are given
+		}
+		if ip := net.ParseIP(sIp); ip != nil {
+			sessions = append(sessions, *FilterSessionsByIP(&pfcpSrv.nodeAssociations, ip)) // Append session by IP match
+		}
 		if teid, err := strconv.Atoi(sTeid); err == nil {
-			sessions = FilterSessionsByTeid(sessions, uint32(teid))
+			sessions = append(sessions, *FilterSessionsByTeid(&pfcpSrv.nodeAssociations, uint32(teid))) // Append session by TEID match
 		}
 		c.IndentedJSON(http.StatusOK, sessions)
 	}
