@@ -192,14 +192,22 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 			c.IndentedJSON(http.StatusOK, sessions)
 			return // early return if no parameters are given
 		}
-		if ip := net.ParseIP(sIp); ip != nil {
-			if session := FilterSessionsByIP(&pfcpSrv.nodeAssociations, ip); session != nil {
-				sessions = append(sessions, *session) // Append session by IP match
+		if sIp != "" {
+			if ip := net.ParseIP(sIp); ip != nil {
+				if session := FilterSessionsByIP(&pfcpSrv.nodeAssociations, ip); session != nil {
+					sessions = append(sessions, *session) // Append session by IP match
+				}
+			} else {
+				c.IndentedJSON(http.StatusBadRequest, "Failed to parse IP")
 			}
 		}
-		if teid, err := strconv.Atoi(sTeid); err == nil {
-			if session := FilterSessionsByTeid(&pfcpSrv.nodeAssociations, uint32(teid)); session != nil {
-				sessions = append(sessions, *session) // Append session by TEID match
+		if sTeid != "" {
+			if teid, err := strconv.Atoi(sTeid); err == nil {
+				if session := FilterSessionsByTeid(&pfcpSrv.nodeAssociations, uint32(teid)); session != nil {
+					sessions = append(sessions, *session) // Append session by TEID match
+				}
+			} else {
+				c.IndentedJSON(http.StatusBadRequest, "Failed to parse TEID")
 			}
 		}
 		c.IndentedJSON(http.StatusOK, sessions)
