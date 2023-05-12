@@ -147,34 +147,17 @@ go generate -v ./cmd/eupf
 4. Build eUPF:
 
 ```bash
-CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/eupf
+go build -v -o bin/eupf ./cmd/eupf
 ```
-
-5. Create a configuration file:
-
-   You can use either a JSON or YAML configuration file. Here's an example of how you can create a YAML configuration file with default values:
-
-    ```bash
-    echo 'interface_name: [lo]
-    xdp_attach_mode: generic
-    api_address: :8080
-    pfcp_address: :8805
-    pfcp_node_id: 127.0.0.1
-    metrics_address: :9090
-    n3_address: 127.0.0.1' > config.yaml
-    ```
-
-6. Run the application:
+5. Run the application:
 
    Run binary with privileges allowing to increase [memory-ulimits](https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits)
 
-    ```bash
-    ./bin/eupf --config ./config.yaml
-    ```
+```bash
+sudo ./bin/eupf
+```
 
-   Please replace `--config` with the actual flag your application uses to accept a configuration file if it's different.
-
-This should start application with the specified configuration. Please adjust the contents of the configuration file and the command-line arguments as needed for your application and environment.
+This should start application with the default configuration. Please adjust the contents of the configuration file and the command-line arguments as needed for your application and environment.
 
 ## Running the eUPF with Docker
 
