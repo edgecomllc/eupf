@@ -1,6 +1,6 @@
 # How to install and run eUPF
 The easyest way to install eUPF is to use helm charts for one of the supported opensource 5G core projects in your own kubernetes cluster.
-Alternatively, eUPF could be deployed in docker-compose(free5gc only at the moment).
+Alternatively, eUPF could be deployed in docker-compose (only with free5gc config is ready at the moment).
 
 ## Kubenetes environment
 
@@ -20,45 +20,48 @@ We have prepared templates to deploy with two opensource environments: **open5gs
 
 ### To deploy:
 
-* [install helm](https://helm.sh/docs/intro/install/) if it's not
-* add openverso helm repo
+0. [install helm](https://helm.sh/docs/intro/install/) if it's not
+0. add openverso helm repo
 
    ```
    helm repo add openverso https://gradiant.github.io/openverso-charts/
    helm repo update
    ```
 
-* install eUPF chart
+0. install the eUPF chart
 
-   option 1 (host nat):
+   - Option 1, fast pure routing to nodes's network:
 
-   📝 Here we use subnet `10.100.111.0/24` for n6 interface as exit to the world, so make sure it's not occupied at your node host.
+      📝 Here we use subnet `10.100.111.0/24` for `n6` ptp type interface as a door to the outer world for our eUPF. And `10.45.0.0/16` addresses for subscribers at UE. So make sure that both IP subnets is not occupied on your node host.
+   
+      ```powershell
+      helm upgrade --install \
+         edgecomllc-eupf .deploy/helm/universal-chart \
+         --values docs/examples/open5gs/eupf-host-nat.yaml \
+         -n open5gs \
+         --wait --timeout 100s --create-namespace
+      ```
+      eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
 
-   ```powershell
-   helm upgrade --install \
-      edgecomllc-eupf .deploy/helm/universal-chart \
-      --values docs/examples/open5gs/eupf-host-nat.yaml \
-      -n open5gs \
-      --wait --timeout 100s --create-namespace
-   ```
+      If you need Network Address Translation (NAT) function for subscriber's egress traffic, see the chapter [about NAT](#option-nat-at-the-node) below.
 
-   option 2 (container nat):
+   - Option 2, with an additional pod that handles the NAT function:
 
-   📝 Here we use separate container for NAT:
+      📝 Here we use separate container for NAT:
 
-   ```
-   kubectl apply -f docs/examples/open5gs/nat.yaml
-   ```
+      ```
+      kubectl apply -f docs/examples/open5gs/nat.yaml
+      ```
 
-   ```powershell
-   helm upgrade --install \
-      edgecomllc-eupf .deploy/helm/universal-chart \
-      --values docs/examples/open5gs/eupf-container-nat.yaml \
-      -n open5gs \
-      --wait --timeout 100s --create-namespace
-   ```
+      ```powershell
+      helm upgrade --install \
+         edgecomllc-eupf .deploy/helm/universal-chart \
+         --values docs/examples/open5gs/eupf-container-nat.yaml \
+         -n open5gs \
+         --wait --timeout 100s --create-namespace
+      ```
 
-* install open5gs chart
+0. install open5gs chart
 
    ```powershell
    helm upgrade --install \
@@ -69,7 +72,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
       --wait --timeout 100s --create-namespace
    ```
 
-* install ueransim chart
+0. install ueransim chart
 
    ```powershell
    helm upgrade --install \
@@ -86,8 +89,9 @@ We have prepared templates to deploy with two opensource environments: **open5gs
 helm delete open5gs ueransim edgecomllc-eupf -n open5gs
 kubectl delete -f docs/examples/open5gs/nat.yaml
 ```
+### Notes
 📝 Pod's interconnection. openverso-charts uses default interfaces of your kubernetes cluster. It is Calico CNI interfaces in our environment, type ipvlan. And it uses k8s services names to resolve endpoints.
-The only added is ptp type interface `n6` as a door to the outer world for our eUPF.
+
 
 For more details refer to openverso-charts [Open5gs and UERANSIM](https://gradiant.github.io/openverso-charts/open5gs-ueransim-gnb.html)
 
@@ -137,7 +141,12 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 		-n free5gc \
 		--wait --timeout 100s --create-namespace
 	```
-   📝Here we use subnet `10.100.100.0/24` for n6 interface as exit to the world, so make sure it's not occupied at your node host.
+
+     📝 Here we use subnet `10.100.100.0/24` for `n6` ptp type interface as a door to the outer world for our eUPF. And `10.1.0.0/16` addresses for subscribers at UE. So make sure that both IP subnets is not occupied on your node host.
+     
+     eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
+
+      If you need Network Address Translation (NAT) function for subscriber's egress traffic, see the chapter [about NAT](#option-nat-at-the-node) below.
 
 0. install free5gc chart
 
@@ -215,7 +224,6 @@ Actually we use vanilla free5gc-docker-compose with some overrides. So you can c
 
 
 ## Option NAT at the node
-eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
 
 If you need NAT (Network Address Translation, or Masqerading) at your node to access Internet, the easiest way is to use standart daemonset [IP Masquerade Agent](https://kubernetes.io/docs/tasks/administer-cluster/ip-masq-agent/):
 ```powershell
