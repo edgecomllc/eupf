@@ -37,3 +37,28 @@ struct
     __uint(max_entries, 1024);
 } qer_map SEC(".maps");
 #endif
+
+static __always_inline __u32 limit_rate_sliding_window(struct xdp_md *ctx, __u64* windows_start, const __u64 rate)
+{
+	void *data = (void *)(long)ctx->data;
+	void *data_end = (void *)(long)ctx->data_end;
+
+	static const __u64 NSEC_PER_SEC = 1000000000ULL;
+    static const __u64 window_size = 5000000ULL;
+	__u64 tx_time = (data_end - data) * 8 * NSEC_PER_SEC / rate;
+	__u64 now = bpf_ktime_get_ns();
+
+	__u64 start = *(volatile __u64 *)windows_start;
+	if (start + tx_time > now)
+		return XDP_DROP;
+
+	if (start + window_size < now)
+	{
+		*(volatile __u64 *)&windows_start = now - window_size + tx_time;
+		return XDP_PASS;
+	}
+
+	*(volatile __u64 *)&windows_start = start + tx_time;
+	//__sync_fetch_and_add(&window->start, tx_time);
+	return XDP_PASS;
+}
