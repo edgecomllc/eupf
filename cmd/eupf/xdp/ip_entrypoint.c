@@ -13,11 +13,17 @@
 #include <linux/udp.h>
 #include <sys/socket.h>
 
-#include "xdp/gtpu.h"
 #include "xdp/program_array.h"
 #include "xdp/statistics.h"
 #include "xdp/qer.h"
 #include "xdp/pdr.h"
+
+#include "xdp/utils/packet_context.h"
+#include "xdp/utils/parsers.h"
+#include "xdp/utils/csum.h"
+#include "xdp/utils/gtp_utils.h"
+#include "xdp/utils/routing.h"
+
 
 #undef bpf_printk
 //#define bpf_printk(fmt, ...)
@@ -36,258 +42,6 @@ enum default_action
 {
     DEFAULT_XDP_ACTION = XDP_PASS,
 };
-
-/* Header cursor to keep track of current parsing position */
-struct packet_context
-{
-    void            *data;
-    void            *data_end;
-    struct upf_counters *counters;
-    struct xdp_md   *ctx;
-    struct ethhdr   *eth;
-    struct iphdr    *ip4;
-    struct ipv6hdr  *ip6;
-    struct udphdr   *udp;
-    struct gtpuhdr  *gtp;
-};
-
-static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct ethhdr **ethhdr)
-{
-    void *data = ctx->data;
-    void *data_end = ctx->data_end;
-
-    struct ethhdr *eth = data;
-    const int hdrsize = sizeof(*eth);
-
-    if (data + hdrsize > data_end)
-        return -1;
-
-    ctx->data += hdrsize;
-    *ethhdr = eth;
-
-    return bpf_htons(eth->h_proto); /* network-byte-order */
-}
-
-/* 0x3FFF mask to check for fragment offset field */
-#define IP_FRAGMENTED 65343
-
-static __always_inline int parse_ip4(struct packet_context *ctx, struct iphdr **ip4hdr)
-{
-    void *data = ctx->data;
-    void *data_end = ctx->data_end;
-
-    struct iphdr *ip4 = data;
-    const int hdrsize = sizeof(*ip4);
-
-    if (data + hdrsize > data_end)
-        return -1;
-
-    /* do not support fragmented packets as L4 headers may be missing */
-    // if (ip4->frag_off & IP_FRAGMENTED)
-    //	return -1;
-
-    ctx->data += hdrsize;
-    *ip4hdr = ip4;
-    // tuple5->proto = ip4->protocol;
-    // tuple5->dst_ip.ip4.addr = ip4->daddr;
-    // tuple5->src_ip.ip4.addr = ip4->saddr;
-    return ip4->protocol; /* network-byte-order */
-}
-
-static __always_inline int parse_ip6(struct packet_context *ctx, struct ipv6hdr **ip6hdr)
-{
-    void *data = ctx->data;
-    void *data_end = ctx->data_end;
-
-    struct ipv6hdr *ip6 = data;
-    const int hdrsize = sizeof(*ip6);
-
-    if (data + hdrsize > data_end)
-        return -1;
-
-    ctx->data += hdrsize;
-    *ip6hdr = ip6;
-    // tuple5->proto = ip6->nexthdr;
-    // tuple5->dst_ip.ip6 = ip6->daddr;
-    // tuple5->src_ip.ip6 = ip6->saddr;
-
-    return ip6->nexthdr; /* network-byte-order */
-}
-
-static __always_inline __u16 parse_udp(struct packet_context *ctx)
-{
-    void *data = ctx->data;
-    void *data_end = ctx->data_end;
-
-    struct udphdr *udp = data;
-    const int hdrsize = sizeof(*udp);
-
-    if (data + hdrsize > data_end)
-        return -1;
-
-    ctx->udp = udp;
-    ctx->data += hdrsize;
-    // tuple5->src_port = udp->source;
-    // tuple5->dst_port = udp->dest;
-    return bpf_htons(udp->dest);
-}
-
-static __always_inline __u32 parse_gtp(struct packet_context *ctx, struct gtpuhdr **gtphdr)
-{
-    void *data = ctx->data;
-    void *data_end = ctx->data_end;
-
-    struct gtpuhdr *gtp = data;
-    const int hdrsize = sizeof(*gtp);
-
-    if (data + hdrsize > data_end)
-        return -1;
-
-    ctx->data += hdrsize;
-    *gtphdr = gtp;
-
-    return gtp->message_type;
-}
-
-/* calculate ip header checksum */
-// next_iph_u16 = (__u16 *)&iph_tnl;
-// #pragma clang loop unroll(full)
-// for (int i = 0; i < (int)sizeof(*iph) >> 1; i++)
-//	csum += *next_iph_u16++;
-// iph_tnl.check = ~((csum & 0xffff) + (csum >> 16));
-
-static __always_inline __u16 csum_fold_helper(__u64 csum)
-{
-    int i;
-#pragma unroll
-    for (i = 0; i < 4; i++)
-    {
-        if (csum >> 16)
-            csum = (csum & 0xffff) + (csum >> 16);
-    }
-    return ~csum;
-}
-
-static __always_inline void ipv4_csum(void *data_start, int data_size, __u64 *csum)
-{
-    *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
-    *csum = csum_fold_helper(*csum);
-}
-
-// static __always_inline void ipv4_l4_csum(void* data_start, int data_size, __u64* csum, struct iphdr* iph) {
-//   __u32 tmp = 0;
-//   *csum = bpf_csum_diff(0, 0, &iph->saddr, sizeof(__be32), *csum);
-//   *csum = bpf_csum_diff(0, 0, &iph->daddr, sizeof(__be32), *csum);
-//   tmp = __builtin_bswap32((__u32)(iph->protocol));
-//   *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
-//   tmp = __builtin_bswap32((__u32)(data_size));
-//   *csum = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
-//   *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
-//   *csum = csum_fold_helper(*csum);
-// }
-
-static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, const struct iphdr *ip4)
-{
-    struct bpf_fib_lookup fib_params = {};
-    fib_params.family = AF_INET;
-    fib_params.tos = ip4->tos;
-    fib_params.l4_protocol = ip4->protocol;
-    fib_params.sport = 0;
-    fib_params.dport = 0;
-    fib_params.tot_len = bpf_ntohs(ip4->tot_len);
-    fib_params.ipv4_src = ip4->saddr;
-    fib_params.ipv4_dst = ip4->daddr;
-    fib_params.ifindex = ctx->ingress_ifindex;
-
-    int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), 0 /*BPF_FIB_LOOKUP_OUTPUT*/);
-    switch(rc) {
-        case BPF_FIB_LKUP_RET_SUCCESS:
-            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: nexthop: %pI4", &ip4->saddr, &ip4->daddr, &fib_params.ipv4_dst);
-            //_decr_ttl(ether_proto, l3hdr);
-            __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
-            __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);          
-            bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
-            return bpf_redirect(fib_params.ifindex, 0);
-            //return XDP_TX;
-            //return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
-        case BPF_FIB_LKUP_RET_BLACKHOLE:
-        case BPF_FIB_LKUP_RET_UNREACHABLE:
-        case BPF_FIB_LKUP_RET_PROHIBIT:
-            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
-            return XDP_DROP;
-        case BPF_FIB_LKUP_RET_NOT_FWDED:
-        case BPF_FIB_LKUP_RET_FWD_DISABLED:
-        case BPF_FIB_LKUP_RET_UNSUPP_LWT:
-        case BPF_FIB_LKUP_RET_NO_NEIGH:
-        case BPF_FIB_LKUP_RET_FRAG_NEEDED:
-        default:
-            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
-            return XDP_PASS; // Let's kernel takes care
-    }
-}
-
-static __always_inline __u32 handle_echo_request(struct packet_context *ctx, struct gtpuhdr *gtpu)
-{
-    struct ethhdr *eth = ctx->eth;
-    struct iphdr *iph = ctx->ip4;
-    struct udphdr *udp = ctx->udp;
-
-    gtpu->message_type = GTPU_ECHO_RESPONSE;
-
-    if (iph == NULL)
-        return XDP_ABORTED;
-    __u32 tmp_ip = iph->daddr;
-    iph->daddr = iph->saddr;
-    iph->saddr = tmp_ip;
-    iph->check = 0;
-    __u64 cs = 0;
-    ipv4_csum(iph, sizeof(*iph), &cs);
-    iph->check = cs;
-
-    if (udp == NULL)
-        return XDP_ABORTED;
-    __u16 tmp = udp->dest;
-    udp->dest = udp->source;
-    udp->source = tmp;
-    // Update UDP checksum
-    udp->check = 0;
-    //cs = 0;
-    //ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
-    //udp->check = cs;
-
-    __u8 mac[6];
-    __builtin_memcpy(mac, eth->h_source, sizeof(mac));
-    __builtin_memcpy(eth->h_source, eth->h_dest, sizeof(eth->h_source));
-    __builtin_memcpy(eth->h_dest, mac, sizeof(eth->h_dest));
-
-    bpf_printk("upf: send gtp echo response [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
-    return XDP_TX;
-}
-
-static __always_inline __u32 limit_rate_sliding_window(struct xdp_md *ctx, __u64* windows_start, const __u64 rate)
-{
-	void *data = (void *)(long)ctx->data;
-	void *data_end = (void *)(long)ctx->data_end;
-
-	static const __u64 NSEC_PER_SEC = 1000000000ULL;
-    static const __u64 window_size = 5000000ULL;
-	__u64 tx_time = (data_end - data) * 8 * NSEC_PER_SEC / rate;
-	__u64 now = bpf_ktime_get_ns();
-
-	__u64 start = *(volatile __u64 *)windows_start;
-	if (start + tx_time > now)
-		return XDP_DROP;
-
-	if (start + window_size < now)
-	{
-		*(volatile __u64 *)&windows_start = now - window_size + tx_time;
-		return XDP_PASS;
-	}
-
-	*(volatile __u64 *)&windows_start = start + tx_time;
-	//__sync_fetch_and_add(&window->start, tx_time);
-	return XDP_PASS;
-}
 
 
 static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const struct iphdr *ip4)
@@ -441,8 +195,8 @@ static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __
 {
     struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
     if(!pdr) {
-            bpf_printk("upf: no uplink session for teid:%d", teid);
-            return DEFAULT_XDP_ACTION;
+        bpf_printk("upf: no uplink session for teid:%d", teid);
+        return DEFAULT_XDP_ACTION;
     }
 
     bpf_printk("upf: uplink session for teid:%d far:%d headrm:%d", teid, pdr->far_id, pdr->outer_header_removal);
@@ -450,7 +204,7 @@ static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __
     struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
     if(!far) {
         bpf_printk("upf: no uplink session far for teid:%d far:%d", teid, pdr->far_id);
-            return XDP_DROP;
+        return XDP_DROP;
     }
 
     bpf_printk("upf: far:%d action:%d outer_header_creation:%d", pdr->far_id, far->action, far->outer_header_creation);
@@ -462,7 +216,7 @@ static __always_inline __u32 handle_access_packet(struct packet_context *ctx, __
     struct qer_info* qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
     if(!qer) {
         bpf_printk("upf: no uplink session qer for teid:%d qer:%d", teid, pdr->qer_id);
-            return XDP_DROP;
+        return XDP_DROP;
     }
 
     bpf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->ul_gate_status, qer->ul_maximum_bitrate);
