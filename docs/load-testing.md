@@ -168,6 +168,7 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 | latency (to google public DNS) | 15.7 | 19.2 | 16.9 |
 
 </p>
+</details>
 
 ## Free5GC
 <details><summary>Instructions</summary>
@@ -320,3 +321,4 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 | latency (to google public DNS) | 15.7 | 19.2 | 16.9 |
 
 </p>
+</details>
