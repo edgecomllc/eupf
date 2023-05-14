@@ -23,13 +23,37 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 ## Quick start guide
 
-To run standalone eBPF download and run docker image
+Super fast & simple way is to download and run our docker image. It will start standalone eBPF with the default configuration:
+```bash
+docker run --name your-eupf-def ghcr.io/edgecomllc/eupf:main
+```
+<blockquote><details><summary><i>The defaults are</i></summary>
+<p>
+   
+   - UPF_INTERFACE_NAME=lo    *network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
+   - UPF_N3_ADDRESS=127.0.0.1 *IPv4 address for N3 interface*
+   - UPF_XDP_ATTACH_MODE=generic *Kernel-level implementation. For evaluation purpose.*
+   - UPF_API_ADDRESS=:8080    *Local address:portTCP for serving [REST API](api.md) server*
+   - UPF_PFCP_ADDRESS=:8805   *Local address:portTCP that PFCP server will listen to*
+   - UPF_METRICS_ADDRESS=:9090   *Local address:portTCP  for serving Prometheus mertrics endpoint.*
+   - UPF_PFCP_NODE_ID=127.0.0.1  *Local NodeID for PFCP protocol. Format is IPv4 address.*
 
-Read [eUPF installation guide with Open5GS or Free5GC core](./docs/install.md)
+</p>
+</details> </blockquote>
+</p>
 
-Read [eUPF configuration guide](./docs/Configuration.md)
+In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
 
-Read [eUPF metrics and monitoring guide](./docs/metrics.md)
+```ruby
+docker run --name your-eupf-custom -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 -e UPF_N3_ADDRESS=10.100.50.233 ghcr.io/edgecomllc/eupf:main
+```
+
+
+To go further, see the **[eUPF installation guide with Open5GS or Free5GC core](./docs/install.md)** to check how it works from end-to-end, deploying in three simple steps for you to choose: in Kubernetes cluster or as a docker-compose.
+
+More about parameters read in the **[eUPF configuration guide](./docs/Configuration.md)**
+
+For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**
 
 ## eUPF details
 
@@ -159,29 +183,7 @@ sudo ./bin/eupf
 
 This should start application with the default configuration. Please adjust the contents of the configuration file and the command-line arguments as needed for your application and environment.
 
-## Running the eUPF with Docker
 
-1. Pull the Docker image from GitHub Packages:
-
-```bash
-docker pull ghcr.io/edgecomllc/eupf:main
-```
-
-2. Run a Docker container from the image. Replace `your-container-name` with a name for your Docker container:
-
-```bash
-docker run --name your-container-name ghcr.io/edgecomllc/eupf:main
-```
-
-3. If you need to pass in environment variables, you can do so with the `-e` option:
-
-```bash
-docker run --name your-container-name -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 -e UPF_N3_ADDRESS=10.100.50.233 your-image-name
-```
-
-This will start the Docker container and run your application with the specified environment variables.
-
-Please note that in a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment.
 
 ## Contribution
 
