@@ -12,6 +12,8 @@ We have 3 testing scenarios:
 * latency to google public DNS
 
 ## Open5gs
+<details><summary>Instructions</summary>
+<p>
 
 ### iperf
 
@@ -165,6 +167,7 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 | latency (to neighbor pod) | 0.2 | 1.2 | 1.0 |
 | latency (to google public DNS) | 15.7 | 19.2 | 16.9 |
 
+</p>
 
 ## Free5GC
 
