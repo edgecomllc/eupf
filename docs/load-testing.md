@@ -1,22 +1,15 @@
 # Load testing
 
-we are testing with 2 tools:
+We are testing with 2 tools:
+
 * iperf
 * mtr
 
-Testing scenarios:
+We have 3 testing scenarios:
 
-* tcp throughput to iperf via cluster network
-* tcp throughput to iperf via open5gs upf
-* tcp throughput to iperf via eupf
-
-* latency to iperf via cluster network
-* latency to iperf via open5gs upf
-* latency to iperf via eupf
-
-* latency to google public DNS via cluster network
-* latency to google public DNS via open5gs upf
-* latency to google public DNS via eupf
+* tcp throughput to neighbor pod
+* latency to neighbor pod
+* latency to google public DNS
 
 ## Open5gs
 
