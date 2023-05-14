@@ -20,8 +20,9 @@ command:
   - /bin/sh
   - -c
   - |
-    # apk add ethtool; \
-    # ethtool -K eth0 tx off; \
+    apk add ethtool; \
+    ethtool -K eth0 tx off; \
+    ethtool -K n6 tx off; \
     iperf3 -s --interval=1 --format=M
 
 args: []
