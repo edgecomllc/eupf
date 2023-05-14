@@ -170,6 +170,9 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 </p>
 
 ## Free5GC
+<details><summary>Instructions</summary>
+<p>
+
 
 ### iperf
 
@@ -315,3 +318,5 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 | tcp throughput (to neighbor pod) | 13.1 Gbit/sec | 171 Mbit/sec | ? |
 | latency (to neighbor pod) | 0.2 | 1.2 | ? |
 | latency (to google public DNS) | 15.7 | 19.2 | 16.9 |
+
+</p>
