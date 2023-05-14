@@ -11,14 +11,10 @@ spec:
       "type": "bridge",
       "bridge": "eupf-n6",
       "ipMasq": false,
+      "isGateway": false,
+      "isDefaultGateway": false,
       "ipam": {
-        "type": "static",
-        "routes": [
-          {
-            "dst": "10.45.0.0/16",
-            "gw": "10.99.0.10"
-          }
-        ]
+        "type": "static"
       }
     }
 ---
@@ -36,8 +32,8 @@ data:
 
     set -x
 
-    # ip ro add 10.45.0.0/16 via 10.99.0.10
-    iptables -t nat -A POSTROUTING -s 10.45.0.0/16 -o eth0 -j MASQUERADE
+    ip ro add 10.1.0.0/16 via 10.100.100.12
+    iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o eth0 -j MASQUERADE
 
     set +x
 
@@ -64,7 +60,7 @@ spec:
             {
               "name": "edgecomllc-eupf-nat-n6",
               "interface": "n6",
-              "ips": [ "10.99.0.254/24" ]
+              "ips": [ "10.100.100.254/24" ]
             }
           ]
       labels:

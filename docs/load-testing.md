@@ -114,7 +114,6 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 $ mtr --no-dns --report --report-cycles 60 -T -P 443 8.8.8.8
 ...
 HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
-  1.|-- 188.120.253.172            0.0%    60    0.1   0.2   0.1   0.3   0.0
 ...
  16.|-- 8.8.8.8                   96.7%    60   16.8  15.7  14.7  16.8   1.5
 ```
@@ -191,50 +190,49 @@ helm upgrade --install \
 * run shell in ueransim ue pod
 
 ```
-kubectl -n free5gc exec -ti deployment/ueransim-ueransim-gnb-ues -- /bin/bash
+kubectl -n free5gc exec -ti deployment/ueransim-ue -- /bin/bash
 ```
 
 * install iperf3
 
 ```bash
-apk add iperf3
+apt-get update && apt-get install -y iperf3
 ```
 
 * check tcp throughput (without upf)
 
 ```bash
 $ iperf3 -c iperf3 -p 5201 -t 30 -R
-Connecting to host iperf3, port 5201
-Reverse mode, remote host iperf3 is sending
 ...
 [ ID] Interval           Transfer     Bitrate         Retr
 [  5]   0.00-30.00  sec  45.8 GBytes  13.1 Gbits/sec  4369             sender
 [  5]   0.00-30.00  sec  45.8 GBytes  13.1 Gbits/sec                  receiver
-
-iperf Done.
 ```
 
-* check tcp throughput (with open5gs upf)
+* check tcp throughput (with free5gc upf)
 
 ```bash
 $ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
-$ iperf3 -c iperf3 -p 5201 -t 30 -R -B ${UESIMTUNO_IP}
-Connecting to host iperf3, port 5201
-Reverse mode, remote host iperf3 is sending
+$ iperf3 -c iperf3 -p 5201 -t 30 -R --bind ${UESIMTUNO_IP}
 ...
-[ ID] Interval           Transfer     Bitrate         Retr
-[  5]   0.00-30.00  sec   612 MBytes   171 Mbits/sec  554             sender
-[  5]   0.00-30.00  sec   612 MBytes   171 Mbits/sec                  receiver
-
-iperf Done.
+[ ID] Interval           Transfer     Bandwidth       Retr
+[  4]   0.00-30.00  sec   355 MBytes  99.2 Mbits/sec  15085             sender
+[  4]   0.00-30.00  sec   354 MBytes  99.0 Mbits/sec                  receiver
 ```
 
 * check tcp throughput (with eUPF)
 
+we should use some flags for iperf client (specific for eUPF):
+- packet size (`-M`)
+- pod address (`-c`)
+
 ```bash
 $ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
-$ iperf3 -c iperf3 -p 5201 -t 30 -R -B ${UESIMTUNO_IP}
-?
+$ iperf3 -c 10.233.110.159 -p 5201 -t 30 -R --bind ${UESIMTUNO_IP}
+...
+[ ID] Interval           Transfer     Bandwidth       Retr
+[  4]   0.00-30.00  sec   355 MBytes  99.2 Mbits/sec  11249             sender
+[  4]   0.00-30.00  sec   354 MBytes  99.1 Mbits/sec                  receiver
 ```
 
 ### mtr
@@ -242,13 +240,13 @@ $ iperf3 -c iperf3 -p 5201 -t 30 -R -B ${UESIMTUNO_IP}
 * run shell in ueransim ue pod
 
 ```
-kubectl -n open5gs exec -ti deployment/ueransim-ueransim-gnb-ues -- /bin/bash
+kubectl -n free5gc exec -ti deployment/ueransim-ue -- /bin/bash
 ```
 
 * install mtr
 
 ```bash
-apk add mtr
+apt-get update && apt-get install -y mtr
 ```
 
 * check latency (without upf) to iperf3 pod
@@ -256,8 +254,8 @@ apk add mtr
 ```bash
 $ mtr --no-dns --report --report-cycles 60 -T -P 5201 iperf3
 ...
-HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
-  1.|-- 10.233.10.221              0.0%    60    0.2   0.2   0.1   0.3   0.0
+HOST: ueransim-ue-7f76db59c9-ltfl Loss%   Snt   Last   Avg  Best  Wrst StDev
+  1.|-- 10.233.27.59               0.0%    60    0.3   0.2   0.2   0.4   0.0
 ```
 
 * check latency (without upf) to google public dns
@@ -265,60 +263,65 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 ```bash
 $ mtr --no-dns --report --report-cycles 60 -T -P 443 8.8.8.8
 ...
-HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
-  1.|-- 188.120.253.172            0.0%    60    0.1   0.2   0.1   0.3   0.0
+HOST: ueransim-ue-7f76db59c9-ltfl Loss%   Snt   Last   Avg  Best  Wrst StDev
 ...
- 16.|-- 8.8.8.8                   96.7%    60   16.8  15.7  14.7  16.8   1.5
+ 16.|-- 8.8.8.8                   96.7%    60   16.6  16.4  16.2  16.6   0.3
 ```
 
-* check latency (with open5gs upf) to iperf3 pod
+* check latency (with free5gc upf) to iperf3 pod
 
 ```bash
-$ mtr --no-dns --report --report-cycles 60 -T -P 5201 -I uesimtun0 iperf3
+$ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
+$ mtr --no-dns --report --report-cycles 60 -T -P 5201 -a ${UESIMTUNO_IP} iperf3
 ...
-HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
-  1.|-- 10.45.0.1                  0.0%    60    1.0   1.0   0.7   1.7   0.2
-  2.|-- 10.233.10.221              0.0%    60    1.0   1.2   0.8   2.5   0.3
+HOST: ueransim-ue-7f76db59c9-ltfl Loss%   Snt   Last   Avg  Best  Wrst StDev
+  1.|-- 10.233.110.138             0.0%    60    1.0   1.0   0.7   2.2   0.2
+  2.|-- 10.233.27.59               0.0%    60    1.1   1.1   0.6   2.2   0.3
 ```
 
-* check latency (with open5gs upf) to google public dns
+* check latency (with free5gc upf) to google public dns
 
 ```bash
-$ mtr --no-dns --report --report-cycles 60 -T -P 443 -I uesimtun0 8.8.8.8
+$ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
+$ mtr --no-dns --report --report-cycles 60 -T -P 443 -a ${UESIMTUNO_IP} 8.8.8.8
 ...
-HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
- 1.|-- 10.45.0.1                  0.0%    60    1.3   1.1   0.7   2.4   0.3
+HOST: ueransim-ue-7f76db59c9-ltfl Loss%   Snt   Last   Avg  Best  Wrst StDev
+  1.|-- 10.233.110.138             0.0%    60    0.8   0.9   0.7   1.2   0.1
 ...
- 17.|-- 8.8.8.8                   96.7%    60   17.2  19.2  17.2  21.2   2.9
+ 17.|-- 8.8.8.8                   98.3%    60   17.3  17.3  17.3  17.3   0.0
 ```
 
 * check latency (with eUPF) to iperf3 pod
 
 ```bash
-$ mtr --no-dns --report --report-cycles 60 -T -P 5201 -I uesimtun0 10.99.0.11
-?
+$ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
+$ mtr --no-dns --report --report-cycles 60 -T -P 5201 -a ${UESIMTUNO_IP} 10.233.110.159
+...
+HOST: ueransim-ue-7f76db59c9-ndqq Loss%   Snt   Last   Avg  Best  Wrst StDev
+  1.|-- 10.100.100.254             0.0%    60    1.0   1.0   0.7   2.8   0.3
+...
+  3.|-- 10.233.110.159             0.0%    60    0.9   1.1   0.7   2.1   0.2
 ```
 
 * check latency (with eUPF) to google public dns
 
 ```bash
-$ mtr --no-dns --report --report-cycles 60 -T -P 443 -I uesimtun0 8.8.8.8
+$ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
+$ mtr --no-dns --report --report-cycles 60 -T -P 443 -a ${UESIMTUNO_IP} 8.8.8.8
 ...
-HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
-  1.|-- 10.99.0.254                0.0%    60    1.1   1.0   0.8   1.5   0.1
+HOST: ueransim-ue-7f76db59c9-ndqq Loss%   Snt   Last   Avg  Best  Wrst StDev
+  1.|-- 10.100.100.254             0.0%    60    1.3   1.1   0.8   1.6   0.2
 ...
- 17.|-- 8.8.8.8                   95.0%    60   14.6  16.9  14.6  21.3   3.8
+ 18.|-- 8.8.8.8                   96.7%    60   16.6  16.7  16.6  16.9   0.2
 ```
-
-
 
 ## results
 
-|scenario | raw | open5gs upf | eupf |
+|scenario | raw | free5gc upf | eupf |
 |---|---|---|---|
-| tcp throughput (to neighbor pod) | 13.1 Gbit/sec | 171 Mbit/sec | ? |
-| latency (to neighbor pod) | 0.2 | 1.2 | ? |
-| latency (to google public DNS) | 15.7 | 19.2 | 16.9 |
+| tcp throughput (to neighbor pod) | 13.1 Gbit/sec | 99.2 Mbit/sec | 99.2 Mbit/sec |
+| latency (to neighbor pod) | 0.2 | 1.1 | 1.1 |
+| latency (to google public DNS) | 16.4 | 17.3 | 16.7 |
 
 </p>
 </details>

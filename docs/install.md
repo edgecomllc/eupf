@@ -33,7 +33,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
    - Option 1, fast pure routing to nodes's network:
 
       📝 Here we use subnet `10.100.111.0/24` for `n6` ptp type interface as a door to the outer world for our eUPF. And `10.45.0.0/16` addresses for subscribers at UE. So make sure that both IP subnets is not occupied on your node host.
-   
+
       ```powershell
       helm upgrade --install \
          edgecomllc-eupf .deploy/helm/universal-chart \
@@ -134,21 +134,39 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 
 0. install eUPF chart
 
+   - Option 1, fast pure routing to nodes's network:
+
 	```powershell
 	helm upgrade --install \
 		edgecomllc-eupf .deploy/helm/universal-chart \
-		--values docs/examples/free5gc/eupf.yaml \
+		--values docs/examples/free5gc/eupf-host-nat.yaml \
 		-n free5gc \
 		--wait --timeout 100s --create-namespace
 	```
 
      📝 Here we use subnet `10.100.100.0/24` for `n6` ptp type interface as a door to the outer world for our eUPF. And `10.1.0.0/16` addresses for subscribers at UE. So make sure that both IP subnets is not occupied on your node host.
-     
+
      eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
 
       If you need Network Address Translation (NAT) function for subscriber's egress traffic, see the chapter [about NAT](#option-nat-at-the-node) below.
 
-0. install free5gc chart
+   - Option 2, with an additional pod that handles the NAT function:
+
+      📝 Here we use separate container for NAT:
+
+   ```
+   kubectl apply -f docs/examples/free5gc/nat.yaml
+   ```
+
+	```powershell
+	helm upgrade --install \
+		edgecomllc-eupf .deploy/helm/universal-chart \
+		--values docs/examples/free5gc/eupf-container-nat.yaml \
+		-n free5gc \
+		--wait --timeout 100s --create-namespace
+	```
+
+1. install free5gc chart
 
 	```powershell
 	helm upgrade --install \
@@ -159,7 +177,7 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 		--wait --timeout 100s --create-namespace
 	```
 
-0. create subscriber in free5gc via WebUI
+2. create subscriber in free5gc via WebUI
 
    redirect port from webui pod to localhost
 
@@ -171,7 +189,7 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 
    close port forward with `Ctrl + C`
 
-0. install ueransim chart
+3. install ueransim chart
 
 	```powershell
 	helm upgrade --install \

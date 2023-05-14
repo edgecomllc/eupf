@@ -42,10 +42,6 @@ configMaps:
 
         set +x
 
-        # apk add ethtool
-        # ethtool -K eth0 tx off
-        # ethtool -K n6 tx off
-
         exec /app/bin/eupf $@
 
 env:

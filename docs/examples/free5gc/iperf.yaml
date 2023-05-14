@@ -1,0 +1,27 @@
+---
+
+service:
+  type: ClusterIP
+
+containerSecurityContext:
+  runAsUser: 0
+  privileged: true
+
+podAnnotations:
+  k8s.v1.cni.cncf.io/networks: |
+    [
+      { "name": "edgecomllc-eupf-nat-n6",
+        "interface": "n6",
+        "ips": [ "10.100.100.11/24" ]
+      }
+    ]
+
+command:
+  - /bin/sh
+  - -c
+  - |
+    # apk add ethtool; \
+    # ethtool -K eth0 tx off; \
+    iperf3 -s --interval=1 --format=M
+
+args: []
