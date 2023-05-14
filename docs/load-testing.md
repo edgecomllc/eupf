@@ -76,9 +76,18 @@ iperf Done.
 
 * check tcp throughput (with eUPF)
 
+we should use some flags for iperf client (specific for eUPF):
+- packet size (`-M`)
+- pod address (`-c`)
+
 ```bash
-$ iperf3 -c 10.99.0.11 -p 5201 -t 30 -R --bind-dev uesimtun0
-?
+$ iperf3 -c 10.233.110.181 -p 5201 -t 30 -R --bind-dev uesimtun0 -M 1350
+Connecting to host 10.233.110.181, port 5201
+Reverse mode, remote host 10.233.110.181 is sending
+...
+[ ID] Interval           Transfer     Bitrate         Retr
+[  5]   0.00-30.00  sec   490 MBytes   137 Mbits/sec  1181             sender
+[  5]   0.00-30.00  sec   490 MBytes   137 Mbits/sec                  receiver
 ```
 
 ### mtr
@@ -139,9 +148,9 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 * check latency (with eUPF) to iperf3 pod
 
 ```bash
-$ mtr --no-dns --report --report-cycles 60 -T -P 5201 -I uesimtun0 10.99.0.11
+$ mtr --no-dns --report --report-cycles 60 -T -P 5201 -I uesimtun0 10.233.110.181
 HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
-  1.|-- 10.99.0.11                 0.0%    60    1.3   1.1   0.8   1.7   0.2
+  3.|-- 10.233.110.181             0.0%    60    0.9   1.0   0.6   1.3   0.1
 ```
 
 * check latency (with eUPF) to google public dns
@@ -155,14 +164,12 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
  17.|-- 8.8.8.8                   95.0%    60   14.6  16.9  14.6  21.3   3.8
 ```
 
-
-
 ## results
 
 |scenario | raw | open5gs upf | eupf |
 |---|---|---|---|
-| tcp throughput (to neighbor pod) | 13.1 Gbit/sec | 171 Mbit/sec | ? |
-| latency (to neighbor pod) | 0.2 | 1.2 | ? |
+| tcp throughput (to neighbor pod) | 13.1 Gbit/sec | 171 Mbit/sec | 137 Mbit/sec |
+| latency (to neighbor pod) | 0.2 | 1.2 | 1.0 |
 | latency (to google public DNS) | 15.7 | 19.2 | 16.9 |
 
 

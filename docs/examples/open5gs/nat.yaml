@@ -37,9 +37,9 @@ data:
 
     set +x
 
-    apk add ethtool
-    ethtool -K eth0 tx off
-    ethtool -K n6 tx off
+    # apk add ethtool
+    # ethtool -K eth0 tx off
+    # ethtool -K n6 tx off
 
     while true; do echo "i am alive"; sleep 30; done;
 ---
