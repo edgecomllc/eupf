@@ -12,6 +12,8 @@ import (
 	"unsafe"
 )
 
+//go:generate swag init --parseDependency
+
 // @BasePath /api/v1
 
 type ApiServer struct {
