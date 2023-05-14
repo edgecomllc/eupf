@@ -158,6 +158,9 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
  17.|-- 8.8.8.8                   95.0%    60   14.6  16.9  14.6  21.3   3.8
 ```
 
+</p>
+</details>
+
 ## results
 
 |scenario | raw | open5gs upf | eupf |
@@ -166,8 +169,6 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 | latency (to neighbor pod) | 0.2 | 1.2 | 1.0 |
 | latency (to google public DNS) | 15.7 | 19.2 | 16.9 |
 
-</p>
-</details>
 
 ## Free5GC
 <details><summary>Instructions</summary>
@@ -315,6 +316,9 @@ HOST: ueransim-ue-7f76db59c9-ndqq Loss%   Snt   Last   Avg  Best  Wrst StDev
  18.|-- 8.8.8.8                   96.7%    60   16.6  16.7  16.6  16.9   0.2
 ```
 
+</p>
+</details>
+
 ## results
 
 |scenario | raw | free5gc upf | eupf |
@@ -322,6 +326,3 @@ HOST: ueransim-ue-7f76db59c9-ndqq Loss%   Snt   Last   Avg  Best  Wrst StDev
 | tcp throughput (to neighbor pod) | 13.1 Gbit/sec | 99.2 Mbit/sec | 99.2 Mbit/sec |
 | latency (to neighbor pod) | 0.2 | 1.1 | 1.1 |
 | latency (to google public DNS) | 16.4 | 17.3 | 16.7 |
-
-</p>
-</details>
