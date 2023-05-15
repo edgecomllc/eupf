@@ -7,20 +7,6 @@ containerSecurityContext:
   runAsUser: 0
   privileged: true
 
-# podAnnotations:
-#   k8s.v1.cni.cncf.io/networks: |
-#     [
-#       { "name": "edgecomllc-eupf-nat-n6",
-#         "interface": "n6",
-#         "ips": [ "10.99.0.11/24" ]
-#       }
-#     ]
-
-# podSecurityContext:
-#   sysctls:
-#     - name: net.ipv4.ip_forward
-#       value: "1"
-
 command:
   - /bin/sh
   - -c
