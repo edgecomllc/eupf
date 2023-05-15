@@ -1,84 +1,73 @@
 # eUPF
 
-eUPF is the opensource User Plane Function (UPF) project for using inside or "outside" of any 3GPP 5G core. The goal of the project is to provide high-observability and easily-deployed software for a various cases like multi-access edge computing (MEC) and local traffic breakout. eUPF is built with eBPF to provide high observability and performance. 
+<div align="center">
 
- eUPF is tested with the Free5GC and Open5GS 5G cores. 
+[![Build][build-img]][build]
+[![Test][test-img]][test]
+[![Security][security-test-img]][security-test]
+[![License: Apache-2.0][license-img]][license]
+
+</div>
+
+eUPF is the opensource User Plane Function (UPF) project for using inside or "outside" of any 3GPP 5G core. The goal of the project is to provide high-observability and easily-deployed software for a various cases like multi-access edge computing (MEC) and local traffic breakout. eUPF is built with eBPF to provide high observability and performance.
+
+ eUPF is tested with the Free5GC and Open5GS 5G cores.
 
 ## What is 5G core and CUPS
 
-5G core uses network virtualized functions (NVF) to provide connectivity and services. 
-Control and user plane separation (CUPS) is important architecture enhancement that separates control plane and user plane insde 5G core. 
-User plane function (UPF) is the "decapsulating and routing" function that extracts user plane traffic from GPRS tunneling protocol (GTP) and route it to the public data network or local network via the best available path. 
+5G core uses network virtualized functions (NVF) to provide connectivity and services.
+Control and user plane separation (CUPS) is important architecture enhancement that separates control plane and user plane inside 5G core. 
+User plane function (UPF) is the "decapsulating and routing" function that extracts user plane traffic from GPRS tunneling protocol (GTP) and route it to the public data network or local network via the best available path.
 
 ![image](https://user-images.githubusercontent.com/119619173/233130952-e5634aff-b177-4274-a2d7-0e51a5488e5d.png)
 
-## Details about eUPF
+## Quick start guide
 
-### eUPF features
+Super fast & simple way is to download and run our docker image. It will start standalone eBPF with the default configuration:
+```bash
+docker run --name your-eupf-def ghcr.io/edgecomllc/eupf:main
+```
+<blockquote><details><summary><i>The defaults are</i></summary>
+<p>
+   
+   - UPF_INTERFACE_NAME=lo    *network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
+   - UPF_N3_ADDRESS=127.0.0.1 *IPv4 address for N3 interface*
+   - UPF_XDP_ATTACH_MODE=generic *Kernel-level implementation. For evaluation purpose.*
+   - UPF_API_ADDRESS=:8080    *Local address:portTCP for serving [REST API](api.md) server*
+   - UPF_PFCP_ADDRESS=:8805   *Local address:portTCP that PFCP server will listen to*
+   - UPF_METRICS_ADDRESS=:9090   *Local address:portTCP  for serving Prometheus mertrics endpoint.*
+   - UPF_PFCP_NODE_ID=127.0.0.1  *Local NodeID for PFCP protocol. Format is IPv4 address.*
 
-<details><summary>3GPP features support</summary>
+</p>
+</details> </blockquote>
+</p>
 
-| Status | Feature    | Description                                                                                                           |
-| :----: | :--------- | :-------------------------------------------------------------------------------------------------------------------- |
-|   N    | `BUCP`     | Downlink Data Buffering in CP function is supported by the UP function.                                               |
-|   N    | `DDND`     | The buffering parameter 'Downlink Data Notification Delay' is supported by the UP function.                           |
-|   N    | `DLBD`     | The buffering parameter 'DL Buffering Duration' is supported by the UP function.                                      |
-|   N    | `TRST`     | Traffic Steering is supported by the UP function.                                                                     |
-|   N    | `FTUP`     | F-TEID allocation / release in the UP function is supported by the UP function.                                       |
-|   N    | `PFDM`     | The PFD Management procedure is supported by the UP function.                                                         |
-|   N    | `HEEU`     | Header Enrichment of Uplink traffic is supported by the UP function.                                                  |
-|   N    | `TREU`     | Traffic Redirection Enforcement in the UP function is supported by the UP function.                                   |
-|   N    | `EMPU`     | Sending of End Marker packets supported by the UP function.                                                           |
-|   N    | `PDIU`     | Support of PDI optimised signalling in UP function.                                                                   |
-|   N    | `UDBC`     | Support of UL/DL Buffering Control.                                                                                   |
-|   N    | `QUOAC`    | The UP function supports being provisioned with the Quota Action to apply when reaching quotas.                       |
-|   N    | `TRACE`    | The UP function supports Trace.                                                                                       |
-|   N    | `FRRT`     | The UP function supports Framed Routing.                                                                              |
-|   N    | `PFDE`     | The UP function supports a PFD Contents including a property with multiple values.                                    |
-|   N    | `EPFAR`    | The UP function supports the Enhanced PFCP Association Release feature.                                               |
-|   N    | `DPDRA`    | The UP function supports Deferred PDR Activation or Deactivation.                                                     |
-|   N    | `ADPDP`    | The UP function supports the Activation and Deactivation of Pre-defined PDRs.                                         |
-|   N    | `UEIP`     | The UPF supports allocating UE IP addresses or prefixes.                                                              |
-|   N    | `SSET`     | UPF support of PFCP sessions successively controlled by different SMFs of a same SMF Set.                             |
-|   N    | `MNOP`     | Measurement of number of packets which is instructed with the flag 'Measurement of Number of Packets' in a URR.       |
-|   N    | `MTE`      | UPF supports multiple instances of Traffic Endpoint IDs in a PDI.                                                     |
-|   N    | `BUNDL`    | PFCP messages bunding is supported by the UP function.                                                                |
-|   N    | `GCOM`     | UPF support of 5G VN Group Communication.                                                                             |
-|   N    | `MPAS`     | UPF support for multiple PFCP associations to the SMFs in an SMF set.                                                 |
-|   N    | `RTTL`     | The UP function supports redundant transmission at transport layer.                                                   |
-|   N    | `VTIME`    | UPF support of quota validity time feature.                                                                           |
-|   N    | `NORP`     | UP function support of Number of Reports.                                                                             |
-|   N    | `IPTV`     | UPF support of IPTV service                                                                                           |
-|   N    | `IP6PL`    | UE IPv6 address(es) allocation with IPv6 prefix length other than default /64 (incl. /128 individual IPv6 addresses). |
-|   N    | `TSCU`     | Time Sensitive Communication is supported by the UPF.                                                                 |
-|   N    | `MPTCP`    | UPF support of MPTCP Proxy functionality.                                                                             |
-|   N    | `ATSSS-LL` | UPF support of ATSSS-LLL steering functionality.                                                                      |
-|   N    | `QFQM`     | UPF support of per QoS flow per UE QoS monitoring.                                                                    |
-|   N    | `GPQM`     | UPF support of per GTP-U Path QoS monitoring.                                                                         |
-|   N    | `MT-EDT`   | SGW-U support of reporting the size of DL Data Packets.                                                               |
-|   N    | `CIOT`     | UPF support of CIoT feature, e.g. small data packet rate enforcement.                                                 |
-|   N    | `ETHAR`    | UPF support of Ethernet PDU Session Anchor Relocation.                                                                |
-|   N    | `DDDS`     | Reporting the first buffered/discarded downlink data after buffering / directly dropped downlink data.                |
-|   N    | `RDS`      | UP function support of Reliable Data Service                                                                          |
-|   N    | `RTTWP`    | UPF support of RTT measurements towards the UE Without PMF.                                                           |
-|   N    | `QUASF`    | URR with an Exempted Application ID for Quota Action or an Exempted SDF Filter for Quota Action.                      |
-|   N    | `NSPOC`    | UP function supports notifying start of Pause of Charging via user plane.                                             |
-|   N    | `L2TP`     | UP function supports the L2TP feature                                                                                 |
-|   N    | `UPBER`    | UP function supports the uplink packets buffering during EAS relocation.                                              |
-|   N    | `RESPS`    | Restoration of PFCP Sessions associated with one or more PGW-C/SMF FQCSID(s), Group Id(s) or CP IP address(es)        |
-|   N    | `IPREP`    | UP function supports IP Address and Port number replacement                                                           |
-|   N    | `DNSTS`    | UP function support DNS Traffic Steering based on FQDN in the DNS Query message                                       |
-|   N    | `DRQOS`    | UP function supports Direct Reporting of QoS monitoring events to Local NEF or AF                                     |
-|   N    | `MBSN4`    | UPF supports sending MBS multicast session data to associated PDU sessions using 5GC individual delivery              |
-|   N    | `PSUPRM`   | UP function supports Per Slice UP Resource Management                                                                 |
-|   N    | `EPPPI`    | UP function supports Enhanced Provisioning of Paging Policy Indicator feature                                         |
-|   N    | `RATP`     | Redirection Address Types with "Port", "IPv4 addr" or "IPv6 addr".                                                    |
-|   N    | `UPIDP`    | UP function supports User Plane Inactivity Detection and reporting per PDR feature                                    |
-</details>
+In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
+
+```ruby
+docker run --name your-eupf-custom -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 -e UPF_N3_ADDRESS=10.100.50.233 ghcr.io/edgecomllc/eupf:main
+```
+
+
+To go further, see the **[eUPF installation guide with Open5GS or Free5GC core](./docs/install.md)** to check how it works from end-to-end, deploying in three simple steps for you to choose: in Kubernetes cluster or as a docker-compose.
+
+More about parameters read in the **[eUPF configuration guide](./docs/Configuration.md)**
+
+For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**
+
+## eUPF details
+
+eUPF as a part of 5G mobile core network implements data network gateway function. It communicates with SMF via PFCP protocol (N4 interface) and forwards packets between core and data networks(N3 and N6 interfaces correspondingly). These two main UPF parts are implemented in two separate components: control plane and forwarding plane.
+
+The eUPF control plane is an userspace application which receives packet processing rules from SMF and configures forwarding plane for proper forwarding.
+
+The eUPF forwarding plane is based on eBPF packet processing. When started eUPF adds eBPF XDP hook program in order to process network packets as close to NIC as possible. eBPF program consists of several pipeline steps: determine PDR, apply gating, qos and forwarding rules.
+
+eUPF relies on kernel routing when making routing decision for incoming network packets. When it is not possible to determine packet route via kernel FIB lookup, eUPF passes such packet to kernel as a fallback path. This approach obviously affects performance but allows maintaining correct kernel routing process (ex., filling arp tables).   
 
 ## eUPF architecture
 
-<details><summary> eUPF architecture </summary>
+<details><summary>Show me</summary>
 
 ### Eagle-eye overview
 
@@ -91,6 +80,7 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 - Only one PDR in PFCP session per direction
 - Only single FAR supported
+- Only XDP generic mode
 
 ### Packet forwarding pipeline
 
@@ -99,38 +89,101 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 ## eUPF roadmap
 
-<details><summary>Roadmap</summary>
+<details><summary>Show me</summary>
 
-### Management Layer
+### Control plane
 
 - [x]  PFCP Association Setup/Release and Heartbeats
 - [x]  Session Establishment/Modification with support for PFCP entities such as Packet Detection Rules (PDRs), Forwarding Action Rules (FARs), QoS Enforcement Rules (QERs).
 - [ ]  UPF-initiated PFCP association
 - [ ]  UPF-based UE IP address assignment
-- [x]  Integration with Prometheus for exporting PFCP and data plane-level metrics.
 
-### Datapath Layer
+### Data plane
 
 - [x]  IPv4 support
-- [ ]  N3, N4, N6, N9 interfacing
-- [ ]  Single & Multi-port support
-- [ ]  Monitoring/Debugging capabilties using
-    - tcpdump on individual modules
-    - visualization web interface
-    - command line shell interface for displaying statistics
+- [x]  N3, N4, N6 interfaces
+- [x]  Single & Multi-port support
 - [x]  Static IP routing
-- [ ]  I-UPF/A-UPF ULCL/Branching i.e., simultaneous N6/N9 support within PFCP session
-- [ ]  Basic QoS support, with per-slice and per-session rate limiting
- 
+- [x]  Basic QoS support with per-session rate limiting
+- [ ]  I-UPF/A-UPF ULCL/Branching (N9 interface)
+
+### Management plane
+- [x]  Free5gc compatibility
+- [x]  Open5gs compatibility
+- [x]  Integration with Prometheus for exporting PFCP and data plane-level metrics
+- [ ]  Monitoring/Debugging capabilities using tcpdump and cli
+
+### 3GPP specs compatibility
+- [ ]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
+- [ ]  `UEIP` Allocating UE IP addresses or prefixes.
+- [ ]  `SSET` PFCP sessions successively controlled by different SMFs of a same SMF Set.
+- [ ]  `MPAS` Multiple PFCP associations to the SMFs in an SMF set.
+- [ ]  `QFQM` Per QoS flow per UE QoS monitoring.
+- [ ]  `GPQM` Per GTP-U Path QoS monitoring.
+- [ ]  `RTTWP` RTT measurements towards the UE Without PMF.
+
  </details>
 
-## Quick start guide
+## Building and running from sources
 
-Read [eUPF intallation guide with Open5GS or Free5GC core](./docs/install.md)
+**Prerequisites:**
 
-Read [eUPF configuration guide](./docs/Config.md)
+- Git
+- Golang
+- Clang
+- LLVM
+- gcc
+- libbpf-dev
 
-Read [eUPF metrics and monitoring guide](./docs/metrics.md)
+**On Ubuntu 22.04**, you can install these using the following command:
+
+```bash
+sudo apt install git golang clang llvm gcc-multilib libbpf-dev
+```
+
+**On Rocky Linux 9**, use the following command:
+
+```bash
+sudo dnf install git golang clang llvm gcc libbpf libbpf-devel libxdp libxdp-devel xdp-tools bpftool kernel-headers
+```
+
+**Steps:**
+
+1. Install the Swag command line tool for Golang. This is used to automatically generate RESTful API documentation.
+
+```bash
+go install github.com/swaggo/swag/cmd/swag@v1.8.12
+```
+
+2. Clone the eUPF repository and change to the directory:
+
+```bash
+git clone https://github.com/edgecomllc/eupf.git
+cd eupf
+```
+
+3. Run the code generators:
+
+```bash
+go generate -v ./cmd/eupf
+```
+
+4. Build eUPF:
+
+```bash
+go build -v -o bin/eupf ./cmd/eupf
+```
+5. Run the application:
+
+   Run binary with privileges allowing to increase [memory-ulimits](https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits)
+
+```bash
+sudo ./bin/eupf
+```
+
+This should start application with the default configuration. Please adjust the contents of the configuration file and the command-line arguments as needed for your application and environment.
+
+
 
 ## Contribution
 
@@ -138,3 +191,14 @@ Please create an issue to report a bug or share an idea.
 
 ## License
 This project is licensed under the [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details
+
+---
+
+[build]: https://github.com/edgecomllc/eupf/actions/workflows/build.yml
+[build-img]: https://github.com/edgecomllc/eupf/actions/workflows/build.yml/badge.svg
+[test]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml
+[test-img]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml/badge.svg
+[security-test]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml
+[security-test-img]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml/badge.svg
+[license]: https://github.com/edgecomllc/eupf/blob/main/LICENSE
+[license-img]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
