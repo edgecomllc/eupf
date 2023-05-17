@@ -22,7 +22,7 @@ configMaps:
         interface_name: eth0
         api_address: :8080
         pfcp_address: :8805
-        pfcp_node_id: localhost
+        pfcp_node_id: 127.0.0.1
         metrics_address: :9090
 
 volumes:
