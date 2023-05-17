@@ -24,9 +24,11 @@ func printAssociationSetupRequest(req *message.AssociationSetupRequest) {
 	if err == nil {
 		writeLineTabbed(&sb, fmt.Sprintf("Node ID: %s", nodeId), 1)
 	}
-	recoveryTime, err := req.RecoveryTimeStamp.RecoveryTimeStamp()
-	if err == nil {
-		writeLineTabbed(&sb, fmt.Sprintf("Recovery Time: %s", recoveryTime.String()), 1)
+	if req.RecoveryTimeStamp != nil {
+		recoveryTime, err := req.RecoveryTimeStamp.RecoveryTimeStamp()
+		if err == nil {
+			writeLineTabbed(&sb, fmt.Sprintf("Recovery Time: %s", recoveryTime.String()), 1)
+		}
 	}
 	log.Print(sb.String())
 }
