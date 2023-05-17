@@ -1,0 +1,18 @@
+---
+
+service:
+  type: ClusterIP
+
+containerSecurityContext:
+  runAsUser: 0
+  privileged: true
+
+command:
+  - /bin/sh
+  - -c
+  - |
+    apk add ethtool; \
+    ethtool -K eth0 tx off; \
+    iperf3 -s --interval=1 --format=M
+
+args: []

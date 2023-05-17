@@ -71,6 +71,12 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			switch srcInterface {
 			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
 				{
+					sdfFilterId := findIEindex(pdi, 23) // IE Type SDF Filter
+					if sdfFilterId != -1 {
+						log.Printf("WARN: SDF Filter is not supported yet. Ignore PDR")
+						continue
+					}
+
 					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err)
 						return err

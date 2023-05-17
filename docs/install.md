@@ -1,6 +1,6 @@
 # How to install and run eUPF
 The easyest way to install eUPF is to use helm charts for one of the supported opensource 5G core projects in your own kubernetes cluster.
-Alternatively, eUPF could be deployed in docker-compose(free5gc only at the moment).
+Alternatively, eUPF could be deployed in docker-compose (only with free5gc config is ready at the moment).
 
 ## Kubenetes environment
 
@@ -10,9 +10,9 @@ Alternatively, eUPF could be deployed in docker-compose(free5gc only at the mome
 
 in our environments, we use one node K8s cluster deployed by means of [kubespray](https://github.com/kubernetes-sigs/kubespray). You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible)
 
-We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose. 
+We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose.
 
-[UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity. 
+[UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity.
 
 ## How to deploy eUPF with open5gs core:
 <details><summary>Instructions</summary>
@@ -20,64 +20,88 @@ We have prepared templates to deploy with two opensource environments: **open5gs
 
 ### To deploy:
 
-* [install helm](https://helm.sh/docs/intro/install/) if it's not
-* add openverso helm repo
+0. [install helm](https://helm.sh/docs/intro/install/) if it's not
+0. add openverso helm repo
 
    ```
    helm repo add openverso https://gradiant.github.io/openverso-charts/
    helm repo update
    ```
 
-* install eUPF chart
+0. install the eUPF chart
+
+   - Option 1, fast pure routing to nodes's network:
+
+      📝 Here we use subnet `10.100.111.0/24` for `n6` ptp type interface as a door to the outer world for our eUPF. And `10.45.0.0/16` addresses for subscribers at UE. So make sure that both IP subnets is not occupied on your node host.
+
+      ```powershell
+      helm upgrade --install \
+         edgecomllc-eupf .deploy/helm/universal-chart \
+         --values docs/examples/open5gs/eupf-host-nat.yaml \
+         -n open5gs \
+         --wait --timeout 100s --create-namespace
+      ```
+      eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
+
+      If you need Network Address Translation (NAT) function for subscriber's egress traffic, see the chapter [about NAT](#option-nat-at-the-node) below.
+
+   - Option 2, with an additional pod that handles the NAT function:
+
+      📝 Here we use separate container for NAT:
+
+      ```
+      kubectl apply -f docs/examples/open5gs/nat.yaml
+      ```
+
+      ```powershell
+      helm upgrade --install \
+         edgecomllc-eupf .deploy/helm/universal-chart \
+         --values docs/examples/open5gs/eupf-container-nat.yaml \
+         -n open5gs \
+         --wait --timeout 100s --create-namespace
+      ```
+
+0. install open5gs chart
 
    ```powershell
    helm upgrade --install \
-       edgecomllc-eupf .deploy/helm/universal-chart \
-       --values docs/examples/open5gs/eupf.yaml \
-       -n open5gs \
-       --wait --timeout 100s --create-namespace
+      open5gs openverso/open5gs \
+      --values docs/examples/open5gs/open5gs.yaml \
+      -n open5gs \
+      --version 2.0.9 \
+      --wait --timeout 100s --create-namespace
    ```
-   📝Here we use subnet `10.100.111.0/24` for n6 interface as exit to the world, so make sure it's not occupied at your node host.
 
-* install open5gs chart
-
-   ```powershell
-   helm upgrade --install \
-       open5gs openverso/open5gs \
-       --values docs/examples/open5gs/open5gs.yaml \
-       -n open5gs \
-       --version 2.0.9 \
-       --wait --timeout 100s --create-namespace
-   ```
-
-* install ueransim chart
+0. install ueransim chart
 
    ```powershell
    helm upgrade --install \
-       ueransim openverso/ueransim-gnb \
-       --values docs/examples/open5gs/ueransim-gnb.yaml \
-       -n open5gs \
-       --version 0.2.5 \
-       --wait --timeout 100s --create-namespace
+      ueransim openverso/ueransim-gnb \
+      --values docs/examples/open5gs/ueransim-gnb.yaml \
+      -n open5gs \
+      --version 0.2.5 \
+      --wait --timeout 100s --create-namespace
    ```
 
 ### To undeploy everything:
 
 ```
 helm delete open5gs ueransim edgecomllc-eupf -n open5gs
+kubectl delete -f docs/examples/open5gs/nat.yaml
 ```
+### Notes
 📝 Pod's interconnection. openverso-charts uses default interfaces of your kubernetes cluster. It is Calico CNI interfaces in our environment, type ipvlan. And it uses k8s services names to resolve endpoints.
-The only added is ptp type interface `n6` as a door to the outer world for our eUPF. 
+
 
 For more details refer to openverso-charts [Open5gs and UERANSIM](https://gradiant.github.io/openverso-charts/open5gs-ueransim-gnb.html)
 
 </p>
-</details> 
+</details>
 
 ## How to deploy eUPF with free5gc core
 <details><summary>Instruction</summary>
 <p>
-	
+
 ### Prepare nodes
 
 You should compile and install gtp5g kernel module on every worker node:
@@ -95,10 +119,10 @@ check that the module is loaded:
 `lsmod | grep ^gtp5g`
 
 ### Deploy in Kubernetes cluster
-	
+
 Deployment configuration is derived from towards5gs-helm project [Setup free5gc](https://github.com/Orange-OpenSource/towards5gs-helm/blob/main/docs/demo/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM.md)
 ![Architecture](pictures/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM-Architecture.png)
-	
+
 
 0. [install helm](https://helm.sh/docs/intro/install/) if it's not
 0. add towards5gs helm repo
@@ -110,16 +134,39 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 
 0. install eUPF chart
 
+   - Option 1, fast pure routing to nodes's network:
+
 	```powershell
 	helm upgrade --install \
 		edgecomllc-eupf .deploy/helm/universal-chart \
-		--values docs/examples/free5gc/eupf.yaml \
+		--values docs/examples/free5gc/eupf-host-nat.yaml \
 		-n free5gc \
 		--wait --timeout 100s --create-namespace
 	```
-   📝Here we use subnet `10.100.100.0/24` for n6 interface as exit to the world, so make sure it's not occupied at your node host.
 
-0. install free5gc chart
+     📝 Here we use subnet `10.100.100.0/24` for `n6` ptp type interface as a door to the outer world for our eUPF. And `10.1.0.0/16` addresses for subscribers at UE. So make sure that both IP subnets is not occupied on your node host.
+
+     eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
+
+      If you need Network Address Translation (NAT) function for subscriber's egress traffic, see the chapter [about NAT](#option-nat-at-the-node) below.
+
+   - Option 2, with an additional pod that handles the NAT function:
+
+      📝 Here we use separate container for NAT:
+
+   ```
+   kubectl apply -f docs/examples/free5gc/nat.yaml
+   ```
+
+	```powershell
+	helm upgrade --install \
+		edgecomllc-eupf .deploy/helm/universal-chart \
+		--values docs/examples/free5gc/eupf-container-nat.yaml \
+		-n free5gc \
+		--wait --timeout 100s --create-namespace
+	```
+
+1. install free5gc chart
 
 	```powershell
 	helm upgrade --install \
@@ -130,7 +177,7 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 		--wait --timeout 100s --create-namespace
 	```
 
-0. create subscriber in free5gc via WebUI
+2. create subscriber in free5gc via WebUI
 
    redirect port from webui pod to localhost
 
@@ -142,7 +189,7 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 
    close port forward with `Ctrl + C`
 
-0. install ueransim chart
+3. install ueransim chart
 
 	```powershell
 	helm upgrade --install \
@@ -159,10 +206,10 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 helm delete free5gc ueransim edgecomllc-eupf -n free5gc
 ```
 📝 Pod's interconnection. towards5gs-helm uses separate subnets with ipvlan type interfaces with internal addressing.
-The only added is ptp type interface `n6` as a door to the outer world for our eUPF. 
+The only added is ptp type interface `n6` as a door to the outer world for our eUPF.
 
 </p>
-</details> 
+</details>
 </p>
 
 ## How to deploy eUPF with free5gc core (docker-compose)
@@ -184,25 +231,24 @@ Actually we use vanilla free5gc-docker-compose with some overrides. So you can c
    ```bash
    cd free5gc-compose
    docker compose pull
-   docker compose up -d 
+   docker compose up -d
    ```
 ### To undeploy everything
    ```
    docker compose rm
    ```
 </p>
-</details> 
+</details>
 
 
 ## Option NAT at the node
-eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
 
 If you need NAT (Network Address Translation, or Masqerading) at your node to access Internet, the easiest way is to use standart daemonset [IP Masquerade Agent](https://kubernetes.io/docs/tasks/administer-cluster/ip-masq-agent/):
 ```powershell
 sudo kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/ip-masq-agent/master/ip-masq-agent.yaml
 ```
    > The below entries show the default set of rules that are applied by the ip-masq-agent:
-    ` iptables -t nat -L IP-MASQ-AGENT`     
+    ` iptables -t nat -L IP-MASQ-AGENT`
 
 ---
 
@@ -233,7 +279,7 @@ UE can send packet to internet and get response
    kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
    ```
 
-1. run command from UE pod's shell. 
+1. run command from UE pod's shell.
 
    `$ ping -I uesimtun0 google.com`
 
@@ -292,8 +338,8 @@ Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-
 [GIN-debug] Listening and serving HTTP on :8080
 2023/04/17 16:11:13 Received 30 bytes from 10.100.50.244:8805
 2023/04/17 16:11:13 Handling PFCP message from 10.100.50.244:8805
-2023/04/17 16:11:13 Got Association Setup Request from: 10.100.50.244:8805. 
-2023/04/17 16:11:13 
+2023/04/17 16:11:13 Got Association Setup Request from: 10.100.50.244:8805.
+2023/04/17 16:11:13
 Association Setup Request:
   Node ID: 10.100.50.244
   Recovery Time: 2023-04-17 16:11:13 +0000 UTC
@@ -301,59 +347,59 @@ Association Setup Request:
 2023/04/17 16:11:50 Received 287 bytes from 10.100.50.244:8805
 2023/04/17 16:11:50 Handling PFCP message from 10.100.50.244:8805
 2023/04/17 16:11:50 Got Session Establishment Request from: 10.100.50.244:8805.
-2023/04/17 16:11:50 
+2023/04/17 16:11:50
 Session Establishment Request:
-  CreatePDR ID: 1 
-    Outer Header Removal: 0 
-    FAR ID: 1 
-    Source Interface: 0 
-    TEID: 1 
-    Ipv4: 10.100.50.233 
-    Ipv6: <nil> 
-  CreatePDR ID: 2 
-    FAR ID: 2 
-    Source Interface: 2 
-    UE IPv4 Address: 10.1.0.1 
-  CreateFAR ID: 1 
-    Apply Action: [2] 
+  CreatePDR ID: 1
+    Outer Header Removal: 0
+    FAR ID: 1
+    Source Interface: 0
+    TEID: 1
+    Ipv4: 10.100.50.233
+    Ipv6: <nil>
+  CreatePDR ID: 2
+    FAR ID: 2
+    Source Interface: 2
+    UE IPv4 Address: 10.1.0.1
+  CreateFAR ID: 1
+    Apply Action: [2]
     Forwarding Parameters:
-      Network Instance: internet 
-  CreateFAR ID: 2 
-    Apply Action: [2] 
+      Network Instance: internet
+  CreateFAR ID: 2
+    Apply Action: [2]
     Forwarding Parameters:
-  CreateQER ID: 1 
-    Gate Status DL: 0 
-    Gate Status UL: 0 
-    Max Bitrate DL: 100000 
-    Max Bitrate UL: 200000 
-    QFI: 9 
+  CreateQER ID: 1
+    Gate Status DL: 0
+    Gate Status UL: 0
+    Max Bitrate DL: 100000
+    Max Bitrate UL: 200000
+    QFI: 9
 
-2023/04/17 16:11:50 
+2023/04/17 16:11:50
 Session Establishment Request:
-  CreatePDR ID: 1 
-    Outer Header Removal: 0 
-    FAR ID: 1 
-    Source Interface: 0 
-    TEID: 1 
-    Ipv4: 10.100.50.233 
-    Ipv6: <nil> 
-  CreatePDR ID: 2 
-    FAR ID: 2 
-    Source Interface: 2 
-    UE IPv4 Address: 10.1.0.1 
-  CreateFAR ID: 1 
-    Apply Action: [2] 
+  CreatePDR ID: 1
+    Outer Header Removal: 0
+    FAR ID: 1
+    Source Interface: 0
+    TEID: 1
+    Ipv4: 10.100.50.233
+    Ipv6: <nil>
+  CreatePDR ID: 2
+    FAR ID: 2
+    Source Interface: 2
+    UE IPv4 Address: 10.1.0.1
+  CreateFAR ID: 1
+    Apply Action: [2]
     Forwarding Parameters:
-      Network Instance: internet 
-  CreateFAR ID: 2 
-    Apply Action: [2] 
+      Network Instance: internet
+  CreateFAR ID: 2
+    Apply Action: [2]
     Forwarding Parameters:
-  CreateQER ID: 1 
-    Gate Status DL: 0 
-    Gate Status UL: 0 
-    Max Bitrate DL: 100000 
-    Max Bitrate UL: 200000 
-    QFI: 9 
+  CreateQER ID: 1
+    Gate Status DL: 0
+    Gate Status UL: 0
+    Max Bitrate DL: 100000
+    Max Bitrate UL: 200000
+    QFI: 9
 2023/04/17 16:11:50 WARN: No OuterHeaderCreation
 2023/04/17 16:11:50 Saving FAR info to session: 1, {Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0 LocalIP:0}
 2023/04/17 16:11:50 EBPF: Put FAR: i=1, farInfo={Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0 LocalIP:0}
@@ -368,17 +414,17 @@ Session Establishment Request:
 2023/04/17 16:11:50 EBPF: Put QER: i=1, qerInfo={GateStatusUL:0 GateStatusDL:0 Qfi:9 MaxBitrateUL:200000 MaxBitrateDL:100000}
 2023/04/17 16:11:50 Received 148 bytes from 10.100.50.244:8805
 2023/04/17 16:11:50 Handling PFCP message from 10.100.50.244:8805
-2023/04/17 16:11:50 Got Session Modification Request from: 10.100.50.244:8805. 
+2023/04/17 16:11:50 Got Session Modification Request from: 10.100.50.244:8805.
 2023/04/17 16:11:50 Finding association for 10.100.50.244:8805
 2023/04/17 16:11:50 Finding session 2
-2023/04/17 16:11:50 
+2023/04/17 16:11:50
 Session Modification Request:
-  UpdatePDR ID: 2 
-    FAR ID: 2 
-    Source Interface: 2 
-    UE IPv4 Address: 10.1.0.1 
-  UpdateFAR ID: 2 
-    Apply Action: [2] 
+  UpdatePDR ID: 2
+    FAR ID: 2
+    Source Interface: 2
+    UE IPv4 Address: 10.1.0.1
+  UpdateFAR ID: 2
+    Apply Action: [2]
     Forwarding Parameters:
 2023/04/17 16:11:50 Updating FAR info: 2, {Action:2 OuterHeaderCreation:1 Teid:2 RemoteIP:3962725386 LocalIP:0}
 2023/04/17 16:11:50 EBPF: Update FAR: i=2, farInfo={Action:2 OuterHeaderCreation:1 Teid:2 RemoteIP:3962725386 LocalIP:0}
@@ -388,7 +434,7 @@ Stream closed EOF for free5gc/edgecomllc-eupf-universal-chart-d4b54d4b7-t2hr6 (a
 ```
 
 </p>
-</details> 
+</details>
 
 <details><summary>SMF free5gc successfull connection log (stdout)</summary>
 <p>
@@ -406,7 +452,7 @@ Stream closed EOF for free5gc/edgecomllc-eupf-universal-chart-d4b54d4b7-t2hr6 (a
 2023-04-17T16:11:13Z [INFO][LIB][PFCP] set log level : info
 2023-04-17T16:11:13Z [INFO][LIB][PFCP] set report call : false
 2023-04-17T16:11:13Z [INFO][SMF][App] smf
-2023-04-17T16:11:13Z [INFO][SMF][App] SMF version:  
+2023-04-17T16:11:13Z [INFO][SMF][App] SMF version:
     free5GC version: v3.2.1
     build time:      2023-03-13T18:13:22Z
     commit hash:     de70bf6c
@@ -447,7 +493,7 @@ Stream closed EOF for free5gc/edgecomllc-eupf-universal-chart-d4b54d4b7-t2hr6 (a
 ```
 
 </p>
-</details> 
+</details>
 
 <details><summary>UERANSIM UE successfully connection log output:</summary>
 <p>
@@ -491,7 +537,7 @@ Stream closed EOF for free5gc/ueransim-ue-7f76db59c9-c4ltw (ue)
 ```
 
 </p>
-</details> 
+</details>
 
 <details><summary>UERANSIM UE successfully connected status "<strong>cm-state: CM-CONNECTED</strong>"</summary>
 <p>
@@ -542,7 +588,7 @@ traceroute to www.google.com (74.125.205.99), 30 hops max, 46 byte packets
 ```
 
 </p>
-</details> 
+</details>
 
 ## Then UE disconnected
 
@@ -582,10 +628,112 @@ Then you can try to reconnect:
 UE will send Initial Registration after 10 seconds.
 
 </p>
-</details> 
+</details>
 
 If connection can not set up, we recommend to restart components in next sequence:
 1. SMF
 1. AMF
 1. UERANSIM GnB
 1. UERANSIM UE
+
+## eUPF useful [API](api.md)
+- To check currently applied config use GET `/api/v1/config`
+- To check connected sessions use GET `/api/v1/pfcp_associations`
+
+You can forward api-port (8080 by default) from eUPF running container to your machine and use pretty GUI interface by opening the link http://localhost:8080/swagger/index.html in browser.
+
+Or you can simply open shell inside the container and run commands:
+`wget  -O - http://localhost:8080/api/v1/config` and `wget  -O - http://localhost:8080/api/v1/pfcp_associations`
+
+<details><summary>API json output example of successfully connected UE</summary>
+<p>
+
+```json
+/ # wget  -O - http://localhost:8080/api/v1/config
+Connecting to localhost:8080 ([::1]:8080)
+writing to stdout
+{
+    "InterfaceName": [
+        "n3",
+        "n6"
+    ],
+    "XDPAttachMode": "generic",
+    "ApiAddress": ":8080",
+    "PfcpAddress": ":8805",
+    "PfcpNodeId": "10.100.50.241",
+    "MetricsAddress": ":9090",
+    "N3Address": "10.100.50.233"
+-                    100% |************************************************************************************************************|   246  0:00:00 ETA
+written to stdout
+/ #
+/ # wget  -O - http://localhost:8080/api/v1/pfcp_associations
+Connecting to localhost:8080 ([::1]:8080)
+writing to stdout
+{
+    "10.100.50.244:8805": {
+        "ID": "10.100.50.244",
+        "Addr": "10.100.50.244:8805",
+        "NextSessionID": 2,
+        "Sessions": {
+            "2": {
+                "LocalSEID": 2,
+                "RemoteSEID": 1,
+                "UplinkPDRs": {
+                    "1": {
+                        "PdrInfo": {
+                            "OuterHeaderRemoval": 0,
+                            "FarId": 1,
+                            "QerId": 1
+                        },
+                        "Teid": 1,
+                        "Ipv4": ""
+                    }
+                },
+                "DownlinkPDRs": {
+                    "2": {
+                        "PdrInfo": {
+                            "OuterHeaderRemoval": 0,
+                            "FarId": 2,
+                            "QerId": 0
+                        },
+                        "Teid": 0,
+                        "Ipv4": "10.1.0.1"
+                    }
+                },
+                "FARs": {
+                    "1": {
+                        "Action": 2,
+                        "OuterHeaderCreation": 0,
+                        "Teid": 0,
+                        "RemoteIP": 0,
+                        "LocalIP": 0
+                    },
+                    "2": {
+                        "Action": 2,
+                        "OuterHeaderCreation": 1,
+                        "Teid": 3,
+                        "RemoteIP": 3962725386,
+                        "LocalIP": 3912393738
+                    }
+                },
+                "QERs": {
+                    "1": {
+                        "GateStatusUL": 0,
+                        "GateStatusDL": 0,
+                        "Qfi": 9,
+                        "MaxBitrateUL": 200000000,
+                        "MaxBitrateDL": 100000000,
+                        "StartUL": 0,
+                        "StartDL": 0
+                    }
+                }
+            }
+        }
+    }
+-                    100% |************************************************************************************************************|  1954  0:00:00 ETA
+written to stdout
+/ #
+```
+
+</p>
+</details> 
