@@ -225,7 +225,6 @@ func displayQer(sb *strings.Builder, qer *ie.IE) {
 		//sb.WriteString(fmt.Sprintf("QFI: %d ", qfi))
 		writeLineTabbed(sb, fmt.Sprintf("QFI: %d ", qfi), 2)
 	}
-	log.Println(sb.String())
 }
 
 func displayFar(sb *strings.Builder, far *ie.IE) {
