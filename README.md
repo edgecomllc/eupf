@@ -2,6 +2,7 @@
 
 <div align="center">
 
+[![GitHub Release][release-img]][release]
 [![Build][build-img]][build]
 [![Test][test-img]][test]
 [![Security][security-test-img]][security-test]
@@ -16,7 +17,7 @@ eUPF is the opensource User Plane Function (UPF) project for using inside or "ou
 ## What is 5G core and CUPS
 
 5G core uses network virtualized functions (NVF) to provide connectivity and services.
-Control and user plane separation (CUPS) is important architecture enhancement that separates control plane and user plane inside 5G core. 
+Control and user plane separation (CUPS) is important architecture enhancement that separates control plane and user plane inside 5G core.
 User plane function (UPF) is the "decapsulating and routing" function that extracts user plane traffic from GPRS tunneling protocol (GTP) and route it to the public data network or local network via the best available path.
 
 ![image](https://user-images.githubusercontent.com/119619173/233130952-e5634aff-b177-4274-a2d7-0e51a5488e5d.png)
@@ -29,7 +30,7 @@ docker run --name your-eupf-def ghcr.io/edgecomllc/eupf:main
 ```
 <blockquote><details><summary><i>The defaults are</i></summary>
 <p>
-   
+
    - UPF_INTERFACE_NAME=lo    *network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
    - UPF_N3_ADDRESS=127.0.0.1 *IPv4 address for N3 interface*
    - UPF_XDP_ATTACH_MODE=generic *Kernel-level implementation. For evaluation purpose.*
@@ -63,7 +64,7 @@ The eUPF control plane is an userspace application which receives packet process
 
 The eUPF forwarding plane is based on eBPF packet processing. When started eUPF adds eBPF XDP hook program in order to process network packets as close to NIC as possible. eBPF program consists of several pipeline steps: determine PDR, apply gating, qos and forwarding rules.
 
-eUPF relies on kernel routing when making routing decision for incoming network packets. When it is not possible to determine packet route via kernel FIB lookup, eUPF passes such packet to kernel as a fallback path. This approach obviously affects performance but allows maintaining correct kernel routing process (ex., filling arp tables).   
+eUPF relies on kernel routing when making routing decision for incoming network packets. When it is not possible to determine packet route via kernel FIB lookup, eUPF passes such packet to kernel as a fallback path. This approach obviously affects performance but allows maintaining correct kernel routing process (ex., filling arp tables).
 
 ## eUPF architecture
 
@@ -194,6 +195,8 @@ This project is licensed under the [Apache-2.0 Creative Commons License](https:/
 
 ---
 
+[release]: https://github.com/edgecomllc/eupf/releases
+[release-img]: https://img.shields.io/github/release/edgecomllc/eupf.svg?logo=github
 [build]: https://github.com/edgecomllc/eupf/actions/workflows/build.yml
 [build-img]: https://github.com/edgecomllc/eupf/actions/workflows/build.yml/badge.svg
 [test]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml

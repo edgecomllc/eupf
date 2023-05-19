@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - "main"
-      - "200-choose-and-apply-versioning-model"
     tags:
       - "*"
 
