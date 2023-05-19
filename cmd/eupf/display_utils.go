@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log"
 	"strings"
@@ -298,6 +299,16 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 	if err == nil {
 		// sb.WriteString(fmt.Sprintf("BAR ID: %d ", barId))
 		writeLineTabbed(sb, fmt.Sprintf("BAR ID: %d ", barId), 2)
+	}
+	transportLevelMarking, err := far.TransportLevelMarking()
+	if err == nil {
+		// sb.WriteString(fmt.Sprintf("Transport Level Marking: %+v ", transportLevelMarking))
+		writeLineTabbed(sb, fmt.Sprintf("Transport Level Marking: %d", transportLevelMarking), 2)
+		// DSCP (first octet) and ToS or Traffic Class mask (second octet)
+		buf := make([]byte, 2)
+		binary.BigEndian.PutUint16(buf, transportLevelMarking)
+		writeLineTabbed(sb, fmt.Sprintf("DSCP: %x", buf[0]), 3)
+		writeLineTabbed(sb, fmt.Sprintf("ToS or Traffic Class mask: %x", buf[1]), 3)
 	}
 }
 
