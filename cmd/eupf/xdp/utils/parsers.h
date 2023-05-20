@@ -10,7 +10,7 @@
 
 #include "xdp/utils/packet_context.h"
 
-static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct ethhdr **ethhdr)
+static __always_inline __u16 parse_ethernet(struct packet_context *ctx)
 {
     void *data = ctx->data;
     void *data_end = ctx->data_end;
@@ -22,15 +22,14 @@ static __always_inline __u16 parse_ethernet(struct packet_context *ctx, struct e
         return -1;
 
     ctx->data += hdrsize;
-    *ethhdr = eth;
-
+    ctx->eth = eth; 
     return bpf_htons(eth->h_proto); /* network-byte-order */
 }
 
 /* 0x3FFF mask to check for fragment offset field */
 #define IP_FRAGMENTED 65343
 
-static __always_inline int parse_ip4(struct packet_context *ctx, struct iphdr **ip4hdr)
+static __always_inline int parse_ip4(struct packet_context *ctx)
 {
     void *data = ctx->data;
     void *data_end = ctx->data_end;
@@ -46,10 +45,7 @@ static __always_inline int parse_ip4(struct packet_context *ctx, struct iphdr **
     //	return -1;
 
     ctx->data += hdrsize;
-    *ip4hdr = ip4;
-    // tuple5->proto = ip4->protocol;
-    // tuple5->dst_ip.ip4.addr = ip4->daddr;
-    // tuple5->src_ip.ip4.addr = ip4->saddr;
+    ctx->ip4 = ip4;
     return ip4->protocol; /* network-byte-order */
 }
 

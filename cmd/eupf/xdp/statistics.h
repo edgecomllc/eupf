@@ -86,3 +86,19 @@ struct
     __uint(max_entries, 1);
 } upf_ext_stat SEC(".maps");
 #endif
+
+
+#define EUPF_MAX_XDP_ACTION 5
+
+struct upf_statistic {
+    struct upf_counters upf_counters;
+    __u64 xdp_actions[EUPF_MAX_XDP_ACTION];
+};
+
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, __u32); // cpu
+    __type(value, struct upf_statistic);
+    __uint(max_entries, 1);
+} upf_ext_stat2 SEC(".maps");

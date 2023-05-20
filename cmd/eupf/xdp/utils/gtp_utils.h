@@ -11,7 +11,7 @@
 #include "xdp/utils/packet_context.h"
 #include "xdp/utils/gtpu.h"
 
-static __always_inline __u32 parse_gtp(struct packet_context *ctx, struct gtpuhdr **gtphdr)
+static __always_inline __u32 parse_gtp(struct packet_context *ctx)
 {
     void *data = ctx->data;
     void *data_end = ctx->data_end;
@@ -23,21 +23,22 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx, struct gtpuhd
         return -1;
 
     ctx->data += hdrsize;
-    *gtphdr = gtp;
-
+    ctx->gtp = gtp;
     return gtp->message_type;
 }
 
-static __always_inline __u32 handle_echo_request(struct packet_context *ctx, struct gtpuhdr *gtpu)
+static __always_inline __u32 handle_echo_request(struct packet_context *ctx)
 {
-    struct ethhdr *eth = ctx->eth;
-    struct iphdr *iph = ctx->ip4;
-    struct udphdr *udp = ctx->udp;
+    struct ethhdr   *eth = ctx->eth;
+    struct iphdr    *iph = ctx->ip4;
+    struct udphdr   *udp = ctx->udp;
+    struct gtpuhdr  *gtp = ctx->gtp;
 
-    gtpu->message_type = GTPU_ECHO_RESPONSE;
-
-    if (iph == 0)
+    if(!eth || !iph || !udp || !gtp)
         return XDP_ABORTED;
+
+    gtp->message_type = GTPU_ECHO_RESPONSE;
+
     __u32 tmp_ip = iph->daddr;
     iph->daddr = iph->saddr;
     iph->saddr = tmp_ip;
@@ -46,8 +47,6 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx, str
     ipv4_csum(iph, sizeof(*iph), &cs);
     iph->check = cs;
 
-    if (udp == NULL)
-        return XDP_ABORTED;
     __u16 tmp = udp->dest;
     udp->dest = udp->source;
     udp->source = tmp;
