@@ -7,6 +7,7 @@
 
 #include "xdp/program_array.h"
 
+// N6 only entrypoint. Attach to N6 interfaces only
 SEC("xdp/upf_n6_entrypoint")
 int upf_n6_entrypoint_func(struct xdp_md *ctx)
 {

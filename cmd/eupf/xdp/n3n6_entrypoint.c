@@ -91,8 +91,9 @@ static __always_inline __u32 handle_n6_packet_ipv4(struct packet_context *ctx)
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
-static __always_inline __u32 handle_n6_packet_ipv6(struct xdp_md *ctx, struct ipv6hdr *ip6)
+static __always_inline __u32 handle_n6_packet_ipv6(struct packet_context *ctx)
 {
+    const struct ipv6hdr *ip6 = ctx->ip6;
     struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6, &ip6->daddr);
     if(!pdr) {
             bpf_printk("upf: no downlink session for ip:%pI6c", &ip6->daddr);
@@ -111,10 +112,30 @@ static __always_inline __u32 handle_n6_packet_ipv6(struct xdp_md *ctx, struct ip
     if(!(far->action & FAR_FORW))
         return XDP_DROP;
 
+    struct qer_info* qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
+    if(!qer) {
+        bpf_printk("upf: no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, pdr->qer_id);
+            return XDP_DROP;
+    }
+
+    bpf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
+
+    if(qer->dl_gate_status != GATE_STATUS_OPEN)
+        return XDP_DROP;
+
+    if(XDP_DROP == limit_rate_sliding_window(ctx->xdp_ctx, &qer->dl_start, qer->dl_maximum_bitrate))
+        return XDP_DROP;
+
     bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
 
-    //TODO: incapsulate & apply routing
-    return XDP_PASS;
+    if(far->outer_header_creation == 1) //FIXME: Use outer_header_creation enum values
+    {
+        if(-1 == add_gtp_header(ctx, far->localip, far->remoteip, far->teid))
+            return XDP_ABORTED;
+    }
+
+    bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
 static __always_inline __u32 handle_n3_packet(struct packet_context *ctx)
@@ -279,7 +300,7 @@ static __always_inline __u32 handle_ip6(struct packet_context *ctx)
         return DEFAULT_XDP_ACTION;
     }
 
-    return handle_n6_packet_ipv6(ctx->xdp_ctx, ctx->ip6);
+    return handle_n6_packet_ipv6(ctx);
 }
 
 static __always_inline __u32 process_packet(struct packet_context *ctx)
@@ -304,6 +325,7 @@ static __always_inline __u32 process_packet(struct packet_context *ctx)
     return DEFAULT_XDP_ACTION;
 }
 
+// Combined N3 & N6 entrypoint. Use for "on-a-stick" interfaces
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
