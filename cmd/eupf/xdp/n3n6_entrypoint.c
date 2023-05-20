@@ -61,8 +61,12 @@ static __always_inline __u32 handle_n6_packet_ipv4(struct packet_context *ctx)
 
     bpf_printk("upf: downlink session for ip:%pI4  far:%d action:%d", &ip4->daddr, pdr->far_id, far->action);
 
-    //Only forwarding action supported at the moment
+    //Only forwarding action is supported at the moment
     if(!(far->action & FAR_FORW))
+        return XDP_DROP;
+
+    //Only outer header GTP/UDP/IPv4 is supported at the moment
+    if(!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
         return XDP_DROP;
 
     struct qer_info* qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
@@ -81,11 +85,8 @@ static __always_inline __u32 handle_n6_packet_ipv4(struct packet_context *ctx)
 
     bpf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
 
-    if(far->outer_header_creation == 1) //FIXME: Use outer_header_creation enum values
-    {
-        if(-1 == add_gtp_header(ctx, far->localip, far->remoteip, far->teid))
-            return XDP_ABORTED;
-    }
+    if(-1 == add_gtp_header(ctx, far->localip, far->remoteip, far->teid))
+        return XDP_ABORTED;
 
     bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
@@ -112,6 +113,10 @@ static __always_inline __u32 handle_n6_packet_ipv6(struct packet_context *ctx)
     if(!(far->action & FAR_FORW))
         return XDP_DROP;
 
+    //Only outer header GTP/UDP/IPv4 is supported at the moment
+    if(!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
+        return XDP_DROP;
+
     struct qer_info* qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
     if(!qer) {
         bpf_printk("upf: no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, pdr->qer_id);
@@ -128,11 +133,8 @@ static __always_inline __u32 handle_n6_packet_ipv6(struct packet_context *ctx)
 
     bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
 
-    if(far->outer_header_creation == 1) //FIXME: Use outer_header_creation enum values
-    {
-        if(-1 == add_gtp_header(ctx, far->localip, far->remoteip, far->teid))
-            return XDP_ABORTED;
-    }
+    if(-1 == add_gtp_header(ctx, far->localip, far->remoteip, far->teid))
+        return XDP_ABORTED;
 
     bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
