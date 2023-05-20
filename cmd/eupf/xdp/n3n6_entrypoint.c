@@ -336,21 +336,12 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
     void *data = (void *)(long)ctx->data;
 
     __u32 cpu_ip = 0;
-    struct upf_counters *upf_counters = bpf_map_lookup_elem(&upf_ext_stat, &cpu_ip);
-
     struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat2, &cpu_ip);
 
     /* These keep track of the next header type and iterator pointer */
-    struct packet_context context = {.data = data, .data_end = data_end, .xdp_ctx = ctx, .counters = upf_counters};
+    struct packet_context context = {.data = data, .data_end = data_end, .xdp_ctx = ctx, .counters = &statistic->upf_counters};
 
     __u32 xdp_action = process_packet(&context);
-
-    // TODO: move xdp action statistic to upf_ext_stat
-    __u64 *counter = bpf_map_lookup_elem(&upf_xdp_statistic, &xdp_action);
-    if (counter)
-    {
-        __sync_fetch_and_add(counter, 1);
-    }
 
     if(xdp_action < EUPF_MAX_XDP_ACTION)
     {
