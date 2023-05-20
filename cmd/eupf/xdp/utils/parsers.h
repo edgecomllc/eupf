@@ -49,7 +49,7 @@ static __always_inline int parse_ip4(struct packet_context *ctx)
     return ip4->protocol; /* network-byte-order */
 }
 
-static __always_inline int parse_ip6(struct packet_context *ctx, struct ipv6hdr **ip6hdr)
+static __always_inline int parse_ip6(struct packet_context *ctx)
 {
     void *data = ctx->data;
     void *data_end = ctx->data_end;
@@ -61,11 +61,7 @@ static __always_inline int parse_ip6(struct packet_context *ctx, struct ipv6hdr 
         return -1;
 
     ctx->data += hdrsize;
-    *ip6hdr = ip6;
-    // tuple5->proto = ip6->nexthdr;
-    // tuple5->dst_ip.ip6 = ip6->daddr;
-    // tuple5->src_ip.ip6 = ip6->saddr;
-
+    ctx->ip6 = ip6;
     return ip6->nexthdr; /* network-byte-order */
 }
 
@@ -85,4 +81,23 @@ static __always_inline __u16 parse_udp(struct packet_context *ctx)
     // tuple5->src_port = udp->source;
     // tuple5->dst_port = udp->dest;
     return bpf_htons(udp->dest);
+}
+
+static __always_inline long update_packet_context(struct packet_context *packet_context)
+{
+    __u16 l3_protocol = parse_ethernet(packet_context);
+    switch (l3_protocol)
+    {
+    case ETH_P_IPV6:
+    {
+        return parse_ip6(packet_context);
+    }
+    case ETH_P_IP:
+    {
+        return parse_ip4(packet_context);
+    }
+    default:
+        //do nothing with non-ip packets
+        return -1;
+    }
 }

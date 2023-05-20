@@ -14,7 +14,7 @@ struct packet_context
     void            *data;
     void            *data_end;
     struct upf_counters *counters;
-    struct xdp_md   *ctx;
+    struct xdp_md   *xdp_ctx;
     struct ethhdr   *eth;
     struct iphdr    *ip4;
     struct ipv6hdr  *ip6;
