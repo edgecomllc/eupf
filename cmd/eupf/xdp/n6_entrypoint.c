@@ -10,12 +10,8 @@
 SEC("xdp/upf_n6_entrypoint")
 int upf_n6_entrypoint_func(struct xdp_md *ctx)
 {
-    bpf_printk("upf_gtp_entrypoint start\n");
-
-    bpf_printk("tail call to UPF_PROG_TYPE_MAIN key\n");
-    bpf_tail_call(ctx, &upf_pipeline, UPF_PROG_TYPE_MAIN);
-    bpf_printk("tail call to UPF_PROG_TYPE_MAIN key failed\n");
-    return XDP_ABORTED;
+    bpf_printk("upf n6 entrypoint start\n");
+    return XDP_PASS;
 }
 
 char _license[] SEC("license") = "GPL";

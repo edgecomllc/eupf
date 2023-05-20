@@ -413,7 +413,7 @@ static __always_inline __u32 process_packet(struct packet_context *ctx)
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
-    //bpf_printk("upf_ip_entrypoint start");
+    //bpf_printk("upf n3 & n6 combined entrypoint start");
     void *data_end = (void *)(long)ctx->data_end;
     void *data = (void *)(long)ctx->data;
 
