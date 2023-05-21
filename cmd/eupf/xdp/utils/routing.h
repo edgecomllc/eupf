@@ -12,17 +12,16 @@
 
 static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, const struct iphdr *ip4)
 {
-    struct bpf_fib_lookup fib_params = {
-        .family = AF_INET,
-        .tos = ip4->tos,
-        .l4_protocol = ip4->protocol,
-        .sport = 0,
-        .dport = 0,
-        .tot_len = bpf_ntohs(ip4->tot_len),
-        .ipv4_src = ip4->saddr,
-        .ipv4_dst = ip4->daddr,
-        .ifindex = ctx->ingress_ifindex
-    };
+    struct bpf_fib_lookup fib_params = {};
+    fib_params.family = AF_INET;
+    fib_params.tos = ip4->tos;
+    fib_params.l4_protocol = ip4->protocol;
+    fib_params.sport = 0;
+    fib_params.dport = 0;
+    fib_params.tot_len = bpf_ntohs(ip4->tot_len);
+    fib_params.ipv4_src = ip4->saddr;
+    fib_params.ipv4_dst = ip4->daddr;
+    fib_params.ifindex = ctx->ingress_ifindex;
 
     int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), 0 /*BPF_FIB_LOOKUP_OUTPUT*/);
     switch(rc) {

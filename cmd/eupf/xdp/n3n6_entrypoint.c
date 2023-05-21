@@ -86,7 +86,7 @@ static __always_inline __u32 handle_n6_packet_ipv4(struct packet_context *ctx)
     bpf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
 
     if(-1 == add_gtp_header(ctx, far->localip, far->remoteip, far->teid))
-        return XDP_ABORTED;
+       return XDP_ABORTED;
 
     bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
@@ -94,50 +94,51 @@ static __always_inline __u32 handle_n6_packet_ipv4(struct packet_context *ctx)
 
 static __always_inline __u32 handle_n6_packet_ipv6(struct packet_context *ctx)
 {
-    const struct ipv6hdr *ip6 = ctx->ip6;
-    struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6, &ip6->daddr);
-    if(!pdr) {
-            bpf_printk("upf: no downlink session for ip:%pI6c", &ip6->daddr);
-            return DEFAULT_XDP_ACTION;
-    }
+    // const struct ipv6hdr *ip6 = ctx->ip6;
+    // struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6, &ip6->daddr);
+    // if(!pdr) {
+    //         bpf_printk("upf: no downlink session for ip:%pI6c", &ip6->daddr);
+    //         return DEFAULT_XDP_ACTION;
+    // }
 
-    struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
-    if(!far) {
-        bpf_printk("upf: no downlink session far for ip:%pI6c far:%d", &ip6->daddr, pdr->far_id);
-            return XDP_DROP;
-    }
+    // struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+    // if(!far) {
+    //     bpf_printk("upf: no downlink session far for ip:%pI6c far:%d", &ip6->daddr, pdr->far_id);
+    //         return XDP_DROP;
+    // }
 
-    bpf_printk("upf: downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, pdr->far_id, far->action);
+    // bpf_printk("upf: downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, pdr->far_id, far->action);
 
-    //Only forwarding action supported at the moment
-    if(!(far->action & FAR_FORW))
-        return XDP_DROP;
+    // //Only forwarding action supported at the moment
+    // if(!(far->action & FAR_FORW))
+    //     return XDP_DROP;
 
-    //Only outer header GTP/UDP/IPv4 is supported at the moment
-    if(!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
-        return XDP_DROP;
+    // //Only outer header GTP/UDP/IPv4 is supported at the moment
+    // if(!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
+    //     return XDP_DROP;
 
-    struct qer_info* qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
-    if(!qer) {
-        bpf_printk("upf: no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, pdr->qer_id);
-            return XDP_DROP;
-    }
+    // struct qer_info* qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
+    // if(!qer) {
+    //     bpf_printk("upf: no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, pdr->qer_id);
+    //         return XDP_DROP;
+    // }
 
-    bpf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
+    // bpf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
 
-    if(qer->dl_gate_status != GATE_STATUS_OPEN)
-        return XDP_DROP;
+    // if(qer->dl_gate_status != GATE_STATUS_OPEN)
+    //     return XDP_DROP;
 
-    if(XDP_DROP == limit_rate_sliding_window(ctx->xdp_ctx, &qer->dl_start, qer->dl_maximum_bitrate))
-        return XDP_DROP;
+    // if(XDP_DROP == limit_rate_sliding_window(ctx->xdp_ctx, &qer->dl_start, qer->dl_maximum_bitrate))
+    //     return XDP_DROP;
 
-    bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
+    // bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
 
-    if(-1 == add_gtp_header(ctx, far->localip, far->remoteip, far->teid))
-        return XDP_ABORTED;
+    // if(-1 == add_gtp_header(ctx, far->localip, far->remoteip, far->teid))
+    //     return XDP_ABORTED;
 
-    bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
-    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+    // bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+    // return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+    return XDP_ABORTED;
 }
 
 static __always_inline __u32 handle_n3_packet(struct packet_context *ctx)
@@ -148,11 +149,10 @@ static __always_inline __u32 handle_n3_packet(struct packet_context *ctx)
         return DEFAULT_XDP_ACTION;
     }
 
-    __u32 teid = bpf_htonl(ctx->gtp->teid);
-
     /*
-     *   Step 2: search for PDR and apply PDR instructions
+     *   Step 1: search for PDR and apply PDR instructions
      */
+    __u32 teid = bpf_htonl(ctx->gtp->teid);
     struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
     if(!pdr) {
         bpf_printk("upf: no uplink session for teid:%d", teid);
@@ -169,8 +169,26 @@ static __always_inline __u32 handle_n3_packet(struct packet_context *ctx)
         ctx->data = (void *)(long)ctx->xdp_ctx->data;
         ctx->data_end = (void *)(long)ctx->xdp_ctx->data_end;
 
-        if(-1 == update_packet_context(ctx))
+        //Have to implicitly inline `update_packet_context` here. Thanks to verifier.
+        //if(-1 == update_packet_context(ctx))
+        //    return XDP_ABORTED;
+        __u16 l3_protocol = parse_ethernet(ctx);
+        switch (l3_protocol)
+        {
+        case ETH_P_IPV6:
+        {
+            if(-1 == parse_ip6(ctx))
+                return XDP_ABORTED;
+        }
+        case ETH_P_IP:
+        {
+            if(-1 == parse_ip4(ctx))
+                return XDP_ABORTED;
+        }
+        default:
+            //do nothing with non-ip packets
             return XDP_ABORTED;
+        }
     }
 
     /*
@@ -208,10 +226,7 @@ static __always_inline __u32 handle_n3_packet(struct packet_context *ctx)
     /*
      *   Step 4: Route packet finally
      */
-    if(ctx->ip4)
-        return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
-    else
-        return XDP_DROP;
+    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 
 }
 
@@ -288,11 +303,14 @@ static __always_inline __u32 handle_ip6(struct packet_context *ctx)
         return XDP_PASS;
     case IPPROTO_UDP:
         increment_counter(ctx->counters, rx_udp);
-        if (GTP_UDP_PORT == parse_udp(ctx))
-        {
-            bpf_printk("upf: gtp-u received");
-            return handle_gtpu(ctx);
-        }
+        return XDP_PASS;
+
+        // Don't expect GTP over IPv6 at the moment
+        // if (GTP_UDP_PORT == parse_udp(ctx))
+        // {
+        //     bpf_printk("upf: gtp-u received");
+        //     return handle_gtpu(ctx);
+        // }
         break;
     case IPPROTO_TCP:
         increment_counter(ctx->counters, rx_tcp);
@@ -307,7 +325,7 @@ static __always_inline __u32 handle_ip6(struct packet_context *ctx)
 
 static __always_inline __u32 process_packet(struct packet_context *ctx)
 {
-    __u16 l3_protocol = parse_ethernet(ctx);
+     __u16 l3_protocol = parse_ethernet(ctx);
     switch (l3_protocol)
     {
     case ETH_P_IPV6:
@@ -332,18 +350,23 @@ SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
     //bpf_printk("upf n3 & n6 combined entrypoint start");
-    void *data_end = (void *)(long)ctx->data_end;
-    void *data = (void *)(long)ctx->data;
+    //void *data_end = (void *)(long)ctx->data_end;
+    //void *data = (void *)(long)ctx->data;
 
     __u32 cpu_ip = 0;
     struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat2, &cpu_ip);
 
     /* These keep track of the next header type and iterator pointer */
-    struct packet_context context = {.data = data, .data_end = data_end, .xdp_ctx = ctx, .counters = &statistic->upf_counters};
+    struct packet_context context = {
+        .data = (void *)(long)ctx->data, 
+        .data_end = (void *)(long)ctx->data_end, 
+        .xdp_ctx = ctx, 
+        .counters = &statistic->upf_counters
+    };
 
     __u32 xdp_action = process_packet(&context);
 
-    if(xdp_action < EUPF_MAX_XDP_ACTION)
+    if(statistic && xdp_action < EUPF_MAX_XDP_ACTION)
     {
         __sync_fetch_and_add(&statistic->xdp_actions[xdp_action], 1);   
     }

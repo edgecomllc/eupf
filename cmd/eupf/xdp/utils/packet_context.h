@@ -12,7 +12,7 @@
 struct packet_context
 {
     void            *data;
-    void            *data_end;
+    const void            *data_end;
     struct upf_counters *counters;
     struct xdp_md   *xdp_ctx;
     struct ethhdr   *eth;

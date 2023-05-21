@@ -13,16 +13,11 @@
 
 static __always_inline __u32 parse_gtp(struct packet_context *ctx)
 {
-    void *data = ctx->data;
-    void *data_end = ctx->data_end;
-
-    struct gtpuhdr *gtp = data;
-    const int hdrsize = sizeof(*gtp);
-
-    if (data + hdrsize > data_end)
+    struct gtpuhdr *gtp = (struct gtpuhdr *)ctx->data;
+    if ((void*)(gtp + 1) > ctx->data_end)
         return -1;
 
-    ctx->data += hdrsize;
+    ctx->data += sizeof(*gtp);
     ctx->gtp = gtp;
     return gtp->message_type;
 }
@@ -38,6 +33,8 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx)
         return XDP_ABORTED;
 
     gtp->message_type = GTPU_ECHO_RESPONSE;
+
+    //TODO: add support GTP over IPv6
 
     __u32 tmp_ip = iph->daddr;
     iph->daddr = iph->saddr;
@@ -72,9 +69,6 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx)
         return -1;
     }
 
-    void *data = (void *)(long)ctx->xdp_ctx->data;
-    void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
-
     int ext_gtp_header_size = 0;
     if(ctx->gtp) {
         struct gtpuhdr *gtp = ctx->gtp;
@@ -83,6 +77,9 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx)
     }
 
     const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr) + ext_gtp_header_size;
+
+    void *data = (void *)(long)ctx->xdp_ctx->data;
+    void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
     struct ethhdr *eth = data;
     if ((void *)(eth + 1) > data_end)
     {
@@ -104,8 +101,8 @@ static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr
     static const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
     bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-GTP_ENCAPSULATED_SIZE);
 
-    void *data = (void *)(long)ctx->data;
-    void *data_end = (void *)(long)ctx->data_end;
+    void *data = (void *)(long)ctx->xdp_ctx->data;
+    void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
 
     struct ethhdr *eth = data;
     if ((void *)(eth + 1) > data_end)
@@ -170,8 +167,12 @@ static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr
     //ipv4_l4_csum(udp, udp_len, &cs, ip);
     //udp->check = cs;
 
+    //update packet pointers
+    ctx->data = data;
+    ctx->data_end = data_end;
     ctx->eth = eth;
     ctx->ip4 = ip;
+    ctx->ip6 = 0;
     ctx->udp = udp;
     ctx->gtp = gtp;
     return 0;

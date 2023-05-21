@@ -12,18 +12,13 @@
 
 static __always_inline __u16 parse_ethernet(struct packet_context *ctx)
 {
-    void *data = ctx->data;
-    void *data_end = ctx->data_end;
-
-    struct ethhdr *eth = data;
-    const int hdrsize = sizeof(*eth);
-
-    if (data + hdrsize > data_end)
+    struct ethhdr *eth = (struct ethhdr *)ctx->data;
+    if ((void*)(eth + 1) > ctx->data_end)
         return -1;
 
-    ctx->data += hdrsize;
+    ctx->data += sizeof(*eth);
     ctx->eth = eth; 
-    return bpf_htons(eth->h_proto); /* network-byte-order */
+    return bpf_htons(eth->h_proto);
 }
 
 /* 0x3FFF mask to check for fragment offset field */
@@ -31,73 +26,37 @@ static __always_inline __u16 parse_ethernet(struct packet_context *ctx)
 
 static __always_inline int parse_ip4(struct packet_context *ctx)
 {
-    void *data = ctx->data;
-    void *data_end = ctx->data_end;
-
-    struct iphdr *ip4 = data;
-    const int hdrsize = sizeof(*ip4);
-
-    if (data + hdrsize > data_end)
+    struct iphdr *ip4 = (struct iphdr *)ctx->data;
+    if ((void*)(ip4 + 1) > ctx->data_end)
         return -1;
 
     /* do not support fragmented packets as L4 headers may be missing */
     // if (ip4->frag_off & IP_FRAGMENTED)
     //	return -1;
 
-    ctx->data += hdrsize;
+    ctx->data += sizeof(*ip4);
     ctx->ip4 = ip4;
     return ip4->protocol; /* network-byte-order */
 }
 
 static __always_inline int parse_ip6(struct packet_context *ctx)
 {
-    void *data = ctx->data;
-    void *data_end = ctx->data_end;
-
-    struct ipv6hdr *ip6 = data;
-    const int hdrsize = sizeof(*ip6);
-
-    if (data + hdrsize > data_end)
+    struct ipv6hdr *ip6 = ctx->data;
+    if ((void*)(ip6 + 1) > ctx->data_end)
         return -1;
 
-    ctx->data += hdrsize;
+    ctx->data += sizeof(*ip6);
     ctx->ip6 = ip6;
     return ip6->nexthdr; /* network-byte-order */
 }
 
 static __always_inline __u16 parse_udp(struct packet_context *ctx)
 {
-    void *data = ctx->data;
-    void *data_end = ctx->data_end;
-
-    struct udphdr *udp = data;
-    const int hdrsize = sizeof(*udp);
-
-    if (data + hdrsize > data_end)
+    struct udphdr *udp = (struct udphdr *)ctx->data;
+    if ((void*)(udp + 1) > ctx->data_end)
         return -1;
 
+    ctx->data += sizeof(*udp);
     ctx->udp = udp;
-    ctx->data += hdrsize;
-    // tuple5->src_port = udp->source;
-    // tuple5->dst_port = udp->dest;
     return bpf_htons(udp->dest);
-}
-
-static __always_inline long update_packet_context(struct packet_context *packet_context)
-{
-    __u16 l3_protocol = parse_ethernet(packet_context);
-    switch (l3_protocol)
-    {
-    case ETH_P_IPV6:
-    {
-        return parse_ip6(packet_context);
-    }
-    case ETH_P_IP:
-    {
-        return parse_ip4(packet_context);
-    }
-    default:
-        //do nothing with non-ip packets
-        return -1;
-    }
 }
