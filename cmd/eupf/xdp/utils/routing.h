@@ -49,3 +49,8 @@ static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, 
             return XDP_PASS; // Let's kernel takes care
     }
 }
+
+static __always_inline __u32 route_ipv6(struct xdp_md *ctx, struct ethhdr *eth, const struct ipv6hdr *ip6)
+{
+    return XDP_ABORTED;
+}

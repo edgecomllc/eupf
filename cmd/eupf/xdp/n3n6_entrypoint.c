@@ -159,34 +159,12 @@ static __always_inline __u32 handle_n3_packet(struct packet_context *ctx)
         return DEFAULT_XDP_ACTION;
     }
 
-    bpf_printk("upf: uplink session for teid:%d far:%d headrm:%d", teid, pdr->far_id, pdr->outer_header_removal);
+    bpf_printk("upf: uplink session for teid:%d far:%d outer_header_removal:%d", teid, pdr->far_id, pdr->outer_header_removal);
     if(pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) 
     {
-        if(0 != remove_gtp_header(ctx))
-            return XDP_ABORTED;
-
-        //update packet pointers
-        ctx->data = (void *)(long)ctx->xdp_ctx->data;
-        ctx->data_end = (void *)(long)ctx->xdp_ctx->data_end;
-
-        //Have to implicitly inline `update_packet_context` here. Thanks to verifier.
-        //if(-1 == update_packet_context(ctx))
-        //    return XDP_ABORTED;
-        __u16 l3_protocol = parse_ethernet(ctx);
-        switch (l3_protocol)
-        {
-        case ETH_P_IPV6:
-        {
-            if(-1 == parse_ip6(ctx))
-                return XDP_ABORTED;
-        }
-        case ETH_P_IP:
-        {
-            if(-1 == parse_ip4(ctx))
-                return XDP_ABORTED;
-        }
-        default:
-            //do nothing with non-ip packets
+        long result = remove_gtp_header(ctx);
+        if(result) {
+            bpf_printk("upf: handle_n3_packet: can't remove gtp header: %d", result);
             return XDP_ABORTED;
         }
     }
@@ -226,7 +204,12 @@ static __always_inline __u32 handle_n3_packet(struct packet_context *ctx)
     /*
      *   Step 4: Route packet finally
      */
-    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+    if(ctx->ip4)
+        return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+    else if(ctx->ip6)
+        return route_ipv6(ctx->xdp_ctx, ctx->eth, ctx->ip6);
+    else
+        return XDP_ABORTED;
 
 }
 

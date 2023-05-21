@@ -41,7 +41,7 @@ static __always_inline int parse_ip4(struct packet_context *ctx)
 
 static __always_inline int parse_ip6(struct packet_context *ctx)
 {
-    struct ipv6hdr *ip6 = ctx->data;
+    struct ipv6hdr *ip6 = (struct ipv6hdr *)ctx->data;
     if ((void*)(ip6 + 1) > ctx->data_end)
         return -1;
 

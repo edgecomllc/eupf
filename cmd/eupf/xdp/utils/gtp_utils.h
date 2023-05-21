@@ -66,15 +66,14 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx)
 {
     if(!ctx->gtp)
     {
+        bpf_printk("upf: remove_gtp_header: not a gtp packet");
         return -1;
     }
 
     int ext_gtp_header_size = 0;
-    if(ctx->gtp) {
-        struct gtpuhdr *gtp = ctx->gtp;
-        if (gtp->e || gtp->s || gtp->pn)
-            ext_gtp_header_size += sizeof(struct gtp_hdr_ext) + 4;
-    }
+    struct gtpuhdr *gtp = ctx->gtp;
+    if (gtp->e || gtp->s || gtp->pn)
+        ext_gtp_header_size += sizeof(struct gtp_hdr_ext) + 4;
 
     const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr) + ext_gtp_header_size;
 
@@ -83,17 +82,60 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx)
     struct ethhdr *eth = data;
     if ((void *)(eth + 1) > data_end)
     {
+        bpf_printk("upf: remove_gtp_header: can't parse eth");
         return -1;
     }
 
     struct ethhdr *new_eth = data + GTP_ENCAPSULATED_SIZE;
     if ((void *)(new_eth + 1) > data_end)
     {
+        bpf_printk("upf: remove_gtp_header: can't set new eth");
         return -1;
     }
     __builtin_memcpy(new_eth, eth, sizeof(*eth));
 
-    return bpf_xdp_adjust_head(ctx->xdp_ctx, GTP_ENCAPSULATED_SIZE);
+    long result = bpf_xdp_adjust_head(ctx->xdp_ctx, GTP_ENCAPSULATED_SIZE);
+    if(result)
+        return result;
+
+    //update packet pointers
+    ctx->data = (void *)(long)ctx->xdp_ctx->data;
+    ctx->data_end = (void *)(long)ctx->xdp_ctx->data_end;
+    ctx->eth = 0;
+    ctx->ip4 = 0;
+    ctx->ip6 = 0;
+    ctx->udp = 0;
+    ctx->gtp = 0;
+
+    //Have to implicitly inline `update_packet_context` here. Thanks to verifier.
+    //if(-1 == update_packet_context(ctx))
+    //    return XDP_ABORTED;
+    __u16 l3_protocol = parse_ethernet(ctx);
+    switch (l3_protocol)
+    {
+    case ETH_P_IPV6:
+    {
+        if(-1 == parse_ip6(ctx)) {
+            bpf_printk("upf: can't parse ip6 after gtp header removal");
+            return -1;
+        }
+        break;
+    }
+    case ETH_P_IP:
+    {
+        if(-1 == parse_ip4(ctx)) {
+            bpf_printk("upf: can't parse ip4 after gtp header removal");
+            return -1;
+        }
+        break;
+    }
+    default:
+        //do nothing with non-ip packets
+        bpf_printk("upf: can't process not an ip packet after gtp header removal: %d", l3_protocol);
+        return -1;
+    }
+
+    return 0;
 }
 
 static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr, int daddr, int teid)
