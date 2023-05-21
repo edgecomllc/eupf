@@ -219,19 +219,12 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx)
     {
     case GTPU_G_PDU:
         increment_counter(ctx->counters, rx_gtp_pdu);
-        //if (ctx->ip4)
-        //{
-        //    bpf_printk("upf: gtp pdu [ %pI4 -> %pI4 ]", &ctx->ip4->saddr, &ctx->ip4->daddr);
-        //}
         return handle_n3_packet(ctx);
     case GTPU_ECHO_REQUEST:
         increment_counter(ctx->counters, rx_gtp_echo);
         //bpf_printk("upf: gtp header [ version=%d, pt=%d, e=%d]", gtp->version, gtp->pt, gtp->e);
         //bpf_printk("upf: gtp echo request [ type=%d ]", pdu_type);
-        if (ctx->ip4)
-        {
-            bpf_printk("upf: gtp echo request [ %pI4 -> %pI4 ]", &ctx->ip4->saddr, &ctx->ip4->daddr);
-        }
+        bpf_printk("upf: gtp echo request [ %pI4 -> %pI4 ]", &ctx->ip4->saddr, &ctx->ip4->daddr);
         return handle_echo_request(ctx);
     case GTPU_ECHO_RESPONSE:
     case GTPU_ERROR_INDICATION:
@@ -332,13 +325,10 @@ SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
     //bpf_printk("upf n3 & n6 combined entrypoint start");
-    //void *data_end = (void *)(long)ctx->data_end;
-    //void *data = (void *)(long)ctx->data;
-
-    __u32 cpu_ip = 0;
+    __u32 cpu_ip = 0; //FIXME: use rx queue id instead
     struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat2, &cpu_ip);
 
-    /* These keep track of the next header type and iterator pointer */
+    /* These keep track of the packet pointers and statistic */
     struct packet_context context = {
         .data = (void *)(long)ctx->data, 
         .data_end = (void *)(long)ctx->data_end, 
