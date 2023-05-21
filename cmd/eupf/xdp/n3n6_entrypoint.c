@@ -94,51 +94,50 @@ static __always_inline __u32 handle_n6_packet_ipv4(struct packet_context *ctx)
 
 static __always_inline __u32 handle_n6_packet_ipv6(struct packet_context *ctx)
 {
-    // const struct ipv6hdr *ip6 = ctx->ip6;
-    // struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6, &ip6->daddr);
-    // if(!pdr) {
-    //         bpf_printk("upf: no downlink session for ip:%pI6c", &ip6->daddr);
-    //         return DEFAULT_XDP_ACTION;
-    // }
+    const struct ipv6hdr *ip6 = ctx->ip6;
+    struct pdr_info* pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6, &ip6->daddr);
+    if(!pdr) {
+            bpf_printk("upf: no downlink session for ip:%pI6c", &ip6->daddr);
+            return DEFAULT_XDP_ACTION;
+    }
 
-    // struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
-    // if(!far) {
-    //     bpf_printk("upf: no downlink session far for ip:%pI6c far:%d", &ip6->daddr, pdr->far_id);
-    //         return XDP_DROP;
-    // }
+    struct far_info* far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+    if(!far) {
+        bpf_printk("upf: no downlink session far for ip:%pI6c far:%d", &ip6->daddr, pdr->far_id);
+            return XDP_DROP;
+    }
 
-    // bpf_printk("upf: downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, pdr->far_id, far->action);
+    bpf_printk("upf: downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, pdr->far_id, far->action);
 
-    // //Only forwarding action supported at the moment
-    // if(!(far->action & FAR_FORW))
-    //     return XDP_DROP;
+    //Only forwarding action supported at the moment
+    if(!(far->action & FAR_FORW))
+        return XDP_DROP;
 
-    // //Only outer header GTP/UDP/IPv4 is supported at the moment
-    // if(!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
-    //     return XDP_DROP;
+    //Only outer header GTP/UDP/IPv4 is supported at the moment
+    if(!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
+        return XDP_DROP;
 
-    // struct qer_info* qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
-    // if(!qer) {
-    //     bpf_printk("upf: no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, pdr->qer_id);
-    //         return XDP_DROP;
-    // }
+    struct qer_info* qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
+    if(!qer) {
+        bpf_printk("upf: no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, pdr->qer_id);
+            return XDP_DROP;
+    }
 
-    // bpf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
+    bpf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
 
-    // if(qer->dl_gate_status != GATE_STATUS_OPEN)
-    //     return XDP_DROP;
+    if(qer->dl_gate_status != GATE_STATUS_OPEN)
+        return XDP_DROP;
 
-    // if(XDP_DROP == limit_rate_sliding_window(ctx->xdp_ctx, &qer->dl_start, qer->dl_maximum_bitrate))
-    //     return XDP_DROP;
+    if(XDP_DROP == limit_rate_sliding_window(ctx->xdp_ctx, &qer->dl_start, qer->dl_maximum_bitrate))
+        return XDP_DROP;
 
-    // bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
+    bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
 
-    // if(-1 == add_gtp_header(ctx, far->localip, far->remoteip, far->teid))
-    //     return XDP_ABORTED;
+    if(-1 == add_gtp_header(ctx, far->localip, far->remoteip, far->teid))
+        return XDP_ABORTED;
 
-    // bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
-    // return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
-    return XDP_ABORTED;
+    bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
 static __always_inline __u32 handle_n3_packet(struct packet_context *ctx)
