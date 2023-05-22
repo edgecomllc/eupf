@@ -20,7 +20,6 @@ type BpfObjects struct {
 	far_programObjects
 	qer_programObjects
 	ip_entrypointObjects
-	gtp_entrypointObjects
 }
 
 func (bpfObjects *BpfObjects) Load() error {
@@ -45,8 +44,7 @@ func (bpfObjects *BpfObjects) Load() error {
 		Loader{loadUpf_xdpObjects, &bpfObjects.upf_xdpObjects},
 		Loader{loadFar_programObjects, &bpfObjects.far_programObjects},
 		Loader{loadQer_programObjects, &bpfObjects.qer_programObjects},
-		Loader{loadIp_entrypointObjects, &bpfObjects.ip_entrypointObjects},
-		Loader{loadGtp_entrypointObjects, &bpfObjects.gtp_entrypointObjects})
+		Loader{loadIp_entrypointObjects, &bpfObjects.ip_entrypointObjects})
 }
 
 func (bpfObjects *BpfObjects) Close() error {
@@ -55,7 +53,6 @@ func (bpfObjects *BpfObjects) Close() error {
 		&bpfObjects.far_programObjects,
 		&bpfObjects.qer_programObjects,
 		&bpfObjects.ip_entrypointObjects,
-		&bpfObjects.gtp_entrypointObjects,
 	)
 }
 
