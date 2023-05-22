@@ -216,9 +216,9 @@ $ iperf3 -c iperf3 -p 5201 -t 30 -R
 $ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
 $ iperf3 -c iperf3 -p 5201 -t 30 -R --bind ${UESIMTUNO_IP}
 ...
-[ ID] Interval           Transfer     Bandwidth       Retr
-[  4]   0.00-30.00  sec   355 MBytes  99.2 Mbits/sec  15085             sender
-[  4]   0.00-30.00  sec   354 MBytes  99.0 Mbits/sec                  receiver
+ ID] Interval           Transfer     Bandwidth       Retr
+[  4]   0.00-30.00  sec  1022 MBytes   286 Mbits/sec  715             sender
+[  4]   0.00-30.00  sec  1022 MBytes   286 Mbits/sec                  receiver
 ```
 
 * check tcp throughput (with eUPF)
@@ -229,11 +229,11 @@ we should use some flags for iperf client (specific for eUPF):
 
 ```bash
 $ export UESIMTUNO_IP=$(ip -o -4 addr list uesimtun0 | awk '{print $4}' | cut -d/ -f1)
-$ iperf3 -c 10.233.110.159 -p 5201 -t 30 -R --bind ${UESIMTUNO_IP}
+$ iperf3 -c 10.233.110.144 -p 5201 -t 30 -R --bind ${UESIMTUNO_IP}
 ...
 [ ID] Interval           Transfer     Bandwidth       Retr
-[  4]   0.00-30.00  sec   355 MBytes  99.2 Mbits/sec  11249             sender
-[  4]   0.00-30.00  sec   354 MBytes  99.1 Mbits/sec                  receiver
+[  4]   0.00-30.00  sec   673 MBytes   188 Mbits/sec  2338             sender
+[  4]   0.00-30.00  sec   673 MBytes   188 Mbits/sec                  receiver
 ```
 
 ### mtr
@@ -321,8 +321,8 @@ HOST: ueransim-ue-7f76db59c9-ndqq Loss%   Snt   Last   Avg  Best  Wrst StDev
 
 ## results
 
-|scenario | raw | free5gc upf | eupf |
-|---|---|---|---|
-| tcp throughput (to neighbor pod) | 13.1 Gbit/sec | 99.2 Mbit/sec | 99.2 Mbit/sec |
-| latency (to neighbor pod) | 0.2 | 1.1 | 1.1 |
-| latency (to google public DNS) | 16.4 | 17.3 | 16.7 |
+|scenario | raw | free5gc upf | eupf (container nat) | eupf (host nat) |
+|---|---|---|---|---|
+| tcp throughput (to neighbor pod) | 13.1 Gbit/sec | 286 Mbit/sec | 194 Mbit/sec | 231 Mbit/sec |
+| latency (to neighbor pod) | 0.2 | 1.1 | 1.1 | 1.1 |
+| latency (to google public DNS) | 16.4 | 17.3 | 16.7 | 16.7 |
