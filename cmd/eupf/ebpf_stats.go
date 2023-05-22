@@ -26,12 +26,12 @@ type UpfCounters struct {
 
 type UpfStatistic struct {
 	Counters UpfCounters
-	XdpStats [5]uint32
+	XdpStats [5]uint64
 }
 
 // Getters for the upf_xdp_statistic (xdp_action)
 
-func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint32 {
+func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint64 {
 
 	var statistic UpfStatistic
 	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), unsafe.Pointer(&statistic))
@@ -43,23 +43,23 @@ func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint32 
 	return statistic.XdpStats[field]
 }
 
-func (stat *UpfXdpActionStatistic) GetAborted() uint32 {
+func (stat *UpfXdpActionStatistic) GetAborted() uint64 {
 	return stat.getUpfXdpStatisticField(uint32(0))
 }
 
-func (stat *UpfXdpActionStatistic) GetDrop() uint32 {
+func (stat *UpfXdpActionStatistic) GetDrop() uint64 {
 	return stat.getUpfXdpStatisticField(uint32(1))
 }
 
-func (stat *UpfXdpActionStatistic) GetPass() uint32 {
+func (stat *UpfXdpActionStatistic) GetPass() uint64 {
 	return stat.getUpfXdpStatisticField(uint32(2))
 }
 
-func (stat *UpfXdpActionStatistic) GetTx() uint32 {
+func (stat *UpfXdpActionStatistic) GetTx() uint64 {
 	return stat.getUpfXdpStatisticField(uint32(3))
 }
 
-func (stat *UpfXdpActionStatistic) GetRedirect() uint32 {
+func (stat *UpfXdpActionStatistic) GetRedirect() uint64 {
 	return stat.getUpfXdpStatisticField(uint32(4))
 }
 

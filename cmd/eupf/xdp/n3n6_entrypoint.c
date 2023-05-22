@@ -328,9 +328,9 @@ SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx)
 {
     //bpf_printk("upf n3 & n6 combined entrypoint start");
-    __u32 cpu_ip = 0; //FIXME: use rx queue id instead
+    const __u32 cpu_ip = 0; //FIXME: use rx queue id instead
     struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat, &cpu_ip);
-    if(!statistic) //Something definitely goes wrong
+    if(statistic == NULL) //Something definitely goes wrong
         return XDP_ABORTED;
 
     /* These keep track of the packet pointers and statistic */
@@ -342,9 +342,7 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx)
     };
 
     __u32 xdp_action = process_packet(&context);
-
-    if(xdp_action < EUPF_MAX_XDP_ACTION)
-        __sync_fetch_and_add(&statistic->xdp_actions[xdp_action], 1);
+    __sync_fetch_and_add(&statistic->xdp_actions[xdp_action & 0x07], 1);
 
     return xdp_action;
 }

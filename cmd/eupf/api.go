@@ -50,11 +50,11 @@ func CreateApiServer(bpfObjects *BpfObjects, pfcpSrv *PfcpConnection, forwardPla
 }
 
 type XdpStats struct {
-	Aborted  uint32 `json:"aborted"`
-	Drop     uint32 `json:"drop"`
-	Pass     uint32 `json:"pass"`
-	Tx       uint32 `json:"tx"`
-	Redirect uint32 `json:"redirect"`
+	Aborted  uint64 `json:"aborted"`
+	Drop     uint64 `json:"drop"`
+	Pass     uint64 `json:"pass"`
+	Tx       uint64 `json:"tx"`
+	Redirect uint64 `json:"redirect"`
 }
 
 // DisplayXdpStatistics godoc
