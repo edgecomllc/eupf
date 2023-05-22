@@ -45,49 +45,6 @@ struct upf_counters
     __u64 rx_gtp_unexp;
 };
 
-#ifdef __RELEASE
-struct bpf_map_def SEC("maps") upf_ext_stat = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(__u32), // cpu
-    .value_size = sizeof(struct upf_counters),
-    .max_entries = 1,
-};
-
-#else
-
-// Using BTF for fun and for more comfortable debugging:
-// Example:
-// > bpftool map dump name upf_ext_stat
-// [{
-//         "key": 0,
-//         "value": {
-//             "rx_total": 0,
-//             "rx_arp": 1,
-//             "rx_icmp": 0,
-//             "rx_icmp6": 8,
-//             "rx_ip4": 0,
-//             "rx_ip6": 28,
-//             "rx_tcp": 0,
-//             "rx_udp": 15,
-//             "rx_other": 5,
-//             "rx_gtp_echo": 0,
-//             "rx_gtp_pdu": 0,
-//             "rx_gtp_other": 0,
-//             "rx_gtp_unexp": 0
-//         }
-//     }
-// ]
-
-struct
-{
-    __uint(type, BPF_MAP_TYPE_ARRAY);
-    __type(key, __u32); // cpu
-    __type(value, struct upf_counters);
-    __uint(max_entries, 1);
-} upf_ext_stat SEC(".maps");
-#endif
-
-
 #define EUPF_MAX_XDP_ACTION 5
 
 struct upf_statistic {
@@ -101,4 +58,4 @@ struct
     __type(key, __u32); // cpu
     __type(value, struct upf_statistic);
     __uint(max_entries, 1);
-} upf_ext_stat2 SEC(".maps");
+} upf_ext_stat SEC(".maps");
