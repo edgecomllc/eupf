@@ -82,6 +82,13 @@ enum far_action_mask {
     FAR_DFRT = 0x80,
 };
 
+enum outer_header_creation_values {
+    OHC_GTP_U_UDP_IPv4  = 0x01,
+    OHC_GTP_U_UDP_IPv6  = 0x02,
+    OHC_UDP_IPv4        = 0x04,
+    OHC_UDP_IPv6        = 0x08,
+};
+
 struct far_info
 {
     __u8 action;

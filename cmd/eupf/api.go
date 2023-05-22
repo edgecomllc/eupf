@@ -1,15 +1,16 @@
 package main
 
 import (
-	eupfDocs "github.com/edgecomllc/eupf/cmd/eupf/docs"
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
 	"net"
 	"net/http"
 	"strconv"
 	"unsafe"
+
+	eupfDocs "github.com/edgecomllc/eupf/cmd/eupf/docs"
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 //go:generate swag init --parseDependency
