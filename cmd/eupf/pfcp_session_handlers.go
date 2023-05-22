@@ -113,7 +113,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			gateStatusUL, err := qer.GateStatusUL()
 			if err != nil {
-				return fmt.Errorf("Gate Status UL missing")
+				return fmt.Errorf("gate Status UL missing")
 			}
 			qerInfo.GateStatusUL = gateStatusUL
 
@@ -352,25 +352,25 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 			gateStatusDL, err := qer.GateStatusDL()
 			if err != nil {
-				return fmt.Errorf("Gate Status DL missing")
+				return fmt.Errorf("gate Status DL missing")
 			}
 			qerInfo.GateStatusDL = gateStatusDL
 
 			gateStatusUL, err := qer.GateStatusUL()
 			if err != nil {
-				return fmt.Errorf("Gate Status UL missing")
+				return fmt.Errorf("gate Status UL missing")
 			}
 			qerInfo.GateStatusUL = gateStatusUL
 
 			maxBitrateDL, err := qer.MBRDL()
 			if err != nil {
-				return fmt.Errorf("Max Bitrate DL missing")
+				return fmt.Errorf("max Bitrate DL missing")
 			}
 			qerInfo.MaxBitrateDL = uint32(maxBitrateDL) * 1000
 
 			maxBitrateUL, err := qer.MBRUL()
 			if err != nil {
-				return fmt.Errorf("Max Bitrate UL missing")
+				return fmt.Errorf("max Bitrate UL missing")
 			}
 			qerInfo.MaxBitrateUL = uint32(maxBitrateUL) * 1000
 
