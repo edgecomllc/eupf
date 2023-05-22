@@ -321,10 +321,17 @@ static __always_inline __u32 handle_core_packet_ipv4(struct xdp_md *ctx, const s
         return XDP_DROP;
     }
 
+    union uint16_to_bytes {
+        __u16 num;
+        __u8 bytes[2];
+    };
+    union uint16_to_bytes converter;
+    converter.num = far->transport_level_marking;
+
     // Add the outer IP header
     ip->version = 4;
     ip->ihl = 5; // No options
-    ip->tos = 0;
+    ip->tos = converter.bytes[0];
     ip->tot_len = bpf_htons(bpf_ntohs(inner_ip->tot_len) + GTP_ENCAPSULATED_SIZE);
     ip->id = 0;            // No fragmentation
     ip->frag_off = 0x0040; // Don't fragment; Fragment offset = 0

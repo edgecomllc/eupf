@@ -562,6 +562,10 @@ func composeFarInfo(far *ie.IE, localIp net.IP) (FarInfo, error) {
 			}
 		}
 	}
+	transportLevelMarking, err := far.TransportLevelMarking()
+	if err == nil {
+		farInfo.TransportLevelMarking = transportLevelMarking
+	}
 	return farInfo, nil
 }
 

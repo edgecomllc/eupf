@@ -51,11 +51,12 @@ func (bpfObjects *BpfObjects) DeletePdrDownLink(ipv4 net.IP) error {
 }
 
 type FarInfo struct {
-	Action              uint8
-	OuterHeaderCreation uint8
-	Teid                uint32
-	RemoteIP            uint32
-	LocalIP             uint32
+	Action                uint8
+	OuterHeaderCreation   uint8
+	Teid                  uint32
+	RemoteIP              uint32
+	LocalIP               uint32
+	TransportLevelMarking uint16
 }
 
 func (f FarInfo) MarshalJSON() ([]byte, error) {
