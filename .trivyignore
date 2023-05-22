@@ -1,2 +1,4 @@
 # we allow to run our app in container via root user
 DS002
+# we allow to run some containers privileged
+KSV017

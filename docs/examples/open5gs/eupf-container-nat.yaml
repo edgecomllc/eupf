@@ -1,0 +1,142 @@
+---
+
+image:
+  registry: ghcr.io
+  repository: edgecomllc
+  name: eupf
+  tag: main
+  pullPolicy: Always
+
+command:
+  - /app/conf/run.sh
+
+args:
+  - --config
+  - /app/conf/config.yml
+
+securityContext:
+  privileged: true
+
+podSecurityContext:
+  sysctls:
+  - name: net.ipv4.ip_forward
+    value: "1"
+
+configMaps:
+  config:
+    data:
+      config.yml: |
+        interface_name: [eth0, n6]
+        api_address: :8080
+        pfcp_address: :8805
+        metrics_address: :9090
+      run.sh: |
+        #!/bin/sh
+
+        set -x
+
+        mkdir -p /etc/iproute2
+        echo "1000 n6if" >> /etc/iproute2/rt_tables
+        ip rule add from 10.45.0.0/16 table n6if
+        ip route add default via 10.99.0.254 dev n6 table n6if
+
+        set +x
+
+        exec /app/bin/eupf $@
+
+env:
+  UPF_PFCP_NODE_ID: $(MY_POD_IP)
+  UPF_N3_ADDRESS: $(MY_POD_IP)
+
+volumes:
+  - name: sys
+    hostPath:
+      path: /sys
+  - name: config
+    configMap:
+      name: edgecomllc-eupf-universal-chart-config
+      defaultMode: 420
+      items:
+        - key: config.yml
+          mode: 493
+          path: config.yml
+        - key: run.sh
+          mode: 493
+          path: run.sh
+
+volumeMounts:
+  - name: sys
+    mountPath: /sys
+    readOnly:  true
+  - name: config
+    mountPath: /app/conf
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+    endpoints:
+      port: metrics
+      path: "/metrics"
+
+imagePullSecrets:
+  - name: gh-container-registry
+
+extraContainerPorts:
+  - name: gtpu
+    containerPort: 2152
+    protocol: UDP
+  - name: pfcp
+    containerPort: 8805
+    protocol: UDP
+  - name: metrics
+    containerPort: 9090
+    protocol: TCP
+
+service:
+  type: ClusterIP
+  port: 8080
+  extraPorts:
+    - port: 2152
+      targetPort: gtpu
+      protocol: UDP
+      name: gtpu
+    - port: 8805
+      targetPort: pfcp
+      protocol: UDP
+      name: pfcp
+    - port: 9090
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+podAnnotations:
+  k8s.v1.cni.cncf.io/networks: |
+    [
+      { "name": "edgecomllc-eupf-nat-n6",
+        "interface": "n6",
+        "ips": [ "10.99.0.10/24" ]
+      }
+    ]

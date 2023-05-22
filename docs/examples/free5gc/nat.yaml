@@ -1,0 +1,100 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: edgecomllc-eupf-nat-n6
+  namespace: free5gc
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "edgecomllc-eupf-nat-n6",
+      "type": "bridge",
+      "bridge": "eupf-n6",
+      "ipMasq": false,
+      "isGateway": false,
+      "isDefaultGateway": false,
+      "ipam": {
+        "type": "static"
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: edgecomllc-eupf
+    app.kubernetes.io/name: nat
+  name: edgecomllc-eupf-nat
+  namespace: free5gc
+data:
+  run.sh: |
+    #!/bin/bash
+
+    set -x
+
+    ip ro add 10.1.0.0/16 via 10.100.100.12
+    iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o eth0 -j MASQUERADE
+
+    set +x
+
+    while true; do echo "i am alive"; sleep 30; done;
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: edgecomllc-eupf
+    app.kubernetes.io/name: nat
+  name: edgecomllc-eupf-nat
+  namespace: free5gc
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: edgecomllc-eupf
+      app.kubernetes.io/name: nat
+  template:
+    metadata:
+      annotations:
+        k8s.v1.cni.cncf.io/networks: |
+          [
+            {
+              "name": "edgecomllc-eupf-nat-n6",
+              "interface": "n6",
+              "ips": [ "10.100.100.254/24" ]
+            }
+          ]
+      labels:
+        app.kubernetes.io/instance: edgecomllc-eupf
+        app.kubernetes.io/name: nat
+        version: latest
+    spec:
+      containers:
+      - name: nat
+        image: praqma/network-multitool:c3d4e04
+        imagePullPolicy: Always
+        command: [ "/conf/run.sh" ]
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - mountPath: /conf
+            name: config
+      securityContext:
+        sysctls:
+        - name: net.ipv4.ip_forward
+          value: "1"
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+            - key: run.sh
+              mode: 493
+              path: run.sh
+          name: edgecomllc-eupf-nat
+        name: config

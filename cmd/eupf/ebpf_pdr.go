@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/binary"
+	"encoding/json"
 	"log"
 	"net"
 	"unsafe"
@@ -49,11 +51,27 @@ func (bpfObjects *BpfObjects) DeletePdrDownLink(ipv4 net.IP) error {
 }
 
 type FarInfo struct {
-	Action              uint8
-	OuterHeaderCreation uint8
-	Teid                uint32
-	RemoteIP            uint32
-	LocalIP             uint32
+	Action                uint8
+	OuterHeaderCreation   uint8
+	Teid                  uint32
+	RemoteIP              uint32
+	LocalIP               uint32
+	TransportLevelMarking uint16
+}
+
+func (f FarInfo) MarshalJSON() ([]byte, error) {
+	remoteIP := make(net.IP, 4)
+	localIP := make(net.IP, 4)
+	binary.LittleEndian.PutUint32(remoteIP, f.RemoteIP)
+	binary.LittleEndian.PutUint32(localIP, f.LocalIP)
+	data := map[string]interface{}{
+		"action":                f.Action,
+		"outer_header_creation": f.OuterHeaderCreation,
+		"teid":                  f.Teid,
+		"remote_ip":             remoteIP.String(),
+		"local_ip":              localIP.String(),
+	}
+	return json.Marshal(data)
 }
 
 func (bpfObjects *BpfObjects) PutFar(i uint32, farInfo FarInfo) error {
