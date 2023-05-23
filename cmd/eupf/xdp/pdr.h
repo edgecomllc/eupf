@@ -4,17 +4,17 @@
 #include <linux/bpf.h>
 #include <linux/ipv6.h>
 
-
-enum outer_header_removal_values {
-    OHR_GTP_U_UDP_IPv4  = 0,
-    OHR_GTP_U_UDP_IPv6  = 1,
-    OHR_UDP_IPv4        = 2,
-    OHR_UDP_IPv6        = 3,
-    OHR_IPv4            = 4,
-    OHR_IPv6            = 5,
-    OHR_GTP_U_UDP_IP    = 6,
-    OHR_VLAN_S_TAG      = 7,
-    OHR_S_TAG_C_TAG     = 8,
+enum outer_header_removal_values
+{
+    OHR_GTP_U_UDP_IPv4 = 0,
+    OHR_GTP_U_UDP_IPv6 = 1,
+    OHR_UDP_IPv4 = 2,
+    OHR_UDP_IPv6 = 3,
+    OHR_IPv4 = 4,
+    OHR_IPv6 = 5,
+    OHR_GTP_U_UDP_IP = 6,
+    OHR_VLAN_S_TAG = 7,
+    OHR_S_TAG_C_TAG = 8,
 };
 
 struct pdr_info
@@ -71,7 +71,8 @@ struct
 } pdr_map_uplink_ip4 SEC(".maps");
 #endif
 
-enum far_action_mask {
+enum far_action_mask
+{
     FAR_DROP = 0x01,
     FAR_FORW = 0x02,
     FAR_BUFF = 0x04,
@@ -82,11 +83,12 @@ enum far_action_mask {
     FAR_DFRT = 0x80,
 };
 
-enum outer_header_creation_values {
-    OHC_GTP_U_UDP_IPv4  = 0x01,
-    OHC_GTP_U_UDP_IPv6  = 0x02,
-    OHC_UDP_IPv4        = 0x04,
-    OHC_UDP_IPv6        = 0x08,
+enum outer_header_creation_values
+{
+    OHC_GTP_U_UDP_IPv4 = 0x01,
+    OHC_GTP_U_UDP_IPv6 = 0x02,
+    OHC_UDP_IPv4 = 0x04,
+    OHC_UDP_IPv6 = 0x08,
 };
 
 struct far_info

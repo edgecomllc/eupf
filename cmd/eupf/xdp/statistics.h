@@ -28,7 +28,8 @@ struct upf_counters
 // 	XDP_REDIRECT,
 // };
 
-struct upf_statistic {
+struct upf_statistic
+{
     struct upf_counters upf_counters;
     __u64 xdp_actions[EUPF_MAX_XDP_ACTION];
 };

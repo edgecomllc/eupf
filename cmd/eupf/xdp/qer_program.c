@@ -3,8 +3,8 @@
 
 #include "xdp/program_array.h"
 
-//#define DROP_HORIZON 1000000000ULL // 1 секунда
-//#define BURST 5000000ULL		   // 5 мс
+// #define DROP_HORIZON 1000000000ULL // 1 секунда
+// #define BURST 5000000ULL		   // 5 мс
 
 // static __always_inline int edt_sched_departure(struct __ctx_buff *ctx)
 // {
@@ -49,8 +49,8 @@
 // 	return CTX_ACT_OK;
 // }
 
-
-struct bucket {
+struct bucket
+{
 	volatile __u64 t_next;
 	__u64 upper_limit_bps;
 };

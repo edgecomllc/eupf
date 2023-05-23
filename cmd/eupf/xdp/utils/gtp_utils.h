@@ -14,7 +14,7 @@
 static __always_inline __u32 parse_gtp(struct packet_context *ctx)
 {
     struct gtpuhdr *gtp = (struct gtpuhdr *)ctx->data;
-    if ((void*)(gtp + 1) > ctx->data_end)
+    if ((void *)(gtp + 1) > ctx->data_end)
         return -1;
 
     ctx->data += sizeof(*gtp);
@@ -24,17 +24,17 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx)
 
 static __always_inline __u32 handle_echo_request(struct packet_context *ctx)
 {
-    struct ethhdr   *eth = ctx->eth;
-    struct iphdr    *iph = ctx->ip4;
-    struct udphdr   *udp = ctx->udp;
-    struct gtpuhdr  *gtp = ctx->gtp;
+    struct ethhdr *eth = ctx->eth;
+    struct iphdr *iph = ctx->ip4;
+    struct udphdr *udp = ctx->udp;
+    struct gtpuhdr *gtp = ctx->gtp;
 
-    if(!eth || !iph || !udp || !gtp)
+    if (!eth || !iph || !udp || !gtp)
         return XDP_ABORTED;
 
     gtp->message_type = GTPU_ECHO_RESPONSE;
 
-    //TODO: add support GTP over IPv6
+    // TODO: add support GTP over IPv6
 
     __u32 tmp_ip = iph->daddr;
     iph->daddr = iph->saddr;
@@ -49,9 +49,9 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx)
     udp->source = tmp;
     // Update UDP checksum
     udp->check = 0;
-    //cs = 0;
-    //ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
-    //udp->check = cs;
+    // cs = 0;
+    // ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
+    // udp->check = cs;
 
     __u8 mac[6];
     __builtin_memcpy(mac, eth->h_source, sizeof(mac));
@@ -64,7 +64,7 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx)
 
 static __always_inline long remove_gtp_header(struct packet_context *ctx)
 {
-    if(!ctx->gtp)
+    if (!ctx->gtp)
     {
         bpf_printk("upf: remove_gtp_header: not a gtp packet");
         return -1;
@@ -95,10 +95,10 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx)
     __builtin_memcpy(new_eth, eth, sizeof(*eth));
 
     long result = bpf_xdp_adjust_head(ctx->xdp_ctx, GTP_ENCAPSULATED_SIZE);
-    if(result)
+    if (result)
         return result;
 
-    //update packet pointers
+    // update packet pointers
     ctx->data = (void *)(long)ctx->xdp_ctx->data;
     ctx->data_end = (void *)(long)ctx->xdp_ctx->data_end;
     ctx->eth = 0;
@@ -107,15 +107,16 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx)
     ctx->udp = 0;
     ctx->gtp = 0;
 
-    //Have to implicitly inline `update_packet_context` here. Thanks to verifier.
-    //if(-1 == update_packet_context(ctx))
-    //    return XDP_ABORTED;
+    // Have to implicitly inline `update_packet_context` here. Thanks to verifier.
+    // if(-1 == update_packet_context(ctx))
+    //     return XDP_ABORTED;
     __u16 l3_protocol = parse_ethernet(ctx);
     switch (l3_protocol)
     {
     case ETH_P_IPV6:
     {
-        if(-1 == parse_ip6(ctx)) {
+        if (-1 == parse_ip6(ctx))
+        {
             bpf_printk("upf: can't parse ip6 after gtp header removal");
             return -1;
         }
@@ -123,14 +124,15 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx)
     }
     case ETH_P_IP:
     {
-        if(-1 == parse_ip4(ctx)) {
+        if (-1 == parse_ip4(ctx))
+        {
             bpf_printk("upf: can't parse ip4 after gtp header removal");
             return -1;
         }
         break;
     }
     default:
-        //do nothing with non-ip packets
+        // do nothing with non-ip packets
         bpf_printk("upf: can't process not an ip packet after gtp header removal: %d", l3_protocol);
         return -1;
     }
@@ -192,7 +194,7 @@ static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr
     if ((void *)(gtp + 1) > data_end)
         return -1;
 
-    __u8 flags = GTP_FLAGS; //FIXME
+    __u8 flags = GTP_FLAGS; // FIXME
     __builtin_memcpy(gtp, &flags, sizeof(__u8));
     gtp->message_type = GTPU_G_PDU;
     gtp->message_length = inner_ip->tot_len;
@@ -202,14 +204,14 @@ static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr
     ipv4_csum(ip, sizeof(*ip), &cs);
     ip->check = cs;
 
-    //Fuck ebpf verifier. I give up
-    //cs = 0;
-    //const void* udp_start = (void*)udp;
-    //const __u16 udp_len = bpf_htons(udp->len);
-    //ipv4_l4_csum(udp, udp_len, &cs, ip);
-    //udp->check = cs;
+    // Fuck ebpf verifier. I give up
+    // cs = 0;
+    // const void* udp_start = (void*)udp;
+    // const __u16 udp_len = bpf_htons(udp->len);
+    // ipv4_l4_csum(udp, udp_len, &cs, ip);
+    // udp->check = cs;
 
-    //update packet pointers
+    // update packet pointers
     ctx->data = data;
     ctx->data_end = data_end;
     ctx->eth = eth;
