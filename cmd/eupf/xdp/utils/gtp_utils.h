@@ -1,18 +1,17 @@
 
 #pragma once
 
-#include <linux/types.h>
 #include <linux/bpf.h>
-#include <linux/in.h>
 #include <linux/if_ether.h>
+#include <linux/in.h>
 #include <linux/ip.h>
+#include <linux/types.h>
 #include <linux/udp.h>
 
-#include "xdp/utils/packet_context.h"
 #include "xdp/utils/gtpu.h"
+#include "xdp/utils/packet_context.h"
 
-static __always_inline __u32 parse_gtp(struct packet_context *ctx)
-{
+static __always_inline __u32 parse_gtp(struct packet_context *ctx) {
     struct gtpuhdr *gtp = (struct gtpuhdr *)ctx->data;
     if ((void *)(gtp + 1) > ctx->data_end)
         return -1;
@@ -22,8 +21,7 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx)
     return gtp->message_type;
 }
 
-static __always_inline __u32 handle_echo_request(struct packet_context *ctx)
-{
+static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     struct ethhdr *eth = ctx->eth;
     struct iphdr *iph = ctx->ip4;
     struct udphdr *udp = ctx->udp;
@@ -62,10 +60,8 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx)
     return XDP_TX;
 }
 
-static __always_inline long remove_gtp_header(struct packet_context *ctx)
-{
-    if (!ctx->gtp)
-    {
+static __always_inline long remove_gtp_header(struct packet_context *ctx) {
+    if (!ctx->gtp) {
         bpf_printk("upf: remove_gtp_header: not a gtp packet");
         return -1;
     }
@@ -80,15 +76,13 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx)
     void *data = (void *)(long)ctx->xdp_ctx->data;
     void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
     struct ethhdr *eth = data;
-    if ((void *)(eth + 1) > data_end)
-    {
+    if ((void *)(eth + 1) > data_end) {
         bpf_printk("upf: remove_gtp_header: can't parse eth");
         return -1;
     }
 
     struct ethhdr *new_eth = data + GTP_ENCAPSULATED_SIZE;
-    if ((void *)(new_eth + 1) > data_end)
-    {
+    if ((void *)(new_eth + 1) > data_end) {
         bpf_printk("upf: remove_gtp_header: can't set new eth");
         return -1;
     }
@@ -111,37 +105,31 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx)
     // if(-1 == update_packet_context(ctx))
     //     return XDP_ABORTED;
     __u16 l3_protocol = parse_ethernet(ctx);
-    switch (l3_protocol)
-    {
-    case ETH_P_IPV6:
-    {
-        if (-1 == parse_ip6(ctx))
-        {
-            bpf_printk("upf: can't parse ip6 after gtp header removal");
-            return -1;
+    switch (l3_protocol) {
+        case ETH_P_IPV6: {
+            if (-1 == parse_ip6(ctx)) {
+                bpf_printk("upf: can't parse ip6 after gtp header removal");
+                return -1;
+            }
+            break;
         }
-        break;
-    }
-    case ETH_P_IP:
-    {
-        if (-1 == parse_ip4(ctx))
-        {
-            bpf_printk("upf: can't parse ip4 after gtp header removal");
-            return -1;
+        case ETH_P_IP: {
+            if (-1 == parse_ip4(ctx)) {
+                bpf_printk("upf: can't parse ip4 after gtp header removal");
+                return -1;
+            }
+            break;
         }
-        break;
-    }
-    default:
-        // do nothing with non-ip packets
-        bpf_printk("upf: can't process not an ip packet after gtp header removal: %d", l3_protocol);
-        return -1;
+        default:
+            // do nothing with non-ip packets
+            bpf_printk("upf: can't process not an ip packet after gtp header removal: %d", l3_protocol);
+            return -1;
     }
 
     return 0;
 }
 
-static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr, int daddr, int teid)
-{
+static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr, int daddr, int teid) {
     static const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
     bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-GTP_ENCAPSULATED_SIZE);
 
@@ -156,7 +144,7 @@ static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr
     if ((void *)(orig_eth + 1) > data_end)
         return -1;
 
-    __builtin_memcpy(eth, orig_eth, sizeof(*eth)); // FIXME
+    __builtin_memcpy(eth, orig_eth, sizeof(*eth));  // FIXME
 
     struct iphdr *ip = (void *)(eth + 1);
     if ((void *)(ip + 1) > data_end)
@@ -168,11 +156,11 @@ static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr
 
     // Add the outer IP header
     ip->version = 4;
-    ip->ihl = 5; // No options
+    ip->ihl = 5;  // No options
     ip->tos = 0;
     ip->tot_len = bpf_htons(bpf_ntohs(inner_ip->tot_len) + GTP_ENCAPSULATED_SIZE);
-    ip->id = 0;            // No fragmentation
-    ip->frag_off = 0x0040; // Don't fragment; Fragment offset = 0
+    ip->id = 0;             // No fragmentation
+    ip->frag_off = 0x0040;  // Don't fragment; Fragment offset = 0
     ip->ttl = 64;
     ip->protocol = IPPROTO_UDP;
     ip->check = 0;
@@ -194,7 +182,7 @@ static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr
     if ((void *)(gtp + 1) > data_end)
         return -1;
 
-    __u8 flags = GTP_FLAGS; // FIXME
+    __u8 flags = GTP_FLAGS;  // FIXME
     __builtin_memcpy(gtp, &flags, sizeof(__u8));
     gtp->message_type = GTPU_G_PDU;
     gtp->message_length = inner_ip->tot_len;

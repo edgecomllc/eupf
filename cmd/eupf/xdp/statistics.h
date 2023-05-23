@@ -3,8 +3,7 @@
 #include <bpf/bpf_helpers.h>
 #include <linux/bpf.h>
 
-struct upf_counters
-{
+struct upf_counters {
     __u64 rx_arp;
     __u64 rx_icmp;
     __u64 rx_icmp6;
@@ -28,8 +27,7 @@ struct upf_counters
 // 	XDP_REDIRECT,
 // };
 
-struct upf_statistic
-{
+struct upf_statistic {
     struct upf_counters upf_counters;
     __u64 xdp_actions[EUPF_MAX_XDP_ACTION];
 };
@@ -37,7 +35,7 @@ struct upf_statistic
 struct
 {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __type(key, __u32); // cpu
+    __type(key, __u32);  // cpu
     __type(value, struct upf_statistic);
     __uint(max_entries, 1);
 } upf_ext_stat SEC(".maps");
