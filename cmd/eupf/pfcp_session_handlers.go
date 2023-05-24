@@ -55,14 +55,14 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			farid, _ := far.FARID()
 			log.Printf("Saving FAR info to session: %d, %+v", farid, farInfo)
-			session.PutFAR(farid, farInfo)
-			if err := mapOperations.PutFar(farid, farInfo); err != nil {
+			newid := session.PutFAR(farid, farInfo)
+			if err := mapOperations.PutFar(newid, farInfo); err != nil {
 				log.Printf("Can't put FAR: %s", err)
 			}
 		}
 
 		for _, pdr := range req.CreatePDR {
-			spdrInfo, pdrId, pdi, err := composeSPDRInfo(pdr)
+			spdrInfo, pdrId, pdi, err := composeSPDRInfo(pdr, session.LocalSEID)
 			if err != nil {
 				return err
 			}
@@ -135,9 +135,9 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			qerInfo.StartUL = 0
 			qerInfo.StartDL = 0
 			log.Printf("Saving QER info to session: %d, %+v", qerId, qerInfo)
-			session.PutQER(qerId, qerInfo)
-			log.Printf("Creating QER ID: %d, QER Info: %+v", qerId, qerInfo)
-			if err := mapOperations.PutQer(qerId, qerInfo); err != nil {
+			newid := session.PutQER(qerId, qerInfo)
+			log.Printf("Creating QER ID: %d, QER Info: %+v", newid, qerInfo)
+			if err := mapOperations.PutQer(newid, qerInfo); err != nil {
 				log.Printf("Can't put QER: %s", err)
 			}
 		}
@@ -189,25 +189,29 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 	mapOperations := conn.mapOperations
-	for _, pdrInfo := range session.UplinkPDRs {
+	for id, pdrInfo := range session.UplinkPDRs {
+		uplinkPdrIdTranslator.RemoveGlobalId(id)
 		if err := mapOperations.DeletePdrUpLink(pdrInfo.Teid); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
-	for _, pdrInfo := range session.DownlinkPDRs {
+	for id, pdrInfo := range session.DownlinkPDRs {
+		downlinkPdrIdTranslator.RemoveGlobalId(id)
 		if err := mapOperations.DeletePdrDownLink(pdrInfo.Ipv4); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
 	for id := range session.FARs {
+		farIdTranslator.RemoveGlobalId(id)
 		if err := mapOperations.DeleteFar(id); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
 	for id := range session.QERs {
+		qerIdTranslator.RemoveGlobalId(id)
 		if err := mapOperations.DeleteQer(id); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
@@ -263,11 +267,10 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				log.Printf("Error extracting FAR info: %s", err)
 				continue
 			}
-
 			farid, _ := far.FARID()
 			log.Printf("Updating FAR info: %d, %+v", farid, farInfo)
-			session.PutFAR(farid, farInfo)
-			if err := mapOperations.UpdateFar(farid, farInfo); err != nil {
+			newid := session.PutFAR(farid, farInfo)
+			if err := mapOperations.UpdateFar(newid, farInfo); err != nil {
 				log.Printf("Can't update FAR: %s", err)
 			}
 		}
@@ -275,22 +278,24 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		for _, removeFar := range req.RemoveFAR {
 			farid, _ := removeFar.FARID()
 			log.Printf("Removing FAR: %d", farid)
-			session.RemoveFAR(farid)
-			if err := mapOperations.DeleteFar(farid); err != nil {
+			newid := session.RemoveFAR(farid)
+			if err := mapOperations.DeleteFar(newid); err != nil {
 				log.Printf("Can't remove FAR: %s", err)
 			}
 		}
 
 		for _, pdr := range req.RemovePDR {
 			pdrId, _ := pdr.PDRID()
-			if _, ok := session.UplinkPDRs[uint32(pdrId)]; ok {
+			if _, ok := session.UplinkPDRs[uplinkPdrIdTranslator.GetId(session.LocalSEID, uint32(pdrId))]; ok {
+				pdrId = uint16(uplinkPdrIdTranslator.GetId(session.LocalSEID, uint32(pdrId)))
 				log.Printf("Removing uplink PDR: %d", pdrId)
 				session.RemoveUplinkPDR(pdrId)
 				if err := mapOperations.DeletePdrUpLink(session.UplinkPDRs[uint32(pdrId)].Teid); err != nil {
 					log.Printf("Failed to remove uplink PDR: %v", err)
 				}
 			}
-			if _, ok := session.DownlinkPDRs[uint32(pdrId)]; ok {
+			if _, ok := session.DownlinkPDRs[downlinkPdrIdTranslator.GetId(session.LocalSEID, uint32(pdrId))]; ok {
+				pdrId = uint16(downlinkPdrIdTranslator.GetId(session.LocalSEID, uint32(pdrId)))
 				log.Printf("Removing downlink PDR: %d", pdrId)
 				session.RemoveDownlinkPDR(pdrId)
 				if err := mapOperations.DeletePdrDownLink(session.DownlinkPDRs[uint32(pdrId)].Ipv4); err != nil {
@@ -305,15 +310,15 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				return fmt.Errorf("QER ID missing")
 			}
 			log.Printf("Removing QER ID: %d", qerId)
-			session.RemoveQER(qerId)
-			log.Printf("Removing QER ID: %d", qerId)
-			if err := mapOperations.DeleteQer(qerId); err != nil {
+			newid := session.RemoveQER(qerId)
+			log.Printf("Removing QER ID: %d", newid)
+			if err := mapOperations.DeleteQer(newid); err != nil {
 				log.Printf("Can't remove QER: %s", err)
 			}
 		}
 
 		for _, pdr := range req.UpdatePDR {
-			spdrInfo, pdrId, pdi, err := composeSPDRInfo(pdr)
+			spdrInfo, pdrId, pdi, err := composeSPDRInfo(pdr, session.LocalSEID)
 			if err != nil {
 				return err
 			}
@@ -383,8 +388,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			qerInfo.StartDL = 0
 
 			log.Printf("Updating QER ID: %d, QER Info: %+v", qerId, qerInfo)
-			session.PutQER(qerId, qerInfo)
-			if err := mapOperations.UpdateQer(qerId, qerInfo); err != nil {
+			newid := session.PutQER(qerId, qerInfo)
+			if err := mapOperations.UpdateQer(newid, qerInfo); err != nil {
 				log.Printf("Can't update QER: %s", err)
 			}
 		}
@@ -569,7 +574,7 @@ func composeFarInfo(far *ie.IE, localIp net.IP) (FarInfo, error) {
 	return farInfo, nil
 }
 
-func composeSPDRInfo(pdr *ie.IE) (SPDRInfo, uint16, []*ie.IE, error) {
+func composeSPDRInfo(pdr *ie.IE, localSEID uint64) (SPDRInfo, uint16, []*ie.IE, error) {
 	spdrInfo := SPDRInfo{}
 	pdrId, err := pdr.PDRID()
 	if err != nil {
@@ -579,10 +584,12 @@ func composeSPDRInfo(pdr *ie.IE) (SPDRInfo, uint16, []*ie.IE, error) {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}
 	if farid, err := pdr.FARID(); err == nil {
-		spdrInfo.PdrInfo.FarId = farid
+		translatedId := farIdTranslator.GetId(localSEID, farid)
+		spdrInfo.PdrInfo.FarId = translatedId
 	}
 	if qerid, err := pdr.QERID(); err == nil {
-		spdrInfo.PdrInfo.QerId = qerid
+		translatedId := qerIdTranslator.GetId(localSEID, qerid)
+		spdrInfo.PdrInfo.QerId = translatedId
 	}
 	pdi, err := pdr.PDI()
 	if err != nil {

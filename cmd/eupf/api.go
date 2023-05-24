@@ -238,7 +238,7 @@ func ListQerMapContent(bpfObjects *BpfObjects) func(c *gin.Context) {
 
 // GetQerContent godoc
 // @Summary List QER map content
-// @Description List QER map content
+// @Description List QER map content *ID is flattened, please reference IdTranslator mappings*
 // @Tags QER
 // @Produce  json
 // @Param id path int true "Qer ID"
@@ -287,6 +287,32 @@ func ListUpfPipeline(bpfObjects *BpfObjects) func(c *gin.Context) {
 			return
 		}
 		c.IndentedJSON(http.StatusOK, elements)
+	}
+}
+
+type IdTranslators struct {
+	farIdTranslator         *IdTranslator
+	qerIdTranslator         *IdTranslator
+	uplinkPdrIdTranslator   *IdTranslator
+	downlinkPdrIdTranslator *IdTranslator
+}
+
+// GetIdTranslatorsMappings godoc
+// @Summary Get ID translators mappings
+// @Description Get ID translators mappings
+// @Tags UPF
+// @Produce  json
+// @Success 200 {object} IdTranslators
+// @Router /id_translators [get]
+func GetIdTranslatorsMappings() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		translators := IdTranslators{
+			farIdTranslator:         farIdTranslator,
+			qerIdTranslator:         qerIdTranslator,
+			uplinkPdrIdTranslator:   uplinkPdrIdTranslator,
+			downlinkPdrIdTranslator: downlinkPdrIdTranslator,
+		}
+		c.IndentedJSON(http.StatusOK, translators)
 	}
 }
 

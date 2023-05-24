@@ -9,6 +9,11 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
+var farIdTranslator = NewIdTranslator()
+var qerIdTranslator = NewIdTranslator()
+var uplinkPdrIdTranslator = NewIdTranslator()
+var downlinkPdrIdTranslator = NewIdTranslator()
+
 type Session struct {
 	LocalSEID    uint64
 	RemoteSEID   uint64
@@ -24,36 +29,48 @@ type SPDRInfo struct {
 	Ipv4    net.IP
 }
 
-func (s *Session) PutFAR(id uint32, farInfo FarInfo) {
-	s.FARs[id] = farInfo
+func (s *Session) PutFAR(id uint32, farInfo FarInfo) uint32 {
+	translatedId := farIdTranslator.GetId(s.LocalSEID, id)
+	s.FARs[translatedId] = farInfo
+	return translatedId
 }
 
-func (s *Session) PutQER(id uint32, qerInfo QerInfo) {
-	s.QERs[id] = qerInfo
+func (s *Session) PutQER(id uint32, qerInfo QerInfo) uint32 {
+	translatedId := qerIdTranslator.GetId(s.LocalSEID, id)
+	s.QERs[translatedId] = qerInfo
+	return translatedId
 }
 
 func (s *Session) PutUplinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
-	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
+	translatedId := uplinkPdrIdTranslator.GetId(s.LocalSEID, uint32(pdrId))
+	s.UplinkPDRs[uint32(translatedId)] = pdrInfo
 }
 
 func (s *Session) PutDownlinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
-	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
+	translatedId := downlinkPdrIdTranslator.GetId(s.LocalSEID, uint32(pdrId))
+	s.DownlinkPDRs[uint32(translatedId)] = pdrInfo
 }
 
 func (s *Session) RemoveUplinkPDR(pdrId uint16) {
-	delete(s.UplinkPDRs, uint32(pdrId))
+	translatedId := uplinkPdrIdTranslator.RemoveId(s.LocalSEID, uint32(pdrId))
+	delete(s.UplinkPDRs, uint32(translatedId))
 }
 
 func (s *Session) RemoveDownlinkPDR(pdrId uint16) {
-	delete(s.DownlinkPDRs, uint32(pdrId))
+	translatedId := downlinkPdrIdTranslator.RemoveId(s.LocalSEID, uint32(pdrId))
+	delete(s.DownlinkPDRs, uint32(translatedId))
 }
 
-func (s *Session) RemoveFAR(farId uint32) {
-	delete(s.FARs, farId)
+func (s *Session) RemoveFAR(farId uint32) uint32 {
+	translatedId := farIdTranslator.RemoveId(s.LocalSEID, farId)
+	delete(s.FARs, translatedId)
+	return translatedId
 }
 
-func (s *Session) RemoveQER(qerId uint32) {
-	delete(s.QERs, qerId)
+func (s *Session) RemoveQER(qerId uint32) uint32 {
+	translatedId := qerIdTranslator.RemoveId(s.LocalSEID, qerId)
+	delete(s.QERs, translatedId)
+	return translatedId
 }
 
 type SessionMap map[uint64]Session
