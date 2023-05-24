@@ -314,10 +314,15 @@ static __always_inline enum xdp_action process_packet(struct packet_context *ctx
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     // bpf_printk("upf n3 & n6 combined entrypoint start");
-    const __u32 cpu_ip = 0;  // FIXME: use rx queue id instead
-    struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat, &cpu_ip);
-    if (!statistic)  // Something definitely goes wrong
-        return XDP_ABORTED;
+    const __u32 key = 0;
+    struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat, &key);
+    if (!statistic) {
+        const struct upf_statistic initval = {};
+        bpf_map_update_elem(&upf_ext_stat, &key, &initval, BPF_ANY);
+        statistic = bpf_map_lookup_elem(&upf_ext_stat, &key);
+        if(!statistic)
+            return XDP_ABORTED;
+    }
 
     /* These keep track of the packet pointers and statistic */
     struct packet_context context = {
@@ -326,10 +331,10 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
         .xdp_ctx = ctx,
         .counters = &statistic->upf_counters};
 
-    __u32 xdp_action = process_packet(&context);
-    __sync_fetch_and_add(&statistic->xdp_actions[xdp_action & 0x07], 1);
+    enum xdp_action action = process_packet(&context);
+    statistic->xdp_actions[action & 0x07] += 1;
 
-    return xdp_action;
+    return action;
 }
 
 char _license[] SEC("license") = "GPL";

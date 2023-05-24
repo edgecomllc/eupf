@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"unsafe"
 )
 
 type UpfXdpActionStatistic struct {
@@ -29,18 +28,37 @@ type UpfStatistic struct {
 	XdpStats [5]uint64
 }
 
+func (current *UpfCounters) Add(new UpfCounters) {
+	current.RxArp += new.RxArp
+	current.RxIcmp += new.RxIcmp
+	current.RxIcmp6 += new.RxIcmp6
+	current.RxIp4 += new.RxIp4
+	current.RxIp6 += new.RxIp6
+	current.RxTcp += new.RxTcp
+	current.RxUdp += new.RxUdp
+	current.RxOther += new.RxOther
+	current.RxGtpEcho += new.RxGtpEcho
+	current.RxGtpPdu += new.RxGtpPdu
+	current.RxGtpOther += new.RxGtpOther
+}
+
 // Getters for the upf_xdp_statistic (xdp_action)
 
 func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint64 {
 
-	var statistic UpfStatistic
-	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), unsafe.Pointer(&statistic))
+	var statistics []UpfStatistic
+	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
 	if err != nil {
 		log.Println(err)
 		return 0
 	}
 
-	return statistic.XdpStats[field]
+	var totalValue uint64 = 0
+	for _, statistic := range statistics {
+		totalValue += statistic.XdpStats[field]
+	}
+
+	return totalValue
 }
 
 func (stat *UpfXdpActionStatistic) GetAborted() uint64 {
@@ -67,13 +85,17 @@ func (stat *UpfXdpActionStatistic) GetRedirect() uint64 {
 // #TODO: Do not retrieve the whole struct each time.
 func (stat *UpfXdpActionStatistic) getUpfExtStatField() UpfCounters {
 
-	var statistic UpfStatistic
-	var counter UpfCounters
-	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), unsafe.Pointer(&statistic))
+	var statistics []UpfStatistic
+	var counters UpfCounters
+	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
 	if err != nil {
 		log.Println(err)
-		return counter
+		return counters
 	}
 
-	return statistic.Counters
+	for _, statistic := range statistics {
+		counters.Add(statistic.Counters)
+	}
+
+	return counters
 }
