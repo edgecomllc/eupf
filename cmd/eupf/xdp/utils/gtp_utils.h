@@ -129,7 +129,7 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
     return 0;
 }
 
-static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr, int daddr, int teid) {
+static __always_inline __u32 add_gtp_header(struct packet_context *ctx, int saddr, int daddr, int teid) {
     static const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
     bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-GTP_ENCAPSULATED_SIZE);
 
@@ -137,14 +137,11 @@ static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr
     void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
 
     struct ethhdr *eth = data;
-    if ((void *)(eth + 1) > data_end)
-        return -1;
-
     struct ethhdr *orig_eth = data + GTP_ENCAPSULATED_SIZE;
     if ((void *)(orig_eth + 1) > data_end)
         return -1;
 
-    __builtin_memcpy(eth, orig_eth, sizeof(*eth));  // FIXME
+    __builtin_memcpy(eth, orig_eth, sizeof(*eth));
 
     struct iphdr *ip = (void *)(eth + 1);
     if ((void *)(ip + 1) > data_end)
@@ -192,7 +189,7 @@ static __always_inline long add_gtp_header(struct packet_context *ctx, int saddr
     ipv4_csum(ip, sizeof(*ip), &cs);
     ip->check = cs;
 
-    // Fuck ebpf verifier. I give up
+    // No idea how to overcome ebpf verifier. I give up for now
     // cs = 0;
     // const void* udp_start = (void*)udp;
     // const __u16 udp_len = bpf_htons(udp->len);
