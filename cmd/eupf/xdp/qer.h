@@ -1,6 +1,8 @@
 #pragma once
 
+#pragma clang diagnostic ignored "-Wlanguage-extension-token"
 #include <bpf/bpf_helpers.h>
+#pragma clang diagnostic warning "-Wlanguage-extension-token"
 #include <linux/bpf.h>
 
 enum gate_status {
