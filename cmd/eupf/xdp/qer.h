@@ -40,12 +40,13 @@ struct
 #endif
 
 static __always_inline __u32 limit_rate_sliding_window(struct xdp_md *ctx, __u64 *windows_start, const __u64 rate) {
-    void *data = (void *)(long)ctx->data;
-    void *data_end = (void *)(long)ctx->data_end;
-
     static const __u64 NSEC_PER_SEC = 1000000000ULL;
     static const __u64 window_size = 5000000ULL;
-    __u64 tx_time = (data_end - data) * 8 * NSEC_PER_SEC / rate;
+
+    if (rate == 0)
+        return XDP_DROP;
+
+    __u64 tx_time = (ctx->data_end - ctx->data) * 8 * NSEC_PER_SEC / rate;
     __u64 now = bpf_ktime_get_ns();
 
     __u64 start = *(volatile __u64 *)windows_start;
