@@ -33,7 +33,7 @@ static __always_inline int parse_ip4(struct packet_context *ctx) {
 
     ctx->data += sizeof(*ip4);
     ctx->ip4 = ip4;
-    return ip4->protocol; /* network-byte-order */
+    return ip4->protocol;
 }
 
 static __always_inline int parse_ip6(struct packet_context *ctx) {
@@ -43,10 +43,10 @@ static __always_inline int parse_ip6(struct packet_context *ctx) {
 
     ctx->data += sizeof(*ip6);
     ctx->ip6 = ip6;
-    return ip6->nexthdr; /* network-byte-order */
+    return ip6->nexthdr;
 }
 
-static __always_inline __u16 parse_udp(struct packet_context *ctx) {
+static __always_inline int parse_udp(struct packet_context *ctx) {
     struct udphdr *udp = (struct udphdr *)ctx->data;
     if ((void *)(udp + 1) > ctx->data_end)
         return -1;
