@@ -51,7 +51,7 @@
 
 #define DEFAULT_XDP_ACTION XDP_PASS
 
-static __always_inline __u32 handle_n6_packet_ipv4(struct packet_context *ctx) {
+static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_context *ctx) {
     const struct iphdr *ip4 = ctx->ip4;
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
     if (!pdr) {
@@ -98,7 +98,7 @@ static __always_inline __u32 handle_n6_packet_ipv4(struct packet_context *ctx) {
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
-static __always_inline __u32 handle_n6_packet_ipv6(struct packet_context *ctx) {
+static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_context *ctx) {
     const struct ipv6hdr *ip6 = ctx->ip6;
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6, &ip6->daddr);
     if (!pdr) {
@@ -145,7 +145,7 @@ static __always_inline __u32 handle_n6_packet_ipv6(struct packet_context *ctx) {
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
-static __always_inline __u32 handle_n3_packet(struct packet_context *ctx) {
+static __always_inline enum xdp_action handle_n3_packet(struct packet_context *ctx) {
     if (!ctx->gtp) {
         bpf_printk("upf: unexpected packet context. no gtp header");
         return DEFAULT_XDP_ACTION;
@@ -213,7 +213,7 @@ static __always_inline __u32 handle_n3_packet(struct packet_context *ctx) {
         return XDP_ABORTED;
 }
 
-static __always_inline __u32 handle_gtpu(struct packet_context *ctx) {
+static __always_inline enum xdp_action handle_gtpu(struct packet_context *ctx) {
     int pdu_type = parse_gtp(ctx);
     switch (pdu_type) {
         case GTPU_G_PDU:
@@ -238,7 +238,7 @@ static __always_inline __u32 handle_gtpu(struct packet_context *ctx) {
     }
 }
 
-static __always_inline __u32 handle_ip4(struct packet_context *ctx) {
+static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
     int l4_protocol = parse_ip4(ctx);
     switch (l4_protocol) {
         case IPPROTO_ICMP: {
@@ -263,7 +263,7 @@ static __always_inline __u32 handle_ip4(struct packet_context *ctx) {
     return handle_n6_packet_ipv4(ctx);
 }
 
-static __always_inline __u32 handle_ip6(struct packet_context *ctx) {
+static __always_inline enum xdp_action handle_ip6(struct packet_context *ctx) {
     int l4_protocol = parse_ip6(ctx);
     switch (l4_protocol) {
         case IPPROTO_ICMPV6:  // Let kernel stack takes care
@@ -290,7 +290,7 @@ static __always_inline __u32 handle_ip6(struct packet_context *ctx) {
     return handle_n6_packet_ipv6(ctx);
 }
 
-static __always_inline __u32 process_packet(struct packet_context *ctx) {
+static __always_inline enum xdp_action process_packet(struct packet_context *ctx) {
     __u16 l3_protocol = parse_ethernet(ctx);
     switch (l3_protocol) {
         case ETH_P_IPV6:

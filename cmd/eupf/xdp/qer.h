@@ -39,7 +39,7 @@ struct
 } qer_map SEC(".maps");
 #endif
 
-static __always_inline __u32 limit_rate_sliding_window(struct xdp_md *ctx, __u64 *windows_start, const __u64 rate) {
+static __always_inline enum xdp_action limit_rate_sliding_window(struct xdp_md *ctx, __u64 *windows_start, const __u64 rate) {
     static const __u64 NSEC_PER_SEC = 1000000000ULL;
     static const __u64 window_size = 5000000ULL;
 

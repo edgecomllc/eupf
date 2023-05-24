@@ -9,7 +9,7 @@
 #include <linux/types.h>
 #include <sys/socket.h>
 
-static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, const struct iphdr *ip4) {
+static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, const struct iphdr *ip4) {
     struct bpf_fib_lookup fib_params = {};
     fib_params.family = AF_INET;
     fib_params.tos = ip4->tos;
@@ -48,7 +48,7 @@ static __always_inline __u32 route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, 
     }
 }
 
-static __always_inline __u32 route_ipv6(struct xdp_md *ctx, struct ethhdr *eth, const struct ipv6hdr *ip6) {
+static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct ethhdr *eth, const struct ipv6hdr *ip6) {
     struct bpf_fib_lookup fib_params = {};
     fib_params.family = AF_INET;
     // fib_params.tos = ip6->flow_lbl;
