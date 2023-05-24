@@ -49,13 +49,7 @@
 #define bpf_printk(fmt, ...)
 #endif
 
-#ifndef NULL
-#define NULL 0
-#endif
-
-enum default_action {
-    DEFAULT_XDP_ACTION = XDP_PASS,
-};
+#define DEFAULT_XDP_ACTION XDP_PASS
 
 static __always_inline __u32 handle_n6_packet_ipv4(struct packet_context *ctx) {
     const struct iphdr *ip4 = ctx->ip4;
@@ -324,7 +318,7 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     // bpf_printk("upf n3 & n6 combined entrypoint start");
     const __u32 cpu_ip = 0;  // FIXME: use rx queue id instead
     struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat, &cpu_ip);
-    if (statistic == NULL)  // Something definitely goes wrong
+    if (!statistic)  // Something definitely goes wrong
         return XDP_ABORTED;
 
     /* These keep track of the packet pointers and statistic */
