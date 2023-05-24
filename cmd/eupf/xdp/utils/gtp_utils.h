@@ -66,12 +66,12 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
         return -1;
     }
 
-    int ext_gtp_header_size = 0;
+    size_t ext_gtp_header_size = 0;
     struct gtpuhdr *gtp = ctx->gtp;
     if (gtp->e || gtp->s || gtp->pn)
         ext_gtp_header_size += sizeof(struct gtp_hdr_ext) + 4;
 
-    const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr) + ext_gtp_header_size;
+    const size_t GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr) + ext_gtp_header_size;
 
     void *data = (void *)(long)ctx->xdp_ctx->data;
     void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
@@ -130,7 +130,7 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
 }
 
 static __always_inline __u32 add_gtp_header(struct packet_context *ctx, int saddr, int daddr, int teid) {
-    static const int GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
+    static const size_t GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
     bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-GTP_ENCAPSULATED_SIZE);
 
     void *data = (void *)(long)ctx->xdp_ctx->data;
