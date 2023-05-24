@@ -272,8 +272,6 @@ static __always_inline __u32 handle_ip6(struct packet_context *ctx) {
             return XDP_PASS;
         case IPPROTO_UDP:
             increment_counter(ctx->counters, rx_udp);
-            return XDP_PASS;
-
             // Don't expect GTP over IPv6 at the moment
             // if (GTP_UDP_PORT == parse_udp(ctx))
             // {
