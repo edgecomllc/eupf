@@ -51,6 +51,26 @@ func (s *Session) PutDownlinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
 	s.DownlinkPDRs[uint32(translatedId)] = pdrInfo
 }
 
+func (s *Session) GetFAR(id uint32) FarInfo {
+	translatedId := farIdTranslator.GetId(s.LocalSEID, id)
+	return s.FARs[translatedId]
+}
+
+func (s *Session) GetQER(id uint32) QerInfo {
+	translatedId := qerIdTranslator.GetId(s.LocalSEID, id)
+	return s.QERs[translatedId]
+}
+
+func (s *Session) GetUplinkPDR(pdrId uint16) SPDRInfo {
+	translatedId := uplinkPdrIdTranslator.GetId(s.LocalSEID, uint32(pdrId))
+	return s.UplinkPDRs[translatedId]
+}
+
+func (s *Session) GetDownlinkPDR(pdrId uint16) SPDRInfo {
+	translatedId := downlinkPdrIdTranslator.GetId(s.LocalSEID, uint32(pdrId))
+	return s.DownlinkPDRs[translatedId]
+}
+
 func (s *Session) RemoveUplinkPDR(pdrId uint16) {
 	translatedId := uplinkPdrIdTranslator.RemoveId(s.LocalSEID, uint32(pdrId))
 	delete(s.UplinkPDRs, uint32(translatedId))

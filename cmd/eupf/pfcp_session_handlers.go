@@ -47,7 +47,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	err = func() error {
 		mapOperations := conn.mapOperations
 		for _, far := range req.CreateFAR {
-			farInfo, err := composeFarInfo(far, conn.n3Address.To4())
+			farInfo, err := composeFarInfo(FarInfo{}, far, conn.n3Address.To4())
 			if err != nil {
 				log.Printf("Error extracting FAR info: %s", err)
 				continue
@@ -62,7 +62,12 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		}
 
 		for _, pdr := range req.CreatePDR {
-			spdrInfo, pdrId, pdi, err := composeSPDRInfo(pdr, session.LocalSEID)
+			pdrId, err := pdr.PDRID()
+			spdrInfo, err := composeSPDRInfo(SPDRInfo{}, pdr, session.LocalSEID)
+			if err != nil {
+				return err
+			}
+			pdi, err := pdr.PDI()
 			if err != nil {
 				return err
 			}
@@ -262,12 +267,13 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	err := func() error {
 		mapOperations := conn.mapOperations
 		for _, far := range req.UpdateFAR {
-			farInfo, err := composeFarInfo(far, conn.n3Address.To4())
+			farid, _ := far.FARID()
+			farInfo := session.GetFAR(farid)
+			farInfo, err := composeFarInfo(farInfo, far, conn.n3Address.To4())
 			if err != nil {
 				log.Printf("Error extracting FAR info: %s", err)
 				continue
 			}
-			farid, _ := far.FARID()
 			log.Printf("Updating FAR info: %d, %+v", farid, farInfo)
 			newid := session.PutFAR(farid, farInfo)
 			if err := mapOperations.UpdateFar(newid, farInfo); err != nil {
@@ -318,7 +324,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		}
 
 		for _, pdr := range req.UpdatePDR {
-			spdrInfo, pdrId, pdi, err := composeSPDRInfo(pdr, session.LocalSEID)
+			pdrId, err := pdr.PDRID()
+			pdi, err := pdr.PDI()
 			if err != nil {
 				return err
 			}
@@ -327,6 +334,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			switch srcInterface {
 			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
 				{
+					spdrInfo := session.GetUplinkPDR(pdrId)
+					spdrInfo, err = composeSPDRInfo(spdrInfo, pdr, session.LocalSEID)
 					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err)
 						return err
@@ -334,6 +343,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				}
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
+					spdrInfo := session.GetDownlinkPDR(pdrId)
+					spdrInfo, err = composeSPDRInfo(spdrInfo, pdr, session.LocalSEID)
 					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
@@ -349,12 +360,12 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		}
 
 		for _, qer := range req.UpdateQER {
-			qerInfo := QerInfo{}
+
 			qerId, err := qer.QERID() // Probably will be used as ebpf map key
 			if err != nil {
 				return fmt.Errorf("QER ID missing")
 			}
-
+			qerInfo := session.GetQER(qerId)
 			gateStatusDL, err := qer.GateStatusDL()
 			if err != nil {
 				return fmt.Errorf("gate Status DL missing")
@@ -535,8 +546,7 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Ses
 	return nil
 }
 
-func composeFarInfo(far *ie.IE, localIp net.IP) (FarInfo, error) {
-	farInfo := FarInfo{}
+func composeFarInfo(farInfo FarInfo, far *ie.IE, localIp net.IP) (FarInfo, error) {
 	if applyAction, err := far.ApplyAction(); err == nil {
 		farInfo.Action = applyAction[0]
 	}
@@ -574,12 +584,8 @@ func composeFarInfo(far *ie.IE, localIp net.IP) (FarInfo, error) {
 	return farInfo, nil
 }
 
-func composeSPDRInfo(pdr *ie.IE, localSEID uint64) (SPDRInfo, uint16, []*ie.IE, error) {
-	spdrInfo := SPDRInfo{}
-	pdrId, err := pdr.PDRID()
-	if err != nil {
-		return SPDRInfo{}, 0, nil, fmt.Errorf("PDR ID missing")
-	}
+// composeSPDRInfo updates SPDRInfo with PDR and FAR information
+func composeSPDRInfo(spdrInfo SPDRInfo, pdr *ie.IE, localSEID uint64) (SPDRInfo, error) {
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}
@@ -591,10 +597,5 @@ func composeSPDRInfo(pdr *ie.IE, localSEID uint64) (SPDRInfo, uint16, []*ie.IE, 
 		translatedId := qerIdTranslator.GetId(localSEID, qerid)
 		spdrInfo.PdrInfo.QerId = translatedId
 	}
-	pdi, err := pdr.PDI()
-	if err != nil {
-		log.Print(err)
-		return SPDRInfo{}, 0, nil, err
-	}
-	return spdrInfo, pdrId, pdi, nil
+	return spdrInfo, nil
 }
