@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf/link"
+	"github.com/edgecomllc/eupf/cmd/eupf/config"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -16,12 +17,10 @@ func main() {
 	stopper := make(chan os.Signal, 1)
 	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
 
-	if LoadConfig() != nil {
-		log.Fatalf("Unable to load config")
-	}
+	config.Init()
 
 	if err := IncreaseResourceLimits(); err != nil {
-		log.Fatalf("Can't increase resourse limits: %s", err)
+		log.Fatalf("Can't increase resource limits: %s", err)
 	}
 
 	bpfObjects := &BpfObjects{}
@@ -33,7 +32,7 @@ func main() {
 
 	bpfObjects.buildPipeline()
 
-	for _, ifaceName := range config.InterfaceName {
+	for _, ifaceName := range config.Conf.InterfaceName {
 		iface, err := net.InterfaceByName(ifaceName)
 		if err != nil {
 			log.Fatalf("Lookup network iface %q: %s", ifaceName, err)
@@ -43,7 +42,7 @@ func main() {
 		l, err := link.AttachXDP(link.XDPOptions{
 			Program:   bpfObjects.UpfIpEntrypointFunc,
 			Interface: iface.Index,
-			Flags:     StringToXDPAttachMode(config.XDPAttachMode),
+			Flags:     StringToXDPAttachMode(config.Conf.XDPAttachMode),
 		})
 		if err != nil {
 			log.Fatalf("Could not attach XDP program: %s", err)
@@ -62,8 +61,7 @@ func main() {
 		message.MsgTypeSessionModificationRequest:  handlePfcpSessionModificationRequest,
 	}
 
-	pfcpConn, err := CreatePfcpConnection(config.PfcpAddress, pfcpHandlers, config.PfcpNodeId, config.N3Address, bpfObjects)
-
+	pfcpConn, err := CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects)
 	if err != nil {
 		log.Fatalf("Could not create PFCP connection: %s", err)
 	}
@@ -77,19 +75,18 @@ func main() {
 	// Start api server
 	api := CreateApiServer(bpfObjects, pfcpConn, ForwardPlaneStats)
 	go func() {
-		err := api.Run(config.ApiAddress)
-		if err != nil {
+		if err := api.Run(config.Conf.ApiAddress); err != nil {
 			log.Fatalf("Could not start api server: %s", err)
 		}
 	}()
 
 	RegisterMetrics(ForwardPlaneStats)
 	go func() {
-		err := StartMetrics(config.MetricsAddress)
-		if err != nil {
+		if err := StartMetrics(config.Conf.MetricsAddress); err != nil {
 			log.Fatalf("Could not start metrics server: %s", err)
 		}
 	}()
+
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
