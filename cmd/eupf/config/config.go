@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"log"
 
 	"github.com/go-playground/validator/v10"
@@ -45,7 +44,7 @@ func init() {
 	v.SetEnvPrefix("upf")
 	v.AutomaticEnv()
 
-	if err := v.ReadInConfig(); err != nil { // or ReadIn()
+	if err := v.ReadInConfig(); err != nil {
 		log.Printf("Unable to read config file, %v", err)
 	}
 
@@ -69,15 +68,4 @@ func (c *UpfConfig) Validate() error {
 // Unmarshal unmarshal data from config file
 func (c *UpfConfig) Unmarshal() error {
 	return v.UnmarshalExact(c)
-}
-
-// ReadIn read and create config
-func (c *UpfConfig) ReadIn() (err error) {
-	if err = v.ReadInConfig(); errors.As(err, &viper.ConfigFileNotFoundError{}) {
-		if err = v.SafeWriteConfigAs("config.yml"); err != nil {
-			return
-		}
-		return
-	}
-	return
 }

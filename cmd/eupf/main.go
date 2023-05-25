@@ -20,12 +20,12 @@ func main() {
 	config.Init()
 
 	if err := IncreaseResourceLimits(); err != nil {
-		log.Fatalf("Can't increase resource limits: %s", err)
+		log.Fatalf("Can't increase resource limits: %s", err.Error())
 	}
 
 	bpfObjects := &BpfObjects{}
 	if err := bpfObjects.Load(); err != nil {
-		log.Fatalf("Loading bpf objects failed: %s", err)
+		log.Fatalf("Loading bpf objects failed: %s", err.Error())
 	}
 
 	defer bpfObjects.Close()
@@ -35,7 +35,7 @@ func main() {
 	for _, ifaceName := range config.Conf.InterfaceName {
 		iface, err := net.InterfaceByName(ifaceName)
 		if err != nil {
-			log.Fatalf("Lookup network iface %q: %s", ifaceName, err)
+			log.Fatalf("Lookup network iface %q: %s", ifaceName, err.Error())
 		}
 
 		// Attach the program.
@@ -45,7 +45,7 @@ func main() {
 			Flags:     StringToXDPAttachMode(config.Conf.XDPAttachMode),
 		})
 		if err != nil {
-			log.Fatalf("Could not attach XDP program: %s", err)
+			log.Fatalf("Could not attach XDP program: %s", err.Error())
 		}
 		defer l.Close()
 
@@ -63,7 +63,7 @@ func main() {
 
 	pfcpConn, err := CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects)
 	if err != nil {
-		log.Fatalf("Could not create PFCP connection: %s", err)
+		log.Fatalf("Could not create PFCP connection: %s", err.Error())
 	}
 	go pfcpConn.Run()
 	defer pfcpConn.Close()
@@ -76,14 +76,14 @@ func main() {
 	api := CreateApiServer(bpfObjects, pfcpConn, ForwardPlaneStats)
 	go func() {
 		if err := api.Run(config.Conf.ApiAddress); err != nil {
-			log.Fatalf("Could not start api server: %s", err)
+			log.Fatalf("Could not start api server: %s", err.Error())
 		}
 	}()
 
 	RegisterMetrics(ForwardPlaneStats)
 	go func() {
 		if err := StartMetrics(config.Conf.MetricsAddress); err != nil {
-			log.Fatalf("Could not start metrics server: %s", err)
+			log.Fatalf("Could not start metrics server: %s", err.Error())
 		}
 	}()
 
