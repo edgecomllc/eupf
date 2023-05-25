@@ -63,6 +63,9 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 		for _, pdr := range req.CreatePDR {
 			pdrId, err := pdr.PDRID()
+			if err != nil {
+				return err
+			}
 			spdrInfo, err := composeSPDRInfo(SPDRInfo{}, pdr, session.LocalSEID)
 			if err != nil {
 				return err
@@ -325,6 +328,9 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 		for _, pdr := range req.UpdatePDR {
 			pdrId, err := pdr.PDRID()
+			if err != nil {
+				return err
+			}
 			pdi, err := pdr.PDI()
 			if err != nil {
 				return err
@@ -336,6 +342,9 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				{
 					spdrInfo := session.GetUplinkPDR(pdrId)
 					spdrInfo, err = composeSPDRInfo(spdrInfo, pdr, session.LocalSEID)
+					if err != nil {
+						return nil
+					}
 					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err)
 						return err
@@ -345,6 +354,9 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				{
 					spdrInfo := session.GetDownlinkPDR(pdrId)
 					spdrInfo, err = composeSPDRInfo(spdrInfo, pdr, session.LocalSEID)
+					if err != nil {
+						return err
+					}
 					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
