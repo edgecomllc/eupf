@@ -17,7 +17,7 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
-	_, remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
+	remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
 	if err != nil {
 		log.Printf("Rejecting Session Establishment Request from: %s (missing NodeID or F-SEID)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
@@ -422,22 +422,22 @@ func convertErrorToIeCause(err error) *ie.IE {
 	}
 }
 
-func validateRequest(nodeId *ie.IE, cpfseid *ie.IE) (string, *ie.FSEIDFields, error) {
+func validateRequest(nodeId *ie.IE, cpfseid *ie.IE) (fseid *ie.FSEIDFields, err error) {
 	if nodeId == nil || cpfseid == nil {
-		return "", nil, errMandatoryIeMissing
-	}
-	_, err := nodeId.NodeID()
-	if err != nil {
-		return "", nil, errMandatoryIeMissing
-	}
-	_, err = cpfseid.FSEID()
-	if err != nil {
-		return "", nil, errMandatoryIeMissing
+		return nil, errMandatoryIeMissing
 	}
 
-	remoteNodeID, _ := nodeId.NodeID()
-	fseid, _ := cpfseid.FSEID()
-	return remoteNodeID, fseid, nil
+	_, err = nodeId.NodeID()
+	if err != nil {
+		return nil, errMandatoryIeMissing
+	}
+
+	fseid, err = cpfseid.FSEID()
+	if err != nil {
+		return nil, errMandatoryIeMissing
+	}
+
+	return fseid, nil
 }
 
 func findIEindex(ieArr []*ie.IE, ieType uint16) int {
