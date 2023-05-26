@@ -3,52 +3,6 @@
 
 #include "xdp/program_array.h"
 
-// #define DROP_HORIZON 1000000000ULL // 1 секунда
-// #define BURST 5000000ULL		   // 5 мс
-
-// static __always_inline int edt_sched_departure(struct __ctx_buff *ctx)
-// {
-// 	__u64 delay, now, t, t_next;
-// 	struct edt_id aggregate;
-// 	struct edt_info *info;
-// 	__u16 proto;
-
-// 	//if (!validate_ethertype(ctx, &proto))
-// 	//	return CTX_ACT_OK;
-// 	//if (proto != bpf_htons(ETH_P_IP) &&
-// 	//    proto != bpf_htons(ETH_P_IPV6))
-// 	//	return CTX_ACT_OK;
-
-// 	//aggregate.id = edt_get_aggregate(ctx);
-// 	//if (!aggregate.id)
-// 	//	return CTX_ACT_OK;
-
-// 	//info = map_lookup_elem(&THROTTLE_MAP, &aggregate);
-// 	//if (!info)
-// 	//	return CTX_ACT_OK;
-
-// 	now = ktime_get_ns();
-// 	t = ctx->tstamp;
-// 	if (t < now)
-// 		t = now;
-// 	delay = ((__u64)ctx_wire_len(ctx)) * NSEC_PER_SEC / info->bps;
-// 	t_next = READ_ONCE(info->t_last) + delay;
-// 	if (t_next <= t) {
-// 		WRITE_ONCE(info->t_last, t);
-// 		return CTX_ACT_OK;
-// 	}
-// 	/* FQ implements a drop horizon, see also 39d010504e6b ("net_sched:
-// 	 * sch_fq: add horizon attribute"). However, we explicitly need the
-// 	 * drop horizon here to i) avoid having t_last messed up and ii) to
-// 	 * potentially allow for per aggregate control.
-// 	 */
-// 	if (t_next - now >= info->t_horizon_drop)
-// 		return CTX_ACT_DROP;
-// 	WRITE_ONCE(info->t_last, t_next);
-// 	ctx->tstamp = t_next;
-// 	return CTX_ACT_OK;
-// }
-
 struct bucket {
     volatile __u64 t_next;
     __u64 upper_limit_bps;

@@ -22,10 +22,11 @@ struct qer_info {
     __u64 dl_start;
 };
 
+/* QER ID -> QER */
 struct
 {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __type(key, __u32);  // qer id
+    __type(key, __u32);
     __type(value, struct qer_info);
     __uint(max_entries, 1024);
 } qer_map SEC(".maps");

@@ -7,7 +7,7 @@
 
 #include "xdp/program_array.h"
 
-// N3 only entrypoint. Attach to N3 interfaces only
+/* N3 only entrypoint. Attach to N3 interfaces only */
 SEC("xdp/upf_n3_entrypoint")
 int upf_n3_entrypoint_func(struct xdp_md *ctx) {
     bpf_printk("upf n3 entrypoint start\n");

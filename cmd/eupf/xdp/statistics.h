@@ -30,7 +30,7 @@ struct upf_statistic {
 struct
 {
     __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-    __type(key, __u32);  // cpu
+    __type(key, __u32);
     __type(value, struct upf_statistic);
     __uint(max_entries, 1);
 } upf_ext_stat SEC(".maps");

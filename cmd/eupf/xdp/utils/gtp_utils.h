@@ -34,7 +34,7 @@ static __always_inline void swap_port(struct udphdr *udp)
     __u16 tmp = udp->dest;
     udp->dest = udp->source;
     udp->source = tmp;
-    // Update UDP checksum
+    /* Update UDP checksum */ 
     udp->check = 0;
     // cs = 0;
     // ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
@@ -47,7 +47,7 @@ static __always_inline void swap_ip(struct iphdr *iph)
     iph->daddr = iph->saddr;
     iph->saddr = tmp_ip;
 
-    //Don't need to recalc csum in case of ip swap
+    /* Don't need to recalc csum in case of ip swap */
     // iph->check = 0;
     // __u64 cs = 0;
     // ipv4_csum(iph, sizeof(*iph), &cs);
@@ -62,7 +62,7 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
 
     gtp->message_type = GTPU_ECHO_RESPONSE;
 
-    // TODO: add support GTP over IPv6
+    /* TODO: add support GTP over IPv6 */
     swap_ip(iph);
     swap_port(udp);
     swap_mac(eth);
@@ -103,7 +103,7 @@ static __always_inline long context_reinit(struct packet_context *ctx, void *dat
             break;
         }
         default:
-            // do nothing with non-ip packets
+            /* do nothing with non-ip packets */
             bpf_printk("upf: can't process not an ip packet after gtp header removal: %d", ip_version);
             return -1;
     }
@@ -153,17 +153,17 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
     if (result)
         return result;
 
-    // update packet pointers
+    /* Update packet pointers */
     return context_reinit(ctx, (void *)(long)ctx->xdp_ctx->data, (void *)(long)ctx->xdp_ctx->data_end);
 }
 
 static __always_inline void fill_ip_header(struct iphdr *ip, int saddr, int daddr, int tot_len) {
     ip->version = 4;
-    ip->ihl = 5;  // No options
+    ip->ihl = 5;  /* No options */
     ip->tos = 0;
     ip->tot_len = bpf_htons(tot_len);
-    ip->id = 0;             // No fragmentation
-    ip->frag_off = 0x0040;  // Don't fragment; Fragment offset = 0
+    ip->id = 0;             /* No fragmentation */
+    ip->frag_off = 0x0040;  /* Don't fragment; Fragment offset = 0 */
     ip->ttl = 64;
     ip->protocol = IPPROTO_UDP;
     ip->check = 0;
@@ -179,8 +179,7 @@ static __always_inline void fill_udp_header(struct udphdr *udp, int port, int le
 }
 
 static __always_inline void fill_gtp_header(struct gtpuhdr *gtp, int teid, int len) {
-    __u8 flags = GTP_FLAGS;  // FIXME
-    __builtin_memcpy(gtp, &flags, sizeof(__u8));
+    *(__u8*)gtp = GTP_FLAGS;
     gtp->message_type = GTPU_G_PDU;
     gtp->message_length = len;
     gtp->teid = bpf_htonl(teid);
@@ -209,17 +208,17 @@ static __always_inline __u32 add_gtp_header(struct packet_context *ctx, int sadd
     if ((void *)(inner_ip + 1) > data_end)
         return -1;
 
-    // Add the outer IP header
+    /* Add the outer IP header */
     fill_ip_header(ip, saddr, daddr, bpf_ntohs(inner_ip->tot_len) + GTP_ENCAPSULATED_SIZE);
 
-    // Add the UDP header
+    /* Add the UDP header */
     struct udphdr *udp = (void *)(ip + 1);
     if ((void *)(udp + 1) > data_end)
         return -1;
 
     fill_udp_header(udp, GTP_UDP_PORT, bpf_ntohs(inner_ip->tot_len) + sizeof(*udp) + sizeof(struct gtpuhdr));
 
-    // Add the GTP header
+    /* Add the GTP header */
     struct gtpuhdr *gtp = (void *)(udp + 1);
     if ((void *)(gtp + 1) > data_end)
         return -1;
@@ -230,14 +229,14 @@ static __always_inline __u32 add_gtp_header(struct packet_context *ctx, int sadd
     ipv4_csum(ip, sizeof(*ip), &cs);
     ip->check = cs;
 
-    // No idea how to overcome ebpf verifier. I give up for now
+    /* No idea how to overcome ebpf verifier. I give up for now */
     // cs = 0;
     // const void* udp_start = (void*)udp;
     // const __u16 udp_len = bpf_htons(udp->len);
     // ipv4_l4_csum(udp, udp_len, &cs, ip);
     // udp->check = cs;
 
-    // update packet pointers
+    /* Update packet pointers */
     context_reset_ip4(ctx, (void *)(long)ctx->xdp_ctx->data, (void *)(long)ctx->xdp_ctx->data_end, eth, ip, udp, gtp);
     return 0;
 }

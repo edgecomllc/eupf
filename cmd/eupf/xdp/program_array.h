@@ -2,7 +2,6 @@
 
 #include <bpf/bpf_helpers.h>
 #include <linux/bpf.h>
-// #include <bpf/types.h>
 
 #include <stdint.h>
 
