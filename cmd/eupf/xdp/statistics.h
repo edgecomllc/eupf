@@ -21,13 +21,6 @@ struct upf_counters {
 };
 
 #define EUPF_MAX_XDP_ACTION 8
-// enum xdp_action {
-// 	XDP_ABORTED = 0,
-// 	XDP_DROP,
-// 	XDP_PASS,
-// 	XDP_TX,
-// 	XDP_REDIRECT,
-// };
 
 struct upf_statistic {
     struct upf_counters upf_counters;
@@ -37,7 +30,7 @@ struct upf_statistic {
 struct
 {
     __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-    __type(key, __u32);  // cpu
+    __type(key, __u32);
     __type(value, struct upf_statistic);
     __uint(max_entries, 1);
 } upf_ext_stat SEC(".maps");
