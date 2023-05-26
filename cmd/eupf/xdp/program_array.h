@@ -12,13 +12,6 @@ enum upf_program_type {
     UPF_PROG_TYPE_QER = 2,
 };
 
-// struct bpf_map_def SEC("maps") upf_pipeline = {
-//     .type = BPF_MAP_TYPE_PROG_ARRAY,
-//     .key_size = sizeof(uint32_t),
-//     .value_size = sizeof(uint32_t),
-//     .max_entries = 16,
-// };
-
 struct
 {
     __uint(type, BPF_MAP_TYPE_PROG_ARRAY);

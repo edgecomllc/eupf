@@ -21,13 +21,6 @@ struct upf_counters {
 };
 
 #define EUPF_MAX_XDP_ACTION 8
-// enum xdp_action {
-// 	XDP_ABORTED = 0,
-// 	XDP_DROP,
-// 	XDP_PASS,
-// 	XDP_TX,
-// 	XDP_REDIRECT,
-// };
 
 struct upf_statistic {
     struct upf_counters upf_counters;

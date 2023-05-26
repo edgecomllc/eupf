@@ -22,14 +22,6 @@ struct qer_info {
     __u64 dl_start;
 };
 
-#ifdef __RELEASE
-struct bpf_map_def SEC("maps") qer_map = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(__u32),  // QER ID
-    .value_size = sizeof(struct qer_info),
-    .max_entries = 1024,  // FIXME
-};
-#else
 struct
 {
     __uint(type, BPF_MAP_TYPE_ARRAY);
@@ -37,7 +29,6 @@ struct
     __type(value, struct qer_info);
     __uint(max_entries, 1024);
 } qer_map SEC(".maps");
-#endif
 
 static __always_inline enum xdp_action limit_rate_sliding_window(struct xdp_md *ctx, __u64 *windows_start, const __u64 rate) {
     static const __u64 NSEC_PER_SEC = 1000000000ULL;
