@@ -22,13 +22,18 @@ struct qer_info {
     __u64 dl_start;
 };
 
+enum {
+    QER_MAP_SIZE = 1024,
+};
+
+
 /* QER ID -> QER */
 struct
 {
     __uint(type, BPF_MAP_TYPE_ARRAY);
     __type(key, __u32);
     __type(value, struct qer_info);
-    __uint(max_entries, 1024);
+    __uint(max_entries, QER_MAP_SIZE);
 } qer_map SEC(".maps");
 
 static __always_inline enum xdp_action limit_rate_sliding_window(struct xdp_md *ctx, __u64 *windows_start, const __u64 rate) {

@@ -7,6 +7,14 @@
 #include <linux/bpf.h>
 #include <linux/ipv6.h>
 
+enum {
+    PDR_MAP_UPLINK_SIZE = 1024,
+    PDR_MAP_DOWNLINK_IPV4_SIZE = 1024,
+    PDR_MAP_DOWNLINK_IPV6_SIZE = 1024,
+    FAR_MAP_SIZE = 1024,
+};
+
+
 enum outer_header_removal_values {
     OHR_GTP_U_UDP_IPv4 = 0,
     OHR_GTP_U_UDP_IPv6 = 1,
@@ -31,7 +39,7 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, __u32);
     __type(value, struct pdr_info);
-    __uint(max_entries, 1024);
+    __uint(max_entries, PDR_MAP_DOWNLINK_IPV4_SIZE);
 } pdr_map_downlink_ip4 SEC(".maps");
 
 /* ipv6 -> PDR */
@@ -40,7 +48,7 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, struct in6_addr);
     __type(value, struct pdr_info);
-    __uint(max_entries, 1024);
+    __uint(max_entries, PDR_MAP_DOWNLINK_IPV6_SIZE);
 } pdr_map_downlink_ip6 SEC(".maps");
 
 
@@ -50,7 +58,7 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, __u32);
     __type(value, struct pdr_info);
-    __uint(max_entries, 1024);
+    __uint(max_entries, PDR_MAP_UPLINK_SIZE);
 } pdr_map_uplink_ip4 SEC(".maps");
 
 enum far_action_mask {
@@ -87,5 +95,5 @@ struct
     __uint(type, BPF_MAP_TYPE_ARRAY);
     __type(key, __u32);
     __type(value, struct far_info);
-    __uint(max_entries, 1024);
+    __uint(max_entries, FAR_MAP_SIZE);
 } far_map SEC(".maps");
