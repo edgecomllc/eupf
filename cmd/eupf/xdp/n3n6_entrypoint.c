@@ -38,7 +38,7 @@
 #include "xdp/utils/routing.h"
 
 #undef bpf_printk
-#ifdef ENABLE_LOG  /* trace_pipe logs disabled by default */
+#ifdef ENABLE_LOG  // trace_pipe logs disabled by default
 #define bpf_printk(fmt, ...)                       \
     ({                                             \
         static const char ____fmt[] = fmt;         \
@@ -67,11 +67,11 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
 
     bpf_printk("upf: downlink session for ip:%pI4  far:%d action:%d", &ip4->daddr, pdr->far_id, far->action);
 
-    /* Only forwarding action is supported at the moment */
+    // Only forwarding action is supported at the moment
     if (!(far->action & FAR_FORW))
         return XDP_DROP;
 
-    /* Only outer header GTP/UDP/IPv4 is supported at the moment */
+    // Only outer header GTP/UDP/IPv4 is supported at the moment
     if (!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
         return XDP_DROP;
 
@@ -114,11 +114,11 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
 
     bpf_printk("upf: downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, pdr->far_id, far->action);
 
-    /* Only forwarding action supported at the moment */
+    // Only forwarding action supported at the moment
     if (!(far->action & FAR_FORW))
         return XDP_DROP;
 
-    /* Only outer header GTP/UDP/IPv4 is supported at the moment */
+    // Only outer header GTP/UDP/IPv4 is supported at the moment
     if (!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
         return XDP_DROP;
 
@@ -151,8 +151,10 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
         return DEFAULT_XDP_ACTION;
     }
 
-    /* Step 1: search for PDR and apply PDR instructions */
-    __u32 teid = bpf_ntohl(ctx->gtp->teid);
+    /*
+     *   Step 1: search for PDR and apply PDR instructions
+     */
+    __u32 teid = bpf_htonl(ctx->gtp->teid);
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
     if (!pdr) {
         bpf_printk("upf: no uplink session for teid:%d", teid);
@@ -168,7 +170,9 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
         }
     }
 
-    /* Step 2: search for FAR and apply FAR instructions */
+    /*
+     *   Step 2: search for FAR and apply FAR instructions
+     */
     struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
     if (!far) {
         bpf_printk("upf: no uplink session far for teid:%d far:%d", teid, pdr->far_id);
@@ -177,11 +181,13 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
 
     bpf_printk("upf: far:%d action:%d outer_header_creation:%d", pdr->far_id, far->action, far->outer_header_creation);
 
-    /* Only forwarding action supported at the moment */
+    // Only forwarding action supported at the moment
     if (!(far->action & FAR_FORW))
         return XDP_DROP;
 
-    /* Step 3: search for QER and apply QER instructions */
+    /*
+     *   Step 3: search for QER and apply QER instructions
+     */
     struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
     if (!qer) {
         bpf_printk("upf: no uplink session qer for teid:%d qer:%d", teid, pdr->qer_id);
@@ -196,7 +202,9 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
     if (XDP_DROP == limit_rate_sliding_window(ctx->xdp_ctx, &qer->ul_start, qer->ul_maximum_bitrate))
         return XDP_DROP;
 
-    /* Step 4: Route packet finally */
+    /*
+     *   Step 4: Route packet finally
+     */
     if (ctx->ip4)
         return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
     else if (ctx->ip6)
@@ -258,13 +266,18 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
 static __always_inline enum xdp_action handle_ip6(struct packet_context *ctx) {
     int l4_protocol = parse_ip6(ctx);
     switch (l4_protocol) {
-        case IPPROTO_ICMPV6:  /* Let kernel stack takes care */
+        case IPPROTO_ICMPV6:  // Let kernel stack takes care
             bpf_printk("upf: icmp received. passing to kernel");
             increment_counter(ctx->counters, rx_icmp6);
             return XDP_PASS;
         case IPPROTO_UDP:
             increment_counter(ctx->counters, rx_udp);
-            /* Don't expect GTP over IPv6 at the moment */ 
+            // Don't expect GTP over IPv6 at the moment
+            // if (GTP_UDP_PORT == parse_udp(ctx))
+            // {
+            //     bpf_printk("upf: gtp-u received");
+            //     return handle_gtpu(ctx);
+            // }
             break;
         case IPPROTO_TCP:
             increment_counter(ctx->counters, rx_tcp);
@@ -286,7 +299,7 @@ static __always_inline enum xdp_action process_packet(struct packet_context *ctx
         case ETH_P_IP:
             increment_counter(ctx->counters, rx_ip4);
             return handle_ip4(ctx);
-        case ETH_P_ARP:  /* Let kernel stack takes care */
+        case ETH_P_ARP:  // Let kernel stack takes care
         {
             increment_counter(ctx->counters, rx_arp);
             bpf_printk("upf: arp received. passing to kernel");
@@ -297,7 +310,7 @@ static __always_inline enum xdp_action process_packet(struct packet_context *ctx
     return DEFAULT_XDP_ACTION;
 }
 
-/* Combined N3 & N6 entrypoint. Use for "on-a-stick" interfaces */
+// Combined N3 & N6 entrypoint. Use for "on-a-stick" interfaces
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     // bpf_printk("upf n3 & n6 combined entrypoint start");

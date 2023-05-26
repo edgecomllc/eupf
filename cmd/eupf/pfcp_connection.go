@@ -85,12 +85,12 @@ type PfcpConnection struct {
 func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ForwardingPlaneController) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
-		log.Panicf("Can't resolve UDP address: %s", err)
+		log.Panicf("Can't resolve UDP address: %s", err.Error())
 		return nil, err
 	}
 	udpConn, err := net.ListenUDP("udp", udpAddr)
 	if err != nil {
-		log.Printf("Can't listen UDP address: %s", err)
+		log.Printf("Can't listen UDP address: %s", err.Error())
 		return nil, err
 	}
 
@@ -121,7 +121,7 @@ func (connection *PfcpConnection) Run() {
 	for {
 		n, addr, err := connection.Receive(buf)
 		if err != nil {
-			log.Printf("Error reading from UDP socket: %s", err)
+			log.Printf("Error reading from UDP socket: %s", err.Error())
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -141,7 +141,7 @@ func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, e
 func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
 	err := connection.pfcpHandlerMap.Handle(connection, b, addr)
 	if err != nil {
-		log.Printf("Error handling PFCP message: %s", err)
+		log.Printf("Error handling PFCP message: %s", err.Error())
 	}
 }
 
