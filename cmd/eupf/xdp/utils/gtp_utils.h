@@ -178,13 +178,25 @@ static __always_inline void fill_udp_header(struct udphdr *udp, int port, int le
 static __always_inline void fill_gtp_header(struct gtpuhdr *gtp, int teid, int len) {
     *(__u8*)gtp = GTP_FLAGS;
     gtp->message_type = GTPU_G_PDU;
-    gtp->message_length = len;
+    gtp->message_length = bpf_htons(len);
     gtp->teid = bpf_htonl(teid);
 }
 
 static __always_inline __u32 add_gtp_header(struct packet_context *ctx, int saddr, int daddr, int teid) {
     static const size_t GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
-    bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-GTP_ENCAPSULATED_SIZE);
+
+    //int ip_packet_len = (ctx->xdp_ctx->data_end - ctx->xdp_ctx->data) - sizeof(*eth);
+    int ip_packet_len = 0;
+    if(ctx->ip4)
+        ip_packet_len = bpf_ntohs(ctx->ip4->tot_len);
+    else if(ctx->ip6)
+        ip_packet_len = bpf_ntohs(ctx->ip6->payload_len) + sizeof(struct ipv6hdr);
+    else
+        return -1;
+
+    int result = bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-GTP_ENCAPSULATED_SIZE);
+    if(result)
+        return -1;
 
     void *data = (void *)(long)ctx->xdp_ctx->data;
     void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
@@ -201,26 +213,22 @@ static __always_inline __u32 add_gtp_header(struct packet_context *ctx, int sadd
     if ((void *)(ip + 1) > data_end)
         return -1;
 
-    struct iphdr *inner_ip = (void *)ip + GTP_ENCAPSULATED_SIZE;
-    if ((void *)(inner_ip + 1) > data_end)
-        return -1;
-
     /* Add the outer IP header */
-    fill_ip_header(ip, saddr, daddr, bpf_ntohs(inner_ip->tot_len) + GTP_ENCAPSULATED_SIZE);
+    fill_ip_header(ip, saddr, daddr, ip_packet_len + GTP_ENCAPSULATED_SIZE);
 
     /* Add the UDP header */
     struct udphdr *udp = (void *)(ip + 1);
     if ((void *)(udp + 1) > data_end)
         return -1;
 
-    fill_udp_header(udp, GTP_UDP_PORT, bpf_ntohs(inner_ip->tot_len) + sizeof(*udp) + sizeof(struct gtpuhdr));
+    fill_udp_header(udp, GTP_UDP_PORT, ip_packet_len + sizeof(*udp) + sizeof(struct gtpuhdr));
 
     /* Add the GTP header */
     struct gtpuhdr *gtp = (void *)(udp + 1);
     if ((void *)(gtp + 1) > data_end)
         return -1;
 
-    fill_gtp_header(gtp, teid, inner_ip->tot_len);
+    fill_gtp_header(gtp, teid, ip_packet_len);
 
     ip->check = ipv4_csum(ip, sizeof(*ip));
 
