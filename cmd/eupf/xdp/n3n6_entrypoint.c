@@ -154,7 +154,7 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
     /*
      *   Step 1: search for PDR and apply PDR instructions
      */
-    __u32 teid = bpf_htonl(ctx->gtp->teid);
+    __u32 teid = bpf_ntohl(ctx->gtp->teid);
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
     if (!pdr) {
         bpf_printk("upf: no uplink session for teid:%d", teid);

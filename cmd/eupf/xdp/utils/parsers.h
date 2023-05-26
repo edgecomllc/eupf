@@ -9,14 +9,14 @@
 
 #include "xdp/utils/packet_context.h"
 
-static __always_inline __u16 parse_ethernet(struct packet_context *ctx) {
+static __always_inline int parse_ethernet(struct packet_context *ctx) {
     struct ethhdr *eth = (struct ethhdr *)ctx->data;
     if ((void *)(eth + 1) > ctx->data_end)
         return -1;
 
     ctx->data += sizeof(*eth);
     ctx->eth = eth;
-    return bpf_htons(eth->h_proto);
+    return bpf_ntohs(eth->h_proto);
 }
 
 /* 0x3FFF mask to check for fragment offset field */
@@ -53,5 +53,5 @@ static __always_inline int parse_udp(struct packet_context *ctx) {
 
     ctx->data += sizeof(*udp);
     ctx->udp = udp;
-    return bpf_htons(udp->dest);
+    return bpf_ntohs(udp->dest);
 }
