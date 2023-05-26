@@ -47,10 +47,11 @@ static __always_inline void swap_ip(struct iphdr *iph)
     iph->daddr = iph->saddr;
     iph->saddr = tmp_ip;
 
-    iph->check = 0;
-    __u64 cs = 0;
-    ipv4_csum(iph, sizeof(*iph), &cs);
-    iph->check = cs;
+    //Don't need to recalc csum in case of ip swap
+    // iph->check = 0;
+    // __u64 cs = 0;
+    // ipv4_csum(iph, sizeof(*iph), &cs);
+    // iph->check = cs;
 }
 
 static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
