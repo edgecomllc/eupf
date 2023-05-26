@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log"
 	"strings"
@@ -24,9 +25,11 @@ func printAssociationSetupRequest(req *message.AssociationSetupRequest) {
 	if err == nil {
 		writeLineTabbed(&sb, fmt.Sprintf("Node ID: %s", nodeId), 1)
 	}
-	recoveryTime, err := req.RecoveryTimeStamp.RecoveryTimeStamp()
-	if err == nil {
-		writeLineTabbed(&sb, fmt.Sprintf("Recovery Time: %s", recoveryTime.String()), 1)
+	if req.RecoveryTimeStamp != nil {
+		recoveryTime, err := req.RecoveryTimeStamp.RecoveryTimeStamp()
+		if err == nil {
+			writeLineTabbed(&sb, fmt.Sprintf("Recovery Time: %s", recoveryTime.String()), 1)
+		}
 	}
 	log.Print(sb.String())
 }
@@ -65,7 +68,6 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
-	//log.Printf("Session Modification Request:")
 	writeLineTabbed(&sb, "Session Modification Request:", 0)
 	for _, pdr := range req.UpdatePDR {
 		sb.WriteString("  Update")
@@ -88,26 +90,21 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	}
 
 	if req.UpdateBAR != nil {
-		// sb.WriteString("------ BAR")
 		writeLineTabbed(&sb, "Update BAR:", 1)
 		barId, err := req.UpdateBAR.BARID()
 		if err == nil {
-			//sb.WriteString(fmt.Sprintf("BAR ID: %d ", barId))
 			writeLineTabbed(&sb, fmt.Sprintf("BAR ID: %d ", barId), 2)
 		}
 		downlink, err := req.UpdateBAR.DownlinkDataNotificationDelay()
 		if err == nil {
-			//sb.WriteString(fmt.Sprintf("Downlink Data Notification Delay: %s ", downlink))
 			writeLineTabbed(&sb, fmt.Sprintf("Downlink Data Notification Delay: %s ", downlink), 2)
 		}
 		suggestedBufferingPackets, err := req.UpdateBAR.SuggestedBufferingPacketsCount()
 		if err == nil {
-			//sb.WriteString(fmt.Sprintf("Suggested Buffering Packets Count: %d ", suggestedBufferingPackets))
 			writeLineTabbed(&sb, fmt.Sprintf("Suggested Buffering Packets Count: %d ", suggestedBufferingPackets), 2)
 		}
 		mtEdtControl, err := req.UpdateBAR.MTEDTControlInformation()
 		if err == nil {
-			// sb.WriteString(fmt.Sprintf("MT EDI: %d ", mtEdtControl))
 			writeLineTabbed(&sb, fmt.Sprintf("MT EDI: %d ", mtEdtControl), 2)
 		}
 	}
@@ -174,22 +171,18 @@ func displayUrr(sb *strings.Builder, urr *ie.IE) {
 
 	measurementMethod, err := urr.MeasurementMethod()
 	if err == nil {
-		// sb.WriteString(fmt.Sprintf("Measurement Method: %d ", measurementMethod))
 		writeLineTabbed(sb, fmt.Sprintf("Measurement Method: %d ", measurementMethod), 2)
 	}
 	volumeThreshold, err := urr.VolumeThreshold()
 	if err == nil {
-		// sb.WriteString(fmt.Sprintf("Volume Threshold: %+v ", volumeThreshold))
 		writeLineTabbed(sb, fmt.Sprintf("Volume Threshold: %+v ", volumeThreshold), 2)
 	}
 	timeThreshold, err := urr.TimeThreshold()
 	if err == nil {
-		// sb.WriteString(fmt.Sprintf("Time Threshold: %d ", timeThreshold))
 		writeLineTabbed(sb, fmt.Sprintf("Time Threshold: %d ", timeThreshold), 2)
 	}
 	monitoringTime, err := urr.MonitoringTime()
 	if err == nil {
-		// sb.WriteString(fmt.Sprintf("Monitoring Time: %s ", monitoringTime.Format(time.RFC3339)))
 		writeLineTabbed(sb, fmt.Sprintf("Monitoring Time: %s ", monitoringTime.Format(time.RFC3339)), 2)
 	}
 }
@@ -200,30 +193,24 @@ func displayQer(sb *strings.Builder, qer *ie.IE) {
 
 	gateStatusDL, err := qer.GateStatusDL()
 	if err == nil {
-		// sb.WriteString(fmt.Sprintf("Gate Status DL: %d ", gateStatusDL))
 		writeLineTabbed(sb, fmt.Sprintf("Gate Status DL: %d ", gateStatusDL), 2)
 	}
 	gateStatusUL, err := qer.GateStatusUL()
 	if err == nil {
-		// sb.WriteString(fmt.Sprintf("Gate Status UL: %d ", gateStatusUL))
 		writeLineTabbed(sb, fmt.Sprintf("Gate Status UL: %d ", gateStatusUL), 2)
 	}
 	maxBitrateDL, err := qer.MBRDL()
 	if err == nil {
-		// sb.WriteString(fmt.Sprintf("Max Bitrate DL: %d ", uint32(maxBitrateDL)))
 		writeLineTabbed(sb, fmt.Sprintf("Max Bitrate DL: %d ", uint32(maxBitrateDL)), 2)
 	}
 	maxBitrateUL, err := qer.MBRUL()
 	if err == nil {
-		// sb.WriteString(fmt.Sprintf("Max Bitrate UL: %d ", uint32(maxBitrateUL)))
 		writeLineTabbed(sb, fmt.Sprintf("Max Bitrate UL: %d ", uint32(maxBitrateUL)), 2)
 	}
 	qfi, err := qer.QFI()
 	if err == nil {
-		//sb.WriteString(fmt.Sprintf("QFI: %d ", qfi))
 		writeLineTabbed(sb, fmt.Sprintf("QFI: %d ", qfi), 2)
 	}
-	log.Println(sb.String())
 }
 
 func displayFar(sb *strings.Builder, far *ie.IE) {
@@ -239,24 +226,19 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 		for _, forwardingParameter := range forwardingParameters {
 			networkInstance, err := forwardingParameter.NetworkInstance()
 			if err == nil {
-				//sb.WriteString(fmt.Sprintf("Network Instance: %s ", networkInstance))
 				writeLineTabbed(sb, fmt.Sprintf("Network Instance: %s ", networkInstance), 3)
 			}
 			outerHeaderCreation, err := forwardingParameter.OuterHeaderCreation()
 			if err == nil {
-				// sb.WriteString(fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation))
 				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation), 3)
 			}
 			redirectInformation, err := forwardingParameter.RedirectInformation()
 			if err == nil {
-				// sb.WriteString(fmt.Sprintf("Redirect Information, server address: %s ", redirectInformation.RedirectServerAddress))
-				// sb.WriteString(fmt.Sprintf("Redirect Information, other server address: %s ", redirectInformation.OtherRedirectServerAddress))
 				writeLineTabbed(sb, fmt.Sprintf("Redirect Information, server address: %s ", redirectInformation.RedirectServerAddress), 3)
 				writeLineTabbed(sb, fmt.Sprintf("Redirect Information, other server address: %s ", redirectInformation.OtherRedirectServerAddress), 3)
 			}
 			headerEnrichment, err := forwardingParameter.HeaderEnrichment()
-			if err == nil {
-				// sb.WriteString(fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue))
+			if err == nil {				
 				writeLineTabbed(sb, fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue), 3)
 			}
 		}
@@ -265,39 +247,41 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 		writeLineTabbed(sb, "Update forwarding Parameters:", 2)
 		for _, updateForwardingParameter := range updateForwardingParameters {
 			networkInstance, err := updateForwardingParameter.NetworkInstance()
-			if err == nil {
-				//sb.WriteString(fmt.Sprintf("Network Instance: %s ", networkInstance))
+			if err == nil {				
 				writeLineTabbed(sb, fmt.Sprintf("Network Instance: %s ", networkInstance), 3)
 			}
 			outerHeaderCreation, err := updateForwardingParameter.OuterHeaderCreation()
-			if err == nil {
-				// sb.WriteString(fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation))
+			if err == nil {				
 				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation), 3)
 			}
 			redirectInformation, err := updateForwardingParameter.RedirectInformation()
 			if err == nil {
-				// sb.WriteString(fmt.Sprintf("Redirect Information, server address: %s ", redirectInformation.RedirectServerAddress))
-				// sb.WriteString(fmt.Sprintf("Redirect Information, other server address: %s ", redirectInformation.OtherRedirectServerAddress))
 				writeLineTabbed(sb, fmt.Sprintf("Redirect Information, server address: %s ", redirectInformation.RedirectServerAddress), 3)
 				writeLineTabbed(sb, fmt.Sprintf("Redirect Information, other server address: %s ", redirectInformation.OtherRedirectServerAddress), 3)
 			}
 			headerEnrichment, err := updateForwardingParameter.HeaderEnrichment()
-			if err == nil {
-				// sb.WriteString(fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue))
+			if err == nil {				
 				writeLineTabbed(sb, fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue), 3)
 			}
 		}
 	}
 
 	duplicatingParameters, err := far.DuplicatingParameters()
-	if err == nil {
-		// sb.WriteString(fmt.Sprintf("Duplicating Parameters: %+v ", duplicatingParameters))
+	if err == nil {		
 		writeLineTabbed(sb, fmt.Sprintf("Duplicating Parameters: %+v ", duplicatingParameters), 2)
 	}
 	barId, err := far.BARID()
-	if err == nil {
-		// sb.WriteString(fmt.Sprintf("BAR ID: %d ", barId))
+	if err == nil {		
 		writeLineTabbed(sb, fmt.Sprintf("BAR ID: %d ", barId), 2)
+	}
+	transportLevelMarking, err := far.TransportLevelMarking()
+	if err == nil {		
+		writeLineTabbed(sb, fmt.Sprintf("Transport Level Marking: %d", transportLevelMarking), 2)
+		// DSCP (first octet) and ToS or Traffic Class mask (second octet)
+		buf := make([]byte, 2)
+		binary.BigEndian.PutUint16(buf, transportLevelMarking)
+		writeLineTabbed(sb, fmt.Sprintf("DSCP: %x", buf[0]), 3)
+		writeLineTabbed(sb, fmt.Sprintf("ToS or Traffic Class mask: %x", buf[1]), 3)
 	}
 }
 

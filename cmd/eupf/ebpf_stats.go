@@ -2,53 +2,10 @@ package main
 
 import (
 	"log"
-	"unsafe"
 )
 
 type UpfXdpActionStatistic struct {
 	bpfObjects *BpfObjects
-}
-
-// Getters for the upf_xdp_statistic (xdp_action)
-
-func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint32 {
-	var result uint32
-	err := stat.bpfObjects.ip_entrypointMaps.UpfXdpStatistic.Lookup(field, unsafe.Pointer(&result))
-	if err != nil {
-		log.Println(err)
-	}
-	return result
-}
-
-func (stat *UpfXdpActionStatistic) GetAborted() uint32 {
-	return stat.getUpfXdpStatisticField(uint32(0))
-}
-
-func (stat *UpfXdpActionStatistic) GetDrop() uint32 {
-	return stat.getUpfXdpStatisticField(uint32(1))
-}
-
-func (stat *UpfXdpActionStatistic) GetPass() uint32 {
-	return stat.getUpfXdpStatisticField(uint32(2))
-}
-
-func (stat *UpfXdpActionStatistic) GetTx() uint32 {
-	return stat.getUpfXdpStatisticField(uint32(3))
-}
-
-func (stat *UpfXdpActionStatistic) GetRedirect() uint32 {
-	return stat.getUpfXdpStatisticField(uint32(4))
-}
-
-// Getters for the upf_ext_stat (upf_counters)
-// #TODO: Do not retrieve the whole struct each time.
-func (stat *UpfXdpActionStatistic) getUpfExtStatField() UpfCounters {
-	var result UpfCounters
-	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), unsafe.Pointer(&result))
-	if err != nil {
-		log.Println(err)
-	}
-	return result
 }
 
 type UpfCounters struct {
@@ -64,4 +21,81 @@ type UpfCounters struct {
 	RxGtpPdu   uint64
 	RxGtpOther uint64
 	RxGtpUnexp uint64
+}
+
+type UpfStatistic struct {
+	Counters UpfCounters
+	XdpStats [5]uint64
+}
+
+func (current *UpfCounters) Add(new UpfCounters) {
+	current.RxArp += new.RxArp
+	current.RxIcmp += new.RxIcmp
+	current.RxIcmp6 += new.RxIcmp6
+	current.RxIp4 += new.RxIp4
+	current.RxIp6 += new.RxIp6
+	current.RxTcp += new.RxTcp
+	current.RxUdp += new.RxUdp
+	current.RxOther += new.RxOther
+	current.RxGtpEcho += new.RxGtpEcho
+	current.RxGtpPdu += new.RxGtpPdu
+	current.RxGtpOther += new.RxGtpOther
+}
+
+// Getters for the upf_xdp_statistic (xdp_action)
+
+func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint64 {
+
+	var statistics []UpfStatistic
+	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
+	if err != nil {
+		log.Println(err)
+		return 0
+	}
+
+	var totalValue uint64 = 0
+	for _, statistic := range statistics {
+		totalValue += statistic.XdpStats[field]
+	}
+
+	return totalValue
+}
+
+func (stat *UpfXdpActionStatistic) GetAborted() uint64 {
+	return stat.getUpfXdpStatisticField(uint32(0))
+}
+
+func (stat *UpfXdpActionStatistic) GetDrop() uint64 {
+	return stat.getUpfXdpStatisticField(uint32(1))
+}
+
+func (stat *UpfXdpActionStatistic) GetPass() uint64 {
+	return stat.getUpfXdpStatisticField(uint32(2))
+}
+
+func (stat *UpfXdpActionStatistic) GetTx() uint64 {
+	return stat.getUpfXdpStatisticField(uint32(3))
+}
+
+func (stat *UpfXdpActionStatistic) GetRedirect() uint64 {
+	return stat.getUpfXdpStatisticField(uint32(4))
+}
+
+// Getters for the upf_ext_stat (upf_counters)
+// #TODO: Do not retrieve the whole struct each time.
+func (stat *UpfXdpActionStatistic) getUpfExtStatField() UpfCounters {
+
+	var statistics []UpfStatistic
+	var counters UpfCounters
+	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
+	if err != nil {
+		log.Println(err)
+		return counters
+	}
+
+	for _, statistic := range statistics {
+		counters.Add(statistic.Counters)
+	}
+
+	return counters
 }

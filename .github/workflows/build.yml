@@ -6,6 +6,8 @@ on:
   push:
     branches:
       - "main"
+    tags:
+      - "*"
 
 env:
   REGISTRY: ghcr.io
@@ -39,6 +41,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,format=long,prefix=
+            type=semver,pattern={{version}}
 
       - name: Build and push
         uses: docker/build-push-action@v4
