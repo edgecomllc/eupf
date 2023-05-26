@@ -3,8 +3,8 @@
 #include <linux/types.h>
 #include <linux/unistd.h>
 
-#define GTP_UDP_PORT 2152u //!< TS 29 281
-#define GTP_FLAGS 0x30     //!< Version: GTPv1, Protocol Type: GTP, Others: 0
+#define GTP_UDP_PORT 2152u  //!< TS 29 281
+#define GTP_FLAGS 0x30      //!< Version: GTPv1, Protocol Type: GTP, Others: 0
 
 // TS 29 281 - Section 6 GTP-U Message Formats
 // Table 6.1-1: Messages in GTP-U
@@ -15,8 +15,7 @@
 #define GTPU_END_MARKER (254)
 #define GTPU_G_PDU (255)
 
-struct gtpuhdr
-{
+struct gtpuhdr {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     unsigned int pn : 1;
     unsigned int s : 1;
@@ -53,10 +52,9 @@ struct gtpuhdr
     /*The options start here. */
 } __attribute__((packed));
 
-
- /* Optional word of GTP header, present if any of E, S, PN is set. */
- struct gtp_hdr_ext {
-     __u16 sqn;       
-     __u8 npdu;         
-     __u8 next_ext;     
- } __attribute__((packed));
+/* Optional word of GTP header, present if any of E, S, PN is set. */
+struct gtp_hdr_ext {
+    __u16 sqn;
+    __u8 npdu;
+    __u8 next_ext;
+} __attribute__((packed));

@@ -3,8 +3,7 @@
 #include "xdp/program_array.h"
 
 SEC("xdp/upf")
-int upf_func(struct xdp_md *ctx)
-{
+int upf_func(struct xdp_md *ctx) {
     bpf_printk("upf_program start\n");
 
     bpf_printk("tail call to UPF_PROG_TYPE_QER key\n");

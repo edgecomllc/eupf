@@ -17,7 +17,7 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
-	_, remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
+	remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
 	if err != nil {
 		log.Printf("Rejecting Session Establishment Request from: %s (missing NodeID or F-SEID)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
@@ -49,7 +49,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		for _, far := range req.CreateFAR {
 			farInfo, err := composeFarInfo(FarInfo{}, far, conn.n3Address.To4())
 			if err != nil {
-				log.Printf("Error extracting FAR info: %s", err)
+				log.Printf("Error extracting FAR info: %s", err.Error())
 				continue
 			}
 
@@ -57,7 +57,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			log.Printf("Saving FAR info to session: %d, %+v", farid, farInfo)
 			newid := session.PutFAR(farid, farInfo)
 			if err := mapOperations.PutFar(newid, farInfo); err != nil {
-				log.Printf("Can't put FAR: %s", err)
+				log.Printf("Can't put FAR: %s", err.Error())
 			}
 		}
 
@@ -86,7 +86,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 					}
 
 					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
-						log.Printf("Errored while applying PDR: %s", err)
+						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
 					}
 				}
@@ -97,7 +97,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 						continue
 					}
 					if err != nil {
-						log.Printf("Errored[ while applying PDR: %s", err)
+						log.Printf("Errored[ while applying PDR: %s", err.Error())
 						return err
 					}
 				}
@@ -146,7 +146,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			newid := session.PutQER(qerId, qerInfo)
 			log.Printf("Creating QER ID: %d, QER Info: %+v", newid, qerInfo)
 			if err := mapOperations.PutQer(newid, qerInfo); err != nil {
-				log.Printf("Can't put QER: %s", err)
+				log.Printf("Can't put QER: %s", err.Error())
 			}
 		}
 
@@ -274,13 +274,13 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			farInfo := session.GetFAR(farid)
 			farInfo, err := composeFarInfo(farInfo, far, conn.n3Address.To4())
 			if err != nil {
-				log.Printf("Error extracting FAR info: %s", err)
+				log.Printf("Error extracting FAR info: %s", err.Error())
 				continue
 			}
 			log.Printf("Updating FAR info: %d, %+v", farid, farInfo)
 			newid := session.PutFAR(farid, farInfo)
 			if err := mapOperations.UpdateFar(newid, farInfo); err != nil {
-				log.Printf("Can't update FAR: %s", err)
+				log.Printf("Can't update FAR: %s", err.Error())
 			}
 		}
 
@@ -289,7 +289,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			log.Printf("Removing FAR: %d", farid)
 			newid := session.RemoveFAR(farid)
 			if err := mapOperations.DeleteFar(newid); err != nil {
-				log.Printf("Can't remove FAR: %s", err)
+				log.Printf("Can't remove FAR: %s", err.Error())
 			}
 		}
 
@@ -322,7 +322,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			newid := session.RemoveQER(qerId)
 			log.Printf("Removing QER ID: %d", newid)
 			if err := mapOperations.DeleteQer(newid); err != nil {
-				log.Printf("Can't remove QER: %s", err)
+				log.Printf("Can't remove QER: %s", err.Error())
 			}
 		}
 
@@ -346,7 +346,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 						return nil
 					}
 					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
-						log.Printf("Errored while applying PDR: %s", err)
+						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
 					}
 				}
@@ -362,7 +362,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 						continue
 					}
 					if err != nil {
-						log.Printf("Errored while applying PDR: %s", err)
+						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
 					}
 				}
@@ -413,7 +413,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			log.Printf("Updating QER ID: %d, QER Info: %+v", qerId, qerInfo)
 			newid := session.PutQER(qerId, qerInfo)
 			if err := mapOperations.UpdateQer(newid, qerInfo); err != nil {
-				log.Printf("Can't update QER: %s", err)
+				log.Printf("Can't update QER: %s", err.Error())
 			}
 		}
 		return nil
@@ -445,27 +445,27 @@ func convertErrorToIeCause(err error) *ie.IE {
 	case errNoEstablishedAssociation:
 		return ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)
 	default:
-		log.Printf("Unknown error: %s", err)
+		log.Printf("Unknown error: %s", err.Error())
 		return ie.NewCause(ie.CauseRequestRejected)
 	}
 }
 
-func validateRequest(nodeId *ie.IE, cpfseid *ie.IE) (string, *ie.FSEIDFields, error) {
+func validateRequest(nodeId *ie.IE, cpfseid *ie.IE) (fseid *ie.FSEIDFields, err error) {
 	if nodeId == nil || cpfseid == nil {
-		return "", nil, errMandatoryIeMissing
-	}
-	_, err := nodeId.NodeID()
-	if err != nil {
-		return "", nil, errMandatoryIeMissing
-	}
-	_, err = cpfseid.FSEID()
-	if err != nil {
-		return "", nil, errMandatoryIeMissing
+		return nil, errMandatoryIeMissing
 	}
 
-	remoteNodeID, _ := nodeId.NodeID()
-	fseid, _ := cpfseid.FSEID()
-	return remoteNodeID, fseid, nil
+	_, err = nodeId.NodeID()
+	if err != nil {
+		return nil, errMandatoryIeMissing
+	}
+
+	fseid, err = cpfseid.FSEID()
+	if err != nil {
+		return nil, errMandatoryIeMissing
+	}
+
+	return fseid, nil
 }
 
 func findIEindex(ieArr []*ie.IE, ieType uint16) int {
@@ -522,7 +522,7 @@ func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Sessi
 			log.Printf("Saving uplink PDR info to session: %d, %+v", pdrId, spdrInfo)
 			session.PutUplinkPDR(pdrId, spdrInfo)
 			if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
-				log.Printf("Can't put uplink PDR: %s", err)
+				log.Printf("Can't put uplink PDR: %s", err.Error())
 			}
 		} else {
 			log.Println(err)
@@ -550,7 +550,7 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Ses
 		log.Printf("Saving downlink PDR info to session: %d, %+v", pdrId, spdrInfo)
 		session.PutDownlinkPDR(pdrId, spdrInfo)
 		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-			log.Printf("Can't put uplink PDR: %s", err)
+			log.Printf("Can't put uplink PDR: %s", err.Error())
 		}
 	} else {
 		log.Println("UE IP Address IE missing")

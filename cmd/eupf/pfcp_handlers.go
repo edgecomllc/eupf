@@ -25,7 +25,7 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 		startTime := time.Now()
 		outgoingMsg, err := handler(conn, incomingMsg, addr)
 		if err != nil {
-			log.Printf("Error handling PFCP message: %s", err)
+			log.Printf("Error handling PFCP message: %s", err.Error())
 			return err
 		}
 		duration := time.Since(startTime)
