@@ -25,28 +25,6 @@ struct pdr_info {
     __u32 qer_id;
 };
 
-#ifdef __RELEASE
-struct bpf_map_def SEC("maps") pdr_map_downlink_ip4 = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(__u32),  // IPv4
-    .value_size = sizeof(struct pdr_info),
-    .max_entries = 1024,  // FIXME
-};
-
-struct bpf_map_def SEC("maps") pdr_map_downlink_ip6 = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(struct in6_addr),  // IPv6
-    .value_size = sizeof(struct pdr_info),
-    .max_entries = 1024,  // FIXME
-};
-
-struct bpf_map_def SEC("maps") pdr_map_uplink = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(__u32),  // TEID
-    .value_size = sizeof(struct pdr_info),
-    .max_entries = 1024,  // FIXME
-};
-#else
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -70,7 +48,6 @@ struct
     __type(value, struct pdr_info);
     __uint(max_entries, 1024);
 } pdr_map_uplink_ip4 SEC(".maps");
-#endif
 
 enum far_action_mask {
     FAR_DROP = 0x01,
@@ -100,14 +77,6 @@ struct far_info {
     __u16 transport_level_marking;
 };
 
-#ifdef __RELEASE
-struct bpf_map_def SEC("maps") far_map = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(__u32),  // FAR ID
-    .value_size = sizeof(struct far_info),
-    .max_entries = 1024,  // FIXME
-};
-#else
 struct
 {
     __uint(type, BPF_MAP_TYPE_ARRAY);
@@ -115,4 +84,3 @@ struct
     __type(value, struct far_info);
     __uint(max_entries, 1024);
 } far_map SEC(".maps");
-#endif
