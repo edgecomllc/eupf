@@ -48,10 +48,7 @@ static __always_inline void swap_ip(struct iphdr *iph)
     iph->saddr = tmp_ip;
 
     /* Don't need to recalc csum in case of ip swap */
-    // iph->check = 0;
-    // __u64 cs = 0;
-    // ipv4_csum(iph, sizeof(*iph), &cs);
-    // iph->check = cs;
+    // ip->check = ipv4_csum(ip, sizeof(*ip));
 }
 
 static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
@@ -225,9 +222,7 @@ static __always_inline __u32 add_gtp_header(struct packet_context *ctx, int sadd
 
     fill_gtp_header(gtp, teid, inner_ip->tot_len);
 
-    __u64 cs = 0;
-    ipv4_csum(ip, sizeof(*ip), &cs);
-    ip->check = cs;
+    ip->check = ipv4_csum(ip, sizeof(*ip));
 
     /* No idea how to overcome ebpf verifier. I give up for now */
     // cs = 0;
