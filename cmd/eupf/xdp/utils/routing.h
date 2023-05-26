@@ -29,9 +29,11 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
             __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
             __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);
             bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
+
+            if(fib_params.ifindex == ctx->ingress_ifindex)
+                return XDP_TX;
+            
             return bpf_redirect(fib_params.ifindex, 0);
-            // return XDP_TX;
-            // return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
         case BPF_FIB_LKUP_RET_BLACKHOLE:
         case BPF_FIB_LKUP_RET_UNREACHABLE:
         case BPF_FIB_LKUP_RET_PROHIBIT:
@@ -44,7 +46,7 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
         case BPF_FIB_LKUP_RET_FRAG_NEEDED:
         default:
             bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
-            return XDP_PASS;  // Let's kernel takes care
+            return XDP_PASS;  /* Let's kernel takes care */
     }
 }
 
@@ -68,9 +70,11 @@ static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct eth
             __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
             __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);
             bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
+
+            if(fib_params.ifindex == ctx->ingress_ifindex)
+                return XDP_TX;
+
             return bpf_redirect(fib_params.ifindex, 0);
-            // return XDP_TX;
-            // return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
         case BPF_FIB_LKUP_RET_BLACKHOLE:
         case BPF_FIB_LKUP_RET_UNREACHABLE:
         case BPF_FIB_LKUP_RET_PROHIBIT:
@@ -83,6 +87,6 @@ static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct eth
         case BPF_FIB_LKUP_RET_FRAG_NEEDED:
         default:
             bpf_printk("upf: bpf_fib_lookup %pI6c -> %pI6c: %d", &ip6->saddr, &ip6->daddr, rc);
-            return XDP_PASS;  // Let's kernel takes care
+            return XDP_PASS;  /* Let's kernel takes care */
     }
 }
