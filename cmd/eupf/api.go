@@ -86,7 +86,7 @@ func DisplayXdpStatistics(forwardPlaneStats UpfXdpActionStatistic) func(c *gin.C
 // @Description Display configuration
 // @Tags Configuration
 // @Produce  json
-// @Success 200 {object} UpfConfig
+// @Success 200 {object} config.UpfConfig
 // @Router /config [get]
 func DisplayConfig() func(c *gin.Context) {
 	return func(c *gin.Context) {
