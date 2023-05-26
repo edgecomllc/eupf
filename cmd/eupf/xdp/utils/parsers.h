@@ -14,6 +14,8 @@ static __always_inline int parse_ethernet(struct packet_context *ctx) {
     if ((void *)(eth + 1) > ctx->data_end)
         return -1;
 
+    /* TODO: Add vlan support */
+
     ctx->data += sizeof(*eth);
     ctx->eth = eth;
     return bpf_ntohs(eth->h_proto);
@@ -31,7 +33,7 @@ static __always_inline int parse_ip4(struct packet_context *ctx) {
     // if (ip4->frag_off & IP_FRAGMENTED)
     //	return -1;
 
-    ctx->data += sizeof(*ip4);
+    ctx->data += ip4->ihl*4; /* header + options */
     ctx->ip4 = ip4;
     return ip4->protocol;
 }
@@ -40,6 +42,8 @@ static __always_inline int parse_ip6(struct packet_context *ctx) {
     struct ipv6hdr *ip6 = (struct ipv6hdr *)ctx->data;
     if ((void *)(ip6 + 1) > ctx->data_end)
         return -1;
+
+    /* TODO: Add extention headers support */
 
     ctx->data += sizeof(*ip6);
     ctx->ip6 = ip6;
