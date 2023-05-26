@@ -30,6 +30,7 @@ func CreateApiServer(bpfObjects *BpfObjects, pfcpSrv *PfcpConnection, forwardPla
 		v1.GET("upf_pipeline", ListUpfPipeline(bpfObjects))
 		v1.GET("config", DisplayConfig())
 		v1.GET("xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
+		v1.GET("id_translators", GetIdTranslatorsMappings())
 
 		qerMap := v1.Group("qer_map")
 		{
