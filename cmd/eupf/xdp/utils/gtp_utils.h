@@ -224,7 +224,7 @@ static __always_inline __u32 add_gtp_header(struct packet_context *ctx, int sadd
 
     ip->check = ipv4_csum(ip, sizeof(*ip));
 
-    /* No idea how to overcome ebpf verifier. I give up for now */
+    /* TODO: implement UDP csum which pass ebpf verifier checks successfully */
     // cs = 0;
     // const void* udp_start = (void*)udp;
     // const __u16 udp_len = bpf_htons(udp->len);

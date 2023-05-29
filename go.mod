@@ -12,6 +12,7 @@ require (
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.1
 	github.com/wmnsk/go-pfcp v0.0.19
+	github.com/google/gopacket v1.1.19
 	golang.org/x/sys v0.7.0
 )
 
