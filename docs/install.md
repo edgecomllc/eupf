@@ -59,7 +59,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
       helm upgrade --install \
          edgecomllc-eupf .deploy/helm/universal-chart \
          --values docs/examples/open5gs/eupf-container-nat.yaml \
-         -n remote-eupf \
+         -n open5gs \
          --wait --timeout 100s --create-namespace
       ```
 
