@@ -56,7 +56,7 @@ func testArp(bpfObjects *BpfObjects) error {
 func testGtpEcho(bpfObjects *BpfObjects) error {
 
 	packetArp := gopacket.NewSerializeBuffer()
-	if err =: gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
+	if err := gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
 		&layers.Ethernet{
 			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
 			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
