@@ -150,7 +150,7 @@ func ResizeEbpfMap(eMap **ebpf.Map, eProg *ebpf.Program, newSize uint32) error {
 	return nil
 }
 
-func (bpfObjects *BpfObjects) ResizeEbpfMapsFromConfig(qerMapSize uint32, farMapSize uint32, pdrMapSize uint32) error {
+func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32, pdrMapSize uint32) error {
 	// QEQ
 	if err := ResizeEbpfMap(&bpfObjects.QerMap, bpfObjects.UpfQerProgramFunc, qerMapSize); err != nil {
 		log.Printf("Failed to resize qer map: %s", err)
