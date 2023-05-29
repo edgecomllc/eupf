@@ -24,7 +24,7 @@ struct bucket {
     __u64 upper_limit_bps;
 };
 
-static __always_inline __attribute_maybe_unused__ int limit_rate_ok(struct xdp_md *ctx, struct bucket *bucket) {
+static __always_inline int limit_rate_ok(struct xdp_md *ctx, struct bucket *bucket) {
     static const __u64 DROP_HORIZON = 1000000000ULL;
     static const __u64 BURST = 5000000ULL;
     static const __u64 NSEC_PER_SEC = 1000000000ULL;
