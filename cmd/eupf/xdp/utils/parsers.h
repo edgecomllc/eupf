@@ -1,3 +1,19 @@
+/**
+ * Copyright 2023 Edgecom LLC
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #pragma once
 
 #include <bpf/bpf_endian.h>
@@ -58,4 +74,85 @@ static __always_inline int parse_udp(struct packet_context *ctx) {
     ctx->data += sizeof(*udp);
     ctx->udp = udp;
     return bpf_ntohs(udp->dest);
+}
+
+static __always_inline void swap_mac(struct ethhdr *eth)
+{
+    __u8 mac[6];
+    __builtin_memcpy(mac, eth->h_source, sizeof(mac));
+    __builtin_memcpy(eth->h_source, eth->h_dest, sizeof(eth->h_source));
+    __builtin_memcpy(eth->h_dest, mac, sizeof(eth->h_dest));
+}
+
+static __always_inline void swap_port(struct udphdr *udp)
+{
+    __u16 tmp = udp->dest;
+    udp->dest = udp->source;
+    udp->source = tmp;
+    /* Update UDP checksum */ 
+    udp->check = 0;
+    // cs = 0;
+    // ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
+    // udp->check = cs;
+}
+
+static __always_inline void swap_ip(struct iphdr *iph)
+{
+    __u32 tmp_ip = iph->daddr;
+    iph->daddr = iph->saddr;
+    iph->saddr = tmp_ip;
+
+    /* Don't need to recalc csum in case of ip swap */
+    // ip->check = ipv4_csum(ip, sizeof(*ip));
+}
+
+static __always_inline long context_reinit(struct packet_context *ctx, void *data, void *data_end) {
+    ctx->data = data;
+    ctx->data_end = data_end;
+    ctx->ip4 = 0;
+    ctx->ip6 = 0;
+    ctx->udp = 0;
+    ctx->gtp = 0;
+
+    ctx->eth = (struct ethhdr *)ctx->data;
+    ctx->data += sizeof(*ctx->eth);
+
+    if ((void *)((const __u8 *)ctx->data + 1) > ctx->data_end)
+        return -1;
+
+    const __u8 ip_version = (*(const __u8 *)ctx->data) >> 4;
+    switch (ip_version) {
+        case 6: {
+            ctx->eth->h_proto = bpf_htons(ETH_P_IPV6);
+            if (-1 == parse_ip6(ctx)) {
+                bpf_printk("upf: can't parse ip6 after gtp header removal");
+                return -1;
+            }
+            break;
+        }
+        case 4: {
+            ctx->eth->h_proto = bpf_htons(ETH_P_IP);
+            if (-1 == parse_ip4(ctx)) {
+                bpf_printk("upf: can't parse ip4 after gtp header removal");
+                return -1;
+            }
+            break;
+        }
+        default:
+            /* do nothing with non-ip packets */
+            bpf_printk("upf: can't process not an ip packet after gtp header removal: %d", ip_version);
+            return -1;
+    }
+
+    return 0;
+}
+
+static __always_inline void context_reset_ip4(struct packet_context *ctx, void *data, void *data_end, struct ethhdr *eth, struct iphdr *ip4, struct udphdr *udp, struct gtpuhdr *gtp) {
+    ctx->data = data;
+    ctx->data_end = data_end;
+    ctx->eth = eth;
+    ctx->ip4 = ip4;
+    ctx->ip6 = 0;
+    ctx->udp = udp;
+    ctx->gtp = gtp;
 }
