@@ -332,7 +332,7 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
         .counters = &statistic->upf_counters};
 
     enum xdp_action action = process_packet(&context);
-    statistic->xdp_actions[action & 0x07] += 1;
+    statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
 
     return action;
 }

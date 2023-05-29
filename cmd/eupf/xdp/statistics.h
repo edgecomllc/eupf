@@ -21,6 +21,7 @@ struct upf_counters {
 };
 
 #define EUPF_MAX_XDP_ACTION 8
+#define EUPF_MAX_XDP_ACTION_MASK 0x07
 
 struct upf_statistic {
     struct upf_counters upf_counters;
