@@ -28,14 +28,16 @@ import (
 func testArp(bpfObjects *BpfObjects) error {
 
 	packetArp := gopacket.NewSerializeBuffer()
-	gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
+	if err := gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
 		&layers.Ethernet{
 			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
 			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
 			EthernetType: layers.EthernetTypeARP,
 		},
 		&layers.ARP{},
-	)
+	); err != nil {
+		return fmt.Errorf("serializing input packet failed: %v", err)
+	}
 
 	bpfRet, bufOut, err := bpfObjects.ip_entrypointPrograms.UpfIpEntrypointFunc.Test(packetArp.Bytes())
 	if err != nil {
@@ -54,7 +56,7 @@ func testArp(bpfObjects *BpfObjects) error {
 func testGtpEcho(bpfObjects *BpfObjects) error {
 
 	packetArp := gopacket.NewSerializeBuffer()
-	gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
+	if err =: gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
 		&layers.Ethernet{
 			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
 			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
@@ -77,7 +79,9 @@ func testGtpEcho(bpfObjects *BpfObjects) error {
 			TEID:           0,
 			SequenceNumber: 0,
 		},
-	)
+	); err != nil {
+		return fmt.Errorf("serializing input packet failed: %v", err)
+	}
 
 	bpfRet, bufOut, err := bpfObjects.ip_entrypointPrograms.UpfIpEntrypointFunc.Test(packetArp.Bytes())
 	if err != nil {
