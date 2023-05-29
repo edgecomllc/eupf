@@ -57,7 +57,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
       helm upgrade --install \
          edgecomllc-eupf .deploy/helm/universal-chart \
          --values docs/examples/open5gs/eupf-container-nat.yaml \
-         -n open5gs \
+         -n remote-eupf \
          --wait --timeout 100s --create-namespace
       ```
 
@@ -86,7 +86,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
 ### To undeploy everything:
 
 ```
-helm delete open5gs ueransim edgecomllc-eupf -n open5gs
+helm  uninstall open5gs ueransim edgecomllc-eupf -n open5gs
 kubectl delete -f docs/examples/open5gs/nat.yaml
 ```
 ### Notes
@@ -203,7 +203,7 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 ### To undeploy everything
 
 ```
-helm delete free5gc ueransim edgecomllc-eupf -n free5gc
+helm uninstall free5gc ueransim edgecomllc-eupf -n free5gc
 ```
 📝 Pod's interconnection. towards5gs-helm uses separate subnets with ipvlan type interfaces with internal addressing.
 The only added is ptp type interface `n6` as a door to the outer world for our eUPF.
