@@ -75,9 +75,10 @@ func ListQerMapContents(m *ebpf.Map) ([]QerMapElement, error) {
 	}
 
 	contextMap := make([]QerMapElement, 0)
+	mapInfo, _ := m.Info()
 
 	var value QerInfo
-	for i := uint32(0); i < 1024; i++ {
+	for i := uint32(0); i < mapInfo.MaxEntries; i++ {
 		err := m.Lookup(i, unsafe.Pointer(&value))
 		if err != nil {
 			return nil, err

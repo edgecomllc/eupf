@@ -28,6 +28,10 @@ func main() {
 		log.Fatalf("Loading bpf objects failed: %s", err.Error())
 	}
 
+	if err := bpfObjects.ResizeAllMaps(config.Conf.QerMapSize, config.Conf.FarMapSize, config.Conf.PdrMapSize); err != nil {
+		log.Fatalf("Failed to set ebpf map sizes: %s", err)
+	}
+
 	defer bpfObjects.Close()
 
 	bpfObjects.buildPipeline()
