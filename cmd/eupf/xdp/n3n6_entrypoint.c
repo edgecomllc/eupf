@@ -51,6 +51,14 @@
 
 #define DEFAULT_XDP_ACTION XDP_PASS
 
+static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, int teid) {
+    if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, teid))
+        return XDP_ABORTED;
+
+    bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+}
+
 static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_context *ctx) {
     const struct iphdr *ip4 = ctx->ip4;
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
@@ -90,12 +98,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
         return XDP_DROP;
 
     bpf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
-
-    if (-1 == add_gtp_over_ip4_headers(ctx, far->localip, far->remoteip, far->teid))
-        return XDP_ABORTED;
-
-    bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
-    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+    return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, far->teid);
 }
 
 static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_context *ctx) {
@@ -137,12 +140,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
         return XDP_DROP;
 
     bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
-
-    if (-1 == add_gtp_over_ip4_headers(ctx, far->localip, far->remoteip, far->teid))
-        return XDP_ABORTED;
-
-    bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
-    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+    return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, far->teid);
 }
 
 static __always_inline enum xdp_action handle_n3_packet(struct packet_context *ctx) {
