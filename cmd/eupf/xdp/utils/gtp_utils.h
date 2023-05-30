@@ -52,8 +52,6 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     return XDP_TX;
 }
 
-
-
 static __always_inline long remove_gtp_header(struct packet_context *ctx) {
     if (!ctx->gtp) {
         bpf_printk("upf: remove_gtp_header: not a gtp packet");
@@ -65,7 +63,7 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
     if (gtp->e || gtp->s || gtp->pn)
         ext_gtp_header_size += sizeof(struct gtp_hdr_ext) + 4;
 
-    const size_t GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr) + ext_gtp_header_size;
+    const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr) + ext_gtp_header_size;
 
     void *data = (void *)(long)ctx->xdp_ctx->data;
     void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
@@ -75,28 +73,51 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
         return -1;
     }
 
-    struct ethhdr *new_eth = data + GTP_ENCAPSULATED_SIZE;
+    data += gtp_encap_size;
+    struct ethhdr *new_eth = data;
     if ((void *)(new_eth + 1) > data_end) {
         bpf_printk("upf: remove_gtp_header: can't set new eth");
         return -1;
     }
-    __builtin_memcpy(new_eth, eth, sizeof(*eth));
+    __builtin_memcpy(new_eth, eth, sizeof(*new_eth));
 
-    long result = bpf_xdp_adjust_head(ctx->xdp_ctx, GTP_ENCAPSULATED_SIZE);
+    data += sizeof(*new_eth);
+    if ((void *)((const __u8 *)data + 1) > data_end)
+        return -1;
+
+    const __u8 ip_version = (*(const __u8 *)data) >> 4;
+    switch (ip_version) {
+        case 6: {
+            new_eth->h_proto = bpf_htons(ETH_P_IPV6);
+            break;
+        }
+        case 4: {
+            new_eth->h_proto = bpf_htons(ETH_P_IP);
+            break;
+        }
+        default:
+            /* do nothing with non-ip packets */
+            bpf_printk("upf: can't process not an ip packet: %d", ip_version);
+            return -1;
+    }
+
+    long result = bpf_xdp_adjust_head(ctx->xdp_ctx, gtp_encap_size);
     if (result)
         return result;
 
     /* Update packet pointers */
-    return context_reinit(ctx, (void *)(long)ctx->xdp_ctx->data, (void *)(long)ctx->xdp_ctx->data_end);
+    data = (void *)(long)ctx->xdp_ctx->data;
+    data_end = (void *)(long)ctx->xdp_ctx->data_end;
+    return context_reinit(ctx, data, data_end);
 }
 
 static __always_inline void fill_ip_header(struct iphdr *ip, int saddr, int daddr, int tot_len) {
     ip->version = 4;
-    ip->ihl = 5;  /* No options */
+    ip->ihl = 5; /* No options */
     ip->tos = 0;
     ip->tot_len = bpf_htons(tot_len);
-    ip->id = 0;             /* No fragmentation */
-    ip->frag_off = 0x0040;  /* Don't fragment; Fragment offset = 0 */
+    ip->id = 0;            /* No fragmentation */
+    ip->frag_off = 0x0040; /* Don't fragment; Fragment offset = 0 */
     ip->ttl = 64;
     ip->protocol = IPPROTO_UDP;
     ip->check = 0;
@@ -112,32 +133,32 @@ static __always_inline void fill_udp_header(struct udphdr *udp, int port, int le
 }
 
 static __always_inline void fill_gtp_header(struct gtpuhdr *gtp, int teid, int len) {
-    *(__u8*)gtp = GTP_FLAGS;
+    *(__u8 *)gtp = GTP_FLAGS;
     gtp->message_type = GTPU_G_PDU;
     gtp->message_length = bpf_htons(len);
     gtp->teid = bpf_htonl(teid);
 }
 
 static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx, int saddr, int daddr, int teid) {
-    static const size_t GTP_ENCAPSULATED_SIZE = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
+    static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
 
-    //int ip_packet_len = (ctx->xdp_ctx->data_end - ctx->xdp_ctx->data) - sizeof(*eth);
+    // int ip_packet_len = (ctx->xdp_ctx->data_end - ctx->xdp_ctx->data) - sizeof(*eth);
     int ip_packet_len = 0;
-    if(ctx->ip4)
+    if (ctx->ip4)
         ip_packet_len = bpf_ntohs(ctx->ip4->tot_len);
-    else if(ctx->ip6)
+    else if (ctx->ip6)
         ip_packet_len = bpf_ntohs(ctx->ip6->payload_len) + sizeof(struct ipv6hdr);
     else
         return -1;
 
-    int result = bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-GTP_ENCAPSULATED_SIZE);
-    if(result)
+    int result = bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-gtp_encap_size);
+    if (result)
         return -1;
 
     void *data = (void *)(long)ctx->xdp_ctx->data;
     void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
 
-    struct ethhdr *orig_eth = data + GTP_ENCAPSULATED_SIZE;
+    struct ethhdr *orig_eth = data + gtp_encap_size;
     if ((void *)(orig_eth + 1) > data_end)
         return -1;
 
@@ -150,7 +171,7 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
         return -1;
 
     /* Add the outer IP header */
-    fill_ip_header(ip, saddr, daddr, ip_packet_len + GTP_ENCAPSULATED_SIZE);
+    fill_ip_header(ip, saddr, daddr, ip_packet_len + gtp_encap_size);
 
     /* Add the UDP header */
     struct udphdr *udp = (void *)(ip + 1);
@@ -176,6 +197,6 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
     // udp->check = cs;
 
     /* Update packet pointers */
-    context_reset_ip4(ctx, (void *)(long)ctx->xdp_ctx->data, (void *)(long)ctx->xdp_ctx->data_end, eth, ip, udp, gtp);
+    context_set_ip4(ctx, (void *)(long)ctx->xdp_ctx->data, (void *)(long)ctx->xdp_ctx->data_end, eth, ip, udp, gtp);
     return 0;
 }
