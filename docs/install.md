@@ -2,6 +2,8 @@
 The easyest way to install eUPF is to use helm charts for one of the supported opensource 5G core projects in your own kubernetes cluster.
 Alternatively, eUPF could be deployed in docker-compose (only with free5gc config is ready at the moment).
 
+**eUPF need Linux kernel > 5.14 version (we used Ubuntu 22.04 LTS)**
+
 ## Kubenetes environment
 
 - Kubernetes cluster with Calico and Multus CNI
@@ -86,7 +88,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
 ### To undeploy everything:
 
 ```
-helm delete open5gs ueransim edgecomllc-eupf -n open5gs
+helm  uninstall open5gs ueransim edgecomllc-eupf -n open5gs
 kubectl delete -f docs/examples/open5gs/nat.yaml
 ```
 ### Notes
@@ -203,7 +205,7 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 ### To undeploy everything
 
 ```
-helm delete free5gc ueransim edgecomllc-eupf -n free5gc
+helm uninstall free5gc ueransim edgecomllc-eupf -n free5gc
 ```
 📝 Pod's interconnection. towards5gs-helm uses separate subnets with ipvlan type interfaces with internal addressing.
 The only added is ptp type interface `n6` as a door to the outer world for our eUPF.
