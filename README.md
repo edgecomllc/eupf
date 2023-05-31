@@ -26,7 +26,7 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 Super fast & simple way is to download and run our docker image. It will start standalone eBPF with the default configuration:
 ```bash
-docker run --name your-eupf-def ghcr.io/edgecomllc/eupf:main
+docker run -d --rm --privileged -p 8080 -p 9090 --name your-eupf-def ghcr.io/edgecomllc/eupf:main
 ```
 <blockquote><details><summary><i>The defaults are</i></summary>
 <p>
@@ -46,7 +46,7 @@ docker run --name your-eupf-def ghcr.io/edgecomllc/eupf:main
 In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
 
 ```ruby
-docker run --name your-eupf-custom -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 -e UPF_N3_ADDRESS=10.100.50.233 ghcr.io/edgecomllc/eupf:main
+docker run -d --rm --privileged -p 8081 -p 9091 --name your-eupf-custom -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 -e UPF_N3_ADDRESS=10.100.50.233 ghcr.io/edgecomllc/eupf:main
 ```
 
 
