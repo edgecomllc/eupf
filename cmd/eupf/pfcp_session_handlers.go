@@ -47,7 +47,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	err = func() error {
 		mapOperations := conn.mapOperations
 		for _, far := range req.CreateFAR {
-			farInfo, err := composeFarInfo(far, conn.n3Address.To4())
+			farInfo, err := composeFarInfo(far, conn.n3Address.To4(), FarInfo{})
 			if err != nil {
 				log.Printf("Error extracting FAR info: %s", err.Error())
 				continue
@@ -62,7 +62,24 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		}
 
 		for _, pdr := range req.CreatePDR {
-			spdrInfo, pdrId, pdi, err := composeSPDRInfo(pdr)
+			spdrInfo := SPDRInfo{}
+			pdrId, err := pdr.PDRID()
+			if err != nil {
+				return fmt.Errorf("PDR ID missing")
+			}
+			if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+			}
+			if farid, err := pdr.FARID(); err == nil {
+				spdrInfo.PdrInfo.FarId = farid
+			}
+			if qerid, err := pdr.QERID(); err == nil {
+				spdrInfo.PdrInfo.QerId = qerid
+			}
+			pdi, err := pdr.PDI()
+			if err != nil {
+				return err
+			}
 			if err != nil {
 				return err
 			}
@@ -258,13 +275,16 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	err := func() error {
 		mapOperations := conn.mapOperations
 		for _, far := range req.UpdateFAR {
-			farInfo, err := composeFarInfo(far, conn.n3Address.To4())
+			farid, err := far.FARID()
+			if err != nil {
+				return err
+			}
+			farInfo := session.FARs[farid]
+			farInfo, err = composeFarInfo(far, conn.n3Address.To4(), farInfo)
 			if err != nil {
 				log.Printf("Error extracting FAR info: %s", err.Error())
 				continue
 			}
-
-			farid, _ := far.FARID()
 			log.Printf("Updating FAR info: %d, %+v", farid, farInfo)
 			session.PutFAR(farid, farInfo)
 			if err := mapOperations.UpdateFar(farid, farInfo); err != nil {
@@ -313,7 +333,14 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		}
 
 		for _, pdr := range req.UpdatePDR {
-			spdrInfo, pdrId, pdi, err := composeSPDRInfo(pdr)
+			pdrId, err := pdr.PDRID()
+			if err != nil {
+				return fmt.Errorf("PDR ID missing")
+			}
+			pdi, err := pdr.PDI()
+			if err != nil {
+				return err
+			}
 			if err != nil {
 				return err
 			}
@@ -322,6 +349,16 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			switch srcInterface {
 			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
 				{
+					spdrInfo := session.UplinkPDRs[uint32(pdrId)]
+					if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+						spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+					}
+					if farid, err := pdr.FARID(); err == nil {
+						spdrInfo.PdrInfo.FarId = farid
+					}
+					if qerid, err := pdr.QERID(); err == nil {
+						spdrInfo.PdrInfo.QerId = qerid
+					}
 					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
@@ -329,6 +366,16 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				}
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
+					spdrInfo := session.DownlinkPDRs[uint32(pdrId)]
+					if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+						spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+					}
+					if farid, err := pdr.FARID(); err == nil {
+						spdrInfo.PdrInfo.FarId = farid
+					}
+					if qerid, err := pdr.QERID(); err == nil {
+						spdrInfo.PdrInfo.QerId = qerid
+					}
 					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
@@ -344,41 +391,31 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		}
 
 		for _, qer := range req.UpdateQER {
-			qerInfo := QerInfo{}
 			qerId, err := qer.QERID() // Probably will be used as ebpf map key
 			if err != nil {
 				return fmt.Errorf("QER ID missing")
 			}
-
-			gateStatusDL, err := qer.GateStatusDL()
-			if err != nil {
-				return fmt.Errorf("gate Status DL missing")
+			qerInfo := session.QERs[qerId]
+			if gateStatusDL, err := qer.GateStatusDL(); err == nil {
+				qerInfo.GateStatusDL = gateStatusDL
 			}
-			qerInfo.GateStatusDL = gateStatusDL
 
-			gateStatusUL, err := qer.GateStatusUL()
-			if err != nil {
-				return fmt.Errorf("gate Status UL missing")
+			if gateStatusUL, err := qer.GateStatusUL(); err == nil {
+				qerInfo.GateStatusUL = gateStatusUL
 			}
-			qerInfo.GateStatusUL = gateStatusUL
 
-			maxBitrateDL, err := qer.MBRDL()
-			if err != nil {
-				return fmt.Errorf("max Bitrate DL missing")
+			if maxBitrateDL, err := qer.MBRDL(); err == nil {
+				qerInfo.MaxBitrateDL = uint32(maxBitrateDL) * 1000
 			}
-			qerInfo.MaxBitrateDL = uint32(maxBitrateDL) * 1000
 
-			maxBitrateUL, err := qer.MBRUL()
-			if err != nil {
-				return fmt.Errorf("max Bitrate UL missing")
+			if maxBitrateUL, err := qer.MBRUL(); err == nil {
+				qerInfo.MaxBitrateUL = uint32(maxBitrateUL) * 1000
 			}
-			qerInfo.MaxBitrateUL = uint32(maxBitrateUL) * 1000
 
-			qfi, err := qer.QFI()
-			if err != nil {
-				return fmt.Errorf("QFI missing")
+			if qfi, err := qer.QFI(); err == nil {
+				qerInfo.Qfi = qfi
 			}
-			qerInfo.Qfi = qfi
+
 			qerInfo.StartUL = 0
 			qerInfo.StartDL = 0
 
@@ -530,8 +567,7 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Ses
 	return nil
 }
 
-func composeFarInfo(far *ie.IE, localIp net.IP) (FarInfo, error) {
-	farInfo := FarInfo{}
+func composeFarInfo(far *ie.IE, localIp net.IP, farInfo FarInfo) (FarInfo, error) {
 	if applyAction, err := far.ApplyAction(); err == nil {
 		farInfo.Action = applyAction[0]
 	}
@@ -567,27 +603,4 @@ func composeFarInfo(far *ie.IE, localIp net.IP) (FarInfo, error) {
 		farInfo.TransportLevelMarking = transportLevelMarking
 	}
 	return farInfo, nil
-}
-
-func composeSPDRInfo(pdr *ie.IE) (SPDRInfo, uint16, []*ie.IE, error) {
-	spdrInfo := SPDRInfo{}
-	pdrId, err := pdr.PDRID()
-	if err != nil {
-		return SPDRInfo{}, 0, nil, fmt.Errorf("PDR ID missing")
-	}
-	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
-		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
-	}
-	if farid, err := pdr.FARID(); err == nil {
-		spdrInfo.PdrInfo.FarId = farid
-	}
-	if qerid, err := pdr.QERID(); err == nil {
-		spdrInfo.PdrInfo.QerId = qerid
-	}
-	pdi, err := pdr.PDI()
-	if err != nil {
-		log.Print(err)
-		return SPDRInfo{}, 0, nil, err
-	}
-	return spdrInfo, pdrId, pdi, nil
 }
