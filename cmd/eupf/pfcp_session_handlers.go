@@ -279,7 +279,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err != nil {
 				return err
 			}
-			farInfo := session.FARs[farid]
+			farInfo := session.GetFAR(farid)
 			farInfo, err = composeFarInfo(far, conn.n3Address.To4(), farInfo)
 			if err != nil {
 				log.Printf("Error extracting FAR info: %s", err.Error())
@@ -349,7 +349,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			switch srcInterface {
 			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
 				{
-					spdrInfo := session.UplinkPDRs[uint32(pdrId)]
+					spdrInfo := session.GetUplinkPDR(pdrId)
 					if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 						spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 					}
@@ -366,7 +366,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				}
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
-					spdrInfo := session.DownlinkPDRs[uint32(pdrId)]
+					spdrInfo := session.GetDownlinkPDR(pdrId)
 					if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 						spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 					}
@@ -395,7 +395,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err != nil {
 				return fmt.Errorf("QER ID missing")
 			}
-			qerInfo := session.QERs[qerId]
+			qerInfo := session.GetQER(qerId)
 			if gateStatusDL, err := qer.GateStatusDL(); err == nil {
 				qerInfo.GateStatusDL = gateStatusDL
 			}
