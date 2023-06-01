@@ -38,10 +38,7 @@ struct qer_info {
     __u64 dl_start;
 };
 
-enum {
-    QER_MAP_SIZE = 1024,
-};
-
+#define QER_MAP_SIZE 1024
 
 /* QER ID -> QER */
 struct
