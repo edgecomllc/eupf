@@ -80,9 +80,6 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			if err != nil {
 				return err
 			}
-			if err != nil {
-				return err
-			}
 			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
 			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
 			switch srcInterface {
@@ -338,9 +335,6 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				return fmt.Errorf("PDR ID missing")
 			}
 			pdi, err := pdr.PDI()
-			if err != nil {
-				return err
-			}
 			if err != nil {
 				return err
 			}
