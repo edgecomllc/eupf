@@ -67,15 +67,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			if err != nil {
 				return fmt.Errorf("PDR ID missing")
 			}
-			if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
-				spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
-			}
-			if farid, err := pdr.FARID(); err == nil {
-				spdrInfo.PdrInfo.FarId = farid
-			}
-			if qerid, err := pdr.QERID(); err == nil {
-				spdrInfo.PdrInfo.QerId = qerid
-			}
+			updateSPDRInfo(pdr, &spdrInfo)
 			pdi, err := pdr.PDI()
 			if err != nil {
 				return err
