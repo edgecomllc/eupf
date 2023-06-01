@@ -24,6 +24,22 @@ type SPDRInfo struct {
 	Ipv4    net.IP
 }
 
+func (s *Session) GetFAR(id uint32) FarInfo {
+	return s.FARs[id]
+}
+
+func (s *Session) GetQER(id uint32) QerInfo {
+	return s.QERs[id]
+}
+
+func (s *Session) GetUplinkPDR(pdrId uint16) SPDRInfo {
+	return s.UplinkPDRs[uint32(pdrId)]
+}
+
+func (s *Session) GetDownlinkPDR(pdrId uint16) SPDRInfo {
+	return s.DownlinkPDRs[uint32(pdrId)]
+}
+
 func (s *Session) PutFAR(id uint32, farInfo FarInfo) {
 	s.FARs[id] = farInfo
 }
