@@ -350,15 +350,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
 				{
 					spdrInfo := session.GetUplinkPDR(pdrId)
-					if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
-						spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
-					}
-					if farid, err := pdr.FARID(); err == nil {
-						spdrInfo.PdrInfo.FarId = farid
-					}
-					if qerid, err := pdr.QERID(); err == nil {
-						spdrInfo.PdrInfo.QerId = qerid
-					}
+					updateSPDRInfo(pdr, &spdrInfo)
 					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
@@ -367,15 +359,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
 					spdrInfo := session.GetDownlinkPDR(pdrId)
-					if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
-						spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
-					}
-					if farid, err := pdr.FARID(); err == nil {
-						spdrInfo.PdrInfo.FarId = farid
-					}
-					if qerid, err := pdr.QERID(); err == nil {
-						spdrInfo.PdrInfo.QerId = qerid
-					}
+					updateSPDRInfo(pdr, &spdrInfo)
 					err = applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
@@ -445,6 +429,18 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	)
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return modResp, nil
+}
+
+func updateSPDRInfo(pdr *ie.IE, spdrInfo *SPDRInfo) {
+	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+	}
+	if farid, err := pdr.FARID(); err == nil {
+		spdrInfo.PdrInfo.FarId = farid
+	}
+	if qerid, err := pdr.QERID(); err == nil {
+		spdrInfo.PdrInfo.QerId = qerid
+	}
 }
 
 func convertErrorToIeCause(err error) *ie.IE {
