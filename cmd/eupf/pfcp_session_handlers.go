@@ -376,7 +376,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 					if qerid, err := pdr.QERID(); err == nil {
 						spdrInfo.PdrInfo.QerId = qerid
 					}
-					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
+					err = applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
 					}
