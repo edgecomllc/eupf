@@ -6,7 +6,41 @@ import (
 	"net"
 	"time"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/wmnsk/go-pfcp/message"
+)
+
+type IdTracker struct {
+	bitmap *roaring.Bitmap
+}
+
+func NewIdTracker() *IdTracker {
+	return &IdTracker{
+		bitmap: roaring.NewBitmap(),
+	}
+}
+
+func (t *IdTracker) GetNext() uint32 {
+	newId := uint32(0)
+	// We have relatively few IDs, so linear search is fine
+	for ; ; newId++ {
+		if exists := t.bitmap.Contains(newId); !exists {
+			break
+		}
+	}
+	t.bitmap.Add(newId)
+	return newId
+}
+
+func (t *IdTracker) Release(id uint32) {
+	t.bitmap.Remove(id)
+}
+
+var (
+	FarIdTracker         = NewIdTracker()
+	QerIdTracker         = NewIdTracker()
+	UplinkPdrIdTracker   = NewIdTracker()
+	DownlinkPdrIdTracker = NewIdTracker()
 )
 
 type Session struct {
@@ -14,21 +48,32 @@ type Session struct {
 	RemoteSEID   uint64
 	UplinkPDRs   map[uint32]SPDRInfo
 	DownlinkPDRs map[uint32]SPDRInfo
-	FARs         map[uint32]FarInfo
-	QERs         map[uint32]QerInfo
+	FARs         map[uint32]SFarInfo
+	QERs         map[uint32]SQerInfo
 }
 
 type SPDRInfo struct {
-	PdrInfo PdrInfo
-	Teid    uint32
-	Ipv4    net.IP
+	PdrInfo  PdrInfo
+	Teid     uint32
+	Ipv4     net.IP
+	GlobalId uint32
 }
 
-func (s *Session) GetFAR(id uint32) FarInfo {
+type SFarInfo struct {
+	FarInfo  FarInfo
+	GlobalId uint32
+}
+
+type SQerInfo struct {
+	QerInfo  QerInfo
+	GlobalId uint32
+}
+
+func (s *Session) GetFAR(id uint32) SFarInfo {
 	return s.FARs[id]
 }
 
-func (s *Session) GetQER(id uint32) QerInfo {
+func (s *Session) GetQER(id uint32) SQerInfo {
 	return s.QERs[id]
 }
 
@@ -40,36 +85,97 @@ func (s *Session) GetDownlinkPDR(pdrId uint16) SPDRInfo {
 	return s.DownlinkPDRs[uint32(pdrId)]
 }
 
-func (s *Session) PutFAR(id uint32, farInfo FarInfo) {
-	s.FARs[id] = farInfo
+// This code duplication is ugly, but i'm not enough well versed in Golang to avoid it.
+
+func (s *Session) PutFAR(id uint32, farInfo FarInfo) uint32 {
+	// if far is already present, update and return global id, else assign new global id
+	if sFarInfo, ok := s.FARs[id]; ok {
+		s.FARs[id] = SFarInfo{
+			FarInfo:  farInfo,
+			GlobalId: sFarInfo.GlobalId,
+		}
+		return sFarInfo.GlobalId
+	} else {
+		newId := FarIdTracker.GetNext()
+		s.FARs[id] = SFarInfo{
+			FarInfo:  farInfo,
+			GlobalId: newId,
+		}
+		return newId
+	}
 }
 
-func (s *Session) PutQER(id uint32, qerInfo QerInfo) {
-	s.QERs[id] = qerInfo
+func (s *Session) PutQER(id uint32, qerInfo QerInfo) uint32 {
+	if sQerInfo, ok := s.QERs[id]; ok {
+		s.QERs[id] = SQerInfo{
+			QerInfo:  qerInfo,
+			GlobalId: sQerInfo.GlobalId,
+		}
+		return sQerInfo.GlobalId
+	} else {
+		newId := QerIdTracker.GetNext()
+		s.QERs[id] = SQerInfo{
+			QerInfo:  qerInfo,
+			GlobalId: newId,
+		}
+		return newId
+	}
 }
 
-func (s *Session) PutUplinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
-	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
+func (s *Session) PutUplinkPDR(id uint32, pdrInfo SPDRInfo) uint32 {
+	if sQerInfo, ok := s.UplinkPDRs[id]; ok {
+		oldGlobalId := sQerInfo.GlobalId
+		pdrInfo.GlobalId = oldGlobalId
+		s.UplinkPDRs[id] = pdrInfo
+		return oldGlobalId
+	} else {
+		newId := UplinkPdrIdTracker.GetNext()
+		pdrInfo.GlobalId = newId
+		s.UplinkPDRs[id] = pdrInfo
+		return newId
+	}
 }
 
-func (s *Session) PutDownlinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
-	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
+func (s *Session) PutDownlinkPDR(id uint32, pdrInfo SPDRInfo) uint32 {
+	if sQerInfo, ok := s.DownlinkPDRs[id]; ok {
+		oldGlobalId := sQerInfo.GlobalId
+		pdrInfo.GlobalId = oldGlobalId
+		s.DownlinkPDRs[id] = pdrInfo
+		return oldGlobalId
+	} else {
+		newId := DownlinkPdrIdTracker.GetNext()
+		pdrInfo.GlobalId = newId
+		s.DownlinkPDRs[id] = pdrInfo
+		return newId
+	}
 }
 
-func (s *Session) RemoveUplinkPDR(pdrId uint16) {
-	delete(s.UplinkPDRs, uint32(pdrId))
+func (s *Session) RemoveUplinkPDR(id uint32) uint32 {
+	oldGlobalId := s.UplinkPDRs[id].GlobalId
+	UplinkPdrIdTracker.Release(oldGlobalId)
+	delete(s.UplinkPDRs, id)
+	return oldGlobalId
 }
 
-func (s *Session) RemoveDownlinkPDR(pdrId uint16) {
-	delete(s.DownlinkPDRs, uint32(pdrId))
+func (s *Session) RemoveDownlinkPDR(id uint32) uint32 {
+	oldGlobalId := s.DownlinkPDRs[id].GlobalId
+	DownlinkPdrIdTracker.Release(oldGlobalId)
+	delete(s.DownlinkPDRs, id)
+	return oldGlobalId
 }
 
-func (s *Session) RemoveFAR(farId uint32) {
-	delete(s.FARs, farId)
+func (s *Session) RemoveFAR(id uint32) uint32 {
+	oldGlobalId := s.FARs[id].GlobalId
+	FarIdTracker.Release(oldGlobalId)
+	delete(s.FARs, id)
+	return oldGlobalId
 }
 
-func (s *Session) RemoveQER(qerId uint32) {
-	delete(s.QERs, qerId)
+func (s *Session) RemoveQER(id uint32) uint32 {
+	oldGlobalId := s.QERs[id].GlobalId
+	QerIdTracker.Release(oldGlobalId)
+	delete(s.QERs, id)
+	return oldGlobalId
 }
 
 type SessionMap map[uint64]Session
