@@ -28,6 +28,9 @@ Super fast & simple way is to download and run our docker image. It will start s
 ```bash
 docker run -d --rm --privileged -p 8080 -p 9090 --name your-eupf-def ghcr.io/edgecomllc/eupf:main
 ```
+
+- 📝 *Linux Kernel **5.15.0-25-generic** is the minimum release version it has been tested on. Previous versions are not supported.*
+
 <blockquote><details><summary><i>The defaults are</i></summary>
 <p>
 
@@ -52,9 +55,9 @@ docker run -d --rm --privileged -p 8081 -p 9091 --name your-eupf-custom -e UPF_I
 
 To go further, see the **[eUPF installation guide with Open5GS or Free5GC core](./docs/install.md)** to check how it works from end-to-end, deploying in three simple steps for you to choose: in Kubernetes cluster or as a docker-compose.
 
-More about parameters read in the **[eUPF configuration guide](./docs/Configuration.md)**
+More about parameters read in the **[eUPF configuration guide](./docs/Configuration.md)**.
 
-For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**
+For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**.
 
 ## eUPF details
 
