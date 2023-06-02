@@ -20,7 +20,7 @@ eUPF is the opensource User Plane Function (UPF) project for using inside or "ou
 Control and user plane separation (CUPS) is important architecture enhancement that separates control plane and user plane inside 5G core.
 User plane function (UPF) is the "decapsulating and routing" function that extracts user plane traffic from GPRS tunneling protocol (GTP) and route it to the public data network or local network via the best available path.
 
-![image](https://user-images.githubusercontent.com/119619173/233130952-e5634aff-b177-4274-a2d7-0e51a5488e5d.png)
+![image](docs/pictures/eupf.png)
 
 ## Quick start guide
 
@@ -75,7 +75,7 @@ eUPF relies on kernel routing when making routing decision for incoming network 
 ![UPF-Arch2](https://user-images.githubusercontent.com/20152142/207142700-cc3f17a5-203f-4b43-b712-a518cb627968.png)
 
 ### Detailed architecture
-![image](https://user-images.githubusercontent.com/20152142/228003420-0a2be83e-095e-4ad4-8635-0eb434951a3e.png)
+![image](docs/pictures/eupf-arch.png)
 
 ### Current limitation
 
@@ -83,9 +83,6 @@ eUPF relies on kernel routing when making routing decision for incoming network 
 - Only single FAR supported
 - Only XDP generic mode
 
-### Packet forwarding pipeline
-
-![UPF-Forwarding](https://user-images.githubusercontent.com/20152142/207142725-0af400bb-8ff8-4f36-93bd-3c461c0e7ce4.png)
 </details>
 
 ## eUPF roadmap
