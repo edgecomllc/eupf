@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -11,37 +12,39 @@ import (
 )
 
 type IdTracker struct {
-	bitmap *roaring.Bitmap
+	bitmap  *roaring.Bitmap
+	maxSize uint32
 }
 
-func NewIdTracker() *IdTracker {
+func NewIdTracker(size uint32) *IdTracker {
+	newBitmap := roaring.NewBitmap()
+	newBitmap.Flip(0, uint64(size))
+
 	return &IdTracker{
-		bitmap: roaring.NewBitmap(),
+		bitmap:  newBitmap,
+		maxSize: size,
 	}
 }
 
-func (t *IdTracker) GetNext() uint32 {
-	newId := uint32(0)
-	// We have relatively few IDs, so linear search is fine
-	for ; ; newId++ {
-		if exists := t.bitmap.Contains(newId); !exists {
-			break
-		}
+func (t *IdTracker) GetNext2() (next uint32, err error) {
+
+	i := t.bitmap.Iterator()
+	if i.HasNext() {
+		next := i.Next()
+		t.bitmap.Remove(next)
+		return next, nil
 	}
-	t.bitmap.Add(newId)
-	return newId
+
+	return 0, errors.New("pool is empty")
 }
 
 func (t *IdTracker) Release(id uint32) {
-	t.bitmap.Remove(id)
-}
+	if id >= t.maxSize {
+		return
+	}
 
-var (
-	FarIdTracker         = NewIdTracker()
-	QerIdTracker         = NewIdTracker()
-	UplinkPdrIdTracker   = NewIdTracker()
-	DownlinkPdrIdTracker = NewIdTracker()
-)
+	t.bitmap.Add(id)
+}
 
 type Session struct {
 	LocalSEID    uint64
@@ -53,10 +56,9 @@ type Session struct {
 }
 
 type SPDRInfo struct {
-	PdrInfo  PdrInfo
-	Teid     uint32
-	Ipv4     net.IP
-	GlobalId uint32
+	PdrInfo PdrInfo
+	Teid    uint32
+	Ipv4    net.IP
 }
 
 type SFarInfo struct {
@@ -83,99 +85,6 @@ func (s *Session) GetUplinkPDR(pdrId uint16) SPDRInfo {
 
 func (s *Session) GetDownlinkPDR(pdrId uint16) SPDRInfo {
 	return s.DownlinkPDRs[uint32(pdrId)]
-}
-
-// This code duplication is ugly, but i'm not enough well versed in Golang to avoid it.
-
-func (s *Session) PutFAR(id uint32, farInfo FarInfo) uint32 {
-	// if far is already present, update and return global id, else assign new global id
-	if sFarInfo, ok := s.FARs[id]; ok {
-		s.FARs[id] = SFarInfo{
-			FarInfo:  farInfo,
-			GlobalId: sFarInfo.GlobalId,
-		}
-		return sFarInfo.GlobalId
-	} else {
-		newId := FarIdTracker.GetNext()
-		s.FARs[id] = SFarInfo{
-			FarInfo:  farInfo,
-			GlobalId: newId,
-		}
-		return newId
-	}
-}
-
-func (s *Session) PutQER(id uint32, qerInfo QerInfo) uint32 {
-	if sQerInfo, ok := s.QERs[id]; ok {
-		s.QERs[id] = SQerInfo{
-			QerInfo:  qerInfo,
-			GlobalId: sQerInfo.GlobalId,
-		}
-		return sQerInfo.GlobalId
-	} else {
-		newId := QerIdTracker.GetNext()
-		s.QERs[id] = SQerInfo{
-			QerInfo:  qerInfo,
-			GlobalId: newId,
-		}
-		return newId
-	}
-}
-
-func (s *Session) PutUplinkPDR(id uint32, pdrInfo SPDRInfo) uint32 {
-	if sQerInfo, ok := s.UplinkPDRs[id]; ok {
-		oldGlobalId := sQerInfo.GlobalId
-		pdrInfo.GlobalId = oldGlobalId
-		s.UplinkPDRs[id] = pdrInfo
-		return oldGlobalId
-	} else {
-		newId := UplinkPdrIdTracker.GetNext()
-		pdrInfo.GlobalId = newId
-		s.UplinkPDRs[id] = pdrInfo
-		return newId
-	}
-}
-
-func (s *Session) PutDownlinkPDR(id uint32, pdrInfo SPDRInfo) uint32 {
-	if sQerInfo, ok := s.DownlinkPDRs[id]; ok {
-		oldGlobalId := sQerInfo.GlobalId
-		pdrInfo.GlobalId = oldGlobalId
-		s.DownlinkPDRs[id] = pdrInfo
-		return oldGlobalId
-	} else {
-		newId := DownlinkPdrIdTracker.GetNext()
-		pdrInfo.GlobalId = newId
-		s.DownlinkPDRs[id] = pdrInfo
-		return newId
-	}
-}
-
-func (s *Session) RemoveUplinkPDR(id uint32) uint32 {
-	oldGlobalId := s.UplinkPDRs[id].GlobalId
-	UplinkPdrIdTracker.Release(oldGlobalId)
-	delete(s.UplinkPDRs, id)
-	return oldGlobalId
-}
-
-func (s *Session) RemoveDownlinkPDR(id uint32) uint32 {
-	oldGlobalId := s.DownlinkPDRs[id].GlobalId
-	DownlinkPdrIdTracker.Release(oldGlobalId)
-	delete(s.DownlinkPDRs, id)
-	return oldGlobalId
-}
-
-func (s *Session) RemoveFAR(id uint32) uint32 {
-	oldGlobalId := s.FARs[id].GlobalId
-	FarIdTracker.Release(oldGlobalId)
-	delete(s.FARs, id)
-	return oldGlobalId
-}
-
-func (s *Session) RemoveQER(id uint32) uint32 {
-	oldGlobalId := s.QERs[id].GlobalId
-	QerIdTracker.Release(oldGlobalId)
-	delete(s.QERs, id)
-	return oldGlobalId
 }
 
 type SessionMap map[uint64]Session
