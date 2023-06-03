@@ -43,7 +43,7 @@ func (bpfObjects *BpfObjects) Load() error {
 		Maps: ebpf.MapOptions{
 			// Pin the map to the BPF filesystem and configure the
 			// library to automatically re-write it in the BPF
-			// program so it can be re-used if it already exists or
+			// program, so it can be re-used if it already exists or
 			// create it if not
 			PinPath: pinPath,
 		},

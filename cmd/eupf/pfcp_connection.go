@@ -26,7 +26,7 @@ func NewIdTracker(size uint32) *IdTracker {
 	}
 }
 
-func (t *IdTracker) GetNext2() (next uint32, err error) {
+func (t *IdTracker) GetNext() (next uint32, err error) {
 
 	i := t.bitmap.Iterator()
 	if i.HasNext() {
