@@ -71,20 +71,78 @@ type SQerInfo struct {
 	GlobalId uint32
 }
 
-func (s *Session) GetFAR(id uint32) SFarInfo {
-	return s.FARs[id]
+func (s *Session) NewFar(smfId uint32, ebpfId uint32, farInfo FarInfo) {
+	s.FARs[smfId] = SFarInfo{
+		FarInfo:  farInfo,
+		GlobalId: ebpfId,
+	}
 }
 
-func (s *Session) GetQER(id uint32) SQerInfo {
-	return s.QERs[id]
+func (s *Session) UpdateFar(smfId uint32, farInfo FarInfo) {
+	sFarInfo := s.FARs[smfId]
+	sFarInfo.FarInfo = farInfo
+	s.FARs[smfId] = sFarInfo
 }
 
-func (s *Session) GetUplinkPDR(pdrId uint16) SPDRInfo {
-	return s.UplinkPDRs[uint32(pdrId)]
+func (s *Session) GetFar(smfId uint32) SFarInfo {
+	return s.FARs[smfId]
 }
 
-func (s *Session) GetDownlinkPDR(pdrId uint16) SPDRInfo {
-	return s.DownlinkPDRs[uint32(pdrId)]
+func (s *Session) RemoveFar(smfId uint32) SFarInfo {
+	sFarInfo := s.FARs[smfId]
+	delete(s.FARs, smfId)
+	return sFarInfo
+}
+
+func (s *Session) NewQer(smfId uint32, ebpfId uint32, qerInfo QerInfo) {
+	s.QERs[smfId] = SQerInfo{
+		QerInfo:  qerInfo,
+		GlobalId: ebpfId,
+	}
+}
+
+func (s *Session) UpdateQer(smfId uint32, qerInfo QerInfo) {
+	sQerInfo := s.QERs[smfId]
+	sQerInfo.QerInfo = qerInfo
+	s.QERs[smfId] = sQerInfo
+}
+
+func (s *Session) GetQer(smfId uint32) SQerInfo {
+	return s.QERs[smfId]
+}
+
+func (s *Session) RemoveQer(smfId uint32) SQerInfo {
+	sQerInfo := s.QERs[smfId]
+	delete(s.QERs, smfId)
+	return sQerInfo
+}
+
+func (s *Session) PutUplinkPDR(smfId uint32, info SPDRInfo) {
+	s.UplinkPDRs[smfId] = info
+}
+
+func (s *Session) GetUplinkPDR(smfId uint16) SPDRInfo {
+	return s.UplinkPDRs[uint32(smfId)]
+}
+
+func (s *Session) RemoveUplinkPDR(smfId uint32) SPDRInfo {
+	sPdrInfo := s.UplinkPDRs[smfId]
+	delete(s.UplinkPDRs, smfId)
+	return sPdrInfo
+}
+
+func (s *Session) PutDownlinkPDR(smfId uint32, info SPDRInfo) {
+	s.DownlinkPDRs[smfId] = info
+}
+
+func (s *Session) GetDownlinkPDR(smfId uint16) SPDRInfo {
+	return s.DownlinkPDRs[uint32(smfId)]
+}
+
+func (s *Session) RemoveDownlinkPDR(smfId uint32) SPDRInfo {
+	sPdrInfo := s.DownlinkPDRs[smfId]
+	delete(s.DownlinkPDRs, smfId)
+	return sPdrInfo
 }
 
 type SessionMap map[uint64]Session

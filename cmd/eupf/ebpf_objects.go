@@ -22,17 +22,13 @@ type BpfObjects struct {
 	qer_programObjects
 	ip_entrypointObjects
 
-	FarIdTracker         *IdTracker
-	QerIdTracker         *IdTracker
-	UplinkPdrIdTracker   *IdTracker
-	DownlinkPdrIdTracker *IdTracker
+	FarIdTracker *IdTracker
+	QerIdTracker *IdTracker
 }
 
 func (bpfObjects *BpfObjects) Load() error {
 	bpfObjects.FarIdTracker = NewIdTracker(config.Conf.FarMapSize)
 	bpfObjects.QerIdTracker = NewIdTracker(config.Conf.QerMapSize)
-	bpfObjects.UplinkPdrIdTracker = NewIdTracker(config.Conf.PdrMapSize)
-	bpfObjects.DownlinkPdrIdTracker = NewIdTracker(config.Conf.PdrMapSize)
 	pinPath := "/sys/fs/bpf/upf_pipeline"
 	if err := os.MkdirAll(pinPath, os.ModePerm); err != nil {
 		log.Printf("failed to create bpf fs subpath: %+v", err)

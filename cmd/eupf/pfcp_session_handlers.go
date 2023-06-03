@@ -14,6 +14,9 @@ import (
 var errMandatoryIeMissing = fmt.Errorf("mandatory IE missing")
 var errNoEstablishedAssociation = fmt.Errorf("no established association")
 
+// #TODO: Extract Create/Update/Delete IE to separate functions
+// #TODO: Research how to merge UplinkPDRs and DownlinkPDRs
+
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
@@ -55,9 +58,11 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			farid, _ := far.FARID()
 			log.Printf("Saving FAR info to session: %d, %+v", farid, farInfo)
-			ebpfId := session.PutFAR(farid, farInfo)
-			if err := mapOperations.PutFar(ebpfId, farInfo); err != nil {
+			if ebpfId, err := mapOperations.NewFar(farInfo); err == nil {
+				session.NewFar(farid, ebpfId, farInfo)
+			} else {
 				log.Printf("Can't put FAR: %s", err.Error())
+				return err
 			}
 		}
 
@@ -69,10 +74,11 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 			updateQer(&qerInfo, qer)
 			log.Printf("Saving QER info to session: %d, %+v", qerId, qerInfo)
-			ebpfId := session.PutQER(qerId, qerInfo)
-			log.Printf("Creating QER ID: %d, QER Info: %+v", qerId, qerInfo)
-			if err := mapOperations.PutQer(ebpfId, qerInfo); err != nil {
+			if ebpfId, err := mapOperations.NewQer(qerInfo); err == nil {
+				session.NewQer(qerId, ebpfId, qerInfo)
+			} else {
 				log.Printf("Can't put QER: %s", err.Error())
+				return err
 			}
 		}
 
@@ -244,9 +250,11 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 			farid, _ := far.FARID()
 			log.Printf("Saving FAR info to session: %d, %+v", farid, farInfo)
-			ebpfId := session.PutFAR(farid, farInfo)
-			if err := mapOperations.PutFar(ebpfId, farInfo); err != nil {
+			if ebpfId, err := mapOperations.NewFar(farInfo); err == nil {
+				session.NewFar(farid, ebpfId, farInfo)
+			} else {
 				log.Printf("Can't put FAR: %s", err.Error())
+				return err
 			}
 		}
 
@@ -255,15 +263,15 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err != nil {
 				return err
 			}
-			sFarInfo := session.GetFAR(farid)
+			sFarInfo := session.GetFar(farid)
 			sFarInfo.FarInfo, err = composeFarInfo(far, conn.n3Address.To4(), sFarInfo.FarInfo)
 			if err != nil {
 				log.Printf("Error extracting FAR info: %s", err.Error())
 				continue
 			}
 			log.Printf("Updating FAR info: %d, %+v", farid, sFarInfo)
-			ebpfId := session.PutFAR(farid, sFarInfo.FarInfo)
-			if err := mapOperations.UpdateFar(ebpfId, sFarInfo.FarInfo); err != nil {
+			session.UpdateFar(farid, sFarInfo.FarInfo)
+			if err := mapOperations.UpdateFar(sFarInfo.GlobalId, sFarInfo.FarInfo); err != nil {
 				log.Printf("Can't update FAR: %s", err.Error())
 			}
 		}
@@ -271,8 +279,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		for _, removeFar := range req.RemoveFAR {
 			farid, _ := removeFar.FARID()
 			log.Printf("Removing FAR: %d", farid)
-			ebpfId := session.RemoveFAR(farid)
-			if err := mapOperations.DeleteFar(ebpfId); err != nil {
+			sFarInfo := session.RemoveFar(farid)
+			if err := mapOperations.DeleteFar(sFarInfo.GlobalId); err != nil {
 				log.Printf("Can't remove FAR: %s", err.Error())
 			}
 		}
@@ -285,10 +293,11 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 			updateQer(&qerInfo, qer)
 			log.Printf("Saving QER info to session: %d, %+v", qerId, qerInfo)
-			ebpfId := session.PutQER(qerId, qerInfo)
-			log.Printf("Creating QER ID: %d, QER Info: %+v", qerId, qerInfo)
-			if err := mapOperations.PutQer(ebpfId, qerInfo); err != nil {
+			if ebpfId, err := mapOperations.NewQer(qerInfo); err == nil {
+				session.NewQer(qerId, ebpfId, qerInfo)
+			} else {
 				log.Printf("Can't put QER: %s", err.Error())
+				return err
 			}
 		}
 
@@ -297,12 +306,13 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err != nil {
 				return fmt.Errorf("QER ID missing")
 			}
-			sQerInfo := session.GetQER(qerId)
+			sQerInfo := session.GetQer(qerId)
 			updateQer(&sQerInfo.QerInfo, qer)
 			log.Printf("Updating QER ID: %d, QER Info: %+v", qerId, sQerInfo)
-			ebpfId := session.PutQER(qerId, sQerInfo.QerInfo)
-			if err := mapOperations.UpdateQer(ebpfId, sQerInfo.QerInfo); err != nil {
+			session.UpdateQer(qerId, sQerInfo.QerInfo)
+			if err := mapOperations.UpdateQer(sQerInfo.GlobalId, sQerInfo.QerInfo); err != nil {
 				log.Printf("Can't update QER: %s", err.Error())
+				return err
 			}
 		}
 
@@ -312,10 +322,11 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				return fmt.Errorf("QER ID missing")
 			}
 			log.Printf("Removing QER ID: %d", qerId)
-			ebpfId := session.RemoveQER(qerId)
+			sQerInfo := session.RemoveQer(qerId)
 			log.Printf("Removing QER ID: %d", qerId)
-			if err := mapOperations.DeleteQer(ebpfId); err != nil {
+			if err := mapOperations.DeleteQer(sQerInfo.GlobalId); err != nil {
 				log.Printf("Can't remove QER: %s", err.Error())
+				return err
 			}
 		}
 
@@ -447,10 +458,10 @@ func updateSPDRInfo(pdr *ie.IE, spdrInfo *SPDRInfo, session Session) {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}
 	if farid, err := pdr.FARID(); err == nil {
-		spdrInfo.PdrInfo.FarId = session.GetFAR(farid).GlobalId
+		spdrInfo.PdrInfo.FarId = session.GetFar(farid).GlobalId
 	}
 	if qerid, err := pdr.QERID(); err == nil {
-		spdrInfo.PdrInfo.QerId = session.GetQER(qerid).GlobalId
+		spdrInfo.PdrInfo.QerId = session.GetQer(qerid).GlobalId
 	}
 }
 

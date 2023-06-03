@@ -74,20 +74,24 @@ func (f FarInfo) MarshalJSON() ([]byte, error) {
 	return json.Marshal(data)
 }
 
-func (bpfObjects *BpfObjects) PutFar(i uint32, farInfo FarInfo) error {
-	log.Printf("EBPF: Put FAR: i=%d, farInfo=%+v", i, farInfo)
-	return bpfObjects.ip_entrypointMaps.FarMap.Put(i, unsafe.Pointer(&farInfo))
+func (bpfObjects *BpfObjects) NewFar(farInfo FarInfo) (uint32, error) {
+	ebpfId, err := bpfObjects.FarIdTracker.GetNext()
+	if err != nil {
+		return 0, err
+	}
+	log.Printf("EBPF: Put FAR: ebpfId=%d, qerInfo=%+v", ebpfId, farInfo)
+	return ebpfId, bpfObjects.ip_entrypointMaps.FarMap.Put(ebpfId, unsafe.Pointer(&farInfo))
 }
 
-func (bpfObjects *BpfObjects) UpdateFar(i uint32, farInfo FarInfo) error {
-	log.Printf("EBPF: Update FAR: i=%d, farInfo=%+v", i, farInfo)
-	return bpfObjects.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&farInfo), ebpf.UpdateExist)
+func (bpfObjects *BpfObjects) UpdateFar(ebpfId uint32, farInfo FarInfo) error {
+	log.Printf("EBPF: Update FAR: ebpfId=%d, farInfo=%+v", ebpfId, farInfo)
+	return bpfObjects.ip_entrypointMaps.FarMap.Update(ebpfId, unsafe.Pointer(&farInfo), ebpf.UpdateExist)
 }
 
-func (bpfObjects *BpfObjects) DeleteFar(i uint32) error {
-	log.Printf("EBPF: Delete FAR: i=%d", i)
-	return bpfObjects.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
-	//return o.ip_entrypointMaps.FarMap.Delete(i)
+func (bpfObjects *BpfObjects) DeleteFar(ebpfId uint32) error {
+	log.Printf("EBPF: Delete FAR: ebpfId=%d", ebpfId)
+	bpfObjects.FarIdTracker.Release(ebpfId)
+	return bpfObjects.ip_entrypointMaps.FarMap.Update(ebpfId, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
 }
 
 type QerInfo struct {
@@ -100,19 +104,24 @@ type QerInfo struct {
 	StartDL      uint64
 }
 
-func (bpfObjects *BpfObjects) PutQer(i uint32, qerInfo QerInfo) error {
-	log.Printf("EBPF: Put QER: i=%d, qerInfo=%+v", i, qerInfo)
-	return bpfObjects.ip_entrypointMaps.QerMap.Put(i, unsafe.Pointer(&qerInfo))
+func (bpfObjects *BpfObjects) NewQer(qerInfo QerInfo) (uint32, error) {
+	ebpfId, err := bpfObjects.QerIdTracker.GetNext()
+	if err != nil {
+		return 0, err
+	}
+	log.Printf("EBPF: Put QER: ebpfId=%d, qerInfo=%+v", ebpfId, qerInfo)
+	return ebpfId, bpfObjects.ip_entrypointMaps.QerMap.Put(ebpfId, unsafe.Pointer(&qerInfo))
 }
 
-func (bpfObjects *BpfObjects) UpdateQer(i uint32, qerInfo QerInfo) error {
-	log.Printf("EBPF: Update QER: i=%d, qerInfo=%+v", i, qerInfo)
-	return bpfObjects.ip_entrypointMaps.QerMap.Update(i, unsafe.Pointer(&qerInfo), ebpf.UpdateExist)
+func (bpfObjects *BpfObjects) UpdateQer(ebpfId uint32, qerInfo QerInfo) error {
+	log.Printf("EBPF: Update QER: ebpfId=%d, qerInfo=%+v", ebpfId, qerInfo)
+	return bpfObjects.ip_entrypointMaps.QerMap.Update(ebpfId, unsafe.Pointer(&qerInfo), ebpf.UpdateExist)
 }
 
-func (bpfObjects *BpfObjects) DeleteQer(i uint32) error {
-	log.Printf("EBPF: Delete QER: i=%d", i)
-	return bpfObjects.ip_entrypointMaps.QerMap.Update(i, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
+func (bpfObjects *BpfObjects) DeleteQer(ebpfId uint32) error {
+	log.Printf("EBPF: Delete QER: ebpfId=%d", ebpfId)
+	bpfObjects.QerIdTracker.Release(ebpfId)
+	return bpfObjects.ip_entrypointMaps.QerMap.Update(ebpfId, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
 }
 
 type ForwardingPlaneController interface {
@@ -122,10 +131,10 @@ type ForwardingPlaneController interface {
 	UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
 	DeletePdrUpLink(teid uint32) error
 	DeletePdrDownLink(ipv4 net.IP) error
-	PutFar(i uint32, farInfo FarInfo) error
-	UpdateFar(i uint32, farInfo FarInfo) error
-	DeleteFar(i uint32) error
-	PutQer(i uint32, qerInfo QerInfo) error
-	UpdateQer(i uint32, qerInfo QerInfo) error
-	DeleteQer(i uint32) error
+	NewFar(farInfo FarInfo) (uint32, error)
+	UpdateFar(ebpfId uint32, farInfo FarInfo) error
+	DeleteFar(ebpfId uint32) error
+	NewQer(qerInfo QerInfo) (uint32, error)
+	UpdateQer(ebpfId uint32, qerInfo QerInfo) error
+	DeleteQer(ebpfId uint32) error
 }
