@@ -25,7 +25,7 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 ## Quick start guide
 
 Super fast & simple way is to download and run our docker image. It will start standalone eBPF with the default configuration:
-```ruby
+```bash
 docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \ 
   --cap-add SYS_ADMIN --cap-add NET_ADMIN \ 
   -p 8080 -p 9090 --name your-eupf-def \ 
@@ -52,7 +52,7 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 
 In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
 
-```ruby
+```bash
 docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
   --cap-add SYS_ADMIN --cap-add NET_ADMIN \
   -p 8081 -p 9091 --name your-eupf-custom \
@@ -64,7 +64,7 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
   ghcr.io/edgecomllc/eupf:main
 ```
 
-
+### More info
 To go further, see the **[eUPF installation guide with Open5GS or Free5GC core](./docs/install.md)** to check how it works from end-to-end, deploying in three simple steps for you to choose: in Kubernetes cluster or as a docker-compose.
 
 More about parameters read in the **[eUPF configuration guide](./docs/Configuration.md)**.
