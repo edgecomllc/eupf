@@ -14,8 +14,8 @@ type Session struct {
 	RemoteSEID   uint64
 	UplinkPDRs   map[uint32]SPDRInfo
 	DownlinkPDRs map[uint32]SPDRInfo
-	FARs         map[uint32]FarInfo
-	QERs         map[uint32]QerInfo
+	FARs         map[uint32]SFarInfo
+	QERs         map[uint32]SQerInfo
 }
 
 type SPDRInfo struct {
@@ -24,52 +24,88 @@ type SPDRInfo struct {
 	Ipv4    net.IP
 }
 
-func (s *Session) GetFAR(id uint32) FarInfo {
+type SFarInfo struct {
+	FarInfo  FarInfo
+	GlobalId uint32
+}
+
+type SQerInfo struct {
+	QerInfo  QerInfo
+	GlobalId uint32
+}
+
+func (s *Session) NewFar(id uint32, internalId uint32, farInfo FarInfo) {
+	s.FARs[id] = SFarInfo{
+		FarInfo:  farInfo,
+		GlobalId: internalId,
+	}
+}
+
+func (s *Session) UpdateFar(id uint32, farInfo FarInfo) {
+	sFarInfo := s.FARs[id]
+	sFarInfo.FarInfo = farInfo
+	s.FARs[id] = sFarInfo
+}
+
+func (s *Session) GetFar(id uint32) SFarInfo {
 	return s.FARs[id]
 }
 
-func (s *Session) GetQER(id uint32) QerInfo {
+func (s *Session) RemoveFar(id uint32) SFarInfo {
+	sFarInfo := s.FARs[id]
+	delete(s.FARs, id)
+	return sFarInfo
+}
+
+func (s *Session) NewQer(id uint32, internalId uint32, qerInfo QerInfo) {
+	s.QERs[id] = SQerInfo{
+		QerInfo:  qerInfo,
+		GlobalId: internalId,
+	}
+}
+
+func (s *Session) UpdateQer(id uint32, qerInfo QerInfo) {
+	sQerInfo := s.QERs[id]
+	sQerInfo.QerInfo = qerInfo
+	s.QERs[id] = sQerInfo
+}
+
+func (s *Session) GetQer(id uint32) SQerInfo {
 	return s.QERs[id]
 }
 
-func (s *Session) GetUplinkPDR(pdrId uint16) SPDRInfo {
-	return s.UplinkPDRs[uint32(pdrId)]
+func (s *Session) RemoveQer(id uint32) SQerInfo {
+	sQerInfo := s.QERs[id]
+	delete(s.QERs, id)
+	return sQerInfo
 }
 
-func (s *Session) GetDownlinkPDR(pdrId uint16) SPDRInfo {
-	return s.DownlinkPDRs[uint32(pdrId)]
+func (s *Session) PutUplinkPDR(id uint32, info SPDRInfo) {
+	s.UplinkPDRs[id] = info
 }
 
-func (s *Session) PutFAR(id uint32, farInfo FarInfo) {
-	s.FARs[id] = farInfo
+func (s *Session) GetUplinkPDR(id uint16) SPDRInfo {
+	return s.UplinkPDRs[uint32(id)]
 }
 
-func (s *Session) PutQER(id uint32, qerInfo QerInfo) {
-	s.QERs[id] = qerInfo
+func (s *Session) RemoveUplinkPDR(id uint32) SPDRInfo {
+	sPdrInfo := s.UplinkPDRs[id]
+	delete(s.UplinkPDRs, id)
+	return sPdrInfo
 }
 
-func (s *Session) PutUplinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
-	s.UplinkPDRs[uint32(pdrId)] = pdrInfo
+func (s *Session) PutDownlinkPDR(id uint32, info SPDRInfo) {
+	s.DownlinkPDRs[id] = info
 }
 
-func (s *Session) PutDownlinkPDR(pdrId uint16, pdrInfo SPDRInfo) {
-	s.DownlinkPDRs[uint32(pdrId)] = pdrInfo
+func (s *Session) GetDownlinkPDR(id uint16) SPDRInfo {
+	return s.DownlinkPDRs[uint32(id)]
 }
 
-func (s *Session) RemoveUplinkPDR(pdrId uint16) {
-	delete(s.UplinkPDRs, uint32(pdrId))
-}
-
-func (s *Session) RemoveDownlinkPDR(pdrId uint16) {
-	delete(s.DownlinkPDRs, uint32(pdrId))
-}
-
-func (s *Session) RemoveFAR(farId uint32) {
-	delete(s.FARs, farId)
-}
-
-func (s *Session) RemoveQER(qerId uint32) {
-	delete(s.QERs, qerId)
+func (s *Session) RemoveDownlinkPDR(id uint32) SPDRInfo {
+	sPdrInfo := s.DownlinkPDRs[id]
+	delete(s.DownlinkPDRs, id)
+	return sPdrInfo
 }
 
 type SessionMap map[uint64]Session

@@ -14,6 +14,9 @@ import (
 var errMandatoryIeMissing = fmt.Errorf("mandatory IE missing")
 var errNoEstablishedAssociation = fmt.Errorf("no established association")
 
+// #TODO: Extract Create/Update/Delete IE to separate functions
+// #TODO: Research how to merge UplinkPDRs and DownlinkPDRs
+
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
@@ -38,8 +41,8 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		RemoteSEID:   remoteSEID.SEID,
 		UplinkPDRs:   map[uint32]SPDRInfo{},
 		DownlinkPDRs: map[uint32]SPDRInfo{},
-		FARs:         map[uint32]FarInfo{},
-		QERs:         map[uint32]QerInfo{},
+		FARs:         map[uint32]SFarInfo{},
+		QERs:         map[uint32]SQerInfo{},
 	}
 
 	printSessionEstablishmentRequest(req)
@@ -55,19 +58,38 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			farid, _ := far.FARID()
 			log.Printf("Saving FAR info to session: %d, %+v", farid, farInfo)
-			session.PutFAR(farid, farInfo)
-			if err := mapOperations.PutFar(farid, farInfo); err != nil {
+			if internalId, err := mapOperations.NewFar(farInfo); err == nil {
+				session.NewFar(farid, internalId, farInfo)
+			} else {
 				log.Printf("Can't put FAR: %s", err.Error())
+				return err
+			}
+		}
+
+		for _, qer := range req.CreateQER {
+			qerInfo := QerInfo{}
+			qerId, err := qer.QERID()
+			if err != nil {
+				return fmt.Errorf("QER ID missing")
+			}
+			updateQer(&qerInfo, qer)
+			log.Printf("Saving QER info to session: %d, %+v", qerId, qerInfo)
+			if internalId, err := mapOperations.NewQer(qerInfo); err == nil {
+				session.NewQer(qerId, internalId, qerInfo)
+			} else {
+				log.Printf("Can't put QER: %s", err.Error())
+				return err
 			}
 		}
 
 		for _, pdr := range req.CreatePDR {
+			// PDR should be created last, because we need to reference FARs and QERs global id
 			spdrInfo := SPDRInfo{}
 			pdrId, err := pdr.PDRID()
 			if err != nil {
 				return fmt.Errorf("PDR ID missing")
 			}
-			updateSPDRInfo(pdr, &spdrInfo)
+			updateSPDRInfo(pdr, &spdrInfo, session)
 			pdi, err := pdr.PDI()
 			if err != nil {
 				return err
@@ -103,51 +125,6 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				log.Printf("WARN: Unsupported Source Interface type: %d", srcInterface)
 			}
 		}
-
-		for _, qer := range req.CreateQER {
-			qerInfo := QerInfo{}
-			qerId, err := qer.QERID() // Probably will be used as ebpf map key
-			if err != nil {
-				return fmt.Errorf("QER ID missing")
-			}
-
-			gateStatusDL, err := qer.GateStatusDL()
-			if err != nil {
-				return fmt.Errorf("gate Status DL missing")
-			}
-			qerInfo.GateStatusDL = gateStatusDL
-
-			gateStatusUL, err := qer.GateStatusUL()
-			if err != nil {
-				return fmt.Errorf("gate Status UL missing")
-			}
-			qerInfo.GateStatusUL = gateStatusUL
-
-			maxBitrateDL, err := qer.MBRDL()
-			if err == nil {
-				qerInfo.MaxBitrateDL = uint32(maxBitrateDL) * 1000
-			}
-
-			maxBitrateUL, err := qer.MBRUL()
-			if err == nil {
-				qerInfo.MaxBitrateUL = uint32(maxBitrateUL) * 1000
-			}
-
-			qfi, err := qer.QFI()
-			if err == nil {
-				qerInfo.Qfi = qfi
-			}
-
-			qerInfo.StartUL = 0
-			qerInfo.StartDL = 0
-			log.Printf("Saving QER info to session: %d, %+v", qerId, qerInfo)
-			session.PutQER(qerId, qerInfo)
-			log.Printf("Creating QER ID: %d, QER Info: %+v", qerId, qerInfo)
-			if err := mapOperations.PutQer(qerId, qerInfo); err != nil {
-				log.Printf("Can't put QER: %s", err.Error())
-			}
-		}
-
 		return nil
 	}()
 
@@ -263,20 +240,38 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	// #TODO: Implement rollback on error
 	err := func() error {
 		mapOperations := conn.mapOperations
+
+		for _, far := range req.CreateFAR {
+			farInfo, err := composeFarInfo(far, conn.n3Address.To4(), FarInfo{})
+			if err != nil {
+				log.Printf("Error extracting FAR info: %s", err.Error())
+				continue
+			}
+
+			farid, _ := far.FARID()
+			log.Printf("Saving FAR info to session: %d, %+v", farid, farInfo)
+			if internalId, err := mapOperations.NewFar(farInfo); err == nil {
+				session.NewFar(farid, internalId, farInfo)
+			} else {
+				log.Printf("Can't put FAR: %s", err.Error())
+				return err
+			}
+		}
+
 		for _, far := range req.UpdateFAR {
 			farid, err := far.FARID()
 			if err != nil {
 				return err
 			}
-			farInfo := session.GetFAR(farid)
-			farInfo, err = composeFarInfo(far, conn.n3Address.To4(), farInfo)
+			sFarInfo := session.GetFar(farid)
+			sFarInfo.FarInfo, err = composeFarInfo(far, conn.n3Address.To4(), sFarInfo.FarInfo)
 			if err != nil {
 				log.Printf("Error extracting FAR info: %s", err.Error())
 				continue
 			}
-			log.Printf("Updating FAR info: %d, %+v", farid, farInfo)
-			session.PutFAR(farid, farInfo)
-			if err := mapOperations.UpdateFar(farid, farInfo); err != nil {
+			log.Printf("Updating FAR info: %d, %+v", farid, sFarInfo)
+			session.UpdateFar(farid, sFarInfo.FarInfo)
+			if err := mapOperations.UpdateFar(sFarInfo.GlobalId, sFarInfo.FarInfo); err != nil {
 				log.Printf("Can't update FAR: %s", err.Error())
 			}
 		}
@@ -284,27 +279,40 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		for _, removeFar := range req.RemoveFAR {
 			farid, _ := removeFar.FARID()
 			log.Printf("Removing FAR: %d", farid)
-			session.RemoveFAR(farid)
-			if err := mapOperations.DeleteFar(farid); err != nil {
+			sFarInfo := session.RemoveFar(farid)
+			if err := mapOperations.DeleteFar(sFarInfo.GlobalId); err != nil {
 				log.Printf("Can't remove FAR: %s", err.Error())
 			}
 		}
 
-		for _, pdr := range req.RemovePDR {
-			pdrId, _ := pdr.PDRID()
-			if _, ok := session.UplinkPDRs[uint32(pdrId)]; ok {
-				log.Printf("Removing uplink PDR: %d", pdrId)
-				session.RemoveUplinkPDR(pdrId)
-				if err := mapOperations.DeletePdrUpLink(session.UplinkPDRs[uint32(pdrId)].Teid); err != nil {
-					log.Printf("Failed to remove uplink PDR: %v", err)
-				}
+		for _, qer := range req.CreateQER {
+			qerInfo := QerInfo{}
+			qerId, err := qer.QERID()
+			if err != nil {
+				return fmt.Errorf("QER ID missing")
 			}
-			if _, ok := session.DownlinkPDRs[uint32(pdrId)]; ok {
-				log.Printf("Removing downlink PDR: %d", pdrId)
-				session.RemoveDownlinkPDR(pdrId)
-				if err := mapOperations.DeletePdrDownLink(session.DownlinkPDRs[uint32(pdrId)].Ipv4); err != nil {
-					log.Printf("Failed to remove downlink PDR: %v", err)
-				}
+			updateQer(&qerInfo, qer)
+			log.Printf("Saving QER info to session: %d, %+v", qerId, qerInfo)
+			if internalId, err := mapOperations.NewQer(qerInfo); err == nil {
+				session.NewQer(qerId, internalId, qerInfo)
+			} else {
+				log.Printf("Can't put QER: %s", err.Error())
+				return err
+			}
+		}
+
+		for _, qer := range req.UpdateQER {
+			qerId, err := qer.QERID() // Probably will be used as ebpf map key
+			if err != nil {
+				return fmt.Errorf("QER ID missing")
+			}
+			sQerInfo := session.GetQer(qerId)
+			updateQer(&sQerInfo.QerInfo, qer)
+			log.Printf("Updating QER ID: %d, QER Info: %+v", qerId, sQerInfo)
+			session.UpdateQer(qerId, sQerInfo.QerInfo)
+			if err := mapOperations.UpdateQer(sQerInfo.GlobalId, sQerInfo.QerInfo); err != nil {
+				log.Printf("Can't update QER: %s", err.Error())
+				return err
 			}
 		}
 
@@ -314,10 +322,55 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				return fmt.Errorf("QER ID missing")
 			}
 			log.Printf("Removing QER ID: %d", qerId)
-			session.RemoveQER(qerId)
+			sQerInfo := session.RemoveQer(qerId)
 			log.Printf("Removing QER ID: %d", qerId)
-			if err := mapOperations.DeleteQer(qerId); err != nil {
+			if err := mapOperations.DeleteQer(sQerInfo.GlobalId); err != nil {
 				log.Printf("Can't remove QER: %s", err.Error())
+				return err
+			}
+		}
+
+		for _, pdr := range req.CreatePDR {
+			// PDR should be created last, because we need to reference FARs and QERs global id
+			spdrInfo := SPDRInfo{}
+			pdrId, err := pdr.PDRID()
+			if err != nil {
+				return fmt.Errorf("PDR ID missing")
+			}
+			updateSPDRInfo(pdr, &spdrInfo, session)
+			pdi, err := pdr.PDI()
+			if err != nil {
+				return err
+			}
+			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
+			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
+			switch srcInterface {
+			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
+				{
+					sdfFilterId := findIEindex(pdi, 23) // IE Type SDF Filter
+					if sdfFilterId != -1 {
+						log.Printf("WARN: SDF Filter is not supported yet. Ignore PDR")
+						continue
+					}
+
+					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
+						log.Printf("Errored while applying PDR: %s", err.Error())
+						return err
+					}
+				}
+			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
+				{
+					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
+					if err == fmt.Errorf("IPv6 not supported") {
+						continue
+					}
+					if err != nil {
+						log.Printf("Errored[ while applying PDR: %s", err.Error())
+						return err
+					}
+				}
+			default:
+				log.Printf("WARN: Unsupported Source Interface type: %d", srcInterface)
 			}
 		}
 
@@ -336,7 +389,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
 				{
 					spdrInfo := session.GetUplinkPDR(pdrId)
-					updateSPDRInfo(pdr, &spdrInfo)
+					updateSPDRInfo(pdr, &spdrInfo, session)
 					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
@@ -345,7 +398,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
 					spdrInfo := session.GetDownlinkPDR(pdrId)
-					updateSPDRInfo(pdr, &spdrInfo)
+					updateSPDRInfo(pdr, &spdrInfo, session)
 					err = applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
@@ -360,41 +413,24 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 		}
 
-		for _, qer := range req.UpdateQER {
-			qerId, err := qer.QERID() // Probably will be used as ebpf map key
-			if err != nil {
-				return fmt.Errorf("QER ID missing")
+		for _, pdr := range req.RemovePDR {
+			pdrId, _ := pdr.PDRID()
+			if _, ok := session.UplinkPDRs[uint32(pdrId)]; ok {
+				log.Printf("Removing uplink PDR: %d", pdrId)
+				session.RemoveUplinkPDR(uint32(pdrId))
+				if err := mapOperations.DeletePdrUpLink(session.UplinkPDRs[uint32(pdrId)].Teid); err != nil {
+					log.Printf("Failed to remove uplink PDR: %v", err)
+				}
 			}
-			qerInfo := session.GetQER(qerId)
-			if gateStatusDL, err := qer.GateStatusDL(); err == nil {
-				qerInfo.GateStatusDL = gateStatusDL
-			}
-
-			if gateStatusUL, err := qer.GateStatusUL(); err == nil {
-				qerInfo.GateStatusUL = gateStatusUL
-			}
-
-			if maxBitrateDL, err := qer.MBRDL(); err == nil {
-				qerInfo.MaxBitrateDL = uint32(maxBitrateDL) * 1000
-			}
-
-			if maxBitrateUL, err := qer.MBRUL(); err == nil {
-				qerInfo.MaxBitrateUL = uint32(maxBitrateUL) * 1000
-			}
-
-			if qfi, err := qer.QFI(); err == nil {
-				qerInfo.Qfi = qfi
-			}
-
-			qerInfo.StartUL = 0
-			qerInfo.StartDL = 0
-
-			log.Printf("Updating QER ID: %d, QER Info: %+v", qerId, qerInfo)
-			session.PutQER(qerId, qerInfo)
-			if err := mapOperations.UpdateQer(qerId, qerInfo); err != nil {
-				log.Printf("Can't update QER: %s", err.Error())
+			if _, ok := session.DownlinkPDRs[uint32(pdrId)]; ok {
+				log.Printf("Removing downlink PDR: %d", pdrId)
+				session.RemoveDownlinkPDR(uint32(pdrId))
+				if err := mapOperations.DeletePdrDownLink(session.DownlinkPDRs[uint32(pdrId)].Ipv4); err != nil {
+					log.Printf("Failed to remove downlink PDR: %v", err)
+				}
 			}
 		}
+
 		return nil
 	}()
 	if err != nil {
@@ -417,15 +453,15 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	return modResp, nil
 }
 
-func updateSPDRInfo(pdr *ie.IE, spdrInfo *SPDRInfo) {
+func updateSPDRInfo(pdr *ie.IE, spdrInfo *SPDRInfo, session Session) {
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}
 	if farid, err := pdr.FARID(); err == nil {
-		spdrInfo.PdrInfo.FarId = farid
+		spdrInfo.PdrInfo.FarId = session.GetFar(farid).GlobalId
 	}
 	if qerid, err := pdr.QERID(); err == nil {
-		spdrInfo.PdrInfo.QerId = qerid
+		spdrInfo.PdrInfo.QerId = session.GetQer(qerid).GlobalId
 	}
 }
 
@@ -511,7 +547,7 @@ func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Sessi
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 			spdrInfo.Teid = fteid.TEID
 			log.Printf("Saving uplink PDR info to session: %d, %+v", pdrId, spdrInfo)
-			session.PutUplinkPDR(pdrId, spdrInfo)
+			session.PutUplinkPDR(uint32(pdrId), spdrInfo)
 			if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
 				log.Printf("Can't put uplink PDR: %s", err.Error())
 			}
@@ -539,7 +575,7 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Ses
 			return fmt.Errorf("IPv6 not supported")
 		}
 		log.Printf("Saving downlink PDR info to session: %d, %+v", pdrId, spdrInfo)
-		session.PutDownlinkPDR(pdrId, spdrInfo)
+		session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
 		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
 			log.Printf("Can't put uplink PDR: %s", err.Error())
 		}
@@ -585,4 +621,30 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo FarInfo) (FarInfo, error
 		farInfo.TransportLevelMarking = transportLevelMarking
 	}
 	return farInfo, nil
+}
+
+func updateQer(qerInfo *QerInfo, qer *ie.IE) {
+
+	gateStatusDL, err := qer.GateStatusDL()
+	if err == nil {
+		qerInfo.GateStatusDL = gateStatusDL
+	}
+	gateStatusUL, err := qer.GateStatusUL()
+	if err == nil {
+		qerInfo.GateStatusUL = gateStatusUL
+	}
+	maxBitrateDL, err := qer.MBRDL()
+	if err == nil {
+		qerInfo.MaxBitrateDL = uint32(maxBitrateDL) * 1000
+	}
+	maxBitrateUL, err := qer.MBRUL()
+	if err == nil {
+		qerInfo.MaxBitrateUL = uint32(maxBitrateUL) * 1000
+	}
+	qfi, err := qer.QFI()
+	if err == nil {
+		qerInfo.Qfi = qfi
+	}
+	qerInfo.StartUL = 0
+	qerInfo.StartDL = 0
 }

@@ -74,20 +74,24 @@ func (f FarInfo) MarshalJSON() ([]byte, error) {
 	return json.Marshal(data)
 }
 
-func (bpfObjects *BpfObjects) PutFar(i uint32, farInfo FarInfo) error {
-	log.Printf("EBPF: Put FAR: i=%d, farInfo=%+v", i, farInfo)
-	return bpfObjects.ip_entrypointMaps.FarMap.Put(i, unsafe.Pointer(&farInfo))
+func (bpfObjects *BpfObjects) NewFar(farInfo FarInfo) (uint32, error) {
+	internalId, err := bpfObjects.FarIdTracker.GetNext()
+	if err != nil {
+		return 0, err
+	}
+	log.Printf("EBPF: Put FAR: internalId=%d, qerInfo=%+v", internalId, farInfo)
+	return internalId, bpfObjects.ip_entrypointMaps.FarMap.Put(internalId, unsafe.Pointer(&farInfo))
 }
 
-func (bpfObjects *BpfObjects) UpdateFar(i uint32, farInfo FarInfo) error {
-	log.Printf("EBPF: Update FAR: i=%d, farInfo=%+v", i, farInfo)
-	return bpfObjects.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&farInfo), ebpf.UpdateExist)
+func (bpfObjects *BpfObjects) UpdateFar(internalId uint32, farInfo FarInfo) error {
+	log.Printf("EBPF: Update FAR: internalId=%d, farInfo=%+v", internalId, farInfo)
+	return bpfObjects.ip_entrypointMaps.FarMap.Update(internalId, unsafe.Pointer(&farInfo), ebpf.UpdateExist)
 }
 
-func (bpfObjects *BpfObjects) DeleteFar(i uint32) error {
-	log.Printf("EBPF: Delete FAR: i=%d", i)
-	return bpfObjects.ip_entrypointMaps.FarMap.Update(i, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
-	//return o.ip_entrypointMaps.FarMap.Delete(i)
+func (bpfObjects *BpfObjects) DeleteFar(intenalId uint32) error {
+	log.Printf("EBPF: Delete FAR: intenalId=%d", intenalId)
+	bpfObjects.FarIdTracker.Release(intenalId)
+	return bpfObjects.ip_entrypointMaps.FarMap.Update(intenalId, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
 }
 
 type QerInfo struct {
@@ -100,19 +104,24 @@ type QerInfo struct {
 	StartDL      uint64
 }
 
-func (bpfObjects *BpfObjects) PutQer(i uint32, qerInfo QerInfo) error {
-	log.Printf("EBPF: Put QER: i=%d, qerInfo=%+v", i, qerInfo)
-	return bpfObjects.ip_entrypointMaps.QerMap.Put(i, unsafe.Pointer(&qerInfo))
+func (bpfObjects *BpfObjects) NewQer(qerInfo QerInfo) (uint32, error) {
+	internalId, err := bpfObjects.QerIdTracker.GetNext()
+	if err != nil {
+		return 0, err
+	}
+	log.Printf("EBPF: Put QER: internalId=%d, qerInfo=%+v", internalId, qerInfo)
+	return internalId, bpfObjects.ip_entrypointMaps.QerMap.Put(internalId, unsafe.Pointer(&qerInfo))
 }
 
-func (bpfObjects *BpfObjects) UpdateQer(i uint32, qerInfo QerInfo) error {
-	log.Printf("EBPF: Update QER: i=%d, qerInfo=%+v", i, qerInfo)
-	return bpfObjects.ip_entrypointMaps.QerMap.Update(i, unsafe.Pointer(&qerInfo), ebpf.UpdateExist)
+func (bpfObjects *BpfObjects) UpdateQer(internalId uint32, qerInfo QerInfo) error {
+	log.Printf("EBPF: Update QER: internalId=%d, qerInfo=%+v", internalId, qerInfo)
+	return bpfObjects.ip_entrypointMaps.QerMap.Update(internalId, unsafe.Pointer(&qerInfo), ebpf.UpdateExist)
 }
 
-func (bpfObjects *BpfObjects) DeleteQer(i uint32) error {
-	log.Printf("EBPF: Delete QER: i=%d", i)
-	return bpfObjects.ip_entrypointMaps.QerMap.Update(i, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
+func (bpfObjects *BpfObjects) DeleteQer(internalId uint32) error {
+	log.Printf("EBPF: Delete QER: internalId=%d", internalId)
+	bpfObjects.QerIdTracker.Release(internalId)
+	return bpfObjects.ip_entrypointMaps.QerMap.Update(internalId, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
 }
 
 type ForwardingPlaneController interface {
@@ -122,10 +131,10 @@ type ForwardingPlaneController interface {
 	UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
 	DeletePdrUpLink(teid uint32) error
 	DeletePdrDownLink(ipv4 net.IP) error
-	PutFar(i uint32, farInfo FarInfo) error
-	UpdateFar(i uint32, farInfo FarInfo) error
-	DeleteFar(i uint32) error
-	PutQer(i uint32, qerInfo QerInfo) error
-	UpdateQer(i uint32, qerInfo QerInfo) error
-	DeleteQer(i uint32) error
+	NewFar(farInfo FarInfo) (uint32, error)
+	UpdateFar(internalId uint32, farInfo FarInfo) error
+	DeleteFar(internalId uint32) error
+	NewQer(qerInfo QerInfo) (uint32, error)
+	UpdateQer(internalId uint32, qerInfo QerInfo) error
+	DeleteQer(internalId uint32) error
 }

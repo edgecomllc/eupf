@@ -1,6 +1,9 @@
 package main
 
 import (
+	"errors"
+	"github.com/RoaringBitmap/roaring"
+	"github.com/edgecomllc/eupf/cmd/eupf/config"
 	"io"
 	"log"
 	"os"
@@ -20,10 +23,19 @@ type BpfObjects struct {
 	far_programObjects
 	qer_programObjects
 	ip_entrypointObjects
+
+	FarIdTracker *IdTracker
+	QerIdTracker *IdTracker
+}
+
+func NewBpfObjects() *BpfObjects {
+	return &BpfObjects{
+		FarIdTracker: NewIdTracker(config.Conf.FarMapSize),
+		QerIdTracker: NewIdTracker(config.Conf.QerMapSize),
+	}
 }
 
 func (bpfObjects *BpfObjects) Load() error {
-
 	pinPath := "/sys/fs/bpf/upf_pipeline"
 	if err := os.MkdirAll(pinPath, os.ModePerm); err != nil {
 		log.Printf("failed to create bpf fs subpath: %+v", err)
@@ -34,7 +46,7 @@ func (bpfObjects *BpfObjects) Load() error {
 		Maps: ebpf.MapOptions{
 			// Pin the map to the BPF filesystem and configure the
 			// library to automatically re-write it in the BPF
-			// program so it can be re-used if it already exists or
+			// program, so it can be re-used if it already exists or
 			// create it if not
 			PinPath: pinPath,
 		},
@@ -176,4 +188,39 @@ func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32
 	}
 
 	return nil
+}
+
+type IdTracker struct {
+	bitmap  *roaring.Bitmap
+	maxSize uint32
+}
+
+func NewIdTracker(size uint32) *IdTracker {
+	newBitmap := roaring.NewBitmap()
+	newBitmap.Flip(0, uint64(size))
+
+	return &IdTracker{
+		bitmap:  newBitmap,
+		maxSize: size,
+	}
+}
+
+func (t *IdTracker) GetNext() (next uint32, err error) {
+
+	i := t.bitmap.Iterator()
+	if i.HasNext() {
+		next := i.Next()
+		t.bitmap.Remove(next)
+		return next, nil
+	}
+
+	return 0, errors.New("pool is empty")
+}
+
+func (t *IdTracker) Release(id uint32) {
+	if id >= t.maxSize {
+		return
+	}
+
+	t.bitmap.Add(id)
 }
