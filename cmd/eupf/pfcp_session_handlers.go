@@ -58,8 +58,8 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			farid, _ := far.FARID()
 			log.Printf("Saving FAR info to session: %d, %+v", farid, farInfo)
-			if ebpfId, err := mapOperations.NewFar(farInfo); err == nil {
-				session.NewFar(farid, ebpfId, farInfo)
+			if internalId, err := mapOperations.NewFar(farInfo); err == nil {
+				session.NewFar(farid, internalId, farInfo)
 			} else {
 				log.Printf("Can't put FAR: %s", err.Error())
 				return err
@@ -74,8 +74,8 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 			updateQer(&qerInfo, qer)
 			log.Printf("Saving QER info to session: %d, %+v", qerId, qerInfo)
-			if ebpfId, err := mapOperations.NewQer(qerInfo); err == nil {
-				session.NewQer(qerId, ebpfId, qerInfo)
+			if internalId, err := mapOperations.NewQer(qerInfo); err == nil {
+				session.NewQer(qerId, internalId, qerInfo)
 			} else {
 				log.Printf("Can't put QER: %s", err.Error())
 				return err
@@ -250,8 +250,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 			farid, _ := far.FARID()
 			log.Printf("Saving FAR info to session: %d, %+v", farid, farInfo)
-			if ebpfId, err := mapOperations.NewFar(farInfo); err == nil {
-				session.NewFar(farid, ebpfId, farInfo)
+			if internalId, err := mapOperations.NewFar(farInfo); err == nil {
+				session.NewFar(farid, internalId, farInfo)
 			} else {
 				log.Printf("Can't put FAR: %s", err.Error())
 				return err
@@ -293,8 +293,8 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 			updateQer(&qerInfo, qer)
 			log.Printf("Saving QER info to session: %d, %+v", qerId, qerInfo)
-			if ebpfId, err := mapOperations.NewQer(qerInfo); err == nil {
-				session.NewQer(qerId, ebpfId, qerInfo)
+			if internalId, err := mapOperations.NewQer(qerInfo); err == nil {
+				session.NewQer(qerId, internalId, qerInfo)
 			} else {
 				log.Printf("Can't put QER: %s", err.Error())
 				return err

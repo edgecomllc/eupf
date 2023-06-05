@@ -1,50 +1,13 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net"
 	"time"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/wmnsk/go-pfcp/message"
 )
-
-type IdTracker struct {
-	bitmap  *roaring.Bitmap
-	maxSize uint32
-}
-
-func NewIdTracker(size uint32) *IdTracker {
-	newBitmap := roaring.NewBitmap()
-	newBitmap.Flip(0, uint64(size))
-
-	return &IdTracker{
-		bitmap:  newBitmap,
-		maxSize: size,
-	}
-}
-
-func (t *IdTracker) GetNext() (next uint32, err error) {
-
-	i := t.bitmap.Iterator()
-	if i.HasNext() {
-		next := i.Next()
-		t.bitmap.Remove(next)
-		return next, nil
-	}
-
-	return 0, errors.New("pool is empty")
-}
-
-func (t *IdTracker) Release(id uint32) {
-	if id >= t.maxSize {
-		return
-	}
-
-	t.bitmap.Add(id)
-}
 
 type Session struct {
 	LocalSEID    uint64
@@ -71,77 +34,77 @@ type SQerInfo struct {
 	GlobalId uint32
 }
 
-func (s *Session) NewFar(smfId uint32, ebpfId uint32, farInfo FarInfo) {
-	s.FARs[smfId] = SFarInfo{
+func (s *Session) NewFar(id uint32, internalId uint32, farInfo FarInfo) {
+	s.FARs[id] = SFarInfo{
 		FarInfo:  farInfo,
-		GlobalId: ebpfId,
+		GlobalId: internalId,
 	}
 }
 
-func (s *Session) UpdateFar(smfId uint32, farInfo FarInfo) {
-	sFarInfo := s.FARs[smfId]
+func (s *Session) UpdateFar(id uint32, farInfo FarInfo) {
+	sFarInfo := s.FARs[id]
 	sFarInfo.FarInfo = farInfo
-	s.FARs[smfId] = sFarInfo
+	s.FARs[id] = sFarInfo
 }
 
-func (s *Session) GetFar(smfId uint32) SFarInfo {
-	return s.FARs[smfId]
+func (s *Session) GetFar(id uint32) SFarInfo {
+	return s.FARs[id]
 }
 
-func (s *Session) RemoveFar(smfId uint32) SFarInfo {
-	sFarInfo := s.FARs[smfId]
-	delete(s.FARs, smfId)
+func (s *Session) RemoveFar(id uint32) SFarInfo {
+	sFarInfo := s.FARs[id]
+	delete(s.FARs, id)
 	return sFarInfo
 }
 
-func (s *Session) NewQer(smfId uint32, ebpfId uint32, qerInfo QerInfo) {
-	s.QERs[smfId] = SQerInfo{
+func (s *Session) NewQer(id uint32, internalId uint32, qerInfo QerInfo) {
+	s.QERs[id] = SQerInfo{
 		QerInfo:  qerInfo,
-		GlobalId: ebpfId,
+		GlobalId: internalId,
 	}
 }
 
-func (s *Session) UpdateQer(smfId uint32, qerInfo QerInfo) {
-	sQerInfo := s.QERs[smfId]
+func (s *Session) UpdateQer(id uint32, qerInfo QerInfo) {
+	sQerInfo := s.QERs[id]
 	sQerInfo.QerInfo = qerInfo
-	s.QERs[smfId] = sQerInfo
+	s.QERs[id] = sQerInfo
 }
 
-func (s *Session) GetQer(smfId uint32) SQerInfo {
-	return s.QERs[smfId]
+func (s *Session) GetQer(id uint32) SQerInfo {
+	return s.QERs[id]
 }
 
-func (s *Session) RemoveQer(smfId uint32) SQerInfo {
-	sQerInfo := s.QERs[smfId]
-	delete(s.QERs, smfId)
+func (s *Session) RemoveQer(id uint32) SQerInfo {
+	sQerInfo := s.QERs[id]
+	delete(s.QERs, id)
 	return sQerInfo
 }
 
-func (s *Session) PutUplinkPDR(smfId uint32, info SPDRInfo) {
-	s.UplinkPDRs[smfId] = info
+func (s *Session) PutUplinkPDR(id uint32, info SPDRInfo) {
+	s.UplinkPDRs[id] = info
 }
 
-func (s *Session) GetUplinkPDR(smfId uint16) SPDRInfo {
-	return s.UplinkPDRs[uint32(smfId)]
+func (s *Session) GetUplinkPDR(id uint16) SPDRInfo {
+	return s.UplinkPDRs[uint32(id)]
 }
 
-func (s *Session) RemoveUplinkPDR(smfId uint32) SPDRInfo {
-	sPdrInfo := s.UplinkPDRs[smfId]
-	delete(s.UplinkPDRs, smfId)
+func (s *Session) RemoveUplinkPDR(id uint32) SPDRInfo {
+	sPdrInfo := s.UplinkPDRs[id]
+	delete(s.UplinkPDRs, id)
 	return sPdrInfo
 }
 
-func (s *Session) PutDownlinkPDR(smfId uint32, info SPDRInfo) {
-	s.DownlinkPDRs[smfId] = info
+func (s *Session) PutDownlinkPDR(id uint32, info SPDRInfo) {
+	s.DownlinkPDRs[id] = info
 }
 
-func (s *Session) GetDownlinkPDR(smfId uint16) SPDRInfo {
-	return s.DownlinkPDRs[uint32(smfId)]
+func (s *Session) GetDownlinkPDR(id uint16) SPDRInfo {
+	return s.DownlinkPDRs[uint32(id)]
 }
 
-func (s *Session) RemoveDownlinkPDR(smfId uint32) SPDRInfo {
-	sPdrInfo := s.DownlinkPDRs[smfId]
-	delete(s.DownlinkPDRs, smfId)
+func (s *Session) RemoveDownlinkPDR(id uint32) SPDRInfo {
+	sPdrInfo := s.DownlinkPDRs[id]
+	delete(s.DownlinkPDRs, id)
 	return sPdrInfo
 }
 
