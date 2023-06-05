@@ -26,10 +26,19 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 Super fast & simple way is to download and run our docker image. It will start standalone eBPF with the default configuration:
 ```bash
-docker run -d --rm --privileged -p 8080 -p 9090 --name your-eupf-def ghcr.io/edgecomllc/eupf:main
+docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
+--cap-add SYS_ADMIN --cap-add NET_ADMIN \
+-p 8080 -p 9090 --name your-eupf-def \
+-v /sys/kernel/debug:/sys/kernel/debug:ro \
+ghcr.io/edgecomllc/eupf:main
 ```
 
 - 📝 *Linux Kernel **5.15.0-25-generic** is the minimum release version it has been tested on. Previous versions are not supported.*
+- ℹ Required Linux capability options details:
+   - *Loading bpf objects:* mkdir /sys/fs/bpf/upf_pipeline
+   - *access capability* NET_ADMIN:	Perform various network-related operations.
+   - *access capability* SYS_ADMIN:	Perform a range of system administration operations.
+   -  *mounting* debugfs on /sys/kernel/debug
 
 <blockquote><details><summary><i>The defaults are</i></summary>
 <p>
@@ -49,7 +58,15 @@ docker run -d --rm --privileged -p 8080 -p 9090 --name your-eupf-def ghcr.io/edg
 In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
 
 ```ruby
-docker run -d --rm --privileged -p 8081 -p 9091 --name your-eupf-custom -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 -e UPF_N3_ADDRESS=10.100.50.233 ghcr.io/edgecomllc/eupf:main
+docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
+ --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+ -p 8081 -p 9091 --name your-eupf-custom \
+ -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic \
+ -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 \
+ -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 \
+ -e UPF_N3_ADDRESS=10.100.50.233 \
+ -v /sys/kernel/debug:/sys/kernel/debug:ro \
+ ghcr.io/edgecomllc/eupf:main
 ```
 
 
