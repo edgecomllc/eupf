@@ -26,57 +26,52 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 Super fast & simple way is to download and run our docker image. It will start standalone eBPF with the default configuration:
 ```bash
-docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
---cap-add SYS_ADMIN --cap-add NET_ADMIN \
--p 8080 -p 9090 --name your-eupf-def \
--v /sys/kernel/debug:/sys/kernel/debug:ro \
-ghcr.io/edgecomllc/eupf:main
+docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \ 
+  --cap-add SYS_ADMIN --cap-add NET_ADMIN \ 
+  -p 8080 -p 9090 --name your-eupf-def \ 
+  -v /sys/kernel/debug:/sys/kernel/debug:ro ghcr.io/edgecomllc/eupf:main
 ```
-
+### Notes
 - 📝 *Linux Kernel **5.15.0-25-generic** is the minimum release version it has been tested on. Previous versions are not supported.*
-- ℹ Required Linux capability options details:
-   - *Loading bpf objects:* mkdir /sys/fs/bpf/upf_pipeline
-   - *access capability* NET_ADMIN:	Perform various network-related operations.
-   - *access capability* SYS_ADMIN:	Perform a range of system administration operations.
-   -  *mounting* debugfs on /sys/kernel/debug
+- ℹ In order to perform low-level operations like loading ebpf objects some additional privileges are required(NET_ADMIN & SYS_ADMIN)
 
-<blockquote><details><summary><i>The defaults are</i></summary>
+<blockquote><details><summary><i>Startup parameters you might want to change: </i></summary>
 <p>
-
-   - UPF_INTERFACE_NAME=lo    *network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
+ 
+   - UPF_INTERFACE_NAME=lo    *Network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
    - UPF_N3_ADDRESS=127.0.0.1 *IPv4 address for N3 interface*
-   - UPF_XDP_ATTACH_MODE=generic *Kernel-level implementation. For evaluation purpose.*
-   - UPF_API_ADDRESS=:8080    *Local address:portTCP for serving [REST API](api.md) server*
-   - UPF_PFCP_ADDRESS=:8805   *Local address:portTCP that PFCP server will listen to*
-   - UPF_METRICS_ADDRESS=:9090   *Local address:portTCP  for serving Prometheus mertrics endpoint.*
-   - UPF_PFCP_NODE_ID=127.0.0.1  *Local NodeID for PFCP protocol. Format is IPv4 address.*
-
+   - UPF_XDP_ATTACH_MODE=generic *XDP attach mode. Generic-only at the moment*
+   - UPF_API_ADDRESS=:8080    *Local host:port for serving [REST API](api.md) server*
+   - UPF_PFCP_ADDRESS=:8805   *Local host:port that PFCP server will listen to*
+   - UPF_PFCP_NODE_ID=127.0.0.1  *Local NodeID for PFCP protocol. Format is IPv4 address*
+   - UPF_METRICS_ADDRESS=:9090   *Local host:port for serving Prometheus mertrics endpoint*
+ 
 </p>
 </details> </blockquote>
 </p>
 
 In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
 
-```ruby
+```bash
 docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
- --cap-add SYS_ADMIN --cap-add NET_ADMIN \
- -p 8081 -p 9091 --name your-eupf-custom \
- -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic \
- -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 \
- -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 \
- -e UPF_N3_ADDRESS=10.100.50.233 \
- -v /sys/kernel/debug:/sys/kernel/debug:ro \
- ghcr.io/edgecomllc/eupf:main
+  --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+  -p 8081 -p 9091 --name your-eupf-custom \
+  -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic \
+  -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 \
+  -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 \
+  -e UPF_N3_ADDRESS=10.100.50.233 \
+  -v /sys/kernel/debug:/sys/kernel/debug:ro \
+  ghcr.io/edgecomllc/eupf:main
 ```
 
-
+### More info
 To go further, see the **[eUPF installation guide with Open5GS or Free5GC core](./docs/install.md)** to check how it works from end-to-end, deploying in three simple steps for you to choose: in Kubernetes cluster or as a docker-compose.
 
 More about parameters read in the **[eUPF configuration guide](./docs/Configuration.md)**.
 
 For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**.
 
-## eUPF details
+## Implementation details
 
 eUPF as a part of 5G mobile core network implements data network gateway function. It communicates with SMF via PFCP protocol (N4 interface) and forwards packets between core and data networks(N3 and N6 interfaces correspondingly). These two main UPF parts are implemented in two separate components: control plane and forwarding plane.
 
@@ -86,18 +81,18 @@ The eUPF forwarding plane is based on eBPF packet processing. When started eUPF 
 
 eUPF relies on kernel routing when making routing decision for incoming network packets. When it is not possible to determine packet route via kernel FIB lookup, eUPF passes such packet to kernel as a fallback path. This approach obviously affects performance but allows maintaining correct kernel routing process (ex., filling arp tables).
 
-## eUPF architecture
+### Architecture
 
 <details><summary>Show me</summary>
 
-### Eagle-eye overview
+#### Eagle-eye overview
 
 ![UPF-Arch2](https://user-images.githubusercontent.com/20152142/207142700-cc3f17a5-203f-4b43-b712-a518cb627968.png)
 
-### Detailed architecture
+#### Detailed architecture
 ![image](docs/pictures/eupf-arch.png)
 
-### Current limitation
+#### Current limitation
 
 - Only one PDR in PFCP session per direction
 - Only single FAR supported
@@ -105,18 +100,18 @@ eUPF relies on kernel routing when making routing decision for incoming network 
 
 </details>
 
-## eUPF roadmap
+### Roadmap
 
 <details><summary>Show me</summary>
 
-### Control plane
+#### Control plane
 
 - [x]  PFCP Association Setup/Release and Heartbeats
 - [x]  Session Establishment/Modification with support for PFCP entities such as Packet Detection Rules (PDRs), Forwarding Action Rules (FARs), QoS Enforcement Rules (QERs).
 - [ ]  UPF-initiated PFCP association
 - [ ]  UPF-based UE IP address assignment
 
-### Data plane
+#### Data plane
 
 - [x]  IPv4 support
 - [x]  N3, N4, N6 interfaces
@@ -125,13 +120,13 @@ eUPF relies on kernel routing when making routing decision for incoming network 
 - [x]  Basic QoS support with per-session rate limiting
 - [ ]  I-UPF/A-UPF ULCL/Branching (N9 interface)
 
-### Management plane
+#### Management plane
 - [x]  Free5gc compatibility
 - [x]  Open5gs compatibility
 - [x]  Integration with Prometheus for exporting PFCP and data plane-level metrics
 - [ ]  Monitoring/Debugging capabilities using tcpdump and cli
 
-### 3GPP specs compatibility
+#### 3GPP specs compatibility
 - [ ]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
 - [ ]  `UEIP` Allocating UE IP addresses or prefixes.
 - [ ]  `SSET` PFCP sessions successively controlled by different SMFs of a same SMF Set.
@@ -142,9 +137,9 @@ eUPF relies on kernel routing when making routing decision for incoming network 
 
  </details>
 
-## Building and running from sources
+## Running from sources
 
-**Prerequisites:**
+### Prerequisites
 
 - Git
 - Golang
@@ -165,33 +160,34 @@ sudo apt install git golang clang llvm gcc-multilib libbpf-dev
 sudo dnf install git golang clang llvm gcc libbpf libbpf-devel libxdp libxdp-devel xdp-tools bpftool kernel-headers
 ```
 
-**Steps:**
+### Build & run manual
 
-1. Install the Swag command line tool for Golang. This is used to automatically generate RESTful API documentation.
+#### Step 1: Install the Swag command line tool for Golang
+This is used to automatically generate RESTful API documentation.
 
 ```bash
 go install github.com/swaggo/swag/cmd/swag@v1.8.12
 ```
 
-2. Clone the eUPF repository and change to the directory:
+#### Step 2: Clone the eUPF repository and change to the directory
 
 ```bash
 git clone https://github.com/edgecomllc/eupf.git
 cd eupf
 ```
 
-3. Run the code generators:
+#### Step 3: Run the code generators
 
 ```bash
 go generate -v ./cmd/eupf
 ```
 
-4. Build eUPF:
+#### Step 4: Build eUPF
 
 ```bash
 go build -v -o bin/eupf ./cmd/eupf
 ```
-5. Run the application:
+#### Step 5: Run the application
 
    Run binary with privileges allowing to increase [memory-ulimits](https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits)
 
