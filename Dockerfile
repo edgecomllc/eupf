@@ -18,7 +18,7 @@ COPY cmd/eupf cmd/eupf
 RUN go generate -v ./cmd/eupf
 RUN CGO_ENABLED=0 go build -gcflags "all=-N -l" -v -o bin/eupf ./cmd/eupf
 
-RUN dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec bin/eupf
+ENTRYPOINT dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec bin/eupf
 #FROM alpine:3.18 AS runtime
 #LABEL org.opencontainers.image.source="https://github.com/edgecomllc/eupf"
 
