@@ -38,6 +38,7 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, "Session Establishment Request:", 0)
+	writeLineTabbed(&sb, fmt.Sprintf("SEID: %d", req.SEID()), 0)
 	for _, pdr := range req.CreatePDR {
 		sb.WriteString("  Create")
 		displayPdr(&sb, pdr)
@@ -238,7 +239,7 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 				writeLineTabbed(sb, fmt.Sprintf("Redirect Information, other server address: %s ", redirectInformation.OtherRedirectServerAddress), 3)
 			}
 			headerEnrichment, err := forwardingParameter.HeaderEnrichment()
-			if err == nil {				
+			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue), 3)
 			}
 		}
@@ -247,11 +248,11 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 		writeLineTabbed(sb, "Update forwarding Parameters:", 2)
 		for _, updateForwardingParameter := range updateForwardingParameters {
 			networkInstance, err := updateForwardingParameter.NetworkInstance()
-			if err == nil {				
+			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Network Instance: %s ", networkInstance), 3)
 			}
 			outerHeaderCreation, err := updateForwardingParameter.OuterHeaderCreation()
-			if err == nil {				
+			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation), 3)
 			}
 			redirectInformation, err := updateForwardingParameter.RedirectInformation()
@@ -260,22 +261,22 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 				writeLineTabbed(sb, fmt.Sprintf("Redirect Information, other server address: %s ", redirectInformation.OtherRedirectServerAddress), 3)
 			}
 			headerEnrichment, err := updateForwardingParameter.HeaderEnrichment()
-			if err == nil {				
+			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue), 3)
 			}
 		}
 	}
 
 	duplicatingParameters, err := far.DuplicatingParameters()
-	if err == nil {		
+	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Duplicating Parameters: %+v ", duplicatingParameters), 2)
 	}
 	barId, err := far.BARID()
-	if err == nil {		
+	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("BAR ID: %d ", barId), 2)
 	}
 	transportLevelMarking, err := far.TransportLevelMarking()
-	if err == nil {		
+	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Transport Level Marking: %d", transportLevelMarking), 2)
 		// DSCP (first octet) and ToS or Traffic Class mask (second octet)
 		buf := make([]byte, 2)
