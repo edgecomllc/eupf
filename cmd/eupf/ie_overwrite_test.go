@@ -10,7 +10,10 @@ import (
 )
 
 func TestBugIeGetsOverwrittenOnlyGodKnowsWhy(t *testing.T) {
-	bpfObjects := NewBpfObjects()
+	bpfObjects := &BpfObjects{
+		FarIdTracker: NewIdTracker(100),
+		QerIdTracker: NewIdTracker(100),
+	}
 	if err := bpfObjects.Load(); err != nil {
 		t.Errorf("Loading bpf objects failed: %s", err.Error())
 	}
@@ -104,9 +107,9 @@ func TestBugIeGetsOverwrittenOnlyGodKnowsWhy(t *testing.T) {
 
 	// Send Session Modification Request, create FAR
 	smReq := message.NewSessionModificationRequest(0, 0,
-		1, 1, 0,
+		2, 1, 0,
 		ie.NewNodeID("", "", "test"),
-		ie.NewFSEID(1, udpAddr.IP, nil),
+		ie.NewFSEID(2, udpAddr.IP, nil),
 		ie.NewCreateFAR(
 			ie.NewFARID(1),
 			ie.NewApplyAction(2),
