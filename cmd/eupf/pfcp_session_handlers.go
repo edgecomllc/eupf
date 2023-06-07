@@ -112,7 +112,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				}
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
-					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
+					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
 					}
@@ -360,7 +360,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				}
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
-					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
+					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
 					}
@@ -399,7 +399,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				{
 					spdrInfo := session.GetDownlinkPDR(pdrId)
 					updateSPDRInfo(pdr, &spdrInfo, session)
-					err = applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
+					err = applyDownlinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
 					}
@@ -561,7 +561,7 @@ func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Sessi
 	return nil
 }
 
-func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Session, mapOperations ForwardingPlaneController) error {
+func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Session, mapOperations ForwardingPlaneController) error {
 	// IE Type UE IP Address
 	if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
 		ueIp, _ := pdi[ueipPdiId].UEIPAddress()

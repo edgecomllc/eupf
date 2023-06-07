@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/wmnsk/go-pfcp/ie"
-	"github.com/wmnsk/go-pfcp/message"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/wmnsk/go-pfcp/ie"
+	"github.com/wmnsk/go-pfcp/message"
 )
 
 func TestHeartbeat(t *testing.T) {
