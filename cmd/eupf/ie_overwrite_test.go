@@ -93,7 +93,6 @@ func TestBugIeGetsOverwrittenOnlyGodKnowsWhy(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
-	fmt.Printf("%+v", pfcpConn.nodeAssociations)
 
 	// Check that session PDRs are correct
 	if pfcpConn.nodeAssociations[udpAddr.String()].Sessions[2].DownlinkPDRs[1].Ipv4.String() != "1.1.1.1" {
@@ -102,4 +101,35 @@ func TestBugIeGetsOverwrittenOnlyGodKnowsWhy(t *testing.T) {
 	if pfcpConn.nodeAssociations[udpAddr.String()].Sessions[3].DownlinkPDRs[1].Ipv4.String() != "2.2.2.2" {
 		t.Errorf("Session 2, got broken")
 	}
+
+	// Send Session Modification Request, create FAR
+	smReq := message.NewSessionModificationRequest(0, 0,
+		1, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, udpAddr.IP, nil),
+		ie.NewCreateFAR(
+			ie.NewFARID(1),
+			ie.NewApplyAction(2),
+			ie.NewForwardingParameters(
+				ie.NewDestinationInterface(ie.DstInterfaceAccess),
+				ie.NewNetworkInstance(""),
+			),
+		),
+	)
+
+	// Send modification request
+	response, err = handlePfcpSessionModificationRequest(&pfcpConn, smReq, udpAddr)
+	if err != nil {
+		t.Errorf("Error handling session modification request: %s", err)
+	}
+
+	// Check that session PDRs are correct
+	if pfcpConn.nodeAssociations[udpAddr.String()].Sessions[2].DownlinkPDRs[1].Ipv4.String() != "1.1.1.1" {
+		t.Errorf("Session 1, got broken")
+	}
+	if pfcpConn.nodeAssociations[udpAddr.String()].Sessions[3].DownlinkPDRs[1].Ipv4.String() != "2.2.2.2" {
+		t.Errorf("Session 2, got broken")
+	}
+	fmt.Printf("%+v", pfcpConn.nodeAssociations)
+
 }
