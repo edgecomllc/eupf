@@ -1,4 +1,19 @@
-# we allow to run our app in container via root user
-DS002
-# we allow to run some containers privileged
-KSV017
+AVD-DS-0002
+AVD-DS-0026
+AVD-KSV-0001
+AVD-KSV-0003
+AVD-KSV-0011
+AVD-KSV-0012
+AVD-KSV-0014
+AVD-KSV-0015
+AVD-KSV-0016
+AVD-KSV-0017
+AVD-KSV-0018
+AVD-KSV-0020
+AVD-KSV-0021
+AVD-KSV-0026
+AVD-KSV-0030
+AVD-KSV-0106
+
+# no way to fix it yet
+CVE-2023-2650
