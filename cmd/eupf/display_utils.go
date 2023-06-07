@@ -65,6 +65,7 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 	log.Print(sb.String())
 }
 
+// TODO: Print Updates
 // IE Contents of Create/Update/Remove are mostly the same
 func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	var sb strings.Builder

@@ -12,4 +12,9 @@ func TestIdTracker(t *testing.T) {
 			t.Errorf("IdTracker.GetId() = %d, want %d", id, i)
 		}
 	}
+	Idtracker.Release(15)
+	id, _ := Idtracker.GetNext()
+	if id != 15 {
+		t.Errorf("IdTracker.GetId() = %d, want %d", id, 15)
+	}
 }
