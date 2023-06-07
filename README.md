@@ -24,7 +24,7 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 ## Quick start guide
 
-Super fast & simple way is to download and run our docker image. It will start standalone eBPF with the default configuration:
+Super fast & simple way is to download and run our docker image. It will start standalone eUPF with the default configuration:
 ```bash
 docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \ 
   --cap-add SYS_ADMIN --cap-add NET_ADMIN \ 
