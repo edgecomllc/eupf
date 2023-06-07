@@ -8,7 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/edgecomllc/eupf/cmd/eupf/config"
-	//eupfDocs "github.com/edgecomllc/eupf/cmd/eupf/docs"
+	eupfDocs "github.com/edgecomllc/eupf/cmd/eupf/docs"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -24,7 +24,7 @@ type ApiServer struct {
 
 func CreateApiServer(bpfObjects *BpfObjects, pfcpSrv *PfcpConnection, forwardPlaneStats UpfXdpActionStatistic) *ApiServer {
 	router := gin.Default()
-	//eupfDocs.SwaggerInfo.BasePath = "/api/v1"
+	eupfDocs.SwaggerInfo.BasePath = "/api/v1"
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("upf_pipeline", ListUpfPipeline(bpfObjects))
