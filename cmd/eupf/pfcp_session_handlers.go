@@ -19,6 +19,7 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
+	printSessionEstablishmentRequest(req)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
 	remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
 	if err != nil {
@@ -44,8 +45,6 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		FARs:         map[uint32]SFarInfo{},
 		QERs:         map[uint32]SQerInfo{},
 	}
-
-	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
 	err = func() error {
 		mapOperations := conn.mapOperations
