@@ -9,7 +9,7 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-func TestBuffer(t *testing.T) {
+func TestSessionUEIpOverwrite(t *testing.T) {
 
 	bpfObjects := &BpfObjects{
 		FarIdTracker: NewIdTracker(100),
