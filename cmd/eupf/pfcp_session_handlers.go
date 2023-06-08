@@ -560,7 +560,7 @@ func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Sess
 	return nil
 }
 
-func dupIP(ip net.IP) net.IP {
+func cloneIP(ip net.IP) net.IP {
 	dup := make(net.IP, len(ip))
 	copy(dup, ip)
 	return dup
@@ -572,7 +572,7 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Se
 		ueIp, _ := pdi[ueipPdiId].UEIPAddress()
 		if ueIp.IPv4Address != nil {
 			// net.IP is a trap, it needs to be copied, otherwise it will be overwritten by next packet.
-			spdrInfo.Ipv4 = dupIP(ueIp.IPv4Address)
+			spdrInfo.Ipv4 = cloneIP(ueIp.IPv4Address)
 		} else {
 			log.Print("WARN: No IPv4 address")
 		}
