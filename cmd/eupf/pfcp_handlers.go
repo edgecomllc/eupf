@@ -15,6 +15,7 @@ type PfcpFunc func(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr)
 type PfcpHandlerMap map[uint8]PfcpFunc
 
 func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *net.UDPAddr) error {
+	log.Print("PfcpHandlerMap Handle conn.nodeAssociations", conn.nodeAssociations)
 	log.Printf("Handling PFCP message from %s", addr)
 	incomingMsg, err := message.Parse(buf)
 	if err != nil {
