@@ -228,7 +228,7 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 // @Description List QER map content
 // @Tags QER
 // @Produce  json
-// @Success 200 {object} []QerMapElement
+// @Success 200 {object} []ebpf.QerMapElement
 // @Router /qer_map [get]
 func ListQerMapContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -247,7 +247,7 @@ func ListQerMapContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 // @Tags QER
 // @Produce  json
 // @Param id path int true "Qer ID"
-// @Success 200 {object} []QerMapElement
+// @Success 200 {object} []ebpf.QerMapElement
 // @Router /qer_map/{id} [get]
 func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -283,7 +283,7 @@ func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 // @Description List UPF pipeline
 // @Tags UPF
 // @Produce  json
-// @Success 200 {object} []BpfMapProgArrayMember
+// @Success 200 {object} []ebpf.BpfMapProgArrayMember
 // @Router /upf_pipeline [get]
 func ListUpfPipeline(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {

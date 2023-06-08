@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
+	"github.com/edgecomllc/eupf/cmd/eupf/metrics"
 	"log"
 	"net"
 	"os"
@@ -85,9 +86,9 @@ func main() {
 		}
 	}()
 
-	RegisterMetrics(ForwardPlaneStats)
+	metrics.RegisterMetrics(ForwardPlaneStats)
 	go func() {
-		if err := StartMetrics(config.Conf.MetricsAddress); err != nil {
+		if err := metrics.StartMetrics(config.Conf.MetricsAddress); err != nil {
 			log.Fatalf("Could not start metrics server: %s", err.Error())
 		}
 	}()
