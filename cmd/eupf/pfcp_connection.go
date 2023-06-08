@@ -57,8 +57,8 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 }
 
 func (connection *PfcpConnection) Run() {
-	buf := make([]byte, 1500)
 	for {
+		buf := make([]byte, 1500)
 		log.Println("pfcp_connection PreReceive: ", connection.nodeAssociations)
 		n, addr, err := connection.Receive(buf)
 		log.Println("pfcp_connection AfterReceive: ", connection.nodeAssociations)
