@@ -20,6 +20,8 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 // #TODO: Research how to merge UplinkPDRs and DownlinkPDRs
 
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+	// REMOVE ME
+	log.Print("As state", conn.nodeAssociations)
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
 	remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
@@ -203,6 +205,7 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 }
 
 func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+	log.Print("As state", conn.nodeAssociations)
 	req := msg.(*message.SessionModificationRequest)
 	log.Printf("Got Session Modification Request from: %s. \n", addr)
 
