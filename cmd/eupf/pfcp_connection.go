@@ -79,6 +79,7 @@ func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, e
 }
 
 func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
+	log.Println("Connection state: ", connection.nodeAssociations)
 	err := connection.pfcpHandlerMap.Handle(connection, b, addr)
 	if err != nil {
 		log.Printf("Error handling PFCP message: %s", err.Error())
