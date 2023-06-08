@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
 	"log"
 	"net"
 	"time"
@@ -9,120 +10,7 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type Session struct {
-	LocalSEID    uint64
-	RemoteSEID   uint64
-	UplinkPDRs   map[uint32]SPDRInfo
-	DownlinkPDRs map[uint32]SPDRInfo
-	FARs         map[uint32]SFarInfo
-	QERs         map[uint32]SQerInfo
-}
-
-type SPDRInfo struct {
-	PdrInfo PdrInfo
-	Teid    uint32
-	Ipv4    net.IP
-}
-
-type SFarInfo struct {
-	FarInfo  FarInfo
-	GlobalId uint32
-}
-
-type SQerInfo struct {
-	QerInfo  QerInfo
-	GlobalId uint32
-}
-
-func (s *Session) NewFar(id uint32, internalId uint32, farInfo FarInfo) {
-	s.FARs[id] = SFarInfo{
-		FarInfo:  farInfo,
-		GlobalId: internalId,
-	}
-}
-
-func (s *Session) UpdateFar(id uint32, farInfo FarInfo) {
-	sFarInfo := s.FARs[id]
-	sFarInfo.FarInfo = farInfo
-	s.FARs[id] = sFarInfo
-}
-
-func (s *Session) GetFar(id uint32) SFarInfo {
-	return s.FARs[id]
-}
-
-func (s *Session) RemoveFar(id uint32) SFarInfo {
-	sFarInfo := s.FARs[id]
-	delete(s.FARs, id)
-	return sFarInfo
-}
-
-func (s *Session) NewQer(id uint32, internalId uint32, qerInfo QerInfo) {
-	s.QERs[id] = SQerInfo{
-		QerInfo:  qerInfo,
-		GlobalId: internalId,
-	}
-}
-
-func (s *Session) UpdateQer(id uint32, qerInfo QerInfo) {
-	sQerInfo := s.QERs[id]
-	sQerInfo.QerInfo = qerInfo
-	s.QERs[id] = sQerInfo
-}
-
-func (s *Session) GetQer(id uint32) SQerInfo {
-	return s.QERs[id]
-}
-
-func (s *Session) RemoveQer(id uint32) SQerInfo {
-	sQerInfo := s.QERs[id]
-	delete(s.QERs, id)
-	return sQerInfo
-}
-
-func (s *Session) PutUplinkPDR(id uint32, info SPDRInfo) {
-	s.UplinkPDRs[id] = info
-}
-
-func (s *Session) GetUplinkPDR(id uint16) SPDRInfo {
-	return s.UplinkPDRs[uint32(id)]
-}
-
-func (s *Session) RemoveUplinkPDR(id uint32) SPDRInfo {
-	sPdrInfo := s.UplinkPDRs[id]
-	delete(s.UplinkPDRs, id)
-	return sPdrInfo
-}
-
-func (s *Session) PutDownlinkPDR(id uint32, info SPDRInfo) {
-	s.DownlinkPDRs[id] = info
-}
-
-func (s *Session) GetDownlinkPDR(id uint16) SPDRInfo {
-	return s.DownlinkPDRs[uint32(id)]
-}
-
-func (s *Session) RemoveDownlinkPDR(id uint32) SPDRInfo {
-	sPdrInfo := s.DownlinkPDRs[id]
-	delete(s.DownlinkPDRs, id)
-	return sPdrInfo
-}
-
-type SessionMap map[uint64]Session
-
 type NodeAssociationMap map[string]NodeAssociation
-
-type NodeAssociation struct {
-	ID            string
-	Addr          string
-	NextSessionID uint64
-	Sessions      SessionMap
-}
-
-func (association *NodeAssociation) NewLocalSEID() uint64 {
-	association.NextSessionID += 1
-	return association.NextSessionID
-}
 
 type PfcpConnection struct {
 	udpConn          *net.UDPConn
@@ -131,10 +19,10 @@ type PfcpConnection struct {
 	nodeId           string
 	nodeAddrV4       net.IP
 	n3Address        net.IP
-	mapOperations    ForwardingPlaneController
+	mapOperations    ebpf.ForwardingPlaneController
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ForwardingPlaneController) (*PfcpConnection, error) {
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Panicf("Can't resolve UDP address: %s", err.Error())
@@ -212,4 +100,20 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 		return err
 	}
 	return nil
+}
+
+func (connection *PfcpConnection) AddAssociation(id string, association NodeAssociation) {
+	log.Printf("AddAssociation: %s, %v\n", id, association)
+	connection.nodeAssociations[id] = association
+}
+
+func (connection *PfcpConnection) GetAssociation(id string) (NodeAssociation, bool) {
+	log.Printf("GetAssociation: %s\n", id)
+	na, ok := connection.nodeAssociations[id]
+	return na, ok
+}
+
+func (connection *PfcpConnection) UpdateAssociation(id string, association NodeAssociation) {
+	log.Printf("UpdateAssociation: %s, %v\n", id, association)
+	connection.nodeAssociations[id] = association
 }

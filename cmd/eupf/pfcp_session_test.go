@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
 	"net"
 	"testing"
 
@@ -10,16 +11,16 @@ import (
 type MockController struct {
 }
 
-func (mock *MockController) PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error {
+func (mock *MockController) PutPdrUpLink(teid uint32, pdrInfo ebpf.PdrInfo) error {
 	return nil
 }
-func (mock *MockController) PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
+func (mock *MockController) PutPdrDownLink(ipv4 net.IP, pdrInfo ebpf.PdrInfo) error {
 	return nil
 }
-func (mock *MockController) UpdatePdrUpLink(teid uint32, pdrInfo PdrInfo) error {
+func (mock *MockController) UpdatePdrUpLink(teid uint32, pdrInfo ebpf.PdrInfo) error {
 	return nil
 }
-func (mock *MockController) UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
+func (mock *MockController) UpdatePdrDownLink(ipv4 net.IP, pdrInfo ebpf.PdrInfo) error {
 	return nil
 }
 func (mock *MockController) DeletePdrUpLink(teid uint32) error {
@@ -28,19 +29,19 @@ func (mock *MockController) DeletePdrUpLink(teid uint32) error {
 func (mock *MockController) DeletePdrDownLink(ipv4 net.IP) error {
 	return nil
 }
-func (mock *MockController) NewFar(farInfo FarInfo) (uint32, error) {
+func (mock *MockController) NewFar(farInfo ebpf.FarInfo) (uint32, error) {
 	return 0, nil
 }
-func (mock *MockController) UpdateFar(internalId uint32, farInfo FarInfo) error {
+func (mock *MockController) UpdateFar(internalId uint32, farInfo ebpf.FarInfo) error {
 	return nil
 }
 func (mock *MockController) DeleteFar(internalId uint32) error {
 	return nil
 }
-func (mock *MockController) NewQer(qerInfo QerInfo) (uint32, error) {
+func (mock *MockController) NewQer(qerInfo ebpf.QerInfo) (uint32, error) {
 	return 0, nil
 }
-func (mock *MockController) UpdateQer(internalId uint32, qerInfo QerInfo) error {
+func (mock *MockController) UpdateQer(internalId uint32, qerInfo ebpf.QerInfo) error {
 	return nil
 }
 func (mock *MockController) DeleteQer(internalId uint32) error {
@@ -53,7 +54,7 @@ func Test_applyDownlinkPDR(t *testing.T) {
 		spdrInfo      SPDRInfo
 		pdrId         uint16
 		session       *Session
-		mapOperations ForwardingPlaneController
+		mapOperations ebpf.ForwardingPlaneController
 	}
 
 	sessions := []Session{
@@ -88,7 +89,7 @@ func Test_applyDownlinkPDR(t *testing.T) {
 				spdrInfo      SPDRInfo
 				pdrId         uint16
 				session       *Session
-				mapOperations ForwardingPlaneController
+				mapOperations ebpf.ForwardingPlaneController
 			}{
 				pdi: ie.NewPDI(
 					ie.NewUEIPAddress(0x02, "1.1.1.1", "", 0, 0),
@@ -107,7 +108,7 @@ func Test_applyDownlinkPDR(t *testing.T) {
 				spdrInfo      SPDRInfo
 				pdrId         uint16
 				session       *Session
-				mapOperations ForwardingPlaneController
+				mapOperations ebpf.ForwardingPlaneController
 			}{
 				pdi: ie.NewPDI(
 					ie.NewUEIPAddress(0x02, "2.2.2.2", "", 0, 0),

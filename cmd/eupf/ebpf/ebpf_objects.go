@@ -1,8 +1,6 @@
-package main
+package ebpf
 
 import (
-	"errors"
-	"github.com/RoaringBitmap/roaring"
 	"github.com/edgecomllc/eupf/cmd/eupf/config"
 	"io"
 	"log"
@@ -19,10 +17,10 @@ import (
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf upf_xdp 			xdp/upf_program.c -- -I. -O2 -Wall
 
 type BpfObjects struct {
-	upf_xdpObjects
-	far_programObjects
-	qer_programObjects
-	ip_entrypointObjects
+	Upf_xdpObjects
+	Far_programObjects
+	Qer_programObjects
+	Ip_entrypointObjects
 
 	FarIdTracker *IdTracker
 	QerIdTracker *IdTracker
@@ -53,23 +51,23 @@ func (bpfObjects *BpfObjects) Load() error {
 	}
 
 	return LoadAllObjects(&collectionOptions,
-		Loader{loadUpf_xdpObjects, &bpfObjects.upf_xdpObjects},
-		Loader{loadFar_programObjects, &bpfObjects.far_programObjects},
-		Loader{loadQer_programObjects, &bpfObjects.qer_programObjects},
-		Loader{loadIp_entrypointObjects, &bpfObjects.ip_entrypointObjects})
+		Loader{loadUpf_xdpObjects, &bpfObjects.Upf_xdpObjects},
+		Loader{loadFar_programObjects, &bpfObjects.Far_programObjects},
+		Loader{loadQer_programObjects, &bpfObjects.Qer_programObjects},
+		Loader{loadIp_entrypointObjects, &bpfObjects.Ip_entrypointObjects})
 }
 
 func (bpfObjects *BpfObjects) Close() error {
 	return CloseAllObjects(
-		&bpfObjects.upf_xdpObjects,
-		&bpfObjects.far_programObjects,
-		&bpfObjects.qer_programObjects,
-		&bpfObjects.ip_entrypointObjects,
+		&bpfObjects.Upf_xdpObjects,
+		&bpfObjects.Far_programObjects,
+		&bpfObjects.Qer_programObjects,
+		&bpfObjects.Ip_entrypointObjects,
 	)
 }
 
-func (bpfObjects *BpfObjects) buildPipeline() {
-	upfPipeline := bpfObjects.upf_xdpObjects.UpfPipeline
+func (bpfObjects *BpfObjects) BuildPipeline() {
+	upfPipeline := bpfObjects.Upf_xdpObjects.UpfPipeline
 	upfMainProgram := bpfObjects.UpfFunc
 	farProgram := bpfObjects.UpfFarProgramFunc
 	qerProgram := bpfObjects.UpfQerProgramFunc
@@ -188,39 +186,4 @@ func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32
 	}
 
 	return nil
-}
-
-type IdTracker struct {
-	bitmap  *roaring.Bitmap
-	maxSize uint32
-}
-
-func NewIdTracker(size uint32) *IdTracker {
-	newBitmap := roaring.NewBitmap()
-	newBitmap.Flip(0, uint64(size))
-
-	return &IdTracker{
-		bitmap:  newBitmap,
-		maxSize: size,
-	}
-}
-
-func (t *IdTracker) GetNext() (next uint32, err error) {
-
-	i := t.bitmap.Iterator()
-	if i.HasNext() {
-		next := i.Next()
-		t.bitmap.Remove(next)
-		return next, nil
-	}
-
-	return 0, errors.New("pool is empty")
-}
-
-func (t *IdTracker) Release(id uint32) {
-	if id >= t.maxSize {
-		return
-	}
-
-	t.bitmap.Add(id)
 }

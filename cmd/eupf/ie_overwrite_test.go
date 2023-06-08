@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
 	"net"
 	"testing"
 
@@ -10,9 +11,9 @@ import (
 )
 
 func TestBugIeGetsOverwrittenOnlyGodKnowsWhy(t *testing.T) {
-	bpfObjects := &BpfObjects{
-		FarIdTracker: NewIdTracker(100),
-		QerIdTracker: NewIdTracker(100),
+	bpfObjects := &ebpf.BpfObjects{
+		FarIdTracker: ebpf.NewIdTracker(100),
+		QerIdTracker: ebpf.NewIdTracker(100),
 	}
 	if err := bpfObjects.Load(); err != nil {
 		t.Errorf("Loading bpf objects failed: %s", err.Error())

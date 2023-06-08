@@ -1,4 +1,4 @@
-package main
+package ebpf
 
 import (
 	"encoding/binary"

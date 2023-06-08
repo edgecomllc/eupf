@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
 	"log"
 	"net"
 	"net/http"
@@ -22,7 +23,7 @@ type ApiServer struct {
 	router *gin.Engine
 }
 
-func CreateApiServer(bpfObjects *BpfObjects, pfcpSrv *PfcpConnection, forwardPlaneStats UpfXdpActionStatistic) *ApiServer {
+func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwardPlaneStats ebpf.UpfXdpActionStatistic) *ApiServer {
 	router := gin.Default()
 	eupfDocs.SwaggerInfo.BasePath = "/api/v1"
 	v1 := router.Group("/api/v1")
@@ -69,7 +70,7 @@ type XdpStats struct {
 // @Produce  json
 // @Success 200 {object} XdpStats
 // @Router /xdp_stats [get]
-func DisplayXdpStatistics(forwardPlaneStats UpfXdpActionStatistic) func(c *gin.Context) {
+func DisplayXdpStatistics(forwardPlaneStats ebpf.UpfXdpActionStatistic) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		c.IndentedJSON(http.StatusOK, XdpStats{
 			Aborted:  forwardPlaneStats.GetAborted(),
@@ -229,9 +230,9 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 // @Produce  json
 // @Success 200 {object} []QerMapElement
 // @Router /qer_map [get]
-func ListQerMapContent(bpfObjects *BpfObjects) func(c *gin.Context) {
+func ListQerMapContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if elements, err := ListQerMapContents(bpfObjects.ip_entrypointObjects.QerMap); err != nil {
+		if elements, err := ebpf.ListQerMapContents(bpfObjects.Ip_entrypointObjects.QerMap); err != nil {
 			log.Printf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
@@ -248,7 +249,7 @@ func ListQerMapContent(bpfObjects *BpfObjects) func(c *gin.Context) {
 // @Param id path int true "Qer ID"
 // @Success 200 {object} []QerMapElement
 // @Router /qer_map/{id} [get]
-func GetQerContent(bpfObjects *BpfObjects) func(c *gin.Context) {
+func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		aid, err := strconv.Atoi(id)
@@ -258,15 +259,15 @@ func GetQerContent(bpfObjects *BpfObjects) func(c *gin.Context) {
 			return
 		}
 
-		var value QerInfo
+		var value ebpf.QerInfo
 
-		if err = bpfObjects.ip_entrypointObjects.QerMap.Lookup(uint32(aid), unsafe.Pointer(&value)); err != nil {
+		if err = bpfObjects.Ip_entrypointObjects.QerMap.Lookup(uint32(aid), unsafe.Pointer(&value)); err != nil {
 			log.Printf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.IndentedJSON(http.StatusOK, QerMapElement{
+		c.IndentedJSON(http.StatusOK, ebpf.QerMapElement{
 			Id:           uint32(aid),
 			GateStatusUL: value.GateStatusUL,
 			GateStatusDL: value.GateStatusDL,
@@ -284,9 +285,9 @@ func GetQerContent(bpfObjects *BpfObjects) func(c *gin.Context) {
 // @Produce  json
 // @Success 200 {object} []BpfMapProgArrayMember
 // @Router /upf_pipeline [get]
-func ListUpfPipeline(bpfObjects *BpfObjects) func(c *gin.Context) {
+func ListUpfPipeline(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if elements, err := ListMapProgArrayContents(bpfObjects.upf_xdpObjects.UpfPipeline); err != nil {
+		if elements, err := ebpf.ListMapProgArrayContents(bpfObjects.Upf_xdpObjects.UpfPipeline); err != nil {
 			log.Printf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {

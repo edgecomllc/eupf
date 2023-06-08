@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
 	"net/http"
 	"time"
 
@@ -50,7 +51,7 @@ func StartMetrics(addr string) error {
 	return err
 }
 
-func RegisterMetrics(stats UpfXdpActionStatistic) {
+func RegisterMetrics(stats ebpf.UpfXdpActionStatistic) {
 	// Metrics for the upf_xdp_statistic (xdp_action)
 	UpfXdpAborted = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_aborted",
@@ -94,10 +95,10 @@ func RegisterMetrics(stats UpfXdpActionStatistic) {
 	prometheus.MustRegister(UpfXdpRedirect)
 
 	// Used for getting difference between two counters to increment the prometheus counter (counters cannot be written only incremented)
-	var prevUpfCounters UpfCounters
+	var prevUpfCounters ebpf.UpfCounters
 	go func() {
 		time.Sleep(2 * time.Second)
-		RxPacketCounters := stats.getUpfExtStatField()
+		RxPacketCounters := stats.GetUpfExtStatField()
 		UpfRx.WithLabelValues("Arp").Add(float64(RxPacketCounters.RxArp - prevUpfCounters.RxArp))
 		UpfRx.WithLabelValues("Icmp").Add(float64(RxPacketCounters.RxIcmp - prevUpfCounters.RxIcmp))
 		UpfRx.WithLabelValues("Icmp6").Add(float64(RxPacketCounters.RxIcmp6 - prevUpfCounters.RxIcmp6))

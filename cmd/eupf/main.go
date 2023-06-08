@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
 	"log"
 	"net"
 	"os"
@@ -19,11 +20,11 @@ func main() {
 
 	config.Init()
 
-	if err := IncreaseResourceLimits(); err != nil {
+	if err := ebpf.IncreaseResourceLimits(); err != nil {
 		log.Fatalf("Can't increase resource limits: %s", err.Error())
 	}
 
-	bpfObjects := NewBpfObjects()
+	bpfObjects := ebpf.NewBpfObjects()
 	if err := bpfObjects.Load(); err != nil {
 		log.Fatalf("Loading bpf objects failed: %s", err.Error())
 	}
@@ -34,7 +35,7 @@ func main() {
 
 	defer bpfObjects.Close()
 
-	bpfObjects.buildPipeline()
+	bpfObjects.BuildPipeline()
 
 	for _, ifaceName := range config.Conf.InterfaceName {
 		iface, err := net.InterfaceByName(ifaceName)
@@ -72,8 +73,8 @@ func main() {
 	go pfcpConn.Run()
 	defer pfcpConn.Close()
 
-	ForwardPlaneStats := UpfXdpActionStatistic{
-		bpfObjects: bpfObjects,
+	ForwardPlaneStats := ebpf.UpfXdpActionStatistic{
+		BpfObjects: bpfObjects,
 	}
 
 	// Start api server
