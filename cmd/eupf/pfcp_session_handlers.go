@@ -105,14 +105,14 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 						continue
 					}
 
-					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
+					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
 					}
 				}
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
-					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
+					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
 					}
@@ -353,14 +353,14 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 						continue
 					}
 
-					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
+					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
 					}
 				}
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
-					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
+					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
 					}
@@ -390,7 +390,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				{
 					spdrInfo := session.GetUplinkPDR(pdrId)
 					updateSPDRInfo(pdr, &spdrInfo, session)
-					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
+					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
 					}
@@ -399,7 +399,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				{
 					spdrInfo := session.GetDownlinkPDR(pdrId)
 					updateSPDRInfo(pdr, &spdrInfo, session)
-					err = applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
+					err = applyDownlinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
 					}
@@ -541,12 +541,11 @@ func causeToString(cause uint8) string {
 	}
 }
 
-func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Session, mapOperations ForwardingPlaneController) error {
+func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Session, mapOperations ForwardingPlaneController) error {
 	// IE Type F-TEID
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 {
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 			spdrInfo.Teid = fteid.TEID
-			log.Printf("Saving uplink PDR info to session: %d, %+v", pdrId, spdrInfo)
 			session.PutUplinkPDR(uint32(pdrId), spdrInfo)
 			if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
 				log.Printf("Can't put uplink PDR: %s", err.Error())
@@ -561,12 +560,19 @@ func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Sessi
 	return nil
 }
 
-func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Session, mapOperations ForwardingPlaneController) error {
+func dupIP(ip net.IP) net.IP {
+	dup := make(net.IP, len(ip))
+	copy(dup, ip)
+	return dup
+}
+
+func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Session, mapOperations ForwardingPlaneController) error {
 	// IE Type UE IP Address
 	if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
 		ueIp, _ := pdi[ueipPdiId].UEIPAddress()
 		if ueIp.IPv4Address != nil {
-			spdrInfo.Ipv4 = ueIp.IPv4Address
+			// net.IP is a trap, it needs to be copied, otherwise it will be overwritten by next packet.
+			spdrInfo.Ipv4 = dupIP(ueIp.IPv4Address)
 		} else {
 			log.Print("WARN: No IPv4 address")
 		}
@@ -574,10 +580,9 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session Ses
 			log.Print("WARN: UE IPv6 not supported yet, ignoring")
 			return fmt.Errorf("IPv6 not supported")
 		}
-		log.Printf("Saving downlink PDR info to session: %d, %+v", pdrId, spdrInfo)
 		session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
 		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-			log.Printf("Can't put uplink PDR: %s", err.Error())
+			log.Printf("Can't put downlink PDR: %s", err.Error())
 		}
 	} else {
 		log.Println("UE IP Address IE missing")
