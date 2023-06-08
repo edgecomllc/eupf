@@ -16,9 +16,10 @@ type PfcpHandlerMap map[uint8]PfcpFunc
 
 func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *net.UDPAddr) error {
 	defer log.Print("DEFERED PfcpHandlerMap Handle conn.nodeAssociations", conn.nodeAssociations)
-	log.Print("PfcpHandlerMap Handle conn.nodeAssociations", conn.nodeAssociations)
+	log.Print("preparse conn.nodeAssociations", conn.nodeAssociations)
 	log.Printf("Handling PFCP message from %s", addr)
 	incomingMsg, err := message.Parse(buf)
+	log.Println("Adter prarse", conn.nodeAssociations)
 	if err != nil {
 		log.Printf("Ignored undecodable message: %x, error: %s", buf, err)
 		return err
