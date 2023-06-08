@@ -12,6 +12,7 @@ RUN go install github.com/swaggo/swag/cmd/swag@v1.8.12
 COPY go.mod go.sum ./
 COPY cmd/eupf cmd/eupf
 
+RUN go generate -v ./cmd/eupf/ebpf/
 RUN go generate -v ./cmd/eupf
 RUN CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/eupf
 
