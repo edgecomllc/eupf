@@ -30,7 +30,7 @@ func TestBuffer(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error resolving UDP address: %s", err)
 	}
-	udpConn, err := net.ListenUDP("udp", udpAddr)
+	udpConn, _ := net.ListenUDP("udp", udpAddr)
 	pfcpConn := PfcpConnection{
 		nodeAssociations: NodeAssociationMap{},
 		nodeId:           "test-node",

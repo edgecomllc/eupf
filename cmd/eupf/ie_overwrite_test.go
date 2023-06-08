@@ -86,13 +86,13 @@ func TestSessionOverwrite(t *testing.T) {
 	)
 
 	// Send first request
-	response, err = handlePfcpSessionEstablishmentRequest(&pfcpConn, seReq1, udpAddr)
+	_, err = handlePfcpSessionEstablishmentRequest(&pfcpConn, seReq1, udpAddr)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
 
 	// Send second request
-	response, err = handlePfcpSessionEstablishmentRequest(&pfcpConn, seReq2, udpAddr)
+	_, err = handlePfcpSessionEstablishmentRequest(&pfcpConn, seReq2, udpAddr)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
@@ -121,7 +121,7 @@ func TestSessionOverwrite(t *testing.T) {
 	)
 
 	// Send modification request
-	response, err = handlePfcpSessionModificationRequest(&pfcpConn, smReq, udpAddr)
+	_, err = handlePfcpSessionModificationRequest(&pfcpConn, smReq, udpAddr)
 	if err != nil {
 		t.Errorf("Error handling session modification request: %s", err)
 	}
