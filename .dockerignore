@@ -2,3 +2,15 @@
 .deploy/
 .github/
 README.md
+
+.idea/
+build/
+cmake-build-*/
+launch.json
+settings.json
+.vscode/
+bin
+cmd/eupf/docs
+
+*.o
+*_bpf.go

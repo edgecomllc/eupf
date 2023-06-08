@@ -9,12 +9,12 @@ import (
 	"github.com/cilium/ebpf"
 )
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf ip_entrypoint 	xdp/n3n6_entrypoint.c -- -I. -O2 -Wall -g
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf n3_entrypoint 	xdp/n3_entrypoint.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf n6_entrypoint 	xdp/n6_entrypoint.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf qer_program 		xdp/qer_program.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf far_program 		xdp/far_program.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf upf_xdp 			xdp/upf_program.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf Ip_entrypoint 	xdp/n3n6_entrypoint.c -- -I. -O2 -Wall -g
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N3_entrypoint 	xdp/n3_entrypoint.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N6_entrypoint 	xdp/n6_entrypoint.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf Qer_program 		xdp/qer_program.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf Far_program 		xdp/far_program.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf Upf_xdp 			xdp/upf_program.c -- -I. -O2 -Wall
 
 type BpfObjects struct {
 	Upf_xdpObjects
@@ -51,10 +51,10 @@ func (bpfObjects *BpfObjects) Load() error {
 	}
 
 	return LoadAllObjects(&collectionOptions,
-		Loader{loadUpf_xdpObjects, &bpfObjects.Upf_xdpObjects},
-		Loader{loadFar_programObjects, &bpfObjects.Far_programObjects},
-		Loader{loadQer_programObjects, &bpfObjects.Qer_programObjects},
-		Loader{loadIp_entrypointObjects, &bpfObjects.Ip_entrypointObjects})
+		Loader{LoadUpf_xdpObjects, &bpfObjects.Upf_xdpObjects},
+		Loader{LoadFar_programObjects, &bpfObjects.Far_programObjects},
+		Loader{LoadQer_programObjects, &bpfObjects.Qer_programObjects},
+		Loader{LoadIp_entrypointObjects, &bpfObjects.Ip_entrypointObjects})
 }
 
 func (bpfObjects *BpfObjects) Close() error {

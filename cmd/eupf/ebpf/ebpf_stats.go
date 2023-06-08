@@ -47,7 +47,7 @@ func (current *UpfCounters) Add(new UpfCounters) {
 func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint64 {
 
 	var statistics []UpfStatistic
-	err := stat.BpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
+	err := stat.BpfObjects.Ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
 	if err != nil {
 		log.Println(err)
 		return 0
@@ -87,7 +87,7 @@ func (stat *UpfXdpActionStatistic) GetUpfExtStatField() UpfCounters {
 
 	var statistics []UpfStatistic
 	var counters UpfCounters
-	err := stat.BpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
+	err := stat.BpfObjects.Ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
 	if err != nil {
 		log.Println(err)
 		return counters
