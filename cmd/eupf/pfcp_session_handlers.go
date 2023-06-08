@@ -20,8 +20,6 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 // #TODO: Research how to merge UplinkPDRs and DownlinkPDRs
 
 func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
-	// REMOVE ME
-	log.Print("As state", conn.nodeAssociations)
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
 	remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
@@ -205,7 +203,6 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 }
 
 func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
-	log.Print("As state", conn.nodeAssociations)
 	req := msg.(*message.SessionModificationRequest)
 	log.Printf("Got Session Modification Request from: %s. \n", addr)
 
@@ -560,12 +557,19 @@ func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Sess
 	return nil
 }
 
+func dupIP(ip net.IP) net.IP {
+	dup := make(net.IP, len(ip))
+	copy(dup, ip)
+	return dup
+}
+
 func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Session, mapOperations ebpf.ForwardingPlaneController) error {
 	// IE Type UE IP Address
 	if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
 		ueIp, _ := pdi[ueipPdiId].UEIPAddress()
 		if ueIp.IPv4Address != nil {
-			spdrInfo.Ipv4 = ueIp.IPv4Address
+			// net.IP is a trap, it needs to be copied, otherwise it will be overwritten by next packet.
+			spdrInfo.Ipv4 = dupIP(ueIp.IPv4Address)
 		} else {
 			log.Print("WARN: No IPv4 address")
 		}
@@ -575,7 +579,7 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Se
 		}
 		session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
 		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-			log.Printf("Can't put uplink PDR: %s", err.Error())
+			log.Printf("Can't put downlink PDR: %s", err.Error())
 		}
 	} else {
 		log.Println("UE IP Address IE missing")

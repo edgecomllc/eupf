@@ -18,7 +18,9 @@ import (
 func main() {
 	stopper := make(chan os.Signal, 1)
 	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	if os.Getenv("DEBUG") != "" {
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+	}
 	config.Init()
 
 	if err := ebpf.IncreaseResourceLimits(); err != nil {

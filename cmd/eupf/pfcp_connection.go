@@ -57,11 +57,9 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 }
 
 func (connection *PfcpConnection) Run() {
+	buf := make([]byte, 1500)
 	for {
-		buf := make([]byte, 1500)
-		log.Println("pfcp_connection PreReceive: ", connection.nodeAssociations)
 		n, addr, err := connection.Receive(buf)
-		log.Println("pfcp_connection AfterReceive: ", connection.nodeAssociations)
 		if err != nil {
 			log.Printf("Error reading from UDP socket: %s", err.Error())
 			time.Sleep(1 * time.Second)
@@ -69,7 +67,6 @@ func (connection *PfcpConnection) Run() {
 		}
 		log.Printf("Received %d bytes from %s", n, addr)
 		connection.Handle(buf[:n], addr)
-		log.Println("pfcp_connection PreHandle: ", connection.nodeAssociations)
 	}
 }
 
@@ -82,9 +79,7 @@ func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, e
 }
 
 func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
-	log.Println("Handle Connection state: ", connection.nodeAssociations)
 	err := connection.pfcpHandlerMap.Handle(connection, b, addr)
-	log.Println(connection.nodeAssociations)
 	if err != nil {
 		log.Printf("Error handling PFCP message: %s", err.Error())
 	}
