@@ -23,6 +23,7 @@ func init() {
 	pflag.String("qersize", "", "Size of the QER ebpf map")
 	pflag.String("farsize", "", "Size of the FAR ebpf map")
 	pflag.String("pdrsize", "", "Size of the PDR ebpf map")
+	pflag.Bool("emapresize", true, "Enable or disable ebpf map resizing")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -36,6 +37,7 @@ func init() {
 	_ = v.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
 	_ = v.BindPFlag("far_map_size", pflag.Lookup("farsize"))
 	_ = v.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
+	_ = v.BindPFlag("ebpf_map_resize", pflag.Lookup("emapresize"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -47,6 +49,7 @@ func init() {
 	v.SetDefault("qer_map_size", "1024")
 	v.SetDefault("far_map_size", "1024")
 	v.SetDefault("pdr_map_size", "1024")
+	v.SetDefault("ebpf_map_resize", true)
 
 	v.SetConfigFile(*configPath)
 
@@ -71,6 +74,7 @@ type UpfConfig struct {
 	QerMapSize     uint32   `mapstructure:"qer_map_size" validate:"min=1"`
 	FarMapSize     uint32   `mapstructure:"far_map_size" validate:"min=1"`
 	PdrMapSize     uint32   `mapstructure:"pdr_map_size" validate:"min=1"`
+	EbpfMapResize  bool     `mapstructure:"ebpf_map_resize"`
 }
 
 func (c *UpfConfig) Validate() error {
