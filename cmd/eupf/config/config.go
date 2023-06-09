@@ -23,7 +23,7 @@ func init() {
 	pflag.String("qersize", "", "Size of the QER ebpf map")
 	pflag.String("farsize", "", "Size of the FAR ebpf map")
 	pflag.String("pdrsize", "", "Size of the PDR ebpf map")
-	pflag.Bool("emapresize", true, "Enable or disable ebpf map resizing")
+	pflag.Bool("emapresize", false, "Enable or disable ebpf map resizing")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -49,7 +49,7 @@ func init() {
 	v.SetDefault("qer_map_size", "1024")
 	v.SetDefault("far_map_size", "1024")
 	v.SetDefault("pdr_map_size", "1024")
-	v.SetDefault("ebpf_map_resize", true)
+	v.SetDefault("ebpf_map_resize", false)
 
 	v.SetConfigFile(*configPath)
 
