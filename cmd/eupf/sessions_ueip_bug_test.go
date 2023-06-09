@@ -9,6 +9,7 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
+// Test for the bug where the session's UE IP address is overwritten because it is a pointer to the buffer for incoming UDP packets.
 func TestSessionUEIpOverwrite(t *testing.T) {
 
 	bpfObjects := &BpfObjects{
