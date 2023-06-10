@@ -37,7 +37,7 @@ func init() {
 	_ = v.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
 	_ = v.BindPFlag("far_map_size", pflag.Lookup("farsize"))
 	_ = v.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
-	_ = v.BindPFlag("ebpf_map_resize", pflag.Lookup("emapresize"))
+	_ = v.BindPFlag("resize_ebpf_maps", pflag.Lookup("emapresize"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -49,7 +49,7 @@ func init() {
 	v.SetDefault("qer_map_size", "1024")
 	v.SetDefault("far_map_size", "1024")
 	v.SetDefault("pdr_map_size", "1024")
-	v.SetDefault("ebpf_map_resize", false)
+	v.SetDefault("resize_ebpf_maps", false)
 
 	v.SetConfigFile(*configPath)
 
@@ -74,7 +74,7 @@ type UpfConfig struct {
 	QerMapSize     uint32   `mapstructure:"qer_map_size" validate:"min=1"`
 	FarMapSize     uint32   `mapstructure:"far_map_size" validate:"min=1"`
 	PdrMapSize     uint32   `mapstructure:"pdr_map_size" validate:"min=1"`
-	EbpfMapResize  bool     `mapstructure:"ebpf_map_resize"`
+	EbpfMapResize  bool     `mapstructure:"resize_ebpf_maps"`
 }
 
 func (c *UpfConfig) Validate() error {
