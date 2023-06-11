@@ -146,9 +146,9 @@ type ForwardingPlaneController interface {
 	UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
 	DeletePdrUpLink(teid uint32) error
 	DeletePdrDownLink(ipv4 net.IP) error
-	PutPdrDownLinkIp6(ipv6 net.IP, pdrInfo PdrInfo) error
-	UpdatePdrDownLinkIp6(ipv6 net.IP, pdrInfo PdrInfo) error
-	DeletePdrDownLinkIp6(ipv6 net.IP) error
+	PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error
+	UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error
+	DeleteDownlinkPdrIp6(ipv6 net.IP) error
 	NewFar(farInfo FarInfo) (uint32, error)
 	UpdateFar(internalId uint32, farInfo FarInfo) error
 	DeleteFar(internalId uint32) error
