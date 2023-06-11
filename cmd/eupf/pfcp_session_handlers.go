@@ -581,7 +581,6 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Se
 			log.Print("WARN: No IPv4 address")
 		}
 		if ueIp.IPv6Address != nil {
-			// net.IP is a trap, it needs to be copied, otherwise it will be overwritten by next packet.
 			spdrInfo.Ipv6 = cloneIP(ueIp.IPv6Address)
 			session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
 			if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
