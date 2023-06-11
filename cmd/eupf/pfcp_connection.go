@@ -22,6 +22,7 @@ type SPDRInfo struct {
 	PdrInfo PdrInfo
 	Teid    uint32
 	Ipv4    net.IP
+	Ipv6    net.IP
 }
 
 type SFarInfo struct {

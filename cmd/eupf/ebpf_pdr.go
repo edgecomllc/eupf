@@ -50,6 +50,21 @@ func (bpfObjects *BpfObjects) DeletePdrDownLink(ipv4 net.IP) error {
 	//return o.ip_entrypointMaps.PdrMapDownlinkIp4.Delete(ipv4)
 }
 
+func (bpfObjects *BpfObjects) PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error {
+	log.Printf("EBPF: Put PDR Ipv6 Downlink: ipv6=%s, pdrInfo=%+v", ipv6, pdrInfo)
+	return bpfObjects.ip_entrypointMaps.PdrMapDownlinkIp6.Put(ipv6, unsafe.Pointer(&pdrInfo))
+}
+
+func (bpfObjects *BpfObjects) UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error {
+	log.Printf("EBPF: Update PDR Ipv6 Downlink: ipv6=%s, pdrInfo=%+v", ipv6, pdrInfo)
+	return bpfObjects.ip_entrypointMaps.PdrMapDownlinkIp6.Update(ipv6, unsafe.Pointer(&pdrInfo), ebpf.UpdateExist)
+}
+
+func (bpfObjects *BpfObjects) DeleteDownlinkPdrIp6(ipv6 net.IP) error {
+	log.Printf("EBPF: Delete PDR Ipv6 Downlink: ipv6=%s", ipv6)
+	return bpfObjects.ip_entrypointMaps.PdrMapDownlinkIp6.Delete(ipv6)
+}
+
 type FarInfo struct {
 	Action                uint8
 	OuterHeaderCreation   uint8
@@ -131,6 +146,9 @@ type ForwardingPlaneController interface {
 	UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
 	DeletePdrUpLink(teid uint32) error
 	DeletePdrDownLink(ipv4 net.IP) error
+	PutPdrDownLinkIp6(ipv6 net.IP, pdrInfo PdrInfo) error
+	UpdatePdrDownLinkIp6(ipv6 net.IP, pdrInfo PdrInfo) error
+	DeletePdrDownLinkIp6(ipv6 net.IP) error
 	NewFar(farInfo FarInfo) (uint32, error)
 	UpdateFar(internalId uint32, farInfo FarInfo) error
 	DeleteFar(internalId uint32) error
