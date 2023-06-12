@@ -583,7 +583,7 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Se
 		if ueIp.IPv6Address != nil {
 			spdrInfo.Ipv6 = cloneIP(ueIp.IPv6Address)
 			session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
-			if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
+			if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
 				log.Printf("Can't put downlink PDR: %s", err.Error())
 			}
 		}
