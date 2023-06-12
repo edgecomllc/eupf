@@ -23,7 +23,7 @@ func init() {
 	pflag.String("qersize", "", "Size of the QER ebpf map")
 	pflag.String("farsize", "", "Size of the FAR ebpf map")
 	pflag.String("pdrsize", "", "Size of the PDR ebpf map")
-	pflag.Bool("emapresize", false, "Enable or disable ebpf map resizing")
+	pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -37,7 +37,7 @@ func init() {
 	_ = v.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
 	_ = v.BindPFlag("far_map_size", pflag.Lookup("farsize"))
 	_ = v.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
-	_ = v.BindPFlag("resize_ebpf_maps", pflag.Lookup("emapresize"))
+	_ = v.BindPFlag("resize_ebpf_maps", pflag.Lookup("mapresize"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
