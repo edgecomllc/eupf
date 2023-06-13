@@ -2,16 +2,18 @@ package main
 
 import (
 	"errors"
-	"github.com/RoaringBitmap/roaring"
-	"github.com/edgecomllc/eupf/cmd/eupf/config"
 	"io"
 	"log"
 	"os"
+
+	"github.com/RoaringBitmap/roaring"
+	"github.com/edgecomllc/eupf/cmd/eupf/config"
 
 	"github.com/cilium/ebpf"
 )
 
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf ip_entrypoint 	xdp/n3n6_entrypoint.c -- -I. -O2 -Wall -g
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf zero_entrypoint 	xdp/zero_entrypoint.c -- -I. -O2 -Wall
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf n3_entrypoint 	xdp/n3_entrypoint.c -- -I. -O2 -Wall
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf n6_entrypoint 	xdp/n6_entrypoint.c -- -I. -O2 -Wall
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf qer_program 		xdp/qer_program.c -- -I. -O2 -Wall
