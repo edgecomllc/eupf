@@ -570,19 +570,23 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Se
 	// IE Type UE IP Address
 	if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
 		ueIp, _ := pdi[ueipPdiId].UEIPAddress()
+		if ueIp.IPv4Address == nil && ueIp.IPv6Address == nil {
+			return fmt.Errorf("UE IP Address IE missing")
+		}
 		if ueIp.IPv4Address != nil {
 			// net.IP is a trap, it needs to be copied, otherwise it will be overwritten by next packet.
 			spdrInfo.Ipv4 = cloneIP(ueIp.IPv4Address)
-		} else {
-			log.Print("WARN: No IPv4 address")
+			session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
+			if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+				log.Printf("Can't put downlink PDR: %s", err.Error())
+			}
 		}
 		if ueIp.IPv6Address != nil {
-			log.Print("WARN: UE IPv6 not supported yet, ignoring")
-			return fmt.Errorf("IPv6 not supported")
-		}
-		session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
-		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-			log.Printf("Can't put downlink PDR: %s", err.Error())
+			spdrInfo.Ipv6 = cloneIP(ueIp.IPv6Address)
+			session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
+			if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
+				log.Printf("Can't put downlink PDR: %s", err.Error())
+			}
 		}
 	} else {
 		log.Println("UE IP Address IE missing")
