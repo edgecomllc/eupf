@@ -37,7 +37,7 @@ jobs:
           working-directory: ./cmd/eupf
 
       - name: Test
-        run: sudo go test -v go test ./cmd/...
+        run: sudo go test -v go test ./cmd/eupf/...
 
       - name: Build
         run: go build -v -o bin/eupf ./cmd/eupf
