@@ -28,20 +28,11 @@ jobs:
       - name: Generate project dependencies
         run: go generate -v ./cmd/...
 
+      - name: Go mod tidy
+        run: go mod tidy
+
       - name: Go vet main
-        run: go vet ./cmd/eupf
-
-      - name: Go vet config
-        run: go vet ./cmd/eupf/config
-
-      - name: Go vet core
-        run: go vet ./cmd/eupf/core
-
-      - name: Go vet docs
-        run: go vet ./cmd/eupf/docs
-
-      - name: Go vet ebpf
-        run: go vet ./cmd/eupf/ebpf
+        run: go vet ./cmd/...
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
@@ -49,10 +40,7 @@ jobs:
           working-directory: ./cmd/eupf
 
       - name: Test core
-        run: sudo go test -v go test ./cmd/eupf/core
+        run: sudo go test -v go test ./cmd/...
 
-      - name: Test ebpf
-        run: sudo go test -v go test ./cmd/eupf/ebpf
-      
       - name: Build
         run: go build -v -o bin/eupf ./cmd/eupf
