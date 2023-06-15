@@ -1,11 +1,11 @@
-package main
+package ebpf
 
 import (
 	"log"
 )
 
 type UpfXdpActionStatistic struct {
-	bpfObjects *BpfObjects
+	BpfObjects *BpfObjects
 }
 
 type UpfCounters struct {
@@ -47,7 +47,7 @@ func (current *UpfCounters) Add(new UpfCounters) {
 func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint64 {
 
 	var statistics []UpfStatistic
-	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
+	err := stat.BpfObjects.Ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
 	if err != nil {
 		log.Println(err)
 		return 0
@@ -83,11 +83,11 @@ func (stat *UpfXdpActionStatistic) GetRedirect() uint64 {
 
 // Getters for the upf_ext_stat (upf_counters)
 // #TODO: Do not retrieve the whole struct each time.
-func (stat *UpfXdpActionStatistic) getUpfExtStatField() UpfCounters {
+func (stat *UpfXdpActionStatistic) GetUpfExtStatField() UpfCounters {
 
 	var statistics []UpfStatistic
 	var counters UpfCounters
-	err := stat.bpfObjects.ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
+	err := stat.BpfObjects.Ip_entrypointMaps.UpfExtStat.Lookup(uint32(0), &statistics)
 	if err != nil {
 		log.Println(err)
 		return counters

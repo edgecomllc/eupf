@@ -25,11 +25,11 @@ jobs:
       - name: Install swaggo
         run: go install github.com/swaggo/swag/cmd/swag@v1.8.12
 
-      - name: Generate Go ebpf objects
-        run: go generate -v ./cmd/eupf
+      - name: Generate project dependencies
+        run: go generate -v ./cmd/...
 
       - name: Go vet
-        run: go vet ./cmd/eupf
+        run: go vet ./cmd/...
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
@@ -37,7 +37,7 @@ jobs:
           working-directory: ./cmd/eupf
 
       - name: Test
-        run: sudo go test -v ./cmd/eupf
+        run: sudo go test -v go test ./cmd/...
 
       - name: Build
         run: go build -v -o bin/eupf ./cmd/eupf

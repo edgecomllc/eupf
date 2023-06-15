@@ -1,6 +1,7 @@
-package main
+package core
 
 import (
+	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
 	"log"
 	"net"
 	"net/http"
@@ -14,15 +15,13 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-//go:generate swag init --parseDependency
-
 // @BasePath /api/v1
 
 type ApiServer struct {
 	router *gin.Engine
 }
 
-func CreateApiServer(bpfObjects *BpfObjects, pfcpSrv *PfcpConnection, forwardPlaneStats UpfXdpActionStatistic) *ApiServer {
+func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwardPlaneStats ebpf.UpfXdpActionStatistic) *ApiServer {
 	router := gin.Default()
 	eupfDocs.SwaggerInfo.BasePath = "/api/v1"
 	v1 := router.Group("/api/v1")
@@ -69,7 +68,7 @@ type XdpStats struct {
 // @Produce  json
 // @Success 200 {object} XdpStats
 // @Router /xdp_stats [get]
-func DisplayXdpStatistics(forwardPlaneStats UpfXdpActionStatistic) func(c *gin.Context) {
+func DisplayXdpStatistics(forwardPlaneStats ebpf.UpfXdpActionStatistic) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		c.IndentedJSON(http.StatusOK, XdpStats{
 			Aborted:  forwardPlaneStats.GetAborted(),
@@ -99,11 +98,11 @@ func DisplayConfig() func(c *gin.Context) {
 // @Description List PFCP associations
 // @Tags PFCP
 // @Produce  json
-// @Success 200 {object} NodeAssociationMap
+// @Success 200 {object} core.NodeAssociationMap
 // @Router /pfcp_associations/full [get]
 func ListPfcpAssociationsFull(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		c.IndentedJSON(http.StatusOK, pfcpSrv.nodeAssociations)
+		c.IndentedJSON(http.StatusOK, pfcpSrv.NodeAssociations)
 	}
 }
 
@@ -124,7 +123,7 @@ type NodeAssociationMapNoSession map[string]NodeAssociationNoSession
 func ListPfcpAssociations(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		nodeAssociationsNoSession := make(NodeAssociationMapNoSession)
-		for k, v := range pfcpSrv.nodeAssociations {
+		for k, v := range pfcpSrv.NodeAssociations {
 			nodeAssociationsNoSession[k] = NodeAssociationNoSession{
 				ID:            v.ID,
 				Addr:          v.Addr,
@@ -186,7 +185,7 @@ func FilterSessionsByTeid(nodeMap *NodeAssociationMap, filterByTeid uint32) *Ses
 // @Produce  json
 // @Param ip query string false "ip"
 // @Param teid query int false "teid"
-// @Success 200 {object} []Session
+// @Success 200 {object} []core.Session
 // @Router /pfcp_sessions [get]
 func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -194,14 +193,14 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 		sIp := c.Query("ip")
 		sTeid := c.Query("teid")
 		if sIp == "" && sTeid == "" {
-			sessions = GetAllSessions(&pfcpSrv.nodeAssociations)
+			sessions = GetAllSessions(&pfcpSrv.NodeAssociations)
 			c.IndentedJSON(http.StatusOK, sessions)
 			return // early return if no parameters are given
 		}
 
 		if sIp != "" {
 			if ip := net.ParseIP(sIp); ip != nil {
-				if session := FilterSessionsByIP(&pfcpSrv.nodeAssociations, ip); session != nil {
+				if session := FilterSessionsByIP(&pfcpSrv.NodeAssociations, ip); session != nil {
 					sessions = append(sessions, *session) // Append session by IP match
 				}
 			} else {
@@ -211,7 +210,7 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 
 		if sTeid != "" {
 			if teid, err := strconv.Atoi(sTeid); err == nil {
-				if session := FilterSessionsByTeid(&pfcpSrv.nodeAssociations, uint32(teid)); session != nil {
+				if session := FilterSessionsByTeid(&pfcpSrv.NodeAssociations, uint32(teid)); session != nil {
 					sessions = append(sessions, *session) // Append session by TEID match
 				}
 			} else {
@@ -227,11 +226,11 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 // @Description List QER map content
 // @Tags QER
 // @Produce  json
-// @Success 200 {object} []QerMapElement
+// @Success 200 {object} []ebpf.QerMapElement
 // @Router /qer_map [get]
-func ListQerMapContent(bpfObjects *BpfObjects) func(c *gin.Context) {
+func ListQerMapContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if elements, err := ListQerMapContents(bpfObjects.ip_entrypointObjects.QerMap); err != nil {
+		if elements, err := ebpf.ListQerMapContents(bpfObjects.Ip_entrypointObjects.QerMap); err != nil {
 			log.Printf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
@@ -246,9 +245,9 @@ func ListQerMapContent(bpfObjects *BpfObjects) func(c *gin.Context) {
 // @Tags QER
 // @Produce  json
 // @Param id path int true "Qer ID"
-// @Success 200 {object} []QerMapElement
+// @Success 200 {object} []ebpf.QerMapElement
 // @Router /qer_map/{id} [get]
-func GetQerContent(bpfObjects *BpfObjects) func(c *gin.Context) {
+func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		aid, err := strconv.Atoi(id)
@@ -258,15 +257,15 @@ func GetQerContent(bpfObjects *BpfObjects) func(c *gin.Context) {
 			return
 		}
 
-		var value QerInfo
+		var value ebpf.QerInfo
 
-		if err = bpfObjects.ip_entrypointObjects.QerMap.Lookup(uint32(aid), unsafe.Pointer(&value)); err != nil {
+		if err = bpfObjects.Ip_entrypointObjects.QerMap.Lookup(uint32(aid), unsafe.Pointer(&value)); err != nil {
 			log.Printf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.IndentedJSON(http.StatusOK, QerMapElement{
+		c.IndentedJSON(http.StatusOK, ebpf.QerMapElement{
 			Id:           uint32(aid),
 			GateStatusUL: value.GateStatusUL,
 			GateStatusDL: value.GateStatusDL,
@@ -282,11 +281,11 @@ func GetQerContent(bpfObjects *BpfObjects) func(c *gin.Context) {
 // @Description List UPF pipeline
 // @Tags UPF
 // @Produce  json
-// @Success 200 {object} []BpfMapProgArrayMember
+// @Success 200 {object} []ebpf.BpfMapProgArrayMember
 // @Router /upf_pipeline [get]
-func ListUpfPipeline(bpfObjects *BpfObjects) func(c *gin.Context) {
+func ListUpfPipeline(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if elements, err := ListMapProgArrayContents(bpfObjects.upf_xdpObjects.UpfPipeline); err != nil {
+		if elements, err := ebpf.ListMapProgArrayContents(bpfObjects.Upf_xdpObjects.UpfPipeline); err != nil {
 			log.Printf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
