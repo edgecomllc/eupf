@@ -11,9 +11,9 @@ deploymentStrategy:
   type: RollingUpdate
 
 image:
-  registry: example.com
-  repository: repo
-  name: app
+  registry: ghcr.io
+  repository: edgecomllc
+  name: eupf
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
   pullPolicy: IfNotPresent
@@ -64,12 +64,42 @@ configMaps: {}
 volumes: {}
   # - name: config
   #   configMap:
-  #     name: "universal-chart-config"
+  #     name: "eupf-config"
 
 # volume mounts
 volumeMounts: {}
   # - name: config
   #   mountPath: /app/conf
+
+hostNetwork: false
+
+xdpProgrammInstall:
+  enabled: false
+  securityContext:
+    capabilities:
+      add:
+        - NET_ADMIN
+    privileged: true
+    runAsNonRoot: false
+  env:
+    - name: POD_N6_IP
+      value: 10.100.100.12
+  command:
+    - /bin/sh
+    - -c
+    - |
+      echo "starting"; \
+      i=0; IFACE_NAME=""; \
+      while [ -z "$IFACE_NAME" ]; \
+      do \
+        echo "check $i: searching interface name"; sleep 1; \
+        IFACE_NAME=$(ip route list ${POD_N6_IP} | awk '{print $3}'); \
+        i=$((i+1)); \
+      done ;\
+      echo "done: current interface name is ${IFACE_NAME}" ;\
+      set -x ;\
+      ls -alh /app ;\
+      ip link set dev ${IFACE_NAME} xdpdrv obj /app/zero_entrypoint_bpf.o sec xdp/upf_zero_entrypoint
 
 serviceAccount:
   # Specifies whether a service account should be created

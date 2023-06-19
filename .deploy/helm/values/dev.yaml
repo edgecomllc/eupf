@@ -1,12 +1,11 @@
 ---
 
-replicaCount: 1
+global:
+  imagePullPolicy: Always
 
 image:
-  registry: ghcr.io
-  repository: edgecomllc
-  name: eupf
-  tag: ""
+  # tag: main
+  tag: xdp-program-install
 
 args:
   - --config
@@ -15,6 +14,11 @@ args:
 securityContext:
   privileged: true
 
+podSecurityContext:
+  sysctls:
+  - name: net.ipv4.ip_forward
+    value: "1"
+
 configMaps:
   config:
     data:
@@ -22,8 +26,11 @@ configMaps:
         interface_name: eth0
         api_address: :8080
         pfcp_address: :8805
-        pfcp_node_id: localhost
         metrics_address: :9090
+
+env:
+  UPF_PFCP_NODE_ID: $(MY_POD_IP)
+  UPF_N3_ADDRESS: $(MY_POD_IP)
 
 volumes:
   - name: sys
@@ -31,7 +38,7 @@ volumes:
       path: /sys
   - name: config
     configMap:
-      name: eupf-universal-chart-config
+      name: eupf-config
 
 volumeMounts:
   - name: sys
@@ -49,9 +56,6 @@ metrics:
     endpoints:
       port: metrics
       path: "/metrics"
-
-imagePullSecrets:
-  - name: gh-container-registry
 
 extraContainerPorts:
   - name: metrics

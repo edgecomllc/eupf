@@ -13,6 +13,6 @@ jobs:
     with:
       kube_context: "edgecom-dev"
       environment_name: "dev"
-      helm_cmd_args: "--wait --timeout 60s --values .deploy/helm/values/dev.yaml"
+      helm_cmd_args: "--wait --timeout 60s --values .deploy/helm/values/dev.yaml --set image.tag=${{ github.sha }}"
     secrets:
       kube_config: ${{ secrets.KUBE_CONFIG_DEV }}

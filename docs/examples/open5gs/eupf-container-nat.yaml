@@ -22,11 +22,14 @@ podSecurityContext:
   - name: net.ipv4.ip_forward
     value: "1"
 
+deploymentStrategy:
+  type: Recreate
+
 configMaps:
   config:
     data:
       config.yml: |
-        interface_name: [eth0, n6]
+        interface_name: eth0
         api_address: :8080
         pfcp_address: :8805
         metrics_address: :9090
@@ -54,7 +57,7 @@ volumes:
       path: /sys
   - name: config
     configMap:
-      name: edgecomllc-eupf-universal-chart-config
+      name: eupf-config
       defaultMode: 420
       items:
         - key: config.yml
@@ -72,7 +75,7 @@ volumeMounts:
     mountPath: /app/conf
 
 metrics:
-  enabled: true
+  enabled: false
   serviceMonitor:
     enabled: true
     additionalLabels:
@@ -81,9 +84,6 @@ metrics:
       port: metrics
       path: "/metrics"
 
-imagePullSecrets:
-  - name: gh-container-registry
-
 extraContainerPorts:
   - name: gtpu
     containerPort: 2152
@@ -91,9 +91,6 @@ extraContainerPorts:
   - name: pfcp
     containerPort: 8805
     protocol: UDP
-  - name: metrics
-    containerPort: 9090
-    protocol: TCP
 
 service:
   type: ClusterIP
@@ -107,10 +104,6 @@ service:
       targetPort: pfcp
       protocol: UDP
       name: pfcp
-    - port: 9090
-      targetPort: metrics
-      protocol: TCP
-      name: metrics
 
 resources:
   limits:
@@ -132,11 +125,5 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 10
 
-podAnnotations:
-  k8s.v1.cni.cncf.io/networks: |
-    [
-      { "name": "edgecomllc-eupf-nat-n6",
-        "interface": "n6",
-        "ips": [ "10.99.0.10/24" ]
-      }
-    ]
+xdpProgrammInstall:
+  enabled: false

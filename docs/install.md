@@ -38,7 +38,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
 
       ```powershell
       helm upgrade --install \
-         edgecomllc-eupf .deploy/helm/universal-chart \
+         edgecomllc-eupf .deploy/helm/eupf \
          --values docs/examples/open5gs/eupf-host-nat.yaml \
          -n open5gs \
          --wait --timeout 100s --create-namespace
@@ -57,7 +57,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
 
       ```powershell
       helm upgrade --install \
-         edgecomllc-eupf .deploy/helm/universal-chart \
+         edgecomllc-eupf .deploy/helm/eupf \
          --values docs/examples/open5gs/eupf-container-nat.yaml \
          -n open5gs \
          --wait --timeout 100s --create-namespace
@@ -140,7 +140,7 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 
 	```powershell
 	helm upgrade --install \
-		edgecomllc-eupf .deploy/helm/universal-chart \
+		edgecomllc-eupf .deploy/helm/eupf \
 		--values docs/examples/free5gc/eupf-host-nat.yaml \
 		-n free5gc \
 		--wait --timeout 100s --create-namespace
@@ -162,7 +162,7 @@ Deployment configuration is derived from towards5gs-helm project [Setup free5gc]
 
 	```powershell
 	helm upgrade --install \
-		edgecomllc-eupf .deploy/helm/universal-chart \
+		edgecomllc-eupf .deploy/helm/eupf \
 		--values docs/examples/free5gc/eupf-container-nat.yaml \
 		-n free5gc \
 		--wait --timeout 100s --create-namespace
