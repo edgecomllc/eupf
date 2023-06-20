@@ -3,7 +3,7 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
 

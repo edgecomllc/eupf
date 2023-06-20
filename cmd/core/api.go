@@ -1,15 +1,15 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
 	"net/http"
 	"strconv"
 	"unsafe"
 
-	"github.com/edgecomllc/eupf/cmd/eupf/config"
-	eupfDocs "github.com/edgecomllc/eupf/cmd/eupf/docs"
+	"github.com/edgecomllc/eupf/cmd/config"
+	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"

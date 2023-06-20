@@ -2,7 +2,7 @@ package core
 
 import (
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
 	"time"

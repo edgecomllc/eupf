@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/edgecomllc/eupf/cmd/eupf/core"
-	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
+	"github.com/edgecomllc/eupf/cmd/core"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
 	"os"
@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf/link"
-	"github.com/edgecomllc/eupf/cmd/eupf/config"
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/wmnsk/go-pfcp/message"
 )
 

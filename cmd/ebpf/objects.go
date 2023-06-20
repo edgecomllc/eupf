@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/edgecomllc/eupf/cmd/eupf/config"
+	"github.com/edgecomllc/eupf/cmd/config"
 
 	"github.com/cilium/ebpf"
 )

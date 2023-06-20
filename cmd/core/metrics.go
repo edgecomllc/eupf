@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/eupf/ebpf"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"net/http"
 	"time"
 
