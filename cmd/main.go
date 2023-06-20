@@ -1,14 +1,15 @@
 package main
 
 import (
-	"github.com/edgecomllc/eupf/cmd/core"
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/core"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/cilium/ebpf/link"
 	"github.com/edgecomllc/eupf/cmd/config"
@@ -104,7 +105,7 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			// s, err := FormatMapContents(bpfObjects.Upf_xdpObjects.UpfPipeline)
+			// s, err := FormatMapContents(bpfObjects.UpfXdpObjects.UpfPipeline)
 			// if err != nil {
 			// 	log.Printf("Error reading map: %s", err)
 			// 	continue

@@ -1,12 +1,13 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
 	"net/http"
 	"strconv"
 	"unsafe"
+
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
@@ -230,7 +231,7 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 // @Router /qer_map [get]
 func ListQerMapContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if elements, err := ebpf.ListQerMapContents(bpfObjects.Ip_entrypointObjects.QerMap); err != nil {
+		if elements, err := ebpf.ListQerMapContents(bpfObjects.IpEntrypointObjects.QerMap); err != nil {
 			log.Printf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
@@ -259,7 +260,7 @@ func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 
 		var value ebpf.QerInfo
 
-		if err = bpfObjects.Ip_entrypointObjects.QerMap.Lookup(uint32(aid), unsafe.Pointer(&value)); err != nil {
+		if err = bpfObjects.IpEntrypointObjects.QerMap.Lookup(uint32(aid), unsafe.Pointer(&value)); err != nil {
 			log.Printf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -285,7 +286,7 @@ func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 // @Router /upf_pipeline [get]
 func ListUpfPipeline(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if elements, err := ebpf.ListMapProgArrayContents(bpfObjects.Upf_xdpObjects.UpfPipeline); err != nil {
+		if elements, err := ebpf.ListMapProgArrayContents(bpfObjects.UpfXdpObjects.UpfPipeline); err != nil {
 			log.Printf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {

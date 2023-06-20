@@ -39,7 +39,7 @@ func testArp(bpfObjects *BpfObjects) error {
 		return fmt.Errorf("serializing input packet failed: %v", err)
 	}
 
-	bpfRet, bufOut, err := bpfObjects.Ip_entrypointPrograms.UpfIpEntrypointFunc.Test(packetArp.Bytes())
+	bpfRet, bufOut, err := bpfObjects.UpfIpEntrypointFunc.Test(packetArp.Bytes())
 	if err != nil {
 		return fmt.Errorf("test run failed: %v", err)
 	}
@@ -83,7 +83,7 @@ func testGtpEcho(bpfObjects *BpfObjects) error {
 		return fmt.Errorf("serializing input packet failed: %v", err)
 	}
 
-	bpfRet, bufOut, err := bpfObjects.Ip_entrypointPrograms.UpfIpEntrypointFunc.Test(packetArp.Bytes())
+	bpfRet, bufOut, err := bpfObjects.UpfIpEntrypointFunc.Test(packetArp.Bytes())
 	if err != nil {
 		return fmt.Errorf("test run failed: %v", err)
 	}

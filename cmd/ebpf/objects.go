@@ -12,19 +12,19 @@ import (
 	"github.com/cilium/ebpf"
 )
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf Ip_entrypoint 	xdp/n3n6_entrypoint.c -- -I. -O2 -Wall -g
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf Zero_entrypoint 	xdp/zero_entrypoint.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N3_entrypoint 	xdp/n3_entrypoint.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N6_entrypoint 	xdp/n6_entrypoint.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf Qer_program 		xdp/qer_program.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf Far_program 		xdp/far_program.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf Upf_xdp 			xdp/upf_program.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf IpEntrypoint 	xdp/n3n6_entrypoint.c -- -I. -O2 -Wall -g
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf ZeroEntrypoint 	xdp/zero_entrypoint.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N3Entrypoint 	xdp/n3_entrypoint.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N6Entrypoint 	xdp/n6_entrypoint.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf QerProgram 		xdp/qer_program.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf FarProgram 		xdp/far_program.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf UpfXdp 			xdp/upf_program.c -- -I. -O2 -Wall
 
 type BpfObjects struct {
-	Upf_xdpObjects
-	Far_programObjects
-	Qer_programObjects
-	Ip_entrypointObjects
+	UpfXdpObjects
+	FarProgramObjects
+	QerProgramObjects
+	IpEntrypointObjects
 
 	FarIdTracker *IdTracker
 	QerIdTracker *IdTracker
@@ -55,23 +55,23 @@ func (bpfObjects *BpfObjects) Load() error {
 	}
 
 	return LoadAllObjects(&collectionOptions,
-		Loader{LoadUpf_xdpObjects, &bpfObjects.Upf_xdpObjects},
-		Loader{LoadFar_programObjects, &bpfObjects.Far_programObjects},
-		Loader{LoadQer_programObjects, &bpfObjects.Qer_programObjects},
-		Loader{LoadIp_entrypointObjects, &bpfObjects.Ip_entrypointObjects})
+		Loader{LoadUpfXdpObjects, &bpfObjects.UpfXdpObjects},
+		Loader{LoadFarProgramObjects, &bpfObjects.FarProgramObjects},
+		Loader{LoadQerProgramObjects, &bpfObjects.QerProgramObjects},
+		Loader{LoadIpEntrypointObjects, &bpfObjects.IpEntrypointObjects})
 }
 
 func (bpfObjects *BpfObjects) Close() error {
 	return CloseAllObjects(
-		&bpfObjects.Upf_xdpObjects,
-		&bpfObjects.Far_programObjects,
-		&bpfObjects.Qer_programObjects,
-		&bpfObjects.Ip_entrypointObjects,
+		&bpfObjects.UpfXdpObjects,
+		&bpfObjects.FarProgramObjects,
+		&bpfObjects.QerProgramObjects,
+		&bpfObjects.IpEntrypointObjects,
 	)
 }
 
 func (bpfObjects *BpfObjects) BuildPipeline() {
-	upfPipeline := bpfObjects.Upf_xdpObjects.UpfPipeline
+	upfPipeline := bpfObjects.UpfXdpObjects.UpfPipeline
 	upfMainProgram := bpfObjects.UpfFunc
 	farProgram := bpfObjects.UpfFarProgramFunc
 	qerProgram := bpfObjects.UpfQerProgramFunc
