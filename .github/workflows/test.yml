@@ -39,7 +39,7 @@ jobs:
         with:
           working-directory: ./cmd/eupf
 
-      - name: Test core
+      - name: Run tests
         run: sudo go test -v ./cmd/...
 
       - name: Build
