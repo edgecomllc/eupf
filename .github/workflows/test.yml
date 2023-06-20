@@ -37,10 +37,10 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          working-directory: ./cmd/eupf
+          working-directory: ./cmd
 
       - name: Run tests
         run: sudo go test -v ./cmd/...
 
       - name: Build
-        run: go build -v -o bin/eupf ./cmd/eupf
+        run: go build -v -o bin/eupf ./cmd
