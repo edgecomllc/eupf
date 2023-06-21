@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"github.com/wmnsk/go-pfcp/ie"
@@ -19,7 +19,7 @@ func TestHeartbeat(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error resolving UDP address: %s", err)
 	}
-	response, err := handlePfcpHeartbeatRequest(&pfcpConn, hbReq, udpAddr)
+	response, err := HandlePfcpHeartbeatRequest(&pfcpConn, hbReq, udpAddr)
 	if err != nil {
 		t.Errorf("Error handling heartbeat request: %s", err)
 	}
@@ -36,7 +36,7 @@ func TestHeartbeat(t *testing.T) {
 func TestAssociationSetup(t *testing.T) {
 	// Create pfcp connection struct
 	pfcpConn := PfcpConnection{
-		nodeAssociations: NodeAssociationMap{},
+		NodeAssociations: NodeAssociationMap{},
 		nodeId:           "test-node",
 	}
 	asReq := message.NewAssociationSetupRequest(0,
@@ -46,7 +46,7 @@ func TestAssociationSetup(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error resolving UDP address: %s", err)
 	}
-	response, err := handlePfcpAssociationSetupRequest(&pfcpConn, asReq, udpAddr)
+	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, udpAddr)
 	if err != nil {
 		t.Errorf("Error handling association setup request: %s", err)
 	}
@@ -65,7 +65,7 @@ func TestAssociationSetup(t *testing.T) {
 	if nodeId != "test-node" {
 		t.Errorf("Unexpected node ID in association setup response: %s", nodeId)
 	}
-	if _, ok := pfcpConn.nodeAssociations[udpAddr.String()]; !ok {
+	if _, ok := pfcpConn.NodeAssociations[udpAddr.String()]; !ok {
 		t.Errorf("Association not created")
 	}
 }

@@ -2,3 +2,7 @@
 .deploy/
 .github/
 README.md
+
+cmd/eupf/docs
+*.o
+*_bpf.go

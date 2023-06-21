@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"log"
@@ -38,7 +38,7 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 	return nil
 }
 
-func handlePfcpHeartbeatRequest(_ *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+func HandlePfcpHeartbeatRequest(_ *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	hbreq := msg.(*message.HeartbeatRequest)
 
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
@@ -55,7 +55,7 @@ func handlePfcpHeartbeatRequest(_ *PfcpConnection, msg message.Message, addr *ne
 }
 
 // https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/16.04.00_60/ts_129244v160400p.pdf page 95
-func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	asreq := msg.(*message.AssociationSetupRequest)
 	log.Printf("Got Association Setup Request from: %s. \n", addr)
 	if asreq.NodeID == nil {
@@ -80,7 +80,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		return asres, nil
 	}
 	// Check if the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
-	if _, ok := conn.nodeAssociations[remoteNodeID]; ok {
+	if _, ok := conn.NodeAssociations[remoteNodeID]; ok {
 		log.Printf("Association Setup Request with NodeID: %s from: %s already exists", remoteNodeID, addr)
 		// retain the PFCP sessions that were established with the existing PFCP association and that are requested to be retained, if the PFCP Session Retention Information IE was received in the request; otherwise, delete the PFCP sessions that were established with the existing PFCP association;
 		log.Println("Session retention is not yet implemented")
@@ -98,7 +98,7 @@ func handlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		Sessions:      SessionMap{},
 	}
 	// Add or replace RemoteNode to NodeAssociationMap
-	conn.nodeAssociations[addr.String()] = remoteNode
+	conn.NodeAssociations[addr.String()] = remoteNode
 	log.Printf("Saving new association: %+v", remoteNode)
 
 	// shall send a PFCP Association Setup Response including:

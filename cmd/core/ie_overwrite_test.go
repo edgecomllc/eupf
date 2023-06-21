@@ -1,7 +1,8 @@
-package main
+package core
 
 import (
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"net"
 	"testing"
 
@@ -9,40 +10,28 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-// Test for the bug where the session's UE IP address is overwritten because it is a pointer to the buffer for incoming UDP packets.
-func TestSessionUEIpOverwrite(t *testing.T) {
-
-	bpfObjects := &BpfObjects{
-		FarIdTracker: NewIdTracker(100),
-		QerIdTracker: NewIdTracker(100),
+func TestSessionOverwrite(t *testing.T) {
+	bpfObjects := &ebpf.BpfObjects{
+		FarIdTracker: ebpf.NewIdTracker(100),
+		QerIdTracker: ebpf.NewIdTracker(100),
 	}
 	if err := bpfObjects.Load(); err != nil {
 		t.Errorf("Loading bpf objects failed: %s", err.Error())
 	}
-
-	var pfcpHandlers = PfcpHandlerMap{
-		message.MsgTypeHeartbeatRequest:            handlePfcpHeartbeatRequest,
-		message.MsgTypeAssociationSetupRequest:     handlePfcpAssociationSetupRequest,
-		message.MsgTypeSessionEstablishmentRequest: handlePfcpSessionEstablishmentRequest,
-		message.MsgTypeSessionDeletionRequest:      handlePfcpSessionDeletionRequest,
-		message.MsgTypeSessionModificationRequest:  handlePfcpSessionModificationRequest,
-	}
-	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:35655")
-	if err != nil {
-		t.Errorf("Error resolving UDP address: %s", err)
-	}
-	udpConn, _ := net.ListenUDP("udp", udpAddr)
+	// Create pfcp connection struct
 	pfcpConn := PfcpConnection{
-		nodeAssociations: NodeAssociationMap{},
+		NodeAssociations: NodeAssociationMap{},
 		nodeId:           "test-node",
 		mapOperations:    bpfObjects,
-		pfcpHandlerMap:   pfcpHandlers,
-		udpConn:          udpConn,
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
 	)
-	response, err := handlePfcpAssociationSetupRequest(&pfcpConn, asReq, udpAddr)
+	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:35655")
+	if err != nil {
+		t.Errorf("Error resolving UDP address: %s", err)
+	}
+	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, udpAddr)
 	if err != nil {
 		t.Errorf("Error handling association setup request: %s", err)
 	}
@@ -61,16 +50,12 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 	if nodeId != "test-node" {
 		t.Errorf("Unexpected node ID in association setup response: %s", nodeId)
 	}
-	if _, ok := pfcpConn.nodeAssociations[udpAddr.String()]; !ok {
+	if _, ok := pfcpConn.NodeAssociations[udpAddr.String()]; !ok {
 		t.Errorf("Association not created")
 	}
 
 	ip1, _ := net.ResolveIPAddr("ip", "1.1.1.1")
 	ip2, _ := net.ResolveIPAddr("ip", "2.2.2.2")
-
-	//uip1, _ := net.ResolveUDPAddr("ip", "1.1.1.1")
-	//uip2, _ := net.ResolveUDPAddr("ip", "2.2.2.2")
-
 	// Create two send two Session Establishment Requests with downlink PDRs
 	// and check that the first session is not overwritten
 	seReq1 := message.NewSessionEstablishmentRequest(0, 0,
@@ -101,22 +86,54 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 		),
 	)
 
-	buf := make([]byte, 1500)
-	bytes1, _ := seReq1.Marshal()
-	copy(buf, bytes1)
-	pfcpConn.Handle(buf, udpAddr)
+	// Send first request
+	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq1, udpAddr)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
 
-	bytes2, _ := seReq2.Marshal()
-	copy(buf, bytes2)
-	pfcpConn.Handle(buf, udpAddr)
+	// Send second request
+	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq2, udpAddr)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
 
 	// Check that session PDRs are correct
-	if pfcpConn.nodeAssociations[udpAddr.String()].Sessions[2].DownlinkPDRs[1].Ipv4.String() != "1.1.1.1" {
+	if pfcpConn.NodeAssociations[udpAddr.String()].Sessions[2].DownlinkPDRs[1].Ipv4.String() != "1.1.1.1" {
 		t.Errorf("Session 1, got broken")
 	}
-	if pfcpConn.nodeAssociations[udpAddr.String()].Sessions[3].DownlinkPDRs[1].Ipv4.String() != "2.2.2.2" {
+	if pfcpConn.NodeAssociations[udpAddr.String()].Sessions[3].DownlinkPDRs[1].Ipv4.String() != "2.2.2.2" {
 		t.Errorf("Session 2, got broken")
 	}
-	fmt.Printf("%+v", pfcpConn.nodeAssociations)
+
+	// Send Session Modification Request, create FAR
+	smReq := message.NewSessionModificationRequest(0, 0,
+		2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(2, udpAddr.IP, nil),
+		ie.NewCreateFAR(
+			ie.NewFARID(1),
+			ie.NewApplyAction(2),
+			ie.NewForwardingParameters(
+				ie.NewDestinationInterface(ie.DstInterfaceAccess),
+				ie.NewNetworkInstance(""),
+			),
+		),
+	)
+
+	// Send modification request
+	_, err = HandlePfcpSessionModificationRequest(&pfcpConn, smReq, udpAddr)
+	if err != nil {
+		t.Errorf("Error handling session modification request: %s", err)
+	}
+
+	// Check that session PDRs are correct
+	if pfcpConn.NodeAssociations[udpAddr.String()].Sessions[2].DownlinkPDRs[1].Ipv4.String() != "1.1.1.1" {
+		t.Errorf("Session 1, got broken")
+	}
+	if pfcpConn.NodeAssociations[udpAddr.String()].Sessions[3].DownlinkPDRs[1].Ipv4.String() != "2.2.2.2" {
+		t.Errorf("Session 2, got broken")
+	}
+	fmt.Printf("%+v", pfcpConn.NodeAssociations)
 
 }
