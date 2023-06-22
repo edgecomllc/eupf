@@ -17,6 +17,7 @@ command:
       set -x ; mkdir /etc/iproute2 ; echo "111 fromn3gtp" >> /etc/iproute2/rt_tables ; \
       ip rule add from 10.1.0.0/16 lookup fromn3gtp; \
       ip route add default via 10.100.100.1 dev n6 table fromn3gtp ;\
+      sysctl -w net.ipv4.ip_forward=1  ;\
       /app/bin/eupf $0 $@
 
 args:
@@ -29,6 +30,8 @@ securityContext:
 podSecurityContext:
   sysctls:
   - name: net.ipv4.ip_forward
+    value: "1"
+  - name: net.ipv6.conf.all.forwarding
     value: "1"
 
 configMaps:

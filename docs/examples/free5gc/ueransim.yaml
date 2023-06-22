@@ -16,3 +16,13 @@ global:
     cidr: 29
     gatewayIP: 10.100.50.238
     excludeIP: 10.100.50.238
+
+gnb:
+  n2if:  # NGAP
+    ipAddress: 10.100.50.252
+  n3if:  # GTP-U
+    ipAddress: 10.100.50.235
+
+  amf:
+    n2if:  # NGAP
+      ipAddress: 10.100.50.251
