@@ -1,8 +1,9 @@
-package main
+package core
 
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
 
@@ -17,7 +18,7 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 // #TODO: Extract Create/Update/Delete IE to separate functions
 // #TODO: Research how to merge UplinkPDRs and DownlinkPDRs
 
-func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
 	remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
@@ -27,7 +28,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		return message.NewSessionEstablishmentResponse(0, 0, 0, req.Sequence(), 0, convertErrorToIeCause(err)), nil
 	}
 
-	association, ok := conn.nodeAssociations[addr.String()]
+	association, ok := conn.NodeAssociations[addr.String()]
 	if !ok {
 		log.Printf("Rejecting Session Establishment Request from: %s (no association)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
@@ -50,7 +51,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	err = func() error {
 		mapOperations := conn.mapOperations
 		for _, far := range req.CreateFAR {
-			farInfo, err := composeFarInfo(far, conn.n3Address.To4(), FarInfo{})
+			farInfo, err := composeFarInfo(far, conn.n3Address.To4(), ebpf.FarInfo{})
 			if err != nil {
 				log.Printf("Error extracting FAR info: %s", err.Error())
 				continue
@@ -67,7 +68,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		}
 
 		for _, qer := range req.CreateQER {
-			qerInfo := QerInfo{}
+			qerInfo := ebpf.QerInfo{}
 			qerId, err := qer.QERID()
 			if err != nil {
 				return fmt.Errorf("QER ID missing")
@@ -136,7 +137,7 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	// Reassigning is the best I can think of for now
 	association.Sessions[localSEID] = session
-	conn.nodeAssociations[addr.String()] = association
+	conn.NodeAssociations[addr.String()] = association
 
 	// #TODO: support v6
 	var v6 net.IP
@@ -154,10 +155,10 @@ func handlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	return estResp, nil
 }
 
-func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionDeletionRequest)
 	log.Printf("Got Session Deletion Request from: %s. \n", addr)
-	association, ok := conn.nodeAssociations[addr.String()]
+	association, ok := conn.NodeAssociations[addr.String()]
 	if !ok {
 		log.Printf("Rejecting Session Deletion Request from: %s (no association)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
@@ -203,12 +204,12 @@ func handlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted)), nil
 }
 
-func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
 	req := msg.(*message.SessionModificationRequest)
 	log.Printf("Got Session Modification Request from: %s. \n", addr)
 
 	log.Printf("Finding association for %s", addr)
-	association, ok := conn.nodeAssociations[addr.String()]
+	association, ok := conn.NodeAssociations[addr.String()]
 	if !ok {
 		log.Printf("Rejecting Session Modification Request from: %s (no association)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
@@ -231,7 +232,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			session.RemoteSEID = remoteSEID.SEID
 
 			association.Sessions[req.SEID()] = session         // FIXME
-			conn.nodeAssociations[addr.String()] = association // FIXME
+			conn.NodeAssociations[addr.String()] = association // FIXME
 		}
 	}
 
@@ -242,7 +243,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		mapOperations := conn.mapOperations
 
 		for _, far := range req.CreateFAR {
-			farInfo, err := composeFarInfo(far, conn.n3Address.To4(), FarInfo{})
+			farInfo, err := composeFarInfo(far, conn.n3Address.To4(), ebpf.FarInfo{})
 			if err != nil {
 				log.Printf("Error extracting FAR info: %s", err.Error())
 				continue
@@ -286,7 +287,7 @@ func handlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		}
 
 		for _, qer := range req.CreateQER {
-			qerInfo := QerInfo{}
+			qerInfo := ebpf.QerInfo{}
 			qerId, err := qer.QERID()
 			if err != nil {
 				return fmt.Errorf("QER ID missing")
@@ -541,7 +542,7 @@ func causeToString(cause uint8) string {
 	}
 }
 
-func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Session, mapOperations ForwardingPlaneController) error {
+func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Session, mapOperations ebpf.ForwardingPlaneController) error {
 	// IE Type F-TEID
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 {
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
@@ -566,23 +567,27 @@ func cloneIP(ip net.IP) net.IP {
 	return dup
 }
 
-func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Session, mapOperations ForwardingPlaneController) error {
+func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Session, mapOperations ebpf.ForwardingPlaneController) error {
 	// IE Type UE IP Address
 	if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
 		ueIp, _ := pdi[ueipPdiId].UEIPAddress()
+		if ueIp.IPv4Address == nil && ueIp.IPv6Address == nil {
+			return fmt.Errorf("UE IP Address IE missing")
+		}
 		if ueIp.IPv4Address != nil {
 			// net.IP is a trap, it needs to be copied, otherwise it will be overwritten by next packet.
 			spdrInfo.Ipv4 = cloneIP(ueIp.IPv4Address)
-		} else {
-			log.Print("WARN: No IPv4 address")
+			session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
+			if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+				log.Printf("Can't put downlink PDR: %s", err.Error())
+			}
 		}
 		if ueIp.IPv6Address != nil {
-			log.Print("WARN: UE IPv6 not supported yet, ignoring")
-			return fmt.Errorf("IPv6 not supported")
-		}
-		session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
-		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-			log.Printf("Can't put downlink PDR: %s", err.Error())
+			spdrInfo.Ipv6 = cloneIP(ueIp.IPv6Address)
+			session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
+			if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
+				log.Printf("Can't put downlink PDR: %s", err.Error())
+			}
 		}
 	} else {
 		log.Println("UE IP Address IE missing")
@@ -590,7 +595,7 @@ func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Se
 	return nil
 }
 
-func composeFarInfo(far *ie.IE, localIp net.IP, farInfo FarInfo) (FarInfo, error) {
+func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarInfo, error) {
 	if applyAction, err := far.ApplyAction(); err == nil {
 		farInfo.Action = applyAction[0]
 	}
@@ -601,7 +606,7 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo FarInfo) (FarInfo, error
 	} else if far.Type == ie.UpdateFAR {
 		forward, err = far.UpdateForwardingParameters()
 	} else {
-		return FarInfo{}, fmt.Errorf("unsupported IE type")
+		return ebpf.FarInfo{}, fmt.Errorf("unsupported IE type")
 	}
 	if err == nil {
 		outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
@@ -617,7 +622,7 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo FarInfo) (FarInfo, error
 			}
 			if outerHeaderCreation.HasIPv6() {
 				log.Print("WARN: IPv6 not supported yet, ignoring")
-				return FarInfo{}, fmt.Errorf("IPv6 not supported yet")
+				return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
 			}
 		}
 	}
@@ -628,7 +633,7 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo FarInfo) (FarInfo, error
 	return farInfo, nil
 }
 
-func updateQer(qerInfo *QerInfo, qer *ie.IE) {
+func updateQer(qerInfo *ebpf.QerInfo, qer *ie.IE) {
 
 	gateStatusDL, err := qer.GateStatusDL()
 	if err == nil {

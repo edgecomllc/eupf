@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package ebpf
 
 import (
 	"errors"
@@ -39,7 +39,7 @@ func testArp(bpfObjects *BpfObjects) error {
 		return fmt.Errorf("serializing input packet failed: %v", err)
 	}
 
-	bpfRet, bufOut, err := bpfObjects.ip_entrypointPrograms.UpfIpEntrypointFunc.Test(packetArp.Bytes())
+	bpfRet, bufOut, err := bpfObjects.UpfIpEntrypointFunc.Test(packetArp.Bytes())
 	if err != nil {
 		return fmt.Errorf("test run failed: %v", err)
 	}
@@ -83,7 +83,7 @@ func testGtpEcho(bpfObjects *BpfObjects) error {
 		return fmt.Errorf("serializing input packet failed: %v", err)
 	}
 
-	bpfRet, bufOut, err := bpfObjects.ip_entrypointPrograms.UpfIpEntrypointFunc.Test(packetArp.Bytes())
+	bpfRet, bufOut, err := bpfObjects.UpfIpEntrypointFunc.Test(packetArp.Bytes())
 	if err != nil {
 		return fmt.Errorf("test run failed: %v", err)
 	}
