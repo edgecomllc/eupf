@@ -85,7 +85,7 @@ func (f FarInfo) MarshalJSON() ([]byte, error) {
 		"teid":                     f.Teid,
 		"remote_ip":                remoteIP.String(),
 		"local_ip":                 localIP.String(),
-		"transport_level_markinng": f.TransportLevelMarking,
+		"transport_level_marking": f.TransportLevelMarking,
 	}
 	return json.Marshal(data)
 }
