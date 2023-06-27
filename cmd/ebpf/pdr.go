@@ -80,11 +80,11 @@ func (f FarInfo) MarshalJSON() ([]byte, error) {
 	binary.LittleEndian.PutUint32(remoteIP, f.RemoteIP)
 	binary.LittleEndian.PutUint32(localIP, f.LocalIP)
 	data := map[string]interface{}{
-		"action":                f.Action,
-		"outer_header_creation": f.OuterHeaderCreation,
-		"teid":                  f.Teid,
-		"remote_ip":             remoteIP.String(),
-		"local_ip":              localIP.String(),
+		"action":                   f.Action,
+		"outer_header_creation":    f.OuterHeaderCreation,
+		"teid":                     f.Teid,
+		"remote_ip":                remoteIP.String(),
+		"local_ip":                 localIP.String(),
 		"transport_level_markinng": f.TransportLevelMarking,
 	}
 	return json.Marshal(data)
