@@ -39,6 +39,7 @@
 
 #undef bpf_printk
 #ifdef ENABLE_LOG  // trace_pipe logs disabled by default
+#warning "Debug log enabled"
 #define bpf_printk(fmt, ...)                       \
     ({                                             \
         static const char ____fmt[] = fmt;         \
