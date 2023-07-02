@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "universal-chart.fullname" . }}
+  name: {{ include "eupf.fullname" . }}
   labels:
-    {{- include "universal-chart.labels" . | nindent 4 }}
+    {{- include "eupf.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -15,4 +15,4 @@ spec:
     {{- include "helpers.common.tplvalues.render" (dict "value" .Values.service.extraPorts "context" $) | nindent 4 }}
     {{- end }}
   selector:
-    {{- include "universal-chart.selectorLabels" . | nindent 4 }}
+    {{- include "eupf.selectorLabels" . | nindent 4 }}

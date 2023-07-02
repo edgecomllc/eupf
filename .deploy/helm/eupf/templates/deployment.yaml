@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "universal-chart.fullname" . }}
+  name: {{ include "eupf.fullname" . }}
   labels:
-    {{- include "universal-chart.labels" . | nindent 4 }}
+    {{- include "eupf.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "universal-chart.selectorLabels" . | nindent 6 }}
+      {{- include "eupf.selectorLabels" . | nindent 6 }}
   {{- with .Values.deploymentStrategy }}
   strategy:
     {{- toYaml . | trim | nindent 4 }}
@@ -20,13 +20,14 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "universal-chart.selectorLabels" . | nindent 8 }}
+        {{- include "eupf.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "universal-chart.serviceAccountName" . }}
+      hostNetwork: {{ .Values.hostNetwork }}
+      serviceAccountName: {{ include "eupf.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       {{- if .Values.initContainers }}

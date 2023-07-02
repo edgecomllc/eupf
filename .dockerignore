@@ -1,6 +1,7 @@
 .git/
 .deploy/
 .github/
+docs/
 README.md
 
 cmd/eupf/docs
