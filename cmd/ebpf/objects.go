@@ -1,4 +1,4 @@
-package main
+package ebpf
 
 import (
 	"errors"
@@ -7,24 +7,32 @@ import (
 	"os"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/edgecomllc/eupf/cmd/eupf/config"
+	"github.com/edgecomllc/eupf/cmd/config"
 
 	"github.com/cilium/ebpf"
 )
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf ip_entrypoint 	xdp/n3n6_entrypoint.c -- -I. -O2 -Wall -g
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf zero_entrypoint 	xdp/zero_entrypoint.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf n3_entrypoint 	xdp/n3_entrypoint.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf n6_entrypoint 	xdp/n6_entrypoint.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf qer_program 		xdp/qer_program.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf far_program 		xdp/far_program.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf upf_xdp 			xdp/upf_program.c -- -I. -O2 -Wall
+//
+// Supported BPF_CFLAGS:
+// 	- ENABLE_LOG:
+//		- enables debug output to tracepipe (`bpftool prog tracelog`)
+// 	- ENABLE_ROUTE_CACHE
+//		- enable routing decision cache
+//
+
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cflags "$BPF_CFLAGS" -target bpf IpEntrypoint 	xdp/n3n6_entrypoint.c -- -I. -O2 -Wall -g
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf ZeroEntrypoint 	xdp/zero_entrypoint.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N3Entrypoint 	xdp/n3_entrypoint.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N6Entrypoint 	xdp/n6_entrypoint.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf QerProgram 		xdp/qer_program.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf FarProgram 		xdp/far_program.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf UpfXdp 			xdp/upf_program.c -- -I. -O2 -Wall
 
 type BpfObjects struct {
-	upf_xdpObjects
-	far_programObjects
-	qer_programObjects
-	ip_entrypointObjects
+	UpfXdpObjects
+	FarProgramObjects
+	QerProgramObjects
+	IpEntrypointObjects
 
 	FarIdTracker *IdTracker
 	QerIdTracker *IdTracker
@@ -55,23 +63,23 @@ func (bpfObjects *BpfObjects) Load() error {
 	}
 
 	return LoadAllObjects(&collectionOptions,
-		Loader{loadUpf_xdpObjects, &bpfObjects.upf_xdpObjects},
-		Loader{loadFar_programObjects, &bpfObjects.far_programObjects},
-		Loader{loadQer_programObjects, &bpfObjects.qer_programObjects},
-		Loader{loadIp_entrypointObjects, &bpfObjects.ip_entrypointObjects})
+		Loader{LoadUpfXdpObjects, &bpfObjects.UpfXdpObjects},
+		Loader{LoadFarProgramObjects, &bpfObjects.FarProgramObjects},
+		Loader{LoadQerProgramObjects, &bpfObjects.QerProgramObjects},
+		Loader{LoadIpEntrypointObjects, &bpfObjects.IpEntrypointObjects})
 }
 
 func (bpfObjects *BpfObjects) Close() error {
 	return CloseAllObjects(
-		&bpfObjects.upf_xdpObjects,
-		&bpfObjects.far_programObjects,
-		&bpfObjects.qer_programObjects,
-		&bpfObjects.ip_entrypointObjects,
+		&bpfObjects.UpfXdpObjects,
+		&bpfObjects.FarProgramObjects,
+		&bpfObjects.QerProgramObjects,
+		&bpfObjects.IpEntrypointObjects,
 	)
 }
 
-func (bpfObjects *BpfObjects) buildPipeline() {
-	upfPipeline := bpfObjects.upf_xdpObjects.UpfPipeline
+func (bpfObjects *BpfObjects) BuildPipeline() {
+	upfPipeline := bpfObjects.UpfXdpObjects.UpfPipeline
 	upfMainProgram := bpfObjects.UpfFunc
 	farProgram := bpfObjects.UpfFarProgramFunc
 	qerProgram := bpfObjects.UpfQerProgramFunc
