@@ -43,7 +43,6 @@ func HandlePfcpHeartbeatResponse(conn *PfcpConnection, msg message.Message, addr
 func SendHearbeatReqeust(conn *PfcpConnection, addr string) {
 	hbreq := message.NewHeartbeatRequest(0, ie.NewRecoveryTimeStamp(time.Now()), nil)
 	log.Printf("Sent Heartbeat Request to: %s", addr)
-	// create net.UDPAddr from string and port from config
 	udpAddr, err := net.ResolveUDPAddr("udp", addr+":8805")
 	if err == nil {
 		if err := conn.SendMessage(hbreq, udpAddr); err != nil {

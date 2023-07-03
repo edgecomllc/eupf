@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"github.com/edgecomllc/eupf/cmd/config"
 	"time"
 )
@@ -11,7 +12,7 @@ type NodeAssociation struct {
 	NextSessionID uint64
 	Sessions      map[uint64]*Session
 	HbRetries     uint32
-	LastContact   time.Time
+	cancelRetries context.CancelFunc
 }
 
 func NewNodeAssociation(remoteNodeID string, addr string) *NodeAssociation {
@@ -30,9 +31,31 @@ func (association *NodeAssociation) NewLocalSEID() uint64 {
 
 func (association *NodeAssociation) CheckInContact() {
 	association.HbRetries = 0
-	association.LastContact = time.Now()
+	if association.cancelRetries != nil {
+		association.cancelRetries()
+	}
+	association.cancelRetries = nil
 }
 
 func (association *NodeAssociation) IsExpired() bool {
 	return association.HbRetries > config.Conf.HeartBeatRetries
+}
+
+func SendTimeoutHeartbeatRequests(duration time.Duration, conn *PfcpConnection, association string) context.CancelFunc {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func(ctx context.Context, duration time.Duration) {
+		i := uint32(0)
+		t := time.Tick(duration)
+		select {
+		case <-ctx.Done():
+			return
+		case <-t:
+			if i >= config.Conf.HeartBeatRetries {
+				conn.DeleteAssociation(association)
+				return
+			}
+			SendHearbeatReqeust(conn, association)
+		}
+	}(ctx, duration)
+	return cancel
 }

@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
@@ -63,6 +64,12 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 }
 
 func (connection *PfcpConnection) Run() {
+	go func() {
+		for {
+			connection.ProcessHeadlessAssociations()
+			time.Sleep(time.Duration(config.Conf.HeartBeatInterval) * time.Second)
+		}
+	}()
 	buf := make([]byte, 1500)
 	for {
 		n, addr, err := connection.Receive(buf)
@@ -108,13 +115,15 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 	return nil
 }
 
-func (connection *PfcpConnection) ProcessHeadlessAssiciations() {
+func (connection *PfcpConnection) ProcessHeadlessAssociations() {
 	for assocAddr, assoc := range connection.NodeAssociations {
 		if assoc.IsExpired() {
 			log.Printf("Pruning expired node association: %s", assocAddr)
 			connection.DeleteAssociation(assocAddr)
 		}
-
+		if assoc.cancelRetries == nil {
+			SendTimeoutHeartbeatRequests(time.Duration(config.Conf.HeartBeatTimeout)*time.Second, connection, assocAddr)
+		}
 	}
 }
 
