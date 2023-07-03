@@ -46,7 +46,9 @@ func SendHearbeatReqeust(conn *PfcpConnection, addr string) {
 	// create net.UDPAddr from string and port from config
 	udpAddr, err := net.ResolveUDPAddr("udp", addr+":8805")
 	if err == nil {
-		conn.SendMessage(hbreq, udpAddr)
+		if err := conn.SendMessage(hbreq, udpAddr); err != nil {
+			log.Printf("Failed to send heartbeat request: %s\n", err.Error())
+		}
 	} else {
 		log.Printf("Failed to send Hearbit Request: %s\n", err.Error())
 	}

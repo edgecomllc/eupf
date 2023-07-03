@@ -124,21 +124,21 @@ func (connection *PfcpConnection) DeleteAssociation(assocAddr string) {
 	for sessionId, session := range assoc.Sessions {
 		log.Printf("Deleting session: %d", sessionId)
 		for _, far := range session.FARs {
-			connection.mapOperations.DeleteFar(far.GlobalId)
+			_ = connection.mapOperations.DeleteFar(far.GlobalId)
 		}
 		for _, qer := range session.QERs {
-			connection.mapOperations.DeleteQer(qer.GlobalId)
+			_ = connection.mapOperations.DeleteQer(qer.GlobalId)
 		}
 		for _, uplinkPdr := range session.UplinkPDRs {
-			connection.mapOperations.DeletePdrUpLink(uplinkPdr.Teid)
+			_ = connection.mapOperations.DeletePdrUpLink(uplinkPdr.Teid)
 		}
 
 		for _, downlinkPdr := range session.DownlinkPDRs {
 			if downlinkPdr.Ipv4 != nil {
-				connection.mapOperations.DeletePdrDownLink(downlinkPdr.Ipv4)
+				_ = connection.mapOperations.DeletePdrDownLink(downlinkPdr.Ipv4)
 			}
 			if downlinkPdr.Ipv4 != nil {
-				connection.mapOperations.DeleteDownlinkPdrIp6(downlinkPdr.Ipv6)
+				_ = connection.mapOperations.DeleteDownlinkPdrIp6(downlinkPdr.Ipv6)
 			}
 		}
 	}
