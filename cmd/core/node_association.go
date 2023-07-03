@@ -34,8 +34,5 @@ func (association *NodeAssociation) CheckInContact() {
 }
 
 func (association *NodeAssociation) IsExpired() bool {
-	if association.HbRetries > config.Conf.HeartBeatRetries {
-		return true
-	}
-	return false
+	return association.HbRetries > config.Conf.HeartBeatRetries
 }

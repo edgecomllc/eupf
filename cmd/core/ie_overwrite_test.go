@@ -49,7 +49,7 @@ func TestSessionOverwrite(t *testing.T) {
 	if nodeId != "test-node" {
 		t.Errorf("Unexpected node ID in association setup response: %s", nodeId)
 	}
-	if _, ok := pfcpConn.NodeAssociations[udpAddr.String()]; !ok {
+	if _, ok := pfcpConn.NodeAssociations[udpAddr.IP.String()]; !ok {
 		t.Errorf("Association not created")
 	}
 
