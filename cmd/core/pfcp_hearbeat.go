@@ -48,6 +48,6 @@ func SendHearbeatReqeust(conn *PfcpConnection, addr string) {
 	if err == nil {
 		conn.SendMessage(hbreq, udpAddr)
 	} else {
-		log.Println("Failed to send Hearbit Request: %s", err.Error())
+		log.Printf("Failed to send Hearbit Request: %s\n", err.Error())
 	}
 }

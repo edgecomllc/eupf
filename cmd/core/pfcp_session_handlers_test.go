@@ -19,7 +19,7 @@ func TestHeartbeat(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error resolving UDP address: %s", err)
 	}
-	response, err := HandlePfcpHeartbeatRequest(&pfcpConn, hbReq, udpAddr)
+	response, err := HandlePfcpHeartbeatRequest(&pfcpConn, hbReq, udpAddr.IP.String())
 	if err != nil {
 		t.Errorf("Error handling heartbeat request: %s", err)
 	}
@@ -36,7 +36,7 @@ func TestHeartbeat(t *testing.T) {
 func TestAssociationSetup(t *testing.T) {
 	// Create pfcp connection struct
 	pfcpConn := PfcpConnection{
-		NodeAssociations: NodeAssociationMap{},
+		NodeAssociations: make(map[string]*NodeAssociation),
 		nodeId:           "test-node",
 	}
 	asReq := message.NewAssociationSetupRequest(0,
@@ -46,7 +46,7 @@ func TestAssociationSetup(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error resolving UDP address: %s", err)
 	}
-	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, udpAddr)
+	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, udpAddr.IP.String())
 	if err != nil {
 		t.Errorf("Error handling association setup request: %s", err)
 	}
@@ -65,7 +65,7 @@ func TestAssociationSetup(t *testing.T) {
 	if nodeId != "test-node" {
 		t.Errorf("Unexpected node ID in association setup response: %s", nodeId)
 	}
-	if _, ok := pfcpConn.NodeAssociations[udpAddr.String()]; !ok {
+	if _, ok := pfcpConn.NodeAssociations[udpAddr.IP.String()]; !ok {
 		t.Errorf("Association not created")
 	}
 }

@@ -20,8 +20,8 @@ type PfcpConnection struct {
 	mapOperations    ebpf.ForwardingPlaneController
 }
 
-func (conn *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
-	assoc, ok := conn.NodeAssociations[assocAddr]
+func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
+	assoc, ok := connection.NodeAssociations[assocAddr]
 	if ok {
 		return assoc
 	}
@@ -106,4 +106,41 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 		return err
 	}
 	return nil
+}
+
+func (connection *PfcpConnection) ProcessHeadlessAssiciations() {
+	for assocAddr, assoc := range connection.NodeAssociations {
+		if assoc.IsExpired() {
+			log.Printf("Pruning expired node association: %s", assocAddr)
+			connection.DeleteAssociation(assocAddr)
+		}
+
+	}
+}
+
+func (connection *PfcpConnection) DeleteAssociation(assocAddr string) {
+	assoc := connection.GetAssociation(assocAddr)
+	log.Printf("Pruning expired node association: %s", assocAddr)
+	for sessionId, session := range assoc.Sessions {
+		log.Printf("Deleting session: %d", sessionId)
+		for _, far := range session.FARs {
+			connection.mapOperations.DeleteFar(far.GlobalId)
+		}
+		for _, qer := range session.QERs {
+			connection.mapOperations.DeleteQer(qer.GlobalId)
+		}
+		for _, uplinkPdr := range session.UplinkPDRs {
+			connection.mapOperations.DeletePdrUpLink(uplinkPdr.Teid)
+		}
+
+		for _, downlinkPdr := range session.DownlinkPDRs {
+			if downlinkPdr.Ipv4 != nil {
+				connection.mapOperations.DeletePdrDownLink(downlinkPdr.Ipv4)
+			}
+			if downlinkPdr.Ipv4 != nil {
+				connection.mapOperations.DeleteDownlinkPdrIp6(downlinkPdr.Ipv6)
+			}
+		}
+	}
+	delete(connection.NodeAssociations, assocAddr)
 }
