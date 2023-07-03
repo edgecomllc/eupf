@@ -45,13 +45,14 @@ func SendTimeoutHeartbeatRequests(duration time.Duration, conn *PfcpConnection, 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func(ctx context.Context, duration time.Duration) {
 		i := uint32(0)
-		t := time.Tick(duration)
+		ticker := time.NewTicker(duration)
 		select {
 		case <-ctx.Done():
 			return
-		case <-t:
+		case <-ticker.C:
 			if i >= config.Conf.HeartBeatRetries {
 				conn.DeleteAssociation(association)
+				ticker.Stop()
 				return
 			}
 			SendHearbeatReqeust(conn, association)
