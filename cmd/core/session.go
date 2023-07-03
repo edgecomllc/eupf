@@ -14,6 +14,17 @@ type Session struct {
 	QERs         map[uint32]SQerInfo
 }
 
+func NewSession(localSEID uint64, remoteSEID uint64) *Session {
+	return &Session{
+		LocalSEID:    localSEID,
+		RemoteSEID:   remoteSEID,
+		UplinkPDRs:   map[uint32]SPDRInfo{},
+		DownlinkPDRs: map[uint32]SPDRInfo{},
+		FARs:         map[uint32]SFarInfo{},
+		QERs:         map[uint32]SQerInfo{},
+	}
+}
+
 type SPDRInfo struct {
 	PdrInfo ebpf.PdrInfo
 	Teid    uint32

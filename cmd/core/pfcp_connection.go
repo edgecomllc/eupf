@@ -10,16 +10,22 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type NodeAssociationMap map[string]NodeAssociation
-
 type PfcpConnection struct {
 	udpConn          *net.UDPConn
 	pfcpHandlerMap   PfcpHandlerMap
-	NodeAssociations NodeAssociationMap
+	NodeAssociations map[string]*NodeAssociation
 	nodeId           string
 	nodeAddrV4       net.IP
 	n3Address        net.IP
 	mapOperations    ebpf.ForwardingPlaneController
+}
+
+func (conn *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
+	assoc, ok := conn.NodeAssociations[assocAddr]
+	if ok {
+		return assoc
+	}
+	return nil
 }
 
 func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController) (*PfcpConnection, error) {
@@ -48,7 +54,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 	return &PfcpConnection{
 		udpConn:          udpConn,
 		pfcpHandlerMap:   pfcpHandlerMap,
-		NodeAssociations: NodeAssociationMap{},
+		NodeAssociations: map[string]*NodeAssociation{},
 		nodeId:           nodeId,
 		nodeAddrV4:       addrv4,
 		n3Address:        n3Addr,
