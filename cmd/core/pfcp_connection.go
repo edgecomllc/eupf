@@ -66,8 +66,8 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 func (connection *PfcpConnection) Run() {
 	go func() {
 		for {
-			connection.ProcessHeadlessAssociations()
-			time.Sleep(time.Duration(config.Conf.HeartBeatInterval) * time.Second)
+			connection.RefreshAssociations()
+			time.Sleep(time.Duration(config.Conf.HeartbeatInterval) * time.Second)
 		}
 	}()
 	buf := make([]byte, 1500)
@@ -115,41 +115,47 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 	return nil
 }
 
-func (connection *PfcpConnection) ProcessHeadlessAssociations() {
+// RefreshAssociations checks for expired associations and schedules heartbeats for those that are not expired.
+func (connection *PfcpConnection) RefreshAssociations() {
 	for assocAddr, assoc := range connection.NodeAssociations {
 		if assoc.IsExpired() {
 			log.Printf("Pruning expired node association: %s", assocAddr)
 			connection.DeleteAssociation(assocAddr)
 		}
-		if assoc.cancelRetries == nil {
-			SendTimeoutHeartbeatRequests(time.Duration(config.Conf.HeartBeatTimeout)*time.Second, connection, assocAddr)
+		if !assoc.IsHeartbeatScheduled() {
+			ScheduleHeartbeatRequest(time.Duration(config.Conf.HeartbeatTimeout)*time.Second, connection, assocAddr)
 		}
 	}
 }
 
+// DeleteAssociation deletes an association and all sessions associated with it.
 func (connection *PfcpConnection) DeleteAssociation(assocAddr string) {
 	assoc := connection.GetAssociation(assocAddr)
 	log.Printf("Pruning expired node association: %s", assocAddr)
 	for sessionId, session := range assoc.Sessions {
 		log.Printf("Deleting session: %d", sessionId)
-		for _, far := range session.FARs {
-			_ = connection.mapOperations.DeleteFar(far.GlobalId)
-		}
-		for _, qer := range session.QERs {
-			_ = connection.mapOperations.DeleteQer(qer.GlobalId)
-		}
-		for _, uplinkPdr := range session.UplinkPDRs {
-			_ = connection.mapOperations.DeletePdrUpLink(uplinkPdr.Teid)
-		}
-
-		for _, downlinkPdr := range session.DownlinkPDRs {
-			if downlinkPdr.Ipv4 != nil {
-				_ = connection.mapOperations.DeletePdrDownLink(downlinkPdr.Ipv4)
-			}
-			if downlinkPdr.Ipv4 != nil {
-				_ = connection.mapOperations.DeleteDownlinkPdrIp6(downlinkPdr.Ipv6)
-			}
-		}
+		connection.DeleteSession(session)
 	}
 	delete(connection.NodeAssociations, assocAddr)
+}
+
+// DeleteSession deletes a session and all PDRs, FARs and QERs associated with it.
+func (connection *PfcpConnection) DeleteSession(session *Session) {
+	for _, far := range session.FARs {
+		_ = connection.mapOperations.DeleteFar(far.GlobalId)
+	}
+	for _, qer := range session.QERs {
+		_ = connection.mapOperations.DeleteQer(qer.GlobalId)
+	}
+	for _, uplinkPdr := range session.UplinkPDRs {
+		_ = connection.mapOperations.DeletePdrUpLink(uplinkPdr.Teid)
+	}
+	for _, downlinkPdr := range session.DownlinkPDRs {
+		if downlinkPdr.Ipv4 != nil {
+			_ = connection.mapOperations.DeletePdrDownLink(downlinkPdr.Ipv4)
+		}
+		if downlinkPdr.Ipv4 != nil {
+			_ = connection.mapOperations.DeleteDownlinkPdrIp6(downlinkPdr.Ipv6)
+		}
+	}
 }

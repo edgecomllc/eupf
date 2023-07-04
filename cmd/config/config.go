@@ -22,9 +22,9 @@ type UpfConfig struct {
 	FarMapSize        uint32   `mapstructure:"far_map_size" validate:"min=1"`
 	PdrMapSize        uint32   `mapstructure:"pdr_map_size" validate:"min=1"`
 	EbpfMapResize     bool     `mapstructure:"resize_ebpf_maps"`
-	HeartBeatRetries  uint32   `mapstructure:"heartbeat_retries"`
-	HeartBeatInterval uint32   `mapstructure:"heartbeat_interval"`
-	HeartBeatTimeout  uint32   `mapstructure:"heartbeat_timeout"`
+	HeartbeatRetries  uint32   `mapstructure:"heartbeat_retries"`
+	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval"`
+	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout"`
 }
 
 func init() {

@@ -7,12 +7,12 @@ import (
 )
 
 type NodeAssociation struct {
-	ID            string
-	Addr          string
-	NextSessionID uint64
-	Sessions      map[uint64]*Session
-	HbRetries     uint32
-	cancelRetries context.CancelFunc
+	ID               string
+	Addr             string
+	NextSessionID    uint64
+	Sessions         map[uint64]*Session
+	HeartbeatRetries uint32
+	cancelRetries    context.CancelFunc
 }
 
 func NewNodeAssociation(remoteNodeID string, addr string) *NodeAssociation {
@@ -29,8 +29,8 @@ func (association *NodeAssociation) NewLocalSEID() uint64 {
 	return association.NextSessionID
 }
 
-func (association *NodeAssociation) CheckInContact() {
-	association.HbRetries = 0
+func (association *NodeAssociation) RefreshRetries() {
+	association.HeartbeatRetries = 0
 	if association.cancelRetries != nil {
 		association.cancelRetries()
 	}
@@ -38,10 +38,15 @@ func (association *NodeAssociation) CheckInContact() {
 }
 
 func (association *NodeAssociation) IsExpired() bool {
-	return association.HbRetries > config.Conf.HeartBeatRetries
+	return association.HeartbeatRetries > config.Conf.HeartbeatRetries
 }
 
-func SendTimeoutHeartbeatRequests(duration time.Duration, conn *PfcpConnection, association string) context.CancelFunc {
+func (association *NodeAssociation) IsHeartbeatScheduled() bool {
+	return association.cancelRetries != nil
+}
+
+// ScheduleHeartbeatRequest schedules a series of heartbeat requests to be sent to the remote node. Return a cancellation function to stop the scheduled requests.
+func ScheduleHeartbeatRequest(duration time.Duration, conn *PfcpConnection, association string) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func(ctx context.Context, duration time.Duration) {
 		i := uint32(0)
@@ -50,12 +55,12 @@ func SendTimeoutHeartbeatRequests(duration time.Duration, conn *PfcpConnection, 
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if i >= config.Conf.HeartBeatRetries {
+			if i >= config.Conf.HeartbeatRetries {
 				conn.DeleteAssociation(association)
 				ticker.Stop()
 				return
 			}
-			SendHearbeatReqeust(conn, association)
+			SendHeartbeatRequest(conn, association)
 		}
 	}(ctx, duration)
 	return cancel

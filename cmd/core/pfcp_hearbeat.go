@@ -11,7 +11,7 @@ import (
 func HandlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	hbreq := msg.(*message.HeartbeatRequest)
 	if association := conn.GetAssociation(addr); association != nil {
-		association.CheckInContact()
+		association.RefreshRetries()
 	}
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
@@ -35,20 +35,20 @@ func HandlePfcpHeartbeatResponse(conn *PfcpConnection, msg message.Message, addr
 		log.Printf("Got Heartbeat Response with TS: %s, from: %s", ts, addr)
 	}
 	if association := conn.GetAssociation(addr); association != nil {
-		association.CheckInContact()
+		association.RefreshRetries()
 	}
 	return nil, err
 }
 
-func SendHearbeatReqeust(conn *PfcpConnection, addr string) {
+func SendHeartbeatRequest(conn *PfcpConnection, addr string) {
 	hbreq := message.NewHeartbeatRequest(0, ie.NewRecoveryTimeStamp(time.Now()), nil)
 	log.Printf("Sent Heartbeat Request to: %s", addr)
 	udpAddr, err := net.ResolveUDPAddr("udp", addr+":8805")
 	if err == nil {
 		if err := conn.SendMessage(hbreq, udpAddr); err != nil {
-			log.Printf("Failed to send heartbeat request: %s\n", err.Error())
+			log.Printf("Failed to send Heartbeat Request: %s\n", err.Error())
 		}
 	} else {
-		log.Printf("Failed to send Hearbit Request: %s\n", err.Error())
+		log.Printf("Failed to send Heartbeat Request: %s\n", err.Error())
 	}
 }
