@@ -68,7 +68,7 @@ type UpfConfig struct {
 	XDPAttachMode  string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload"`
 	ApiAddress     string   `mapstructure:"api_address" validate:"hostname_port"`
 	PfcpAddress    string   `mapstructure:"pfcp_address" validate:"hostname_port"`
-	PfcpNodeId     string   `mapstructure:"pfcp_node_id" validate:"ipv4"`
+	PfcpNodeId     string   `mapstructure:"pfcp_node_id" validate:"hostname"`
 	MetricsAddress string   `mapstructure:"metrics_address" validate:"hostname_port"`
 	N3Address      string   `mapstructure:"n3_address" validate:"ipv4"`
 	QerMapSize     uint32   `mapstructure:"qer_map_size" validate:"min=1"`
