@@ -22,8 +22,7 @@ type PfcpConnection struct {
 }
 
 func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
-	assoc, ok := connection.NodeAssociations[assocAddr]
-	if ok {
+	if assoc, ok := connection.NodeAssociations[assocAddr]; ok {
 		return assoc
 	}
 	return nil
