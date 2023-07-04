@@ -31,6 +31,7 @@ func HandlePfcpHeartbeatResponse(conn *PfcpConnection, msg message.Message, addr
 	ts, err := hbresp.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
 		log.Printf("Got Heartbeat Response with invalid TS: %s, from: %s", err, addr)
+		return nil, err
 	} else {
 		log.Printf("Got Heartbeat Response with TS: %s, from: %s", ts, addr)
 	}
