@@ -36,7 +36,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 
 	addrv4 := net.ParseIP(addr)
 	if addrv4 == nil {
-		return nil, fmt.Errorf("failed to parse ipv4 address: %s", addr)
+		return nil, fmt.Errorf("failed to parse PFCP Address: %s", addr)
 	}
 
 	n3Addr := net.ParseIP(n3Ip)
