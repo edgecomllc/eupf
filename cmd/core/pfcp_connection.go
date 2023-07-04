@@ -121,8 +121,10 @@ func (connection *PfcpConnection) RefreshAssociations() {
 			log.Printf("Pruning expired node association: %s", assocAddr)
 			connection.DeleteAssociation(assocAddr)
 		}
+	}
+	for _, assoc := range connection.NodeAssociations {
 		if !assoc.IsHeartbeatScheduled() {
-			ScheduleHeartbeatRequest(time.Duration(config.Conf.HeartbeatTimeout)*time.Second, connection, assocAddr)
+			assoc.ScheduleHeartbeatRequest(time.Duration(config.Conf.HeartbeatTimeout)*time.Second, connection)
 		}
 	}
 }

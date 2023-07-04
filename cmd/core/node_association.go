@@ -46,7 +46,7 @@ func (association *NodeAssociation) IsHeartbeatScheduled() bool {
 }
 
 // ScheduleHeartbeatRequest schedules a series of heartbeat requests to be sent to the remote node. Return a cancellation function to stop the scheduled requests.
-func ScheduleHeartbeatRequest(duration time.Duration, conn *PfcpConnection, association string) context.CancelFunc {
+func (association *NodeAssociation) ScheduleHeartbeatRequest(duration time.Duration, conn *PfcpConnection) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func(ctx context.Context, duration time.Duration) {
 		i := uint32(0)
@@ -56,11 +56,11 @@ func ScheduleHeartbeatRequest(duration time.Duration, conn *PfcpConnection, asso
 			return
 		case <-ticker.C:
 			if i >= config.Conf.HeartbeatRetries {
-				conn.DeleteAssociation(association)
+				conn.DeleteAssociation(association.Addr)
 				ticker.Stop()
 				return
 			}
-			SendHeartbeatRequest(conn, association)
+			SendHeartbeatRequest(conn, association.Addr)
 		}
 	}(ctx, duration)
 	return cancel
