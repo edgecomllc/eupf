@@ -299,9 +299,14 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 		writeLineTabbed(sb, fmt.Sprintf("FAR ID: %d ", farid), 2)
 	}
 
-	qerid, err := pdr.QERID()
-	if err == nil {
-		writeLineTabbed(sb, fmt.Sprintf("QER ID: %d ", qerid), 2)
+	// No method to get several IEs in go-pfcp. So go through all child IEs
+	for _, x := range pdr.ChildIEs {
+		if x.Type == ie.QERID {
+			qerid, err := x.QERID()
+			if err == nil {
+				writeLineTabbed(sb, fmt.Sprintf("QER ID: %d ", qerid), 2)
+			}
+		}
 	}
 
 	urrid, err := pdr.URRID()
