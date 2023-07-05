@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
@@ -10,16 +11,21 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type NodeAssociationMap map[string]NodeAssociation
-
 type PfcpConnection struct {
 	udpConn          *net.UDPConn
 	pfcpHandlerMap   PfcpHandlerMap
-	NodeAssociations NodeAssociationMap
+	NodeAssociations map[string]*NodeAssociation
 	nodeId           string
 	nodeAddrV4       net.IP
 	n3Address        net.IP
 	mapOperations    ebpf.ForwardingPlaneController
+}
+
+func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
+	if assoc, ok := connection.NodeAssociations[assocAddr]; ok {
+		return assoc
+	}
+	return nil
 }
 
 func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController) (*PfcpConnection, error) {
@@ -48,7 +54,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 	return &PfcpConnection{
 		udpConn:          udpConn,
 		pfcpHandlerMap:   pfcpHandlerMap,
-		NodeAssociations: NodeAssociationMap{},
+		NodeAssociations: map[string]*NodeAssociation{},
 		nodeId:           nodeId,
 		nodeAddrV4:       addrv4,
 		n3Address:        n3Addr,
@@ -57,6 +63,12 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 }
 
 func (connection *PfcpConnection) Run() {
+	go func() {
+		for {
+			connection.RefreshAssociations()
+			time.Sleep(time.Duration(config.Conf.HeartbeatInterval) * time.Second)
+		}
+	}()
 	buf := make([]byte, 1500)
 	for {
 		n, addr, err := connection.Receive(buf)
@@ -100,4 +112,51 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 		return err
 	}
 	return nil
+}
+
+// RefreshAssociations checks for expired associations and schedules heartbeats for those that are not expired.
+func (connection *PfcpConnection) RefreshAssociations() {
+	for assocAddr, assoc := range connection.NodeAssociations {
+		if assoc.IsExpired() {
+			log.Printf("Pruning expired node association: %s", assocAddr)
+			connection.DeleteAssociation(assocAddr)
+		}
+	}
+	for _, assoc := range connection.NodeAssociations {
+		if !assoc.IsHeartbeatScheduled() {
+			assoc.ScheduleHeartbeatRequest(time.Duration(config.Conf.HeartbeatTimeout)*time.Second, connection)
+		}
+	}
+}
+
+// DeleteAssociation deletes an association and all sessions associated with it.
+func (connection *PfcpConnection) DeleteAssociation(assocAddr string) {
+	assoc := connection.GetAssociation(assocAddr)
+	log.Printf("Pruning expired node association: %s", assocAddr)
+	for sessionId, session := range assoc.Sessions {
+		log.Printf("Deleting session: %d", sessionId)
+		connection.DeleteSession(session)
+	}
+	delete(connection.NodeAssociations, assocAddr)
+}
+
+// DeleteSession deletes a session and all PDRs, FARs and QERs associated with it.
+func (connection *PfcpConnection) DeleteSession(session *Session) {
+	for _, far := range session.FARs {
+		_ = connection.mapOperations.DeleteFar(far.GlobalId)
+	}
+	for _, qer := range session.QERs {
+		_ = connection.mapOperations.DeleteQer(qer.GlobalId)
+	}
+	for _, uplinkPdr := range session.UplinkPDRs {
+		_ = connection.mapOperations.DeletePdrUpLink(uplinkPdr.Teid)
+	}
+	for _, downlinkPdr := range session.DownlinkPDRs {
+		if downlinkPdr.Ipv4 != nil {
+			_ = connection.mapOperations.DeletePdrDownLink(downlinkPdr.Ipv4)
+		}
+		if downlinkPdr.Ipv4 != nil {
+			_ = connection.mapOperations.DeleteDownlinkPdrIp6(downlinkPdr.Ipv6)
+		}
+	}
 }

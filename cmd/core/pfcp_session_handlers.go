@@ -18,7 +18,7 @@ var errNoEstablishedAssociation = fmt.Errorf("no established association")
 // #TODO: Extract Create/Update/Delete IE to separate functions
 // #TODO: Research how to merge UplinkPDRs and DownlinkPDRs
 
-func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
 	remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
@@ -28,7 +28,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		return message.NewSessionEstablishmentResponse(0, 0, 0, req.Sequence(), 0, convertErrorToIeCause(err)), nil
 	}
 
-	association, ok := conn.NodeAssociations[addr.String()]
+	association, ok := conn.NodeAssociations[addr]
 	if !ok {
 		log.Printf("Rejecting Session Establishment Request from: %s (no association)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
@@ -37,14 +37,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	localSEID := association.NewLocalSEID()
 
-	session := Session{
-		LocalSEID:    localSEID,
-		RemoteSEID:   remoteSEID.SEID,
-		UplinkPDRs:   map[uint32]SPDRInfo{},
-		DownlinkPDRs: map[uint32]SPDRInfo{},
-		FARs:         map[uint32]SFarInfo{},
-		QERs:         map[uint32]SQerInfo{},
-	}
+	session := NewSession(localSEID, remoteSEID.SEID)
 
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
@@ -106,14 +99,14 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 						continue
 					}
 
-					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations); err != nil {
+					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
 					}
 				}
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
-					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations)
+					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
 					}
@@ -137,7 +130,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	// Reassigning is the best I can think of for now
 	association.Sessions[localSEID] = session
-	conn.NodeAssociations[addr.String()] = association
+	conn.NodeAssociations[addr] = association
 
 	// #TODO: support v6
 	var v6 net.IP
@@ -155,10 +148,10 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	return estResp, nil
 }
 
-func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	req := msg.(*message.SessionDeletionRequest)
 	log.Printf("Got Session Deletion Request from: %s. \n", addr)
-	association, ok := conn.NodeAssociations[addr.String()]
+	association, ok := conn.NodeAssociations[addr]
 	if !ok {
 		log.Printf("Rejecting Session Deletion Request from: %s (no association)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
@@ -204,12 +197,12 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted)), nil
 }
 
-func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	req := msg.(*message.SessionModificationRequest)
 	log.Printf("Got Session Modification Request from: %s. \n", addr)
 
 	log.Printf("Finding association for %s", addr)
-	association, ok := conn.NodeAssociations[addr.String()]
+	association, ok := conn.NodeAssociations[addr]
 	if !ok {
 		log.Printf("Rejecting Session Modification Request from: %s (no association)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
@@ -231,8 +224,8 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		if err == nil {
 			session.RemoteSEID = remoteSEID.SEID
 
-			association.Sessions[req.SEID()] = session         // FIXME
-			conn.NodeAssociations[addr.String()] = association // FIXME
+			association.Sessions[req.SEID()] = session // FIXME
+			conn.NodeAssociations[addr] = association  // FIXME
 		}
 	}
 
@@ -354,14 +347,14 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 						continue
 					}
 
-					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations); err != nil {
+					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
 					}
 				}
 			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
 				{
-					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations)
+					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
 					}
@@ -391,7 +384,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				{
 					spdrInfo := session.GetUplinkPDR(pdrId)
 					updateSPDRInfo(pdr, &spdrInfo, session)
-					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations); err != nil {
+					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
 						log.Printf("Errored while applying PDR: %s", err.Error())
 						return err
 					}
@@ -400,7 +393,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				{
 					spdrInfo := session.GetDownlinkPDR(pdrId)
 					updateSPDRInfo(pdr, &spdrInfo, session)
-					err = applyDownlinkPDR(pdi, spdrInfo, pdrId, &session, mapOperations)
+					err = applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
 					if err == fmt.Errorf("IPv6 not supported") {
 						continue
 					}
@@ -454,7 +447,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	return modResp, nil
 }
 
-func updateSPDRInfo(pdr *ie.IE, spdrInfo *SPDRInfo, session Session) {
+func updateSPDRInfo(pdr *ie.IE, spdrInfo *SPDRInfo, session *Session) {
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}

@@ -66,6 +66,7 @@ func main() {
 	// Create PFCP connection
 	var pfcpHandlers = core.PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            core.HandlePfcpHeartbeatRequest,
+		message.MsgTypeHeartbeatResponse:           core.HandlePfcpHeartbeatResponse,
 		message.MsgTypeAssociationSetupRequest:     core.HandlePfcpAssociationSetupRequest,
 		message.MsgTypeSessionEstablishmentRequest: core.HandlePfcpSessionEstablishmentRequest,
 		message.MsgTypeSessionDeletionRequest:      core.HandlePfcpSessionDeletionRequest,
