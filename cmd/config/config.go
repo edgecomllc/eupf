@@ -10,6 +10,23 @@ import (
 
 var v = viper.GetViper()
 
+type UpfConfig struct {
+	InterfaceName     []string `mapstructure:"interface_name"`
+	XDPAttachMode     string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload"`
+	ApiAddress        string   `mapstructure:"api_address" validate:"hostname_port"`
+	PfcpAddress       string   `mapstructure:"pfcp_address" validate:"hostname_port"`
+	PfcpNodeId        string   `mapstructure:"pfcp_node_id" validate:"ipv4"`
+	MetricsAddress    string   `mapstructure:"metrics_address" validate:"hostname_port"`
+	N3Address         string   `mapstructure:"n3_address" validate:"ipv4"`
+	QerMapSize        uint32   `mapstructure:"qer_map_size" validate:"min=1"`
+	FarMapSize        uint32   `mapstructure:"far_map_size" validate:"min=1"`
+	PdrMapSize        uint32   `mapstructure:"pdr_map_size" validate:"min=1"`
+	EbpfMapResize     bool     `mapstructure:"resize_ebpf_maps"`
+	HeartbeatRetries  uint32   `mapstructure:"heartbeat_retries"`
+	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval"`
+	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout"`
+}
+
 func init() {
 	var configPath = pflag.String("config", "./config.yml", "Path to config file")
 	// pflags defaults are ignored in this setup
@@ -24,6 +41,9 @@ func init() {
 	pflag.String("farsize", "", "Size of the FAR ebpf map")
 	pflag.String("pdrsize", "", "Size of the PDR ebpf map")
 	pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
+	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
+	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
+	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -38,6 +58,9 @@ func init() {
 	_ = v.BindPFlag("far_map_size", pflag.Lookup("farsize"))
 	_ = v.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
 	_ = v.BindPFlag("resize_ebpf_maps", pflag.Lookup("mapresize"))
+	_ = v.BindPFlag("heartbeat_retries", pflag.Lookup("hbretries"))
+	_ = v.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
+	_ = v.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -50,6 +73,9 @@ func init() {
 	v.SetDefault("far_map_size", "1024")
 	v.SetDefault("pdr_map_size", "1024")
 	v.SetDefault("resize_ebpf_maps", false)
+	v.SetDefault("heartbeat_retries", 3)
+	v.SetDefault("heartbeat_interval", 5)
+	v.SetDefault("heartbeat_timeout", 5)
 
 	v.SetConfigFile(*configPath)
 
@@ -63,25 +89,11 @@ func init() {
 	log.Printf("Get raw config: %+v", v.AllSettings())
 }
 
-type UpfConfig struct {
-	InterfaceName  []string `mapstructure:"interface_name"`
-	XDPAttachMode  string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload"`
-	ApiAddress     string   `mapstructure:"api_address" validate:"hostname_port"`
-	PfcpAddress    string   `mapstructure:"pfcp_address" validate:"hostname_port"`
-	PfcpNodeId     string   `mapstructure:"pfcp_node_id" validate:"ipv4"`
-	MetricsAddress string   `mapstructure:"metrics_address" validate:"hostname_port"`
-	N3Address      string   `mapstructure:"n3_address" validate:"ipv4"`
-	QerMapSize     uint32   `mapstructure:"qer_map_size" validate:"min=1"`
-	FarMapSize     uint32   `mapstructure:"far_map_size" validate:"min=1"`
-	PdrMapSize     uint32   `mapstructure:"pdr_map_size" validate:"min=1"`
-	EbpfMapResize  bool     `mapstructure:"resize_ebpf_maps"`
-}
-
 func (c *UpfConfig) Validate() error {
 	return validator.New().Struct(c)
 }
 
-// Unmarshal unmarshal data from config file
+// Unmarshal data from config file
 func (c *UpfConfig) Unmarshal() error {
 	return v.UnmarshalExact(c)
 }

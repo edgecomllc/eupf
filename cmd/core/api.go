@@ -99,7 +99,7 @@ func DisplayConfig() func(c *gin.Context) {
 // @Description List PFCP associations
 // @Tags PFCP
 // @Produce  json
-// @Success 200 {object} core.NodeAssociationMap
+// @Success 200 {object} map[string]core.NodeAssociation
 // @Router /pfcp_associations/full [get]
 func ListPfcpAssociationsFull(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -135,26 +135,26 @@ func ListPfcpAssociations(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 	}
 }
 
-func GetAllSessions(nodeMap *NodeAssociationMap) (sessions []Session) {
+func GetAllSessions(nodeMap *map[string]*NodeAssociation) (sessions []Session) {
 	for _, nodeAssoc := range *nodeMap {
 		for _, session := range nodeAssoc.Sessions {
-			sessions = append(sessions, session)
+			sessions = append(sessions, *session)
 		}
 	}
 	return
 }
 
-func FilterSessionsByIP(nodeMap *NodeAssociationMap, filterByIP net.IP) *Session {
+func FilterSessionsByIP(nodeMap *map[string]*NodeAssociation, filterByIP net.IP) *Session {
 	for _, nodeAssoc := range *nodeMap {
 		for _, session := range nodeAssoc.Sessions {
 			for _, uplinkPDR := range session.UplinkPDRs {
 				if uplinkPDR.Ipv4.Equal(filterByIP) {
-					return &session
+					return session
 				}
 			}
 			for _, downlinkPDR := range session.DownlinkPDRs {
 				if downlinkPDR.Ipv4.Equal(filterByIP) {
-					return &session
+					return session
 				}
 			}
 		}
@@ -162,17 +162,17 @@ func FilterSessionsByIP(nodeMap *NodeAssociationMap, filterByIP net.IP) *Session
 	return nil
 }
 
-func FilterSessionsByTeid(nodeMap *NodeAssociationMap, filterByTeid uint32) *Session {
+func FilterSessionsByTeid(nodeMap *map[string]*NodeAssociation, filterByTeid uint32) *Session {
 	for _, nodeAssoc := range *nodeMap {
 		for _, session := range nodeAssoc.Sessions {
 			for _, uplinkPDR := range session.UplinkPDRs {
 				if uplinkPDR.Teid == filterByTeid {
-					return &session
+					return session
 				}
 			}
 			for _, downlinkPDR := range session.DownlinkPDRs {
 				if downlinkPDR.Teid == filterByTeid {
-					return &session
+					return session
 				}
 			}
 		}

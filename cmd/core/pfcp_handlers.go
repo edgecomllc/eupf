@@ -9,7 +9,7 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type PfcpFunc func(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error)
+type PfcpFunc func(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error)
 
 type PfcpHandlerMap map[uint8]PfcpFunc
 
@@ -23,7 +23,9 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 	PfcpMessageRx.WithLabelValues(incomingMsg.MessageTypeName()).Inc()
 	if handler, ok := handlerMap[incomingMsg.MessageType()]; ok {
 		startTime := time.Now()
-		outgoingMsg, err := handler(conn, incomingMsg, addr)
+		// TODO: Trim port as a workaround for NAT changing the port. Explore proper solutions.
+		string_ip_addr := addr.IP.String()
+		outgoingMsg, err := handler(conn, incomingMsg, string_ip_addr)
 		if err != nil {
 			log.Printf("Error handling PFCP message: %s", err.Error())
 			return err
@@ -38,24 +40,8 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 	return nil
 }
 
-func HandlePfcpHeartbeatRequest(_ *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
-	hbreq := msg.(*message.HeartbeatRequest)
-
-	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
-	if err != nil {
-		log.Printf("Got Heartbeat Request with invalid TS: %s, from: %s", err, addr)
-		return nil, err
-	} else {
-		log.Printf("Got Heartbeat Request with TS: %s, from: %s", ts, addr)
-	}
-
-	hbres := message.NewHeartbeatResponse(hbreq.SequenceNumber, ie.NewRecoveryTimeStamp(time.Now()))
-	log.Printf("Sent Heartbeat Response to: %s", addr)
-	return hbres, nil
-}
-
 // https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/16.04.00_60/ts_129244v160400p.pdf page 95
-func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr *net.UDPAddr) (message.Message, error) {
+func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	asreq := msg.(*message.AssociationSetupRequest)
 	log.Printf("Got Association Setup Request from: %s. \n", addr)
 	if asreq.NodeID == nil {
@@ -91,14 +77,9 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	// if the request is accepted:
 	// shall store the Node ID of the CP function as the identifier of the PFCP association;
 	// Create RemoteNode from AssociationSetupRequest
-	remoteNode := NodeAssociation{
-		ID:            remoteNodeID,
-		Addr:          addr.String(),
-		NextSessionID: 1,
-		Sessions:      SessionMap{},
-	}
+	remoteNode := NewNodeAssociation(remoteNodeID, addr)
 	// Add or replace RemoteNode to NodeAssociationMap
-	conn.NodeAssociations[addr.String()] = remoteNode
+	conn.NodeAssociations[addr] = remoteNode
 	log.Printf("Saving new association: %+v", remoteNode)
 
 	// shall send a PFCP Association Setup Response including:
