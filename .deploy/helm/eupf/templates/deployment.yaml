@@ -69,6 +69,31 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- include "helpers.pod.volumeMounts" . | nindent 10 }}
+        {{- if .Values.bird.enabled }}
+        - name: bird
+          image: {{ .Values.bird.image }}
+          {{- if .Values.bird.command }}
+          command: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.bird.command "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.bird.args }}
+          args: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.bird.args "context" $) | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: bgp
+              containerPort: {{ .Values.bird.service.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.bird.resources | nindent 12 }}
+          {{- with .Values.bird.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.bird.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- include "helpers.pod.volumeMounts" . | nindent 10 }}
+        {{- end }}
       {{- include "helpers.pod.volumes" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

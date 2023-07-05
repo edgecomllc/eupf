@@ -1,15 +1,5 @@
 ---
 
-image:
-  registry: ghcr.io
-  repository: edgecomllc
-  name: eupf
-  tag: main
-  pullPolicy: Always
-
-# command:
-#   - /app/conf/run.sh
-
 args:
   - --config
   - /app/conf/config.yml
@@ -33,60 +23,49 @@ configMaps:
         api_address: :8080
         pfcp_address: :8805
         metrics_address: :9090
-      run.sh: |
-        #!/bin/sh
-
-        set -x
-
-        # mkdir -p /etc/iproute2
-        # echo "1000 n6if" >> /etc/iproute2/rt_tables
-        # ip rule add from 10.45.0.0/16 table n6if
-        # ip route add default via 10.99.0.254 dev n6 table n6if
-
-        # set +x
-
-        exec /app/bin/eupf $@
+  bird:
+    data:
       bird.conf: |
-        router id 10.133.64.1;
+        router id 10.233.64.1;
 
         protocol bfd {
         }
 
         protocol direct {
-            interface "*";
+          interface "*";
         }
 
         protocol kernel {
-            learn;
-            scan time 5;
-            import all;
-            export all;
+          learn;
+          scan time 5;
+          import all;
+          export all;
         }
 
         protocol device {
-            scan time 5;
+          scan time 5;
         }
 
         protocol static eupf {
-            route 10.45.0.0/16 reject;
+          route 10.45.0.0/16 reject;
         }
 
-        protocol bgp node_10_128_0_11 {
-            keepalive time 20;
-            hold time 60;
-            graceful restart aware;
-            local as 65000;
-            neighbor 10.128.0.11 as 64512;
+        protocol bgp node_local {
+          keepalive time 20;
+          hold time 60;
+          graceful restart aware;
+          local as 65000;
+          neighbor 188.120.253.172 as 64512;
 
-            debug all;
-            multihop;
-            gateway recursive;
-            connect delay time 2;
-            connect retry time 5;
-            error wait time 5,30;
+          debug all;
+          multihop;
+          gateway recursive;
+          connect delay time 2;
+          connect retry time 5;
+          error wait time 5,30;
 
-            import all;
-            export where proto = "eupf";
+          import all;
+          export where proto = "eupf";
         }
 
 env:
@@ -105,12 +84,10 @@ volumes:
         - key: config.yml
           mode: 493
           path: config.yml
-        - key: run.sh
-          mode: 493
-          path: run.sh
-        - key: bird.conf
-          mode: 493
-          path: bird.conf
+  - name: bird
+    configMap:
+      name: eupf-bird
+      defaultMode: 420
 
 volumeMounts:
   - name: sys
@@ -118,9 +95,11 @@ volumeMounts:
     readOnly:  true
   - name: config
     mountPath: /app/conf
+  - name: bird
+    mountPath: /opt/bird/conf
 
 metrics:
-  enabled: false
+  enabled: true
   serviceMonitor:
     enabled: true
     additionalLabels:
@@ -171,5 +150,8 @@ readinessProbe:
   periodSeconds: 10
 
 podAnnotations:
-  cni.projectcalico.org/ipv4pools: '["eupf-pool"]'
-  cni.projectcalico.org/ipAddrs: '["10.133.64.1"]'
+  cni.projectcalico.org/ipv4pools: '["default-pool"]'
+  cni.projectcalico.org/ipAddrs: '["10.233.64.1"]'
+
+bird:
+  enabled: true

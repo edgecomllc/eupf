@@ -3,10 +3,6 @@
 global:
   imagePullPolicy: Always
 
-image:
-  # tag: main
-  tag: xdp-program-install
-
 args:
   - --config
   - /app/conf/config.yml
@@ -48,7 +44,7 @@ volumeMounts:
     mountPath: /app/conf
 
 metrics:
-  enabled: true
+  enabled: false
   serviceMonitor:
     enabled: true
     additionalLabels:
