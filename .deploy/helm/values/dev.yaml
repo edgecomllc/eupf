@@ -44,7 +44,7 @@ volumeMounts:
     mountPath: /app/conf
 
 metrics:
-  enabled: false
+  enabled: true
   serviceMonitor:
     enabled: true
     additionalLabels:
