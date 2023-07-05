@@ -1,0 +1,48 @@
+amf:
+  # if set amf.ip takes precedence over amf.hostname
+  ip: "10.100.50.251"  #""
+  hostname: free5gc-free5gc-amf-amf-n2
+interfaces:
+  n2:
+    dev: n2
+  n3:
+    dev: n3
+  radio:
+    dev: eth0
+mcc: '208'
+mnc: '93'
+sst: 0x1
+sd: "0x010203"
+tac: '1'
+
+podAnnotations:
+  k8s.v1.cni.cncf.io/networks: |
+    [
+      { "name": "n3network-upf",
+        "interface": "n3",
+        "ips": [ "10.100.50.235/29" ]
+      },
+      { "name": "n2network-free5gc-free5gc-amf",
+        "interface": "n2",
+        "ips": [ "10.100.50.252/29" ]
+      }
+    ]
+
+ues:
+  enabled: true
+  count: 2
+  initialMSISDN: '0000000003'
+  key: "8baf473f2f8fd09487cccbd7097c6862"
+  op: "8e27b6af0e692e750f32667a3b14605d"
+  opType: "OPC"
+  apnList:
+    - type: 'IPv4'
+      apn: 'internet'
+      slice:
+        sst: 0x1
+        sd: "0x010203"
+    - type: 'IPv4'
+      apn: 'internet'
+      slice:
+        sst: 0x1
+        sd: "0x112233"
