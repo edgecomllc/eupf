@@ -27,7 +27,7 @@
 
 static __always_inline int parse_ethernet(struct packet_context *ctx) {
     struct ethhdr *eth = (struct ethhdr *)ctx->data;
-    if ((char *)(eth + 1) > (char *)ctx->data_end)
+    if ((const char *)(eth + 1) > ctx->data_end)
         return -1;
 
     /* TODO: Add vlan support */
@@ -42,7 +42,7 @@ static __always_inline int parse_ethernet(struct packet_context *ctx) {
 
 static __always_inline int parse_ip4(struct packet_context *ctx) {
     struct iphdr *ip4 = (struct iphdr *)ctx->data;
-    if ((char *)(ip4 + 1) > (char *)ctx->data_end)
+    if ((const char *)(ip4 + 1) > ctx->data_end)
         return -1;
 
     /* do not support fragmented packets as L4 headers may be missing */
@@ -56,7 +56,7 @@ static __always_inline int parse_ip4(struct packet_context *ctx) {
 
 static __always_inline int parse_ip6(struct packet_context *ctx) {
     struct ipv6hdr *ip6 = (struct ipv6hdr *)ctx->data;
-    if ((char *)(ip6 + 1) > (char *)ctx->data_end)
+    if ((const char *)(ip6 + 1) > ctx->data_end)
         return -1;
 
     /* TODO: Add extention headers support */
@@ -68,7 +68,7 @@ static __always_inline int parse_ip6(struct packet_context *ctx) {
 
 static __always_inline int parse_udp(struct packet_context *ctx) {
     struct udphdr *udp = (struct udphdr *)ctx->data;
-    if ((char *)(udp + 1) > (char *)ctx->data_end)
+    if ((const char *)(udp + 1) > ctx->data_end)
         return -1;
 
     ctx->data += sizeof(*udp);
@@ -103,7 +103,7 @@ static __always_inline void swap_ip(struct iphdr *iph) {
     // ip->check = ipv4_csum(ip, sizeof(*ip));
 }
 
-static __always_inline void context_set_ip4(struct packet_context *ctx, void *data, void *data_end, struct ethhdr *eth, struct iphdr *ip4, struct udphdr *udp, struct gtpuhdr *gtp) {
+static __always_inline void context_set_ip4(struct packet_context *ctx, char *data, const char *data_end, struct ethhdr *eth, struct iphdr *ip4, struct udphdr *udp, struct gtpuhdr *gtp) {
     ctx->data = data;
     ctx->data_end = data_end;
     ctx->eth = eth;
@@ -113,7 +113,7 @@ static __always_inline void context_set_ip4(struct packet_context *ctx, void *da
     ctx->gtp = gtp;
 }
 
-static __always_inline void context_reset(struct packet_context *ctx, void *data, void *data_end) {
+static __always_inline void context_reset(struct packet_context *ctx, char *data, const char *data_end) {
     ctx->data = data;
     ctx->data_end = data_end;
     ctx->eth = 0;
@@ -124,7 +124,7 @@ static __always_inline void context_reset(struct packet_context *ctx, void *data
 }
 
 
-static __always_inline long context_reinit(struct packet_context *ctx, void *data, void *data_end) {
+static __always_inline long context_reinit(struct packet_context *ctx, char *data, const char *data_end) {
     context_reset(ctx, data, data_end);
 
     int ethertype = parse_ethernet(ctx);
