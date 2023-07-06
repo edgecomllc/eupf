@@ -28,7 +28,7 @@
 
 static __always_inline __u32 parse_gtp(struct packet_context *ctx) {
     struct gtpuhdr *gtp = (struct gtpuhdr *)ctx->data;
-    if ((void *)(gtp + 1) > ctx->data_end)
+    if ((const char *)(gtp + 1) > ctx->data_end)
         return -1;
 
     ctx->data += sizeof(*gtp);
@@ -65,24 +65,24 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
 
     const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr) + ext_gtp_header_size;
 
-    void *data = (void *)(long)ctx->xdp_ctx->data;
-    void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
-    struct ethhdr *eth = data;
-    if ((void *)(eth + 1) > data_end) {
+    char *data = (char *)(long)ctx->xdp_ctx->data;
+    const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
+    struct ethhdr *eth = (struct ethhdr *)data;
+    if ((const char *)(eth + 1) > data_end) {
         bpf_printk("upf: remove_gtp_header: can't parse eth");
         return -1;
     }
 
     data += gtp_encap_size;
-    struct ethhdr *new_eth = data;
-    if ((void *)(new_eth + 1) > data_end) {
+    struct ethhdr *new_eth = (struct ethhdr *)data;
+    if ((const char *)(new_eth + 1) > data_end) {
         bpf_printk("upf: remove_gtp_header: can't set new eth");
         return -1;
     }
     __builtin_memcpy(new_eth, eth, sizeof(*new_eth));
 
     data += sizeof(*new_eth);
-    if ((void *)((const __u8 *)data + 1) > data_end)
+    if (data + 1 > data_end)
         return -1;
 
     const __u8 ip_version = (*(const __u8 *)data) >> 4;
@@ -106,8 +106,8 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
         return result;
 
     /* Update packet pointers */
-    data = (void *)(long)ctx->xdp_ctx->data;
-    data_end = (void *)(long)ctx->xdp_ctx->data_end;
+    data = (char *)(long)ctx->xdp_ctx->data;
+    data_end = (const char *)(long)ctx->xdp_ctx->data_end;
     return context_reinit(ctx, data, data_end);
 }
 
@@ -155,34 +155,34 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
     if (result)
         return -1;
 
-    void *data = (void *)(long)ctx->xdp_ctx->data;
-    void *data_end = (void *)(long)ctx->xdp_ctx->data_end;
+    char *data = (char *)(long)ctx->xdp_ctx->data;
+    const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
 
-    struct ethhdr *orig_eth = data + gtp_encap_size;
-    if ((void *)(orig_eth + 1) > data_end)
+    struct ethhdr *orig_eth = (struct ethhdr *)(data + gtp_encap_size);
+    if ((const char *)(orig_eth + 1) > data_end)
         return -1;
 
-    struct ethhdr *eth = data;
+    struct ethhdr *eth = (struct ethhdr *)data;
     __builtin_memcpy(eth, orig_eth, sizeof(*eth));
     eth->h_proto = bpf_htons(ETH_P_IP);
 
-    struct iphdr *ip = (void *)(eth + 1);
-    if ((void *)(ip + 1) > data_end)
+    struct iphdr *ip = (struct iphdr *)(eth + 1);
+    if ((const char *)(ip + 1) > data_end)
         return -1;
 
     /* Add the outer IP header */
     fill_ip_header(ip, saddr, daddr, ip_packet_len + gtp_encap_size);
 
     /* Add the UDP header */
-    struct udphdr *udp = (void *)(ip + 1);
-    if ((void *)(udp + 1) > data_end)
+    struct udphdr *udp = (struct udphdr *)(ip + 1);
+    if ((const char *)(udp + 1) > data_end)
         return -1;
 
     fill_udp_header(udp, GTP_UDP_PORT, ip_packet_len + sizeof(*udp) + sizeof(struct gtpuhdr));
 
     /* Add the GTP header */
-    struct gtpuhdr *gtp = (void *)(udp + 1);
-    if ((void *)(gtp + 1) > data_end)
+    struct gtpuhdr *gtp = (struct gtpuhdr *)(udp + 1);
+    if ((const char *)(gtp + 1) > data_end)
         return -1;
 
     fill_gtp_header(gtp, teid, ip_packet_len);
@@ -197,6 +197,6 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
     // udp->check = cs;
 
     /* Update packet pointers */
-    context_set_ip4(ctx, (void *)(long)ctx->xdp_ctx->data, (void *)(long)ctx->xdp_ctx->data_end, eth, ip, udp, gtp);
+    context_set_ip4(ctx, (char *)(long)ctx->xdp_ctx->data, (const char *)(long)ctx->xdp_ctx->data_end, eth, ip, udp, gtp);
     return 0;
 }

@@ -26,8 +26,8 @@
 
 /* Header cursor to keep track of current parsing position */
 struct packet_context {
-    void *data;
-    const void *data_end;
+    char *data;
+    const char *data_end;
     struct upf_counters *counters;
     struct xdp_md *xdp_ctx;
     struct ethhdr *eth;

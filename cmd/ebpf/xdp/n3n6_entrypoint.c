@@ -325,8 +325,8 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
 
     /* These keep track of the packet pointers and statistic */
     struct packet_context context = {
-        .data = (void *)(long)ctx->data,
-        .data_end = (void *)(long)ctx->data_end,
+        .data = (char *)(long)ctx->data,
+        .data_end = (const char *)(long)ctx->data_end,
         .xdp_ctx = ctx,
         .counters = &statistic->upf_counters};
 
