@@ -59,17 +59,29 @@ configMaps: {}
   #   data:
   #     config.yml: |
   #       foo: bar
+  # # example bird.conf
+  # bird:
+  #   data:
+  #     bird.conf: |
+  #       router id 192.168.0.1;
+
+  #       protocol bfd {}
 
 # volumes
 volumes: {}
   # - name: config
   #   configMap:
-  #     name: "eupf-config"
+  #     name: eupf-config
+  # - name: bird
+  #   configMap:
+  #     name: eupf-bird
 
 # volume mounts
 volumeMounts: {}
   # - name: config
   #   mountPath: /app/conf
+  # - name: bird
+  #   mountPath: /opt/bird/conf
 
 hostNetwork: false
 
@@ -100,6 +112,40 @@ xdpProgrammInstall:
       set -x ;\
       ls -alh /app ;\
       ip link set dev ${IFACE_NAME} xdpdrv obj /app/zero_entrypoint_bpf.o sec xdp/upf_zero_entrypoint
+
+bird:
+  enabled: false
+  image: calico/bird:v0.3.3-204-g69b104b7-amd64
+  service:
+    enabled: false
+    type: ClusterIP
+    port: 179
+  ports:
+    - name: bgp
+      containerPort: 179
+      protocol: TCP
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  livenessProbe:
+    tcpSocket:
+      port: bgp
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readinessProbe:
+    tcpSocket:
+      port: bgp
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  command:
+    - /bin/sh
+    - -c
+  args:
+    - 'mkdir -p /var/run/calico; bird -f -c /opt/bird/conf/bird.conf'
 
 serviceAccount:
   # Specifies whether a service account should be created

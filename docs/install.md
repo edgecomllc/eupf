@@ -57,13 +57,39 @@ We have prepared templates to deploy with two opensource environments: **open5gs
 
       ```powershell
       helm upgrade --install \
-         edgecomllc-eupf .deploy/helm/eupf \
+         eupf .deploy/helm/eupf \
          --values docs/examples/open5gs/eupf-container-nat.yaml \
          -n open5gs \
          --wait --timeout 100s --create-namespace
       ```
 
-0. install open5gs chart
+   - Option 3, BGP connection with calico CNI:
+
+      * configure calico backend
+
+      change `calico_backend` parameter to `bird` in configmap with name `calico-config` and then restart all pods with name `calico-node-*`
+
+      * configure Calico BGP
+
+      ```bash
+      kubectl apply -f docs/examples/open5gs/calico-bgp.yaml
+      ```
+
+      * configure Calico IP Pool for UE devices
+
+      ```bash
+      kubectl apply -f docs/examples/open5gs/calico-pools.yaml
+      ```
+
+      ```bash
+      helm upgrade --install \
+         eupf .deploy/helm/eupf \
+         --values docs/examples/open5gs/eupf-bgp.yaml \
+         -n open5gs \
+         --wait --timeout 100s --create-namespace
+      ```
+
+1. install open5gs chart
 
    ```powershell
    helm upgrade --install \
@@ -74,7 +100,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
       --wait --timeout 100s --create-namespace
    ```
 
-0. install ueransim chart
+2. install ueransim chart
 
    ```powershell
    helm upgrade --install \

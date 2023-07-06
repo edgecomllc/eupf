@@ -1,5 +1,5 @@
 {{- $all := . -}}
-{{- range $k, $v := .Values.configMaps -}}
+{{- range $k, $v := .Values.configMaps }}
 ---
 apiVersion: v1
 kind: ConfigMap
