@@ -651,3 +651,12 @@ func updateQer(qerInfo *ebpf.QerInfo, qer *ie.IE) {
 	qerInfo.StartUL = 0
 	qerInfo.StartDL = 0
 }
+
+func GetTransportLevelMarking(far *ie.IE) (uint16, error) {
+	for _, informationalElement := range far.ChildIEs {
+		if informationalElement.Type == ie.TransportLevelMarking {
+			return informationalElement.TransportLevelMarking()
+		}
+	}
+	return 0, fmt.Errorf("no TransportLevelMarking found")
+}
