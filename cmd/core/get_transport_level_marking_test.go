@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestFarDisplay(t *testing.T) {
+func TestGetTransportLevelMarking(t *testing.T) {
 	// Create CreateFAR_IE with TransportLevelMarking
 	CreateFAR := ie.NewCreateFAR(
 		ie.NewFARID(10),
