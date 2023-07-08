@@ -619,7 +619,7 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarI
 			}
 		}
 	}
-	transportLevelMarking, err := far.TransportLevelMarking()
+	transportLevelMarking, err := GetTransportLevelMarking(far)
 	if err == nil {
 		farInfo.TransportLevelMarking = transportLevelMarking
 	}
