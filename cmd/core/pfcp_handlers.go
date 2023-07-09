@@ -24,8 +24,8 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 	if handler, ok := handlerMap[incomingMsg.MessageType()]; ok {
 		startTime := time.Now()
 		// TODO: Trim port as a workaround for NAT changing the port. Explore proper solutions.
-		string_ip_addr := addr.IP.String()
-		outgoingMsg, err := handler(conn, incomingMsg, string_ip_addr)
+		stringIpAddr := addr.IP.String()
+		outgoingMsg, err := handler(conn, incomingMsg, stringIpAddr)
 		if err != nil {
 			log.Printf("Error handling PFCP message: %s", err.Error())
 			return err

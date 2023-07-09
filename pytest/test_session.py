@@ -2,6 +2,7 @@
 
 from scapy.all import *
 from scapy.contrib.pfcp import *
+from scapy.layers.inet import IP  # This is to calm down PyCharm's linter
 
 association_request = PFCP(version=1, S=0, seq=1) / \
                       PFCPAssociationSetupRequest(IE_list=[
@@ -96,3 +97,5 @@ def test_session_cycle():
     ans = sr1(target / session_delete, iface='lo')
     assert ans.haslayer(PFCPSessionDeletionResponse)
     assert ans[PFCPSessionDeletionResponse][IE_Cause].cause == 1
+
+    
