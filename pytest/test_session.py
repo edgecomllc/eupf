@@ -3,6 +3,7 @@
 from scapy.all import *
 from scapy.contrib.pfcp import *
 from scapy.layers.inet import IP  # This is to calm down PyCharm's linter
+import time
 
 association_request = PFCP(version=1, S=0, seq=1) / \
                       PFCPAssociationSetupRequest(IE_list=[
@@ -76,6 +77,11 @@ session_delete = PFCP(version=1, S=1, seq=3, seid=2, spare_oct=0) / \
                           IE_NodeId(id_type="FQDN", id="BIG-IMPORTANT-CP")
                       ])
 
+heartbeat_response = PFCP(version=1, S=0, seq=1, seid=2, spare_oct=0) / \
+                     PFCPHeartbeatResponse(IE_list=[
+                          IE_RecoveryTimeStamp(timestamp=int(time.time()))
+                     ])
+
 # https://stackoverflow.com/questions/41166420/sending-a-packet-over-physical-loopback-in-scapy
 conf.L3socket=L3RawSocket
 
@@ -98,4 +104,5 @@ def test_session_cycle():
     assert ans.haslayer(PFCPSessionDeletionResponse)
     assert ans[PFCPSessionDeletionResponse][IE_Cause].cause == 1
 
-    
+    # This is imaginary HearBeatResponse, this should not crash eUPF
+    send(target / heartbeat_response, iface='lo' )
