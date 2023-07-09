@@ -44,3 +44,9 @@ jobs:
 
       - name: Build
         run: go build -v -o bin/eupf ./cmd
+
+      - name: Run eUPF and sleep
+        run: sudo ./bin/eupf & sleep 10 &
+
+      - name: Stop eUPF
+        run: sudo killall eupf
