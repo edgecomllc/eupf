@@ -32,8 +32,12 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 		}
 		duration := time.Since(startTime)
 		UpfMessageRxLatency.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
-		PfcpMessageTx.WithLabelValues(outgoingMsg.MessageTypeName()).Inc()
-		return conn.SendMessage(outgoingMsg, addr)
+		// Now assumption that all handlers will return a message to send is not true.
+		if outgoingMsg != nil {
+			PfcpMessageTx.WithLabelValues(outgoingMsg.MessageTypeName()).Inc()
+			return conn.SendMessage(outgoingMsg, addr)
+		}
+		return nil
 	} else {
 		log.Printf("Got unexpected message %s: %s, from: %s", incomingMsg.MessageTypeName(), incomingMsg, addr)
 	}

@@ -47,7 +47,7 @@ jobs:
 
       - name: Run eUPF and sleep
         run: sudo ./bin/eupf &
-        
+
       - name: Install pytest and SCAPY
         run: sudo pip install pytest scapy
 
