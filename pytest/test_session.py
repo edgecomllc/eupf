@@ -87,22 +87,26 @@ conf.L3socket=L3RawSocket
 
 target = IP(dst="127.0.0.1")/UDP(sport=33100,dport=8805)
 
-def test_session_cycle():
+def create_association():
     ans = sr1(target / association_request, iface='lo')
     assert ans.haslayer(PFCPAssociationSetupResponse)
     assert ans[PFCPAssociationSetupResponse][IE_Cause].cause == 1
 
+def create_session():
     ans = sr1(target / session_establish, iface='lo')
     assert ans.haslayer(PFCPSessionEstablishmentResponse)
     assert ans[PFCPSessionEstablishmentResponse][IE_Cause].cause == 1
 
+def modify_session():
     ans = sr1(target / session_modification, iface='lo')
     assert ans.haslayer(PFCPSessionModificationResponse)
     assert ans[PFCPSessionModificationResponse][IE_Cause].cause == 1
 
+def delete_session():
     ans = sr1(target / session_delete, iface='lo')
     assert ans.haslayer(PFCPSessionDeletionResponse)
     assert ans[PFCPSessionDeletionResponse][IE_Cause].cause == 1
 
+def send_heartbeat():
     # This is imaginary HearBeatResponse, this should not crash eUPF
     send(target / heartbeat_response, iface='lo' )
