@@ -52,6 +52,22 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     return XDP_TX;
 }
 
+static __always_inline int get_eth_protocol(const char *data) {
+    const __u8 ip_version = (*(const __u8 *)data) >> 4;
+    switch (ip_version) {
+        case 6: {
+            return bpf_htons(ETH_P_IPV6);
+        }
+        case 4: {
+            return bpf_htons(ETH_P_IP);
+        }
+        default:
+            /* do nothing with non-ip packets */
+            bpf_printk("upf: can't process non-IP packet: %d", ip_version);
+            return -1;
+    }
+}
+
 static __always_inline long remove_gtp_header(struct packet_context *ctx) {
     if (!ctx->gtp) {
         bpf_printk("upf: remove_gtp_header: not a gtp packet");
@@ -79,27 +95,19 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
         bpf_printk("upf: remove_gtp_header: can't set new eth");
         return -1;
     }
-    __builtin_memcpy(new_eth, eth, sizeof(*new_eth));
 
     data += sizeof(*new_eth);
     if (data + 1 > data_end)
         return -1;
 
-    const __u8 ip_version = (*(const __u8 *)data) >> 4;
-    switch (ip_version) {
-        case 6: {
-            new_eth->h_proto = bpf_htons(ETH_P_IPV6);
-            break;
-        }
-        case 4: {
-            new_eth->h_proto = bpf_htons(ETH_P_IP);
-            break;
-        }
-        default:
-            /* do nothing with non-ip packets */
-            bpf_printk("upf: can't process not an ip packet: %d", ip_version);
-            return -1;
-    }
+    const int eth_proto = get_eth_protocol(data);
+
+    if (eth_proto == -1)
+        return -1;
+
+    __builtin_memcpy(new_eth, eth, sizeof(*new_eth));
+    
+    new_eth->h_proto = eth_proto;
 
     long result = bpf_xdp_adjust_head(ctx->xdp_ctx, gtp_encap_size);
     if (result)
