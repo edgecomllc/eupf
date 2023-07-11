@@ -64,7 +64,7 @@ static __always_inline enum xdp_action limit_rate_simple(struct xdp_md *ctx, __u
     return XDP_DROP;
 }
 
-static __always_inline enum xdp_action limit_rate_sliding_window(struct xdp_md *ctx, __u64 *windows_start, const __u64 rate) {
+static __always_inline enum xdp_action limit_rate_sliding_window(const __u64 packet_size, __u64 *windows_start, const __u64 rate) {
     static const __u64 NSEC_PER_SEC = 1000000000ULL;
     static const __u64 window_size = 5000000ULL;
 
@@ -72,7 +72,7 @@ static __always_inline enum xdp_action limit_rate_sliding_window(struct xdp_md *
     if (rate == 0)
         return XDP_PASS;
 
-    __u64 tx_time = (ctx->data_end - ctx->data) * 8 * NSEC_PER_SEC / rate;
+    __u64 tx_time = packet_size * 8 * NSEC_PER_SEC / rate;
     __u64 now = bpf_ktime_get_ns();
 
     __u64 start = *(volatile __u64 *)windows_start;

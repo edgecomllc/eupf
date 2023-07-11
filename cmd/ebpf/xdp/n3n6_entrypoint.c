@@ -95,7 +95,8 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     if (qer->dl_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
 
-    if (XDP_DROP == limit_rate_sliding_window(ctx->xdp_ctx, &qer->dl_start, qer->dl_maximum_bitrate))
+    const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
+    if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate))
         return XDP_DROP;
 
     bpf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
@@ -137,7 +138,8 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     if (qer->dl_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
 
-    if (XDP_DROP == limit_rate_sliding_window(ctx->xdp_ctx, &qer->dl_start, qer->dl_maximum_bitrate))
+    const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
+    if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate))
         return XDP_DROP;
 
     bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
@@ -158,15 +160,6 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
     if (!pdr) {
         bpf_printk("upf: no uplink session for teid:%d", teid);
         return DEFAULT_XDP_ACTION;
-    }
-
-    bpf_printk("upf: uplink session for teid:%d far:%d outer_header_removal:%d", teid, pdr->far_id, pdr->outer_header_removal);
-    if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) {
-        long result = remove_gtp_header(ctx);
-        if (result) {
-            bpf_printk("upf: handle_n3_packet: can't remove gtp header: %d", result);
-            return XDP_ABORTED;
-        }
     }
 
     /*
@@ -198,8 +191,18 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
     if (qer->ul_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
 
-    if (XDP_DROP == limit_rate_sliding_window(ctx->xdp_ctx, &qer->ul_start, qer->ul_maximum_bitrate))
+    const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
+    if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->ul_start, qer->ul_maximum_bitrate))
         return XDP_DROP;
+
+    bpf_printk("upf: uplink session for teid:%d far:%d outer_header_removal:%d", teid, pdr->far_id, pdr->outer_header_removal);
+    if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) {
+        long result = remove_gtp_header(ctx);
+        if (result) {
+            bpf_printk("upf: handle_n3_packet: can't remove gtp header: %d", result);
+            return XDP_ABORTED;
+        }
+    }
 
     /*
      *   Step 4: Route packet finally
