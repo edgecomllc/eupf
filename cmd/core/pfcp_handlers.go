@@ -24,16 +24,20 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 	if handler, ok := handlerMap[incomingMsg.MessageType()]; ok {
 		startTime := time.Now()
 		// TODO: Trim port as a workaround for NAT changing the port. Explore proper solutions.
-		string_ip_addr := addr.IP.String()
-		outgoingMsg, err := handler(conn, incomingMsg, string_ip_addr)
+		stringIpAddr := addr.IP.String()
+		outgoingMsg, err := handler(conn, incomingMsg, stringIpAddr)
 		if err != nil {
 			log.Printf("Error handling PFCP message: %s", err.Error())
 			return err
 		}
 		duration := time.Since(startTime)
 		UpfMessageRxLatency.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
-		PfcpMessageTx.WithLabelValues(outgoingMsg.MessageTypeName()).Inc()
-		return conn.SendMessage(outgoingMsg, addr)
+		// Now assumption that all handlers will return a message to send is not true.
+		if outgoingMsg != nil {
+			PfcpMessageTx.WithLabelValues(outgoingMsg.MessageTypeName()).Inc()
+			return conn.SendMessage(outgoingMsg, addr)
+		}
+		return nil
 	} else {
 		log.Printf("Got unexpected message %s: %s, from: %s", incomingMsg.MessageTypeName(), incomingMsg, addr)
 	}

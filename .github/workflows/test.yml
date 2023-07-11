@@ -44,3 +44,15 @@ jobs:
 
       - name: Build
         run: go build -v -o bin/eupf ./cmd
+
+      - name: Run eUPF and sleep
+        run: sudo ./bin/eupf &
+
+      - name: Install pytest and SCAPY
+        run: sudo pip install pytest scapy
+
+      - name: Run pytest
+        run: sudo pytest -v ./pytest/test_session.py
+
+      - name: Stop eUPF
+        run: sudo killall eupf

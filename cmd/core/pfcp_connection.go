@@ -40,23 +40,18 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 		return nil, err
 	}
 
-	addrv4 := net.ParseIP(addr)
-	if addrv4 == nil {
-		return nil, fmt.Errorf("failed to parse PFCP Address: %s", addr)
-	}
-
 	n3Addr := net.ParseIP(n3Ip)
 	if n3Addr == nil {
 		return nil, fmt.Errorf("failed to parse N3 IP address ID: %s", n3Ip)
 	}
-	log.Printf("Starting PFCP connection: %v with Node ID: %v and N3 address: %v", udpAddr, addrv4, n3Addr)
+	log.Printf("Starting PFCP connection: %v with Node ID: %v and N3 address: %v", udpAddr, nodeId, n3Addr)
 
 	return &PfcpConnection{
 		udpConn:          udpConn,
 		pfcpHandlerMap:   pfcpHandlerMap,
 		NodeAssociations: map[string]*NodeAssociation{},
 		nodeId:           nodeId,
-		nodeAddrV4:       addrv4,
+		nodeAddrV4:       udpAddr.IP,
 		n3Address:        n3Addr,
 		mapOperations:    mapOperations,
 	}, nil

@@ -274,7 +274,7 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("BAR ID: %d ", barId), 2)
 	}
-	transportLevelMarking, err := far.TransportLevelMarking()
+	transportLevelMarking, err := GetTransportLevelMarking(far)
 	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Transport Level Marking: %d", transportLevelMarking), 2)
 		// DSCP (first octet) and ToS or Traffic Class mask (second octet)
