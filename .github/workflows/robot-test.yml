@@ -1,0 +1,31 @@
+name: Run robot tests
+
+on:
+  workflow_call:
+    inputs:
+      kube_context:
+        required: true
+        type: string
+      environment_name:
+        required: true
+        type: string
+    secrets:
+      kube_config:
+        required: true
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    secrets:
+      kube_config: ${{ secrets.KUBE_CONFIG_DEV }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v1
+      - uses: BSFishy/pip-action@v1
+        with:
+          packages: |
+            robotframework
+            robotframework-kubelibrary
+      - name: run tests
+        run: |
+          robot -d results -v KUBE_CONTEXT:${{ github.event.inputs.kube_context }} -v ENVIRONMENT_NAME:${{ github.event.inputs.environment_name }} ./robot
