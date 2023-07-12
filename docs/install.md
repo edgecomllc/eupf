@@ -248,11 +248,18 @@ The only added is ptp type interface `n6` as a door to the outer world for our e
 ### Deploy as docker-compose
 Prerequisites
 
+As metioned in free5gc::docker-compose repo:
 - Prepared [GTP5G kernel module](https://github.com/free5gc/gtp5g): needed to run the UPF
 - [Docker Engine](https://docs.docker.com/engine/install): needed to run the Free5GC containers
 - [Docker Compose v2](https://docs.docker.com/compose/install): needed to bootstrap the free5GC stack
 
-Actually we use vanilla free5gc-docker-compose with some overrides. So you can clone free5gc docker-compose and test free5gc upf, then add edgecom override files and feel the differences of eupf.
+Actually we use vanilla free5gc::docker-compose with some overrides(see docker-compose.override.yml):
+- free5gc-upf service is disabled
+- edgecom-upf service is added
+- edgecom-nat service is added
+- grafana & prometheus services are added
+
+So you can clone free5gc docker-compose and test free5gc upf, then add edgecom override files and feel the differences.
 
 0. pull repository: `git clone https://github.com/edgecomllc/free5gc-compose.git`
 0. Run containers based on docker hub images:
