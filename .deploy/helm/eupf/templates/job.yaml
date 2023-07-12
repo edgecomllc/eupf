@@ -1,0 +1,29 @@
+{{- if .Values.xdpProgrammInstall.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "eupf.fullname" . }}-xdp-programm-install
+  labels:
+    {{- include "eupf.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "-100"
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "eupf.labels" . | nindent 8 }}
+    spec:
+      hostNetwork: true
+      restartPolicy: Never
+      serviceAccountName: {{ include "eupf.serviceAccountName" . }}
+      containers:
+        - name: xdp-programm-install
+          image: "{{ include "helpers.pod.containerImage" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.ImagePullPolicy }}
+          securityContext:
+            {{- toYaml .Values.xdpProgrammInstall.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          command: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.xdpProgrammInstall.command "context" $) | nindent 12 }}
+{{- end }}
