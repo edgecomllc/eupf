@@ -97,6 +97,29 @@ kubectl delete -f docs/examples/open5gs/nat.yaml
 
 For more details refer to openverso-charts [Open5gs and UERANSIM](https://gradiant.github.io/openverso-charts/open5gs-ueransim-gnb.html)
 
+### Option add second network slice
+This will install eUPF2, SMF2 and UE2 with slice `sd: 112233`. UEs subnet is `10.46.0.1/16`
+```powershell
+helm upgrade --install \
+   eupf2 .deploy/helm/universal-chart \
+   --values docs/examples/open5gs/eupf2-rout-static.yml \
+   -n open5gs \
+   --wait --timeout 100s 
+
+helm upgrade --install \
+   smf2 openverso/open5gs-smf \
+   --values docs/examples/open5gs/smf2slice-open5gs.yaml \
+   -n open5gs \
+   --version 2.0.10 \
+   --wait --timeout 100s 
+
+helm upgrade --install -n open5gs ueransim-ues2 openverso/ueransim-ues \
+   --values docs/examples/open5gs/ueransim-ue2.yaml \
+   --wait --timeout 100s 
+```
+To undeploy second slice:
+`helm  uninstall smf2 ueransim-ues2 eupf2 -n open5gs`
+
 </p>
 </details>
 
