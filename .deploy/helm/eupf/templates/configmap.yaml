@@ -1,0 +1,19 @@
+{{- $all := . -}}
+{{- range $k, $v := .Values.configMaps }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "eupf.fullname" $all }}-{{ $k }}
+  labels:
+    {{- include "eupf.labels" $ | nindent 4 }}
+    {{- if $v.additionalLabels }}
+    {{- with $v.additionalLabels }}{{- include "helpers.common.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}{{ end }}
+    {{- end }}
+  {{- if $v.additionalAnnotations }}
+  annotations:
+    {{- with $v.additionalAnnotations }}{{- include "helpers.common.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}{{ end }}
+  {{- end }}
+data:
+  {{- include "helpers.common.tplvalues.render" ( dict "value" $v.data "context" $ ) | nindent 2 }}
+{{- end }}
