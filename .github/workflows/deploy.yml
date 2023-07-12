@@ -24,7 +24,7 @@ jobs:
       HELM_DEPLOYMENT_NAMESPACE_NAME: free5gc
       HELM_CHART_RELEASE_NAME: eupf
       HELM_CHART_APP_VERSION: ${{ github.sha }}
-      HELM_CHART_DIRECTORY: .deploy/helm/universal-chart
+      HELM_CHART_DIRECTORY: .deploy/helm/eupf
       HELM_CMD_ARGS: ${{ inputs.helm_cmd_args }}
     environment:
       name: ${{ inputs.environment_name }}
