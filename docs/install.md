@@ -130,6 +130,7 @@ To undeploy second slice:
 <details><summary>Instruction</summary>
 <p>
 
+<!-- --this module is not needed for our eUPF --
 ### Prepare nodes
 
 You should compile and install gtp5g kernel module on every worker node:
@@ -145,7 +146,7 @@ make && make install
 check that the module is loaded:
 
 `lsmod | grep ^gtp5g`
-
+-->
 ### Deploy in Kubernetes cluster
 
 Deployment configuration is derived from towards5gs-helm project [Setup free5gc](https://github.com/Orange-OpenSource/towards5gs-helm/blob/main/docs/demo/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM.md)
@@ -235,6 +236,24 @@ helm uninstall free5gc ueransim edgecomllc-eupf -n free5gc
 ```
 📝 Pod's interconnection. towards5gs-helm uses separate subnets with ipvlan type interfaces with internal addressing.
 The only added is ptp type interface `n6` as a door to the outer world for our eUPF.
+
+### Option add second network slice
+1. This will install eUPF2 with slice `sd: 112233`. UEs subnet is `10.2.0.0/16`
+    ```powershell
+    helm upgrade --install \
+      eupf2 .deploy/helm/universal-chart \
+      --values docs/examples/free5gc/eupf2-rout-static.yaml \
+      -n free5gc \
+      --wait --timeout 100s 
+    ```
+1. Create subscriber in free5gc via WebUI: go to menu "subscribers", click "new subscriber", leave all values as is, except SUPI (IMSI)* : `208930000000004` & SD* : `112233`, press "submit".
+
+1. Open UE's console and put
+`nr-ue -c ue.yaml -n 1 -i 208930000000004 &` <br>
+New `uesimtun1` interface will appear with IP address from 10.2.0.0
+
+To undeploy second eUPF:
+`helm  uninstall eupf2 -n free5gc`
 
 </p>
 </details>
