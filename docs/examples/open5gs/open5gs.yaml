@@ -19,6 +19,11 @@ pcrf:
 
 smf:
   config:
+    subnetList:
+      - addr: 10.45.0.1/16
+        dnn: internet
+      - addr: 2001:db8:cafe::1/48
+        dnn: internet
     pcrf:
       enabled: false
     upf:
