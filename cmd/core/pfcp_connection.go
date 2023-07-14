@@ -150,7 +150,7 @@ func (connection *PfcpConnection) DeleteSession(session *Session) {
 		if downlinkPdr.Ipv4 != nil {
 			_ = connection.mapOperations.DeletePdrDownLink(downlinkPdr.Ipv4)
 		}
-		if downlinkPdr.Ipv4 != nil {
+		if downlinkPdr.Ipv6 != nil {
 			_ = connection.mapOperations.DeleteDownlinkPdrIp6(downlinkPdr.Ipv6)
 		}
 	}
