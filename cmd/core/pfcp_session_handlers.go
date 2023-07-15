@@ -3,9 +3,10 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
+
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
@@ -132,8 +133,6 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	association.Sessions[localSEID] = session
 	conn.NodeAssociations[addr] = association
 
-	// #TODO: support v6
-	var v6 net.IP
 	// Send SessionEstablishmentResponse
 	estResp := message.NewSessionEstablishmentResponse(
 		0, 0,
@@ -142,9 +141,11 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		0,
 		ie.NewCause(ie.CauseRequestAccepted),
 		newIeNodeID(conn.nodeId),
-		ie.NewFSEID(localSEID, conn.nodeAddrV4, v6),
+		ie.NewFSEID(localSEID, conn.nodeAddrV4, nil),
 	)
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
+
+	log.Printf("Session Establishment Request from %s accepted.", addr)
 	return estResp, nil
 }
 
