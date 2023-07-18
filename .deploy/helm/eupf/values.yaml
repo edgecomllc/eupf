@@ -59,29 +59,17 @@ configMaps: {}
   #   data:
   #     config.yml: |
   #       foo: bar
-  # # example bird.conf
-  # bird:
-  #   data:
-  #     bird.conf: |
-  #       router id 192.168.0.1;
-
-  #       protocol bfd {}
 
 # volumes
 volumes: {}
   # - name: config
   #   configMap:
   #     name: eupf-config
-  # - name: bird
-  #   configMap:
-  #     name: eupf-bird
 
 # volume mounts
 volumeMounts: {}
   # - name: config
   #   mountPath: /app/conf
-  # - name: bird
-  #   mountPath: /opt/bird/conf
 
 hostNetwork: false
 
@@ -115,7 +103,13 @@ xdpProgrammInstall:
 
 bird:
   enabled: false
-  image: calico/bird:v0.3.3-204-g69b104b7-amd64
+  image: docker.io/edgecom/bird:0.0.4
+  env:
+    BIRD_ROUTER_ID: $(MY_POD_IP)
+    BIRD_LOCAL_AS: 65000
+    BIRD_LOCAL_PREFIX: 10.45.0.0/16
+    BIRD_NEIGHBOR_IP: $(MY_NODE_IP)
+    BIRD_NEIGHBOR_AS: 64512
   service:
     enabled: false
     type: ClusterIP
@@ -141,11 +135,6 @@ bird:
       port: bgp
     initialDelaySeconds: 5
     periodSeconds: 10
-  command:
-    - /bin/sh
-    - -c
-  args:
-    - 'mkdir -p /var/run/calico; bird -f -c /opt/bird/conf/bird.conf'
 
 serviceAccount:
   # Specifies whether a service account should be created

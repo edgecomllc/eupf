@@ -23,50 +23,6 @@ configMaps:
         api_address: :8080
         pfcp_address: :8805
         metrics_address: :9090
-  bird:
-    data:
-      bird.conf: |
-        router id 10.233.64.1;
-
-        protocol bfd {
-        }
-
-        protocol direct {
-          interface "*";
-        }
-
-        protocol kernel {
-          learn;
-          scan time 5;
-          import all;
-          export all;
-        }
-
-        protocol device {
-          scan time 5;
-        }
-
-        protocol static eupf {
-          route 10.45.0.0/16 reject;
-        }
-
-        protocol bgp node_local {
-          keepalive time 20;
-          hold time 60;
-          graceful restart aware;
-          local as 65000;
-          neighbor 188.120.253.172 as 64512;
-
-          debug all;
-          multihop;
-          gateway recursive;
-          connect delay time 2;
-          connect retry time 5;
-          error wait time 5,30;
-
-          import all;
-          export where proto = "eupf";
-        }
 
 env:
   UPF_PFCP_NODE_ID: $(MY_POD_IP)
@@ -84,10 +40,6 @@ volumes:
         - key: config.yml
           mode: 493
           path: config.yml
-  - name: bird
-    configMap:
-      name: eupf-bird
-      defaultMode: 420
 
 volumeMounts:
   - name: sys
@@ -95,8 +47,6 @@ volumeMounts:
     readOnly:  true
   - name: config
     mountPath: /app/conf
-  - name: bird
-    mountPath: /opt/bird/conf
 
 metrics:
   enabled: true
