@@ -35,7 +35,7 @@ spec:
         {{- include "helpers.pod.initContainers" . | nindent 8 }}
       {{- end }}
       containers:
-        - name: app
+        - name: eupf
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ include "helpers.pod.containerImage" . }}"
@@ -56,6 +56,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: MY_NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
             {{- include "helpers.pod.envs" . | indent 12 }}
           {{- end }}
           ports:
@@ -78,6 +82,23 @@ spec:
           {{- if .Values.bird.args }}
           args: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.bird.args "context" $) | nindent 12 }}
           {{- end }}
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            {{- range $k, $v := .Values.bird.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
           ports:
             - name: bgp
               containerPort: {{ .Values.bird.service.port }}

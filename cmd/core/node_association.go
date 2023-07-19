@@ -2,14 +2,16 @@ package core
 
 import (
 	"context"
-	"github.com/edgecomllc/eupf/cmd/config"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/config"
 )
 
 type NodeAssociation struct {
 	ID               string
 	Addr             string
 	NextSessionID    uint64
+	NextSequenceID   uint32
 	Sessions         map[uint64]*Session
 	HeartbeatRetries uint32
 	cancelRetries    context.CancelFunc
@@ -17,16 +19,22 @@ type NodeAssociation struct {
 
 func NewNodeAssociation(remoteNodeID string, addr string) *NodeAssociation {
 	return &NodeAssociation{
-		ID:            remoteNodeID,
-		Addr:          addr,
-		NextSessionID: 1,
-		Sessions:      make(map[uint64]*Session),
+		ID:             remoteNodeID,
+		Addr:           addr,
+		NextSessionID:  1,
+		NextSequenceID: 1,
+		Sessions:       make(map[uint64]*Session),
 	}
 }
 
 func (association *NodeAssociation) NewLocalSEID() uint64 {
 	association.NextSessionID += 1
 	return association.NextSessionID
+}
+
+func (association *NodeAssociation) NewSequenceID() uint32 {
+	association.NextSequenceID += 1
+	return association.NextSequenceID
 }
 
 func (association *NodeAssociation) RefreshRetries() {
@@ -60,7 +68,8 @@ func (association *NodeAssociation) ScheduleHeartbeatRequest(duration time.Durat
 				ticker.Stop()
 				return
 			}
-			SendHeartbeatRequest(conn, association.Addr)
+			seq := association.NewSequenceID()
+			SendHeartbeatRequest(conn, seq, association.Addr)
 		}
 	}(ctx, duration)
 	return cancel

@@ -65,7 +65,7 @@ func init() {
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
 	v.SetDefault("api_address", ":8080")
-	v.SetDefault("pfcp_address", ":8805")
+	v.SetDefault("pfcp_address", "127.0.0.1:8805")
 	v.SetDefault("pfcp_node_id", "127.0.0.1")
 	v.SetDefault("metrics_address", ":9090")
 	v.SetDefault("n3_address", "127.0.0.1")

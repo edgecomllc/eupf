@@ -1,11 +1,12 @@
 package core
 
 import (
-	"github.com/wmnsk/go-pfcp/ie"
-	"github.com/wmnsk/go-pfcp/message"
 	"log"
 	"net"
 	"time"
+
+	"github.com/wmnsk/go-pfcp/ie"
+	"github.com/wmnsk/go-pfcp/message"
 )
 
 func HandlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
@@ -41,10 +42,10 @@ func HandlePfcpHeartbeatResponse(conn *PfcpConnection, msg message.Message, addr
 	return nil, err
 }
 
-func SendHeartbeatRequest(conn *PfcpConnection, addr string) {
-	hbreq := message.NewHeartbeatRequest(0, ie.NewRecoveryTimeStamp(time.Now()), nil)
-	log.Printf("Sent Heartbeat Request to: %s", addr)
-	udpAddr, err := net.ResolveUDPAddr("udp", addr+":8805")
+func SendHeartbeatRequest(conn *PfcpConnection, sequenceID uint32, associationAddr string) {
+	hbreq := message.NewHeartbeatRequest(sequenceID, ie.NewRecoveryTimeStamp(time.Now()), nil)
+	log.Printf("Sent Heartbeat Request to: %s", associationAddr)
+	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err == nil {
 		if err := conn.SendMessage(hbreq, udpAddr); err != nil {
 			log.Printf("Failed to send Heartbeat Request: %s\n", err.Error())
