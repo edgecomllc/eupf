@@ -119,10 +119,10 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
     return context_reinit(ctx, data, data_end);
 }
 
-static __always_inline void fill_ip_header(struct iphdr *ip, int saddr, int daddr, int tot_len) {
+static __always_inline void fill_ip_header(struct iphdr *ip, int saddr, int daddr, __u8 tos, int tot_len) {
     ip->version = 4;
     ip->ihl = 5; /* No options */
-    ip->tos = 0;
+    ip->tos = tos;
     ip->tot_len = bpf_htons(tot_len);
     ip->id = 0;            /* No fragmentation */
     ip->frag_off = 0x0040; /* Don't fragment; Fragment offset = 0 */
@@ -147,7 +147,7 @@ static __always_inline void fill_gtp_header(struct gtpuhdr *gtp, int teid, int l
     gtp->teid = bpf_htonl(teid);
 }
 
-static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx, int saddr, int daddr, int teid) {
+static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx, int saddr, int daddr, __u8 tos, int teid) {
     static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
 
     // int ip_packet_len = (ctx->xdp_ctx->data_end - ctx->xdp_ctx->data) - sizeof(*eth);
@@ -179,7 +179,7 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
         return -1;
 
     /* Add the outer IP header */
-    fill_ip_header(ip, saddr, daddr, ip_packet_len + gtp_encap_size);
+    fill_ip_header(ip, saddr, daddr, tos, ip_packet_len + gtp_encap_size);
 
     /* Add the UDP header */
     struct udphdr *udp = (struct udphdr *)(ip + 1);
