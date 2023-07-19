@@ -83,6 +83,7 @@ func (bpfObjects *BpfObjects) BuildPipeline() {
 	upfMainProgram := bpfObjects.UpfFunc
 	farProgram := bpfObjects.UpfFarProgramFunc
 	qerProgram := bpfObjects.UpfQerProgramFunc
+	tailProgram := bpfObjects.UpfTail
 
 	if err := upfPipeline.Put(uint32(0), upfMainProgram); err != nil {
 		panic(err)
@@ -96,6 +97,9 @@ func (bpfObjects *BpfObjects) BuildPipeline() {
 		panic(err)
 	}
 
+	if err := upfPipeline.Put(uint32(3), tailProgram); err != nil {
+		panic(err)
+	}
 }
 
 type LoaderFunc func(obj interface{}, opts *ebpf.CollectionOptions) error

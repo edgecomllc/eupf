@@ -339,6 +339,8 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
 
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
+ 
+    bpf_tail_call(context.xdp_ctx, &upf_pipeline, UPF_PROG_TYPE_TAIL);
 
     return action;
 }

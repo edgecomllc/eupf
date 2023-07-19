@@ -28,4 +28,12 @@ int upf_func(struct xdp_md *ctx) {
     return XDP_ABORTED;
 }
 
+SEC("xdp/upf")
+int upf_tail(struct packet_context *ctx) {
+    bpf_printk("I am tail");
+
+    bpf_printk("upf: tail end");
+    return XDP_PASS;
+}
+
 char _license[] SEC("license") = "GPL";
