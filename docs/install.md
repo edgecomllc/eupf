@@ -55,7 +55,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
       📝 Here we use separate container for NAT:
 
       ```
-      kubectl apply -f docs/examples/open5gs/nat.yaml
+      kubectl apply -f docs/examples/open5gs/nat.yaml -n open5gs
       ```
 
       ```powershell
