@@ -142,6 +142,9 @@ helm upgrade --install \
    --set image.tag=2.6.2 \
    --version 2.0.10 \
    --wait --timeout 100s 
+kubectl apply -f docs/examples/open5gs/smf2-cm.yaml -n open5gs
+
+kubectl apply -f docs/examples/open5gs/smf1-cm.yaml -n open5gs
 
 helm upgrade --install -n open5gs ueransim-ues2 openverso/ueransim-ues \
    --values docs/examples/open5gs/ueransim-ue2.yaml \
