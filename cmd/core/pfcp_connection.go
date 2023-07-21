@@ -12,13 +12,14 @@ import (
 )
 
 type PfcpConnection struct {
-	udpConn          *net.UDPConn
-	pfcpHandlerMap   PfcpHandlerMap
-	NodeAssociations map[string]*NodeAssociation
-	nodeId           string
-	nodeAddrV4       net.IP
-	n3Address        net.IP
-	mapOperations    ebpf.ForwardingPlaneController
+	udpConn           *net.UDPConn
+	pfcpHandlerMap    PfcpHandlerMap
+	NodeAssociations  map[string]*NodeAssociation
+	nodeId            string
+	nodeAddrV4        net.IP
+	n3Address         net.IP
+	mapOperations     ebpf.ForwardingPlaneController
+	RecoveryTimestamp time.Time
 }
 
 func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
@@ -47,13 +48,14 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 	log.Printf("Starting PFCP connection: %v with Node ID: %v and N3 address: %v", udpAddr, nodeId, n3Addr)
 
 	return &PfcpConnection{
-		udpConn:          udpConn,
-		pfcpHandlerMap:   pfcpHandlerMap,
-		NodeAssociations: map[string]*NodeAssociation{},
-		nodeId:           nodeId,
-		nodeAddrV4:       udpAddr.IP,
-		n3Address:        n3Addr,
-		mapOperations:    mapOperations,
+		udpConn:           udpConn,
+		pfcpHandlerMap:    pfcpHandlerMap,
+		NodeAssociations:  map[string]*NodeAssociation{},
+		nodeId:            nodeId,
+		nodeAddrV4:        udpAddr.IP,
+		n3Address:         n3Addr,
+		mapOperations:     mapOperations,
+		RecoveryTimestamp: time.Now(),
 	}, nil
 }
 
