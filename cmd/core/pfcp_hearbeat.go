@@ -5,7 +5,6 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 	"log"
 	"net"
-	"time"
 )
 
 func HandlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
@@ -41,8 +40,8 @@ func HandlePfcpHeartbeatResponse(conn *PfcpConnection, msg message.Message, addr
 	return nil, err
 }
 
-func SendHeartbeatRequest(conn *PfcpConnection, sequenceID uint32, associationAddr string, recoveryTimestamp time.Time) {
-	hbreq := message.NewHeartbeatRequest(sequenceID, ie.NewRecoveryTimeStamp(recoveryTimestamp), nil)
+func SendHeartbeatRequest(conn *PfcpConnection, sequenceID uint32, associationAddr string) {
+	hbreq := message.NewHeartbeatRequest(sequenceID, ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp), nil)
 	log.Printf("Sent Heartbeat Request to: %s", associationAddr)
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err == nil {
