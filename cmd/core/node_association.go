@@ -15,17 +15,17 @@ type NodeAssociation struct {
 	Sessions         map[uint64]*Session
 	HeartbeatRetries uint32
 	cancelRetries    context.CancelFunc
-	Timestamp        time.Time
+	AssociationStart time.Time
 }
 
 func NewNodeAssociation(remoteNodeID string, addr string) *NodeAssociation {
 	return &NodeAssociation{
-		ID:             remoteNodeID,
-		Addr:           addr,
-		NextSessionID:  1,
-		NextSequenceID: 1,
-		Sessions:       make(map[uint64]*Session),
-		Timestamp:      time.Now(),
+		ID:               remoteNodeID,
+		Addr:             addr,
+		NextSessionID:    1,
+		NextSequenceID:   1,
+		Sessions:         make(map[uint64]*Session),
+		AssociationStart: time.Now(),
 	}
 }
 
@@ -71,7 +71,7 @@ func (association *NodeAssociation) ScheduleHeartbeatRequest(duration time.Durat
 				return
 			}
 			seq := association.NewSequenceID()
-			SendHeartbeatRequest(conn, seq, association.Addr, association.Timestamp)
+			SendHeartbeatRequest(conn, seq, association.Addr, association.AssociationStart)
 		}
 	}(ctx, duration)
 	return cancel
