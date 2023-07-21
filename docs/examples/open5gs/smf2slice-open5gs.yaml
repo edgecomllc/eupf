@@ -17,7 +17,7 @@
         port: 7777
     upf:
       pfcp:
-        hostname: eupf2-universal-chart
+        hostname: eupf2
         port: 8805
     info:
       - s_nssai:
