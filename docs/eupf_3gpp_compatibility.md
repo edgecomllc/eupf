@@ -56,3 +56,14 @@
 |   N    | `EPPPI`    | UP function supports Enhanced Provisioning of Paging Policy Indicator feature                                         |
 |   N    | `RATP`     | Redirection Address Types with "Port", "IPv4 addr" or "IPv6 addr".                                                    |
 |   N    | `UPIDP`    | UP function supports User Plane Inactivity Detection and reporting per PDR feature                                    |
+
+### Supported 3GPP PFCP Messages
+
+| Status                        | Feature              |                                                                                              |
+| :----:                        | :---------           |
+| HeartbeatRequest              | cmd/core/pfcp_hearbeat.go |
+| HeartbeatResponse             | cmd/core/pfcp_hearbeat.go |
+| AssociationSetupRequest       | cmd/core/node_association.go |
+| SessionEstablishmentRequest   | cmd/core/pfcp_session_handlers.go |
+| SessionDeletionRequest        | cmd/core/pfcp_session_handlers.go |
+| SessionModificationRequest    | cmd/core/pfcp_session_handlers.go |
