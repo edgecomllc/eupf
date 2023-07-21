@@ -50,7 +50,7 @@ volumes:
       path: /sys
   - name: config
     configMap:
-      name: edgecomllc-eupf-universal-chart-config
+      name: eupf-config
 
 volumeMounts:
   - name: sys
