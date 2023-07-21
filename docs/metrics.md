@@ -39,3 +39,9 @@ Various packet counters with `packet_type` label.
 | upf_rx_gtp_pdu     | The total number of received GTP PDU packets |
 | upf_rx_gtp_other   | The total number of received GTP other packets |
 | upf_rx_gtp_error   | The total number of received GTP error packets |
+
+### PFCP Session metrics
+
+| Metric Name               | Description                              |
+|---------------------------|------------------------------------------|
+| upf_pfcp_current_sessions | Number of currently established sessions |

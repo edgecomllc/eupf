@@ -157,3 +157,11 @@ func (connection *PfcpConnection) DeleteSession(session *Session) {
 		}
 	}
 }
+
+func (connection *PfcpConnection) GetSessionCount() int {
+	count := 0
+	for _, assoc := range connection.NodeAssociations {
+		count += len(assoc.Sessions)
+	}
+	return count
+}
