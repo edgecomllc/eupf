@@ -10,7 +10,7 @@ metadata:
 data:
   smf.yaml: |
     logger:
-      level: trace #info
+      level: info
     parameter: {}
     sbi:
       server:
@@ -64,6 +64,6 @@ data:
           port: 7777
     upf:
       pfcp:
-        - name: eupf2-universal-chart
+        - name: eupf2
           port: 8805
     
