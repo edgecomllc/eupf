@@ -23,8 +23,10 @@
 #include <linux/types.h>
 #include <linux/udp.h>
 
+#include "xdp/utils/csum.h"
 #include "xdp/utils/gtpu.h"
 #include "xdp/utils/packet_context.h"
+#include "xdp/utils/routing.h"
 
 static __always_inline __u32 parse_gtp(struct packet_context *ctx) {
     struct gtpuhdr *gtp = (struct gtpuhdr *)ctx->data;
@@ -207,4 +209,13 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
     /* Update packet pointers */
     context_set_ip4(ctx, (char *)(long)ctx->xdp_ctx->data, (const char *)(long)ctx->xdp_ctx->data_end, eth, ip, udp, gtp);
     return 0;
+}
+
+
+static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, int teid) {
+    if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, teid))
+        return XDP_ABORTED;
+
+    bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }

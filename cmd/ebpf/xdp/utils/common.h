@@ -21,3 +21,18 @@
 
 #define increment_counter_sync(OBJECT, COUNTER) \
         __sync_fetch_and_add(&OBJECT->COUNTER, 1);
+
+#undef bpf_printk
+#ifdef ENABLE_LOG  // trace_pipe logs disabled by default
+#warning "Debug log enabled"
+#define bpf_printk(fmt, ...)                       \
+    ({                                             \
+        static const char ____fmt[] = fmt;         \
+        bpf_trace_printk(____fmt, sizeof(____fmt), \
+                         ##__VA_ARGS__);           \
+    })
+#else
+#define bpf_printk(fmt, ...)
+#endif
+
+#define DEFAULT_XDP_ACTION XDP_PASS
