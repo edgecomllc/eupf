@@ -77,7 +77,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	}
 
 	// If the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
-	// proceed with establishing the new PFCP association (regardless of the Recovery Timestamp received in the request), overwriting the existing association;
+	// proceed with establishing the new PFCP association (regardless of the Recovery AssociationStart received in the request), overwriting the existing association;
 	// if the request is accepted:
 	// shall store the Node ID of the CP function as the identifier of the PFCP association;
 	// Create RemoteNode from AssociationSetupRequest
