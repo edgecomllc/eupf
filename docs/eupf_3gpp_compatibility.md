@@ -1,4 +1,10 @@
-### PFCP Procedures
+### Intro
+
+eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Release 16.
+
+### N4 interface support
+
+#### PFCP Procedures
 
 | Procedure            | Status | 3GPP reference                     |
 |:---------------------|:---:|:--------------------------------------|
@@ -15,7 +21,7 @@
 |Session Deletion      | `Y` | TS 129 244: 6.3.4 PFCP Session Deletion Procedure |
 |Session Report        | `N` | TS 129 244: 6.3.5 PFCP Session Report Procedure |
 
-### PFCP Messages
+#### PFCP Messages
 
 | Message      | Status | 3GPP reference |
 |:-------------|:------------:|:---------------|
@@ -42,6 +48,10 @@
 | Session Deletion Response      | `Y` | TS 129 244: 7.5.7 PFCP Session Deletion Response|
 | Session Report Request         | `N` | TS 129 244: 7.5.8 PFCP Session Report Request |
 | Session Report Response        | `N` | TS 129 244: 7.5.9 PFCP Session Report Response |
+
+### N3 interface support
+
+### N6 interface support
 
 ### 3GPP features support
 
