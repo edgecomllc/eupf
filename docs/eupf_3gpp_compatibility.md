@@ -59,7 +59,7 @@
 
 ### Supported 3GPP PFCP Messages
 
-| Status                        | Feature              |                                                                                              |
+| Message name                        | Implementation code file              |                                                                                              |
 | :----:                        | :---------           |
 | HeartbeatRequest              | cmd/core/pfcp_hearbeat.go |
 | HeartbeatResponse             | cmd/core/pfcp_hearbeat.go |
