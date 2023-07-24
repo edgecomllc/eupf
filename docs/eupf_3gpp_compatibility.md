@@ -17,31 +17,31 @@
 
 ### PFCP Messages
 
-| Message      | Status | Description |
+| Message      | Status | 3GPP reference |
 |:-------------|:------------:|:---------------|
-| Heartbeat Request           | `Y` | A message sent by the CP or UP function to check if the peer node is alive. It is sent for each peer with which a PFCP control association is established. |
-| Heartbeat Response             | `Y` | A message sent as a response to a Heartbeat Request, indicating that the peer node is alive.                                |
-| PFD Management Request         | `N` | Support status |
-| PFD Management Response        | `N` | Support status |
-| Association Setup Request      | `Y` | A message used to establish a PFCP control association between the CP and UP functions.|
-| Association Setup Response     | `Y` | A message used to establish a PFCP control association between the CP and UP functions.|
-| Association Update Request     | `N` | A message used to establish a PFCP control association between the CP and UP functions.|
-| Association Update Response    | `N` | A message used to establish a PFCP control association between the CP and UP functions.|
-| Association Release Request    | `N` | A message used to establish a PFCP control association between the CP and UP functions.|
-| Association Release Response   | `N` | A message used to establish a PFCP control association between the CP and UP functions.|
-| Version Not Supported Response | `?` | A message used to establish a PFCP control association between the CP and UP functions.|
-| Node Report Request            | `N` |  |
-| Node Report Response           | `N` |  |
-| Session Set Deletion Request   | `N` |  |
-| Session Set Deletion Response  | `N` |   |
-| Session Establishment Request  | `Y` | A message used to initiate the establishment of a PFCP session for packet forwarding control.|
-| Session Establishment Response | `Y` | A message used to initiate the establishment of a PFCP session for packet forwarding control.|
-| Session Modification Request   | `Y` | A message used to initiate the modification of a PFCP session.|
-| Session Modification Response  | `Y` | A message used to initiate the modification of a PFCP session.|
-| Session Deletion Request       | `Y` | A message used to initiate the deletion of a PFCP session.|
-| Session Deletion Response      | `Y` | A message used to initiate the deletion of a PFCP session.|
-| Session Report Request         | `N` |  |
-| Session Report Response        | `N` |  |
+| Heartbeat Request           | `Y` | TS 129 244: 7.4.2 Heartbeat Messages |
+| Heartbeat Response             | `Y` | TS 129 244: 7.4.2.2 Heartbeat Response |
+| PFD Management Request         | `N` | TS 129 244: 7.4.3.1 PFCP PFD Management Request |
+| PFD Management Response        | `N` | TS 129 244: 7.4.3.2 PFCP PFD Management Response |
+| Association Setup Request      | `Y` | TS 129 244: 7.4.4.1 PFCP Association Setup Request |
+| Association Setup Response     | `Y` | TS 129 244: 7.4.4.2 PFCP Association Setup Response|
+| Association Update Request     | `N` | TS 129 244: 7.4.4.3 PFCP Association Update Request|
+| Association Update Response    | `N` | TS 129 244: 7.4.4.4 PFCP Association Update Response|
+| Association Release Request    | `N` | TS 129 244: 7.4.4.5 PFCP Association Release Request|
+| Association Release Response   | `N` | TS 129 244: 7.4.4.6 PFCP Association Release Response|
+| Version Not Supported Response | `?` | TS 129 244: 7.4.4.7 PFCP Version Not Supported Response|
+| Node Report Request            | `N` | TS 129 244: 7.4.5.1 PFCP Node Report Request |
+| Node Report Response           | `N` | TS 129 244: 7.4.5.2 PFCP Node Report Response |
+| Session Set Deletion Request   | `N` | TS 129 244: 7.4.6.1 PFCP Session Set Deletion Request |
+| Session Set Deletion Response  | `N` | TS 129 244: 7.4.6.2 PFCP Session Set Deletion Response  |
+| Session Establishment Request  | `Y` | TS 129 244: 7.5.2 PFCP Session Establishment Request|
+| Session Establishment Response | `Y` | TS 129 244: 7.5.3 PFCP Session Establishment Response|
+| Session Modification Request   | `Y` | TS 129 244: 7.5.4 PFCP Session Modification Request|
+| Session Modification Response  | `Y` | TS 129 244: 7.5.5 PFCP Session Modification Response|
+| Session Deletion Request       | `Y` | TS 129 244: 7.5.6 PFCP Session Deletion Request|
+| Session Deletion Response      | `Y` | TS 129 244: 7.5.7 PFCP Session Deletion Response|
+| Session Report Request         | `N` | TS 129 244: 7.5.8 PFCP Session Report Request |
+| Session Report Response        | `N` | TS 129 244: 7.5.9 PFCP Session Report Response |
 
 ### 3GPP features support
 
