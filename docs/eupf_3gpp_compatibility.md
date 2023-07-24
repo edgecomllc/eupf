@@ -59,11 +59,11 @@
 
 ### Supported 3GPP PFCP Messages
 
-| Message name                        | Implementation code file              |                                                                                              |
-| :----:                        | :---------           |
-| HeartbeatRequest              | cmd/core/pfcp_hearbeat.go |
-| HeartbeatResponse             | cmd/core/pfcp_hearbeat.go |
-| AssociationSetupRequest       | cmd/core/node_association.go |
-| SessionEstablishmentRequest   | cmd/core/pfcp_session_handlers.go |
-| SessionDeletionRequest        | cmd/core/pfcp_session_handlers.go |
-| SessionModificationRequest    | cmd/core/pfcp_session_handlers.go |
+|        Message name         |                                                                        Description                                                                         | Implementation code file          |
+|:---------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------|
+|      HeartbeatRequest       | A message sent by the CP or UP function to check if the peer node is alive. It is sent for each peer with which a PFCP control association is established. | cmd/core/pfcp_hearbeat.go         |
+|      HeartbeatResponse      |                                A message sent as a response to a Heartbeat Request, indicating that the peer node is alive.                                | cmd/core/pfcp_hearbeat.go         |
+|   AssociationSetupRequest   |                                  A message used to establish a PFCP control association between the CP and UP functions.                                   | cmd/core/node_association.go      |
+| SessionEstablishmentRequest |                               A message used to initiate the establishment of a PFCP session for packet forwarding control.                                | cmd/core/pfcp_session_handlers.go |
+|   SessionDeletionRequest    |                                                 A message used to initiate the deletion of a PFCP session.                                                 | cmd/core/pfcp_session_handlers.go |
+| SessionModificationRequest  |                                               A message used to initiate the modification of a PFCP session.                                               | cmd/core/pfcp_session_handlers.go |
