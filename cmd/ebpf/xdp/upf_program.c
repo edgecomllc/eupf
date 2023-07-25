@@ -33,9 +33,7 @@ int upf_func(struct xdp_md *ctx) {
 SEC("xdp/upf")
 int upf_tail(struct xdp_md *ctx) {
     bpf_printk("upf: I am tail");
-    return bpf_redirect(ctx->ingress_ifindex, 0);
-    bpf_printk("upf: tail end");
-    return XDP_PASS;
+    return XDP_REDIRECT;
 }
 
 char _license[] SEC("license") = "GPL";
