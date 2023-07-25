@@ -4,7 +4,7 @@ eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Rel
 
 ### N4 interface support
 
-#### PFCP Procedures
+#### PFCP procedures
 
 | Procedure            | Status | 3GPP reference                     |
 |:---------------------|:---:|:--------------------------------------|
@@ -21,7 +21,7 @@ eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Rel
 |Session Deletion      | `Y` | TS 129 244: 6.3.4 PFCP Session Deletion Procedure |
 |Session Report        | `N` | TS 129 244: 6.3.5 PFCP Session Report Procedure |
 
-#### PFCP Messages
+#### PFCP messages
 
 | Message      | Status | 3GPP reference |
 |:-------------|:------------:|:---------------|
@@ -51,7 +51,18 @@ eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Rel
 
 ### N3 interface support
 
-### N6 interface support
+eUPF implements N3 interface according to 3GPP TS 29.281 version 16.1.0 Release 16.
+
+#### GTP messages
+
+| Message      | Status | 3GPP reference |
+|:-------------|:------------:|:---------------|
+| Echo Request                             | `Y` | TS 29.281: 7.2.1 Echo Request |
+| Echo Response                            | `Y` | TS 29.281: 7.2.2 Echo Response |
+| Supported Extension Headers Notification | `N` | TS 29.281: 7.2.3 Supported Extension Headers Notification |
+| Error Indication                         | `N` | TS 29.281: 7.3.1 Error Indication |
+| End Marker                               | `N` | TS 29.281: 7.3.2 End Marker |
+| G-PDU                                    | `Y` | TS 29.281: 6.1 General |
 
 ### 3GPP features support
 
