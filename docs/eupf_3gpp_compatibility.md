@@ -35,7 +35,7 @@ eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Rel
 | Association Update Response    | `N` | TS 129 244: 7.4.4.4 PFCP Association Update Response|
 | Association Release Request    | `N` | TS 129 244: 7.4.4.5 PFCP Association Release Request|
 | Association Release Response   | `N` | TS 129 244: 7.4.4.6 PFCP Association Release Response|
-| Version Not Supported Response | `?` | TS 129 244: 7.4.4.7 PFCP Version Not Supported Response|
+| Version Not Supported Response | `N` | TS 129 244: 7.4.4.7 PFCP Version Not Supported Response|
 | Node Report Request            | `N` | TS 129 244: 7.4.5.1 PFCP Node Report Request |
 | Node Report Response           | `N` | TS 129 244: 7.4.5.2 PFCP Node Report Response |
 | Session Set Deletion Request   | `N` | TS 129 244: 7.4.6.1 PFCP Session Set Deletion Request |
