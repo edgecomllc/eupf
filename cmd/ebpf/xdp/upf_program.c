@@ -16,7 +16,9 @@
 
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
+#include "xdp/utils/packet_context.h"
 #include "xdp/program_array.h"
+#include "xdp/utils/routing.h"
 
 SEC("xdp/upf")
 int upf_func(struct xdp_md *ctx) {
@@ -29,9 +31,9 @@ int upf_func(struct xdp_md *ctx) {
 }
 
 SEC("xdp/upf")
-int upf_tail(struct packet_context *ctx) {
-    bpf_printk("I am tail");
-
+int upf_tail(struct xdp_md *ctx) {
+    bpf_printk("upf: I am tail");
+    return bpf_redirect(ctx->ingress_ifindex, 0);
     bpf_printk("upf: tail end");
     return XDP_PASS;
 }
