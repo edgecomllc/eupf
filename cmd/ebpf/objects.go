@@ -83,7 +83,8 @@ func (bpfObjects *BpfObjects) BuildPipeline() {
 	upfMainProgram := bpfObjects.UpfFunc
 	farProgram := bpfObjects.UpfFarProgramFunc
 	qerProgram := bpfObjects.UpfQerProgramFunc
-	tailProgram := bpfObjects.UpfTail
+	redirectTailProgram := bpfObjects.UpfRedirectTail
+	txTailProgram := bpfObjects.UpfTxTail
 
 	if err := upfPipeline.Put(uint32(0), upfMainProgram); err != nil {
 		panic(err)
@@ -97,7 +98,11 @@ func (bpfObjects *BpfObjects) BuildPipeline() {
 		panic(err)
 	}
 
-	if err := upfPipeline.Put(uint32(3), tailProgram); err != nil {
+	if err := upfPipeline.Put(uint32(3), redirectTailProgram); err != nil {
+		panic(err)
+	}
+
+	if err := upfPipeline.Put(uint32(4), txTailProgram); err != nil {
 		panic(err)
 	}
 }

@@ -337,12 +337,13 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
         .xdp_ctx = ctx,
         .counters = &statistic->upf_counters};
 
-    // struct packet_context copy = context;
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
  
     if (action == XDP_REDIRECT) {
-        bpf_tail_call(context.xdp_ctx, &upf_pipeline, UPF_PROG_TYPE_TAIL);
+        bpf_tail_call(context.xdp_ctx, &upf_pipeline, UPF_PROG_TYPE_REDIRECT_TAIL);
+    } else if (action == XDP_TX) {
+        bpf_tail_call(context.xdp_ctx, &upf_pipeline, UPF_PROG_TYPE_TX_TAIL);
     }
 
     return action;

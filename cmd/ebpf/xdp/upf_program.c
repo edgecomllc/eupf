@@ -16,9 +16,7 @@
 
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
-#include "xdp/utils/packet_context.h"
 #include "xdp/program_array.h"
-#include "xdp/utils/routing.h"
 
 SEC("xdp/upf")
 int upf_func(struct xdp_md *ctx) {
@@ -31,9 +29,15 @@ int upf_func(struct xdp_md *ctx) {
 }
 
 SEC("xdp/upf")
-int upf_tail(struct xdp_md *ctx) {
-    bpf_printk("upf: I am tail");
+int upf_redirect_tail(struct xdp_md *ctx) {
+    bpf_printk("upf: redirect tail");
     return XDP_REDIRECT;
+}
+
+SEC("xdp/upf")
+int upf_tx_tail(struct xdp_md *ctx) {
+    bpf_printk("upf: tx tail");
+    return XDP_TX;
 }
 
 char _license[] SEC("license") = "GPL";
