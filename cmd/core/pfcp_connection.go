@@ -2,11 +2,12 @@ package core
 
 import (
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/config"
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -156,4 +157,16 @@ func (connection *PfcpConnection) DeleteSession(session *Session) {
 			_ = connection.mapOperations.DeleteDownlinkPdrIp6(downlinkPdr.Ipv6)
 		}
 	}
+}
+
+func (connection *PfcpConnection) GetSessionCount() int {
+	count := 0
+	for _, assoc := range connection.NodeAssociations {
+		count += len(assoc.Sessions)
+	}
+	return count
+}
+
+func (connection *PfcpConnection) GetAssiciationCount() int {
+	return len(connection.NodeAssociations)
 }
