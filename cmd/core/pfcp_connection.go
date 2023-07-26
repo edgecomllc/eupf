@@ -2,11 +2,12 @@ package core
 
 import (
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/config"
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -164,4 +165,8 @@ func (connection *PfcpConnection) GetSessionCount() int {
 		count += len(assoc.Sessions)
 	}
 	return count
+}
+
+func (connection *PfcpConnection) GetAssiciationCount() int {
+	return len(connection.NodeAssociations)
 }

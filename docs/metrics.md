@@ -42,6 +42,7 @@ Various packet counters with `packet_type` label.
 
 ### PFCP Session metrics
 
-| Metric Name               | Description                              |
-|---------------------------|------------------------------------------|
-| upf_pfcp_current_sessions | Number of currently established sessions |
+| Metric Name               | Description                                  |
+|---------------------------|----------------------------------------------|
+| upf_pfcp_sessions         | Number of currently established sessions     |
+| upf_pfcp_associations     | Number of currently established associations |
