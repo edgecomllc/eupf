@@ -59,7 +59,8 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 	}
 
 	if req.CreateBAR != nil {
-		displayBar(&sb, req)
+		sb.WriteString("  Create")
+		displayBar(&sb, req.CreateBAR)
 	}
 	log.Print(sb.String())
 }
@@ -69,6 +70,31 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, "Session Modification Request:", 0)
+	for _, pdr := range req.CreatePDR {
+		sb.WriteString("  Create")
+		displayPdr(&sb, pdr)
+	}
+
+	for _, far := range req.CreateFAR {
+		sb.WriteString("  Create")
+		displayFar(&sb, far)
+	}
+
+	for _, qer := range req.CreateQER {
+		sb.WriteString("  Create")
+		displayQer(&sb, qer)
+	}
+
+	for _, urr := range req.CreateURR {
+		sb.WriteString("  Create")
+		displayUrr(&sb, urr)
+	}
+
+	if req.CreateBAR != nil {
+		sb.WriteString("  Create")
+		displayBar(&sb, req.CreateBAR)
+	}
+
 	for _, pdr := range req.UpdatePDR {
 		sb.WriteString("  Update")
 		displayPdr(&sb, pdr)
@@ -147,19 +173,19 @@ func printSessionDeleteRequest(req *message.SessionDeletionRequest) {
 	writeLineTabbed(&sb, fmt.Sprintf("SEID: %d", req.SEID()), 1)
 }
 
-func displayBar(sb *strings.Builder, req *message.SessionEstablishmentRequest) {
-	barId, _ := req.CreateBAR.BARID()
+func displayBar(sb *strings.Builder, bar *ie.IE) {
+	barId, _ := bar.BARID()
 	sb.WriteString(fmt.Sprintf("BAR ID: %d\n", barId))
 
-	downlink, err := req.CreateBAR.DownlinkDataNotificationDelay()
+	downlink, err := bar.DownlinkDataNotificationDelay()
 	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Downlink Data Notification Delay: %s ", downlink), 2)
 	}
-	suggestedBufferingPackets, err := req.CreateBAR.SuggestedBufferingPacketsCount()
+	suggestedBufferingPackets, err := bar.SuggestedBufferingPacketsCount()
 	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Suggested Buffering Packets Count: %d ", suggestedBufferingPackets), 2)
 	}
-	mtEdtControl, err := req.CreateBAR.MTEDTControlInformation()
+	mtEdtControl, err := bar.MTEDTControlInformation()
 	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("MT EDI: %d ", mtEdtControl), 2)
 	}

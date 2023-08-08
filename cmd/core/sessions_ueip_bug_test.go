@@ -82,7 +82,7 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+				//ie.NewFTEID(0, 0, ip1.IP, nil, 0),
 				ie.NewUEIPAddress(2, ip1.IP.String(), "", 0, 0),
 			),
 		),
@@ -96,28 +96,30 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip2.IP, nil, 0),
+				//ie.NewFTEID(0, 0, ip2.IP, nil, 0),
 				ie.NewUEIPAddress(2, ip2.IP.String(), "", 0, 0),
 			),
 		),
 	)
 
-	buf := make([]byte, 1500)
-	bytes1, _ := seReq1.Marshal()
-	copy(buf, bytes1)
-	pfcpConn.Handle(buf, udpAddr)
+	// Send first request
+	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq1, udpAddr.IP.String())
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
 
-	bytes2, _ := seReq2.Marshal()
-	copy(buf, bytes2)
-	pfcpConn.Handle(buf, udpAddr)
+	// Send second request
+	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq2, udpAddr.IP.String())
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
 
 	// Check that session PDRs are correct
-	//FIXME
-	// if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[2].PDRs[1].Ipv4.String() != "1.1.1.1" {
-	// 	t.Errorf("Session 1, got broken")
-	// }
-	// if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[3].PDRs[1].Ipv4.String() != "2.2.2.2" {
-	// 	t.Errorf("Session 2, got broken")
-	// }
+	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[2].PDRs[1].Ipv4.String() != "1.1.1.1" {
+		t.Errorf("Session 1, got broken")
+	}
+	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[3].PDRs[1].Ipv4.String() != "2.2.2.2" {
+		t.Errorf("Session 2, got broken")
+	}
 
 }
