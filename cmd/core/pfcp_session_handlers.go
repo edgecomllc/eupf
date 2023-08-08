@@ -407,18 +407,6 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	return modResp, nil
 }
 
-func updateSPDRInfo(pdr *ie.IE, spdrInfo *SPDRInfo, session *Session) {
-	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
-		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
-	}
-	if farid, err := pdr.FARID(); err == nil {
-		spdrInfo.PdrInfo.FarId = session.GetFar(farid).GlobalId
-	}
-	if qerid, err := pdr.QERID(); err == nil {
-		spdrInfo.PdrInfo.QerId = session.GetQer(qerid).GlobalId
-	}
-}
-
 func convertErrorToIeCause(err error) *ie.IE {
 	switch err {
 	case errMandatoryIeMissing:
