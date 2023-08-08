@@ -76,8 +76,15 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
+			pdrId, err := pdr.PDRID()
+			if err != nil {
+				log.Printf("PDR ID missing")
+				continue
+			}
+
 			spdrInfo := SPDRInfo{}
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			}
 		}
