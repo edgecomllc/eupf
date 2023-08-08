@@ -1,9 +1,10 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"net"
 	"testing"
+
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
@@ -65,7 +66,7 @@ func TestSessionOverwrite(t *testing.T) {
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+				//ie.NewFTEID(0, 0, ip1.IP, nil, 0),
 				ie.NewUEIPAddress(2, ip1.IP.String(), "", 0, 0),
 			),
 		),
@@ -79,7 +80,7 @@ func TestSessionOverwrite(t *testing.T) {
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip2.IP, nil, 0),
+				//ie.NewFTEID(0, 0, ip2.IP, nil, 0),
 				ie.NewUEIPAddress(2, ip2.IP.String(), "", 0, 0),
 			),
 		),
@@ -98,10 +99,10 @@ func TestSessionOverwrite(t *testing.T) {
 	}
 
 	// Check that session PDRs are correct
-	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[2].DownlinkPDRs[1].Ipv4.String() != "1.1.1.1" {
+	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[2].PDRs[1].Ipv4.String() != "1.1.1.1" {
 		t.Errorf("Session 1, got broken")
 	}
-	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[3].DownlinkPDRs[1].Ipv4.String() != "2.2.2.2" {
+	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[3].PDRs[1].Ipv4.String() != "2.2.2.2" {
 		t.Errorf("Session 2, got broken")
 	}
 
@@ -127,10 +128,10 @@ func TestSessionOverwrite(t *testing.T) {
 	}
 
 	// Check that session PDRs are correct
-	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[2].DownlinkPDRs[1].Ipv4.String() != "1.1.1.1" {
+	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[2].PDRs[1].Ipv4.String() != "1.1.1.1" {
 		t.Errorf("Session 1, got broken")
 	}
-	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[3].DownlinkPDRs[1].Ipv4.String() != "2.2.2.2" {
+	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[3].PDRs[1].Ipv4.String() != "2.2.2.2" {
 		t.Errorf("Session 2, got broken")
 	}
 }

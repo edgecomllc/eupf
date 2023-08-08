@@ -146,16 +146,8 @@ func (connection *PfcpConnection) DeleteSession(session *Session) {
 	for _, qer := range session.QERs {
 		_ = connection.mapOperations.DeleteQer(qer.GlobalId)
 	}
-	for _, uplinkPdr := range session.UplinkPDRs {
-		_ = connection.mapOperations.DeletePdrUpLink(uplinkPdr.Teid)
-	}
-	for _, downlinkPdr := range session.DownlinkPDRs {
-		if downlinkPdr.Ipv4 != nil {
-			_ = connection.mapOperations.DeletePdrDownLink(downlinkPdr.Ipv4)
-		}
-		if downlinkPdr.Ipv6 != nil {
-			_ = connection.mapOperations.DeleteDownlinkPdrIp6(downlinkPdr.Ipv6)
-		}
+	for _, PDR := range session.PDRs {
+		_ = deletePDR(PDR, connection.mapOperations)
 	}
 }
 

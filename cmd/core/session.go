@@ -1,27 +1,26 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"net"
+
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 )
 
 type Session struct {
-	LocalSEID    uint64
-	RemoteSEID   uint64
-	UplinkPDRs   map[uint32]SPDRInfo
-	DownlinkPDRs map[uint32]SPDRInfo
-	FARs         map[uint32]SFarInfo
-	QERs         map[uint32]SQerInfo
+	LocalSEID  uint64
+	RemoteSEID uint64
+	PDRs       map[uint32]SPDRInfo
+	FARs       map[uint32]SFarInfo
+	QERs       map[uint32]SQerInfo
 }
 
 func NewSession(localSEID uint64, remoteSEID uint64) *Session {
 	return &Session{
-		LocalSEID:    localSEID,
-		RemoteSEID:   remoteSEID,
-		UplinkPDRs:   map[uint32]SPDRInfo{},
-		DownlinkPDRs: map[uint32]SPDRInfo{},
-		FARs:         map[uint32]SFarInfo{},
-		QERs:         map[uint32]SQerInfo{},
+		LocalSEID:  localSEID,
+		RemoteSEID: remoteSEID,
+		PDRs:       map[uint32]SPDRInfo{},
+		FARs:       map[uint32]SFarInfo{},
+		QERs:       map[uint32]SQerInfo{},
 	}
 }
 
@@ -88,30 +87,16 @@ func (s *Session) RemoveQer(id uint32) SQerInfo {
 	return sQerInfo
 }
 
-func (s *Session) PutUplinkPDR(id uint32, info SPDRInfo) {
-	s.UplinkPDRs[id] = info
+func (s *Session) PutPDR(id uint32, info SPDRInfo) {
+	s.PDRs[id] = info
 }
 
-func (s *Session) GetUplinkPDR(id uint16) SPDRInfo {
-	return s.UplinkPDRs[uint32(id)]
+func (s *Session) GetPDR(id uint16) SPDRInfo {
+	return s.PDRs[uint32(id)]
 }
 
-func (s *Session) RemoveUplinkPDR(id uint32) SPDRInfo {
-	sPdrInfo := s.UplinkPDRs[id]
-	delete(s.UplinkPDRs, id)
-	return sPdrInfo
-}
-
-func (s *Session) PutDownlinkPDR(id uint32, info SPDRInfo) {
-	s.DownlinkPDRs[id] = info
-}
-
-func (s *Session) GetDownlinkPDR(id uint16) SPDRInfo {
-	return s.DownlinkPDRs[uint32(id)]
-}
-
-func (s *Session) RemoveDownlinkPDR(id uint32) SPDRInfo {
-	sPdrInfo := s.DownlinkPDRs[id]
-	delete(s.DownlinkPDRs, id)
+func (s *Session) RemovePDR(id uint32) SPDRInfo {
+	sPdrInfo := s.PDRs[id]
+	delete(s.PDRs, id)
 	return sPdrInfo
 }
