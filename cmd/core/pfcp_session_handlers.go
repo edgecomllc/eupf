@@ -166,15 +166,24 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
 		spdrInfo.PdrInfo.QerId = session.GetQer(qerid).GlobalId
 	}
 
-	if fteid, err := pdr.FTEID(); err == nil {
-		spdrInfo.Teid = fteid.TEID
+	pdi, err := pdr.PDI()
+	if err != nil {
+		return fmt.Errorf("PDI IE is missing")
+	}
+
+	//Bug in go-pfcp:
+	//if fteid, err := pdr.FTEID(); err == nil {
+	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
+		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+			spdrInfo.Teid = fteid.TEID
+		}
 	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
 		if ueIP.IPv4Address != nil {
 			spdrInfo.Ipv4 = cloneIP(ueIP.IPv4Address)
 		} else if ueIP.IPv6Address != nil {
 			spdrInfo.Ipv6 = cloneIP(ueIP.IPv6Address)
 		} else {
-			return fmt.Errorf("UE IP Address IE missing")
+			return fmt.Errorf("UE IP Address IE is missing")
 		}
 	} else {
 		log.Println("Both F-TEID IE and UE IP Address IE are missing")
