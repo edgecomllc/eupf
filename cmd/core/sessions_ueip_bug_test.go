@@ -1,9 +1,10 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"net"
 	"testing"
+
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
@@ -111,10 +112,10 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 	pfcpConn.Handle(buf, udpAddr)
 
 	// Check that session PDRs are correct
-	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[2].DownlinkPDRs[1].Ipv4.String() != "1.1.1.1" {
+	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[2].PDRs[1].Ipv4.String() != "1.1.1.1" {
 		t.Errorf("Session 1, got broken")
 	}
-	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[3].DownlinkPDRs[1].Ipv4.String() != "2.2.2.2" {
+	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[3].PDRs[1].Ipv4.String() != "2.2.2.2" {
 		t.Errorf("Session 2, got broken")
 	}
 
