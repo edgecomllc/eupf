@@ -147,13 +147,8 @@ func GetAllSessions(nodeMap *map[string]*NodeAssociation) (sessions []Session) {
 func FilterSessionsByIP(nodeMap *map[string]*NodeAssociation, filterByIP net.IP) *Session {
 	for _, nodeAssoc := range *nodeMap {
 		for _, session := range nodeAssoc.Sessions {
-			for _, uplinkPDR := range session.UplinkPDRs {
-				if uplinkPDR.Ipv4.Equal(filterByIP) {
-					return session
-				}
-			}
-			for _, downlinkPDR := range session.DownlinkPDRs {
-				if downlinkPDR.Ipv4.Equal(filterByIP) {
+			for _, PDR := range session.PDRs {
+				if PDR.Ipv4.Equal(filterByIP) {
 					return session
 				}
 			}
@@ -165,13 +160,8 @@ func FilterSessionsByIP(nodeMap *map[string]*NodeAssociation, filterByIP net.IP)
 func FilterSessionsByTeid(nodeMap *map[string]*NodeAssociation, filterByTeid uint32) *Session {
 	for _, nodeAssoc := range *nodeMap {
 		for _, session := range nodeAssoc.Sessions {
-			for _, uplinkPDR := range session.UplinkPDRs {
-				if uplinkPDR.Teid == filterByTeid {
-					return session
-				}
-			}
-			for _, downlinkPDR := range session.DownlinkPDRs {
-				if downlinkPDR.Teid == filterByTeid {
+			for _, PDR := range session.PDRs {
+				if PDR.Teid == filterByTeid {
 					return session
 				}
 			}

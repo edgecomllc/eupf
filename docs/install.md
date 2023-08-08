@@ -758,7 +758,7 @@ writing to stdout
             "2": {
                 "LocalSEID": 2,
                 "RemoteSEID": 1,
-                "UplinkPDRs": {
+                "PDRs": {
                     "1": {
                         "PdrInfo": {
                             "OuterHeaderRemoval": 0,
@@ -767,9 +767,7 @@ writing to stdout
                         },
                         "Teid": 1,
                         "Ipv4": ""
-                    }
-                },
-                "DownlinkPDRs": {
+                    },
                     "2": {
                         "PdrInfo": {
                             "OuterHeaderRemoval": 0,
