@@ -82,7 +82,7 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+				//ie.NewFTEID(0, 0, ip1.IP, nil, 0),
 				ie.NewUEIPAddress(2, ip1.IP.String(), "", 0, 0),
 			),
 		),
@@ -96,7 +96,7 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip2.IP, nil, 0),
+				//ie.NewFTEID(0, 0, ip2.IP, nil, 0),
 				ie.NewUEIPAddress(2, ip2.IP.String(), "", 0, 0),
 			),
 		),
