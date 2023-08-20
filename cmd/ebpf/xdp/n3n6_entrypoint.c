@@ -209,6 +209,31 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
     }
 
     /*
+     * Decrement IP TTL and reply TTL exeeded message (debug purspose only)
+     */
+    // if(ctx->ip4 && ctx->ip4->ttl < 2)
+    // {
+    //     if (-1 == add_icmp_over_ip4_headers(ctx, far->localip, ctx->ip4->saddr))
+    //         return XDP_ABORTED;
+
+    //     bpf_printk("upf: send icmp ttl exeeded %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+    //     return handle_n6_packet_ipv4(ctx);
+    // }
+
+    /*
+     * Reply to ping requests (debug purspose only)
+     */
+    if(ctx->ip4 && ctx->ip4->protocol == IPPROTO_ICMP && ctx->ip4->daddr == far->localip)
+    {
+        bpf_printk("upf: prepare icmp ping reply to request %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+        if (-1 == prepare_icmp_reply(ctx, far->localip, ctx->ip4->saddr))
+            return XDP_ABORTED;
+
+        bpf_printk("upf: send icmp ping reply %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+        return handle_n6_packet_ipv4(ctx);
+    }
+
+    /*
      *   Step 4: Route packet finally
      */
     if (ctx->ip4)
