@@ -36,6 +36,7 @@
 #include "xdp/utils/csum.h"
 #include "xdp/utils/gtp_utils.h"
 #include "xdp/utils/routing.h"
+#include "xdp/utils/icmp.h"
 
 #undef bpf_printk
 #ifdef ENABLE_LOG  // trace_pipe logs disabled by default
@@ -223,10 +224,10 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
     /*
      * Reply to ping requests (debug purspose only)
      */
-    if(ctx->ip4 && ctx->ip4->protocol == IPPROTO_ICMP && ctx->ip4->daddr == far->localip)
+    if(ctx->ip4 && ctx->ip4->daddr == far->localip && ctx->ip4->protocol == IPPROTO_ICMP)
     {
         bpf_printk("upf: prepare icmp ping reply to request %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
-        if (-1 == prepare_icmp_reply(ctx, far->localip, ctx->ip4->saddr))
+        if (-1 == prepare_icmp_echo_reply(ctx, far->localip, ctx->ip4->saddr))
             return XDP_ABORTED;
 
         bpf_printk("upf: send icmp ping reply %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);

@@ -134,13 +134,6 @@ static __always_inline void fill_ip_header(struct iphdr *ip, int saddr, int dadd
     ip->daddr = daddr;
 }
 
-static __always_inline void fill_icmp_header(struct icmphdr *icmp) {
-    icmp->type = ICMP_TIME_EXCEEDED;
-    icmp->code = ICMP_EXC_TTL;
-    icmp->un.gateway = 0;
-    icmp->checksum = 0;
-}
-
 static __always_inline void fill_udp_header(struct udphdr *udp, int port, int len) {
     udp->source = bpf_htons(port);
     udp->dest = udp->source;
@@ -214,113 +207,5 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
 
     /* Update packet pointers */
     context_set_ip4(ctx, (char *)(long)ctx->xdp_ctx->data, (const char *)(long)ctx->xdp_ctx->data_end, eth, ip, udp, gtp);
-    return 0;
-}
-
-// static __always_inline __u32 add_icmp_over_ip4_headers(struct packet_context *ctx, int saddr, int daddr) {
-//     static const size_t icmp_encap_size = sizeof(struct iphdr) + sizeof(struct icmphdr);
-
-//     if (!ctx->ip4)
-//         return -1;
-
-//     const __u32 ip_packet_len = bpf_ntohs(ctx->ip4->tot_len);
-
-//     int result = bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-icmp_encap_size);
-//     if (result)
-//         return -1;
-
-//     char *data = (char *)(long)ctx->xdp_ctx->data;
-//     const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
-
-//     struct ethhdr *orig_eth = (struct ethhdr *)(data + icmp_encap_size);
-//     if ((const char *)(orig_eth + 1) > data_end)
-//         return -1;
-
-//     struct ethhdr *eth = (struct ethhdr *)data;
-//     __builtin_memcpy(eth, orig_eth, sizeof(*eth));
-//     eth->h_proto = bpf_htons(ETH_P_IP);
-
-//     struct iphdr *ip = (struct iphdr *)(eth + 1);
-//     if ((const char *)(ip + 1) > data_end)
-//         return -1;
-
-//     /* Add the outer IP header */
-//     fill_ip_header(ip, saddr, daddr, 0, ip_packet_len + icmp_encap_size);
-//     ip->protocol = IPPROTO_ICMP;
-//     ip->check = ipv4_csum(ip, sizeof(*ip));
-
-//     /* Add the ICMP header */
-//     struct icmphdr *icmp = (struct icmphdr *)(ip + 1);
-//     if ((const char *)(icmp + 1) > data_end)
-//         return -1;
-
-//     fill_icmp_header(icmp);
-
-    
-//     //const char * icmp_data = (const char *)(icmp + 1);
-//     //if(icmp_data + ip_packet_len > data_end)
-//     //    return -1;
-
-//     //if ((const char *)(icmp + 5)  > data_end)
-//     //    return -1;
-
-//     // __s32 payload_size = data_end - (const char *)icmp;
-//     // if(payload_size < 0 || payload_size > 80)
-//     //     return -1;
-
-//     // void * icmp_ptr = (void*)icmp;
-//     // if (icmp_ptr + payload_size > data_end)
-//     //     return -1;
-
-//     // icmp->checksum = ipv4_csum(icmp_ptr, payload_size);
-
-//     //data = (char *)(long)ctx->xdp_ctx->data;
-//     //const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
-
-//     const __s8 icmp_payload_size = data_end - (const char *)icmp;
-//     if(icmp_payload_size < 0)
-//         return -1;
-    
-//     if((const char *)icmp + icmp_payload_size > data_end)
-//         return -1;
-//     icmp->checksum = ipv4_csum(icmp, icmp_payload_size);
-
-
-//     /* TODO: implement UDP csum which pass ebpf verifier checks successfully */
-//     // cs = 0;
-//     // const void* udp_start = (void*)udp;
-//     // const __u16 udp_len = bpf_htons(udp->len);
-//     // ipv4_l4_csum(udp, udp_len, &cs, ip);
-//     // udp->check = cs;
-
-//     /* Update packet pointers */
-//     context_set_ip4(ctx, (char *)(long)ctx->xdp_ctx->data, (const char *)(long)ctx->xdp_ctx->data_end, eth, ip, 0, 0);
-//     return 0;
-// }
-
-static __always_inline __u32 prepare_icmp_reply(struct packet_context *ctx, int saddr, int daddr) {
-    if (!ctx->ip4)
-        return -1;
-
-    struct ethhdr *eth = ctx->eth;
-    swap_mac(eth);
-
-    const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
-    struct iphdr *ip = ctx->ip4;
-    if ((const char *)(ip + 1) > data_end)
-        return -1;
-
-    swap_ip(ip);
-
-    struct icmphdr *icmp = (struct icmphdr *)(ip + 1);
-    if ((const char *)(icmp + 1) > data_end)
-        return -1;
-
-    __u16 old = *(__u16*)&icmp->type;
-    icmp->type = ICMP_ECHOREPLY;
-    icmp->code = 0;
-    
-    ipv4_csum_replace(&icmp->checksum, old, *(__u16*)&icmp->type);
-
     return 0;
 }
