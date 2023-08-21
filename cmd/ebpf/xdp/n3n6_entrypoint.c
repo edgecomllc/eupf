@@ -200,7 +200,13 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
         return XDP_DROP;
 
     bpf_printk("upf: uplink session for teid:%d far:%d outer_header_removal:%d", teid, pdr->far_id, pdr->outer_header_removal);
-    if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) {
+
+    // N9: Only outer header GTP/UDP/IPv4 is supported at the moment
+    if (far->outer_header_creation & OHC_GTP_U_UDP_IPv4)
+    {
+        bpf_printk("upf: uplink session for teid:%d -> %d remote:%pI4", teid, far->teid, &far->remoteip);
+        update_gtp_tunnel(ctx, far->localip, far->remoteip, 0, far->teid);
+    } else if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) {
         long result = remove_gtp_header(ctx);
         if (result) {
             bpf_printk("upf: handle_n3_packet: can't remove gtp header: %d", result);
