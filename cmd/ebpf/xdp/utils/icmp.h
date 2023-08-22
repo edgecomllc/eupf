@@ -70,43 +70,8 @@ static __always_inline void fill_icmp_header(struct icmphdr *icmp) {
 //         return -1;
 
 //     fill_icmp_header(icmp);
-
-    
-//     //const char * icmp_data = (const char *)(icmp + 1);
-//     //if(icmp_data + ip_packet_len > data_end)
-//     //    return -1;
-
-//     //if ((const char *)(icmp + 5)  > data_end)
-//     //    return -1;
-
-//     // __s32 payload_size = data_end - (const char *)icmp;
-//     // if(payload_size < 0 || payload_size > 80)
-//     //     return -1;
-
-//     // void * icmp_ptr = (void*)icmp;
-//     // if (icmp_ptr + payload_size > data_end)
-//     //     return -1;
-
-//     // icmp->checksum = ipv4_csum(icmp_ptr, payload_size);
-
-//     //data = (char *)(long)ctx->xdp_ctx->data;
-//     //const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
-
 //     const __s8 icmp_payload_size = data_end - (const char *)icmp;
-//     if(icmp_payload_size < 0)
-//         return -1;
-    
-//     if((const char *)icmp + icmp_payload_size > data_end)
-//         return -1;
 //     icmp->checksum = ipv4_csum(icmp, icmp_payload_size);
-
-
-//     /* TODO: implement UDP csum which pass ebpf verifier checks successfully */
-//     // cs = 0;
-//     // const void* udp_start = (void*)udp;
-//     // const __u16 udp_len = bpf_htons(udp->len);
-//     // ipv4_l4_csum(udp, udp_len, &cs, ip);
-//     // udp->check = cs;
 
 //     /* Update packet pointers */
 //     context_set_ip4(ctx, (char *)(long)ctx->xdp_ctx->data, (const char *)(long)ctx->xdp_ctx->data_end, eth, ip, 0, 0);
