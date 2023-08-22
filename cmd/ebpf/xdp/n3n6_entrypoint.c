@@ -150,7 +150,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, far->teid);
 }
 
-static __always_inline enum xdp_action handle_n3_packet(struct packet_context *ctx) {
+static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx) {
     if (!ctx->gtp) {
         bpf_printk("upf: unexpected packet context. no gtp header");
         return DEFAULT_XDP_ACTION;
@@ -162,7 +162,7 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
     __u32 teid = bpf_htonl(ctx->gtp->teid);
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
     if (!pdr) {
-        bpf_printk("upf: no uplink session for teid:%d", teid);
+        bpf_printk("upf: no session for teid:%d", teid);
         return DEFAULT_XDP_ACTION;
     }
 
@@ -171,7 +171,7 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
      */
     struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
     if (!far) {
-        bpf_printk("upf: no uplink session far for teid:%d far:%d", teid, pdr->far_id);
+        bpf_printk("upf: no session far for teid:%d far:%d", teid, pdr->far_id);
         return XDP_DROP;
     }
 
@@ -186,7 +186,7 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
      */
     struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
     if (!qer) {
-        bpf_printk("upf: no uplink session qer for teid:%d qer:%d", teid, pdr->qer_id);
+        bpf_printk("upf: no session qer for teid:%d qer:%d", teid, pdr->qer_id);
         return XDP_DROP;
     }
 
@@ -199,17 +199,17 @@ static __always_inline enum xdp_action handle_n3_packet(struct packet_context *c
     if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->ul_start, qer->ul_maximum_bitrate))
         return XDP_DROP;
 
-    bpf_printk("upf: uplink session for teid:%d far:%d outer_header_removal:%d", teid, pdr->far_id, pdr->outer_header_removal);
+    bpf_printk("upf: session for teid:%d far:%d outer_header_removal:%d", teid, pdr->far_id, pdr->outer_header_removal);
 
     // N9: Only outer header GTP/UDP/IPv4 is supported at the moment
     if (far->outer_header_creation & OHC_GTP_U_UDP_IPv4)
     {
-        bpf_printk("upf: uplink session for teid:%d -> %d remote:%pI4", teid, far->teid, &far->remoteip);
+        bpf_printk("upf: session for teid:%d -> %d remote:%pI4", teid, far->teid, &far->remoteip);
         update_gtp_tunnel(ctx, far->localip, far->remoteip, 0, far->teid);
     } else if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) {
         long result = remove_gtp_header(ctx);
         if (result) {
-            bpf_printk("upf: handle_n3_packet: can't remove gtp header: %d", result);
+            bpf_printk("upf: handle_gtp_packet: can't remove gtp header: %d", result);
             return XDP_ABORTED;
         }
     }
@@ -230,7 +230,7 @@ static __always_inline enum xdp_action handle_gtpu(struct packet_context *ctx) {
     switch (pdu_type) {
         case GTPU_G_PDU:
             increment_counter(ctx->counters, rx_gtp_pdu);
-            return handle_n3_packet(ctx);
+            return handle_gtp_packet(ctx);
         case GTPU_ECHO_REQUEST:
             increment_counter(ctx->counters, rx_gtp_echo);
             // bpf_printk("upf: gtp header [ version=%d, pt=%d, e=%d]", gtp->version, gtp->pt, gtp->e);
