@@ -506,6 +506,7 @@ func cloneIP(ip net.IP) net.IP {
 }
 
 func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarInfo, error) {
+	farInfo.LocalIP = binary.LittleEndian.Uint32(localIp)
 	if applyAction, err := far.ApplyAction(); err == nil {
 		farInfo.Action = applyAction[0]
 	}
@@ -528,7 +529,6 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarI
 			farInfo.Teid = outerHeaderCreation.TEID
 			if outerHeaderCreation.HasIPv4() {
 				farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
-				farInfo.LocalIP = binary.LittleEndian.Uint32(localIp)
 			}
 			if outerHeaderCreation.HasIPv6() {
 				log.Print("WARN: IPv6 not supported yet, ignoring")

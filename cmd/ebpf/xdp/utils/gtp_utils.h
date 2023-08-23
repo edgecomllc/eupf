@@ -22,6 +22,7 @@
 #include <linux/ip.h>
 #include <linux/types.h>
 #include <linux/udp.h>
+#include <linux/icmp.h>
 
 #include "xdp/utils/gtpu.h"
 #include "xdp/utils/packet_context.h"
