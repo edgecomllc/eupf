@@ -118,7 +118,7 @@ eUPF relies on kernel routing when making routing decision for incoming network 
 - [x]  Single & Multi-port support
 - [x]  Static IP routing
 - [x]  Basic QoS support with per-session rate limiting
-- [ ]  I-UPF/A-UPF ULCL/Branching (N9 interface)
+- [x]  I-UPF/A-UPF ULCL/Branching (N9 interface)
 
 #### Management plane
 - [x]  Free5gc compatibility

@@ -209,3 +209,12 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
     context_set_ip4(ctx, (char *)(long)ctx->xdp_ctx->data, (const char *)(long)ctx->xdp_ctx->data_end, eth, ip, udp, gtp);
     return 0;
 }
+
+static __always_inline void update_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, int teid) {
+
+    ctx->gtp->teid = bpf_htonl(teid);
+    ctx->ip4->saddr = srcip;
+    ctx->ip4->daddr = dstip;
+    ctx->ip4->check = 0;
+    ctx->ip4->check = ipv4_csum(ctx->ip4, sizeof(*ctx->ip4));
+}
