@@ -50,7 +50,7 @@ volumes:
       path: /sys
   - name: config
     configMap:
-      name: eupf2-universal-chart-config
+      name: eupf2-config
 
 volumeMounts:
   - name: sys

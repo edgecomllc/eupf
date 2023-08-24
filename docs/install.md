@@ -55,7 +55,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
       📝 Here we use separate container for NAT:
 
       ```
-      kubectl apply -f docs/examples/open5gs/nat.yaml
+      kubectl apply -f docs/examples/open5gs/nat.yaml -n open5gs
       ```
 
       ```powershell
@@ -99,7 +99,7 @@ We have prepared templates to deploy with two opensource environments: **open5gs
       open5gs openverso/open5gs \
       --values docs/examples/open5gs/open5gs.yaml \
       -n open5gs \
-      --version 2.0.9 \
+      --version 2.0.12 \
       --wait --timeout 100s --create-namespace
    ```
 
@@ -139,8 +139,12 @@ helm upgrade --install \
    smf2 openverso/open5gs-smf \
    --values docs/examples/open5gs/smf2slice-open5gs.yaml \
    -n open5gs \
+   --set image.tag=2.6.2 \
    --version 2.0.10 \
    --wait --timeout 100s 
+kubectl apply -f docs/examples/open5gs/smf2-cm.yaml -n open5gs
+
+kubectl apply -f docs/examples/open5gs/smf1-cm.yaml -n open5gs
 
 helm upgrade --install -n open5gs ueransim-ues2 openverso/ueransim-ues \
    --values docs/examples/open5gs/ueransim-ue2.yaml \
