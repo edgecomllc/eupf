@@ -1,6 +1,6 @@
 ---
 
-# deployUpf: false
+deployUpf: false
 deployDbPython: false
 
 # webui chart settings

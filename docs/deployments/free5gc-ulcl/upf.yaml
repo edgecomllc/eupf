@@ -1,6 +1,8 @@
 ---
 
 upf1:
+  image:
+    tag: latest
   configmap:
     wrapperAdditionalCommands: |
       iptables -D POSTROUTING 1 -t nat
@@ -23,6 +25,8 @@ upf1:
       add: ["NET_ADMIN"]
 
 upf2:
+  image:
+    tag: latest
   configmap:
     wrapperAdditionalCommands: |
       iptables -D POSTROUTING 1 -t nat
@@ -44,7 +48,7 @@ upf2:
     capabilities:
       add: ["NET_ADMIN"]
 
-upfb:
+upfb: []
   # set it empty to avoid creation. upfb will be created from eupf chart.
   # n3if:
     # ipAddress: 10.100.50.233
