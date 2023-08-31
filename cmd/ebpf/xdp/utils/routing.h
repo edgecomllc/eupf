@@ -25,6 +25,8 @@
 #include <linux/types.h>
 #include <sys/socket.h>
 
+#include "xdp/utils/trace.h"
+
 struct route_stat {
     __u64 fib_lookup_ip4_cache;
     __u64 fib_lookup_ip4_ok;
@@ -106,7 +108,7 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
 #ifdef ENABLE_ROUTE_CACHE
     struct route_record *cache = bpf_map_lookup_elem(&upf_route_cache_ip4, &ip4->daddr);
     if (cache) {
-        bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: cached ifindex: %d", &ip4->saddr, &ip4->daddr, cache->ifindex);
+        upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: cached ifindex: %d", &ip4->saddr, &ip4->daddr, cache->ifindex);
         statistic->fib_lookup_ip4_cache += 1;
         return do_route_ipv4(ctx, eth, cache->ifindex, &cache->smac, &cache->dmac);
     }
@@ -126,7 +128,7 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
     int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), 0 /*BPF_FIB_LOOKUP_OUTPUT*/);
     switch (rc) {
         case BPF_FIB_LKUP_RET_SUCCESS:
-            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: nexthop: %pI4", &ip4->saddr, &ip4->daddr, &fib_params.ipv4_dst);
+            upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: nexthop: %pI4", &ip4->saddr, &ip4->daddr, &fib_params.ipv4_dst);
             statistic->fib_lookup_ip4_ok += 1;
 
 #ifdef ENABLE_ROUTE_CACHE
@@ -137,7 +139,7 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
         case BPF_FIB_LKUP_RET_BLACKHOLE:
         case BPF_FIB_LKUP_RET_UNREACHABLE:
         case BPF_FIB_LKUP_RET_PROHIBIT:
-            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
+            upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
             statistic->fib_lookup_ip4_error_drop += 1;
             return XDP_DROP;
         case BPF_FIB_LKUP_RET_NOT_FWDED:
@@ -146,7 +148,7 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
         case BPF_FIB_LKUP_RET_NO_NEIGH:
         case BPF_FIB_LKUP_RET_FRAG_NEEDED:
         default:
-            bpf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
+            upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
             statistic->fib_lookup_ip4_error_pass += 1;
             return XDP_PASS; /* Let's kernel takes care */
     }
@@ -173,12 +175,12 @@ static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct eth
     int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), 0 /*BPF_FIB_LOOKUP_OUTPUT*/);
     switch (rc) {
         case BPF_FIB_LKUP_RET_SUCCESS:
-            bpf_printk("upf: bpf_fib_lookup %pI6c -> %pI6c: nexthop: %pI4", &ip6->saddr, &ip6->daddr, &fib_params.ipv4_dst);
+            upf_printk("upf: bpf_fib_lookup %pI6c -> %pI6c: nexthop: %pI4", &ip6->saddr, &ip6->daddr, &fib_params.ipv4_dst);
             statistic->fib_lookup_ip6_ok += 1;
             //_decr_ttl(ether_proto, l3hdr);
             __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
             __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);
-            bpf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
+            upf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
 
             if (fib_params.ifindex == ctx->ingress_ifindex)
                 return XDP_TX;
@@ -187,7 +189,7 @@ static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct eth
         case BPF_FIB_LKUP_RET_BLACKHOLE:
         case BPF_FIB_LKUP_RET_UNREACHABLE:
         case BPF_FIB_LKUP_RET_PROHIBIT:
-            bpf_printk("upf: bpf_fib_lookup %pI6c -> %pI6c: %d", &ip6->saddr, &ip6->daddr, rc);
+            upf_printk("upf: bpf_fib_lookup %pI6c -> %pI6c: %d", &ip6->saddr, &ip6->daddr, rc);
             statistic->fib_lookup_ip6_error_drop += 1;
             return XDP_DROP;
         case BPF_FIB_LKUP_RET_NOT_FWDED:
@@ -196,7 +198,7 @@ static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct eth
         case BPF_FIB_LKUP_RET_NO_NEIGH:
         case BPF_FIB_LKUP_RET_FRAG_NEEDED:
         default:
-            bpf_printk("upf: bpf_fib_lookup %pI6c -> %pI6c: %d", &ip6->saddr, &ip6->daddr, rc);
+            upf_printk("upf: bpf_fib_lookup %pI6c -> %pI6c: %d", &ip6->saddr, &ip6->daddr, rc);
             statistic->fib_lookup_ip6_error_pass += 1;
             return XDP_PASS; /* Let's kernel takes care */
     }
