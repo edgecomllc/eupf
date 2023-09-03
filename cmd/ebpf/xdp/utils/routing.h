@@ -46,6 +46,8 @@ struct
     __uint(max_entries, 1);
 } upf_route_stat SEC(".maps");
 
+#define ENABLE_ROUTE_CACHE
+
 #ifdef ENABLE_ROUTE_CACHE
 
 #warning "Routing cache enabled"
