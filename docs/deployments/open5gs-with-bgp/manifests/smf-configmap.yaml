@@ -1,22 +1,21 @@
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: smf2-open5gs-smf
-  labels:
-    app.kubernetes.io/name: open5gs-smf
-    helm.sh/chart: open5gs-smf-2.0.10
-    app.kubernetes.io/instance: smf2
-    app.kubernetes.io/managed-by: Helm
+  name: open5gs-smf
 data:
   smf.yaml: |
     logger:
       level: info
+
     parameter: {}
+
     sbi:
       server:
         no_tls: true
       client:
         no_tls: true
+
     smf:
       sbi:
         - dev: "eth0"
@@ -31,26 +30,20 @@ data:
         - dev: "eth0"
           port: 2152
       subnet:
-        -
-          addr: 10.46.0.1/16
+        - addr: 10.11.0.1/16
           dnn: internet
-        -
-          addr: 2001:db88:cafe::1/48
+        - addr: 2001:db8:cafe::1/48
           dnn: internet
       dns:
-        -
-          8.8.8.8
-        -
-          8.8.4.4
-        -
-          2001:4860:4860::8888
-        -
-          2001:4860:4860::8844
+        - 8.8.8.8
+        - 8.8.4.4
+        - 2001:4860:4860::8888
+        - 2001:4860:4860::8844
       mtu: 1400
       info:
         - s_nssai:
             - sst: 1
-              sd: 112233
+              sd: 111111
               dnn:
                 - internet
           tai:
@@ -58,12 +51,13 @@ data:
                 mcc: 999
                 mnc: 70
               tac: 1
+
     nrf:
       sbi:
         - name: open5gs-nrf-sbi
           port: 7777
+
     upf:
       pfcp:
-        - name: eupf2
+        - name: eupf
           port: 8805
-    
