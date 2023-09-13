@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "srslte.fullname" . }}
+  labels:
+{{ include "srslte.labels.standard" . | nindent 4 }}
+spec:
+  replicas: 1 
+  serviceName: {{ include "srslte.fullname" . }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "srslte.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+  template:
+    metadata:
+     labels:
+        app.kubernetes.io/name: {{ include "srslte.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    spec:
+{{ include "srslte.imagePullSecrets" . | indent 6 }}
+      containers:
+      - name: gnb
+        image: {{ .Values.gnb.image }}
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            sed -i 's/otw_format:.*/otw_format: default/' /opt/srsRAN_Project/target/share/srsran/gnb_rf_b200_tdd_n78_20mhz.yml ;\
+            /entrypoint.sh gnb
+        # args:
+        # - gnb
+        env:
+        - name: AMF_HOSTNAME
+          value: {{ .Values.gnb.amf | quote }}
+        - name: DEVICE_DRIVER
+          value: zmq
+        - name: DEVICE_ARGS
+          value: 'tx_port=tcp://127.0.0.1:2000,rx_port=tcp://127.0.0.1:2001,base_srate=11.52e6'
+        - name: SRATE
+          value: '11.52'
+        - name: TX_GAIN
+          value: '75'
+        - name: RX_GAIN
+          value: '75'
+        - name: DL_ARFCN
+          value: '368500'
+        - name: BAND
+          value: '3'
+        - name: BANDWIDTH
+          value: '10'
+        - name: SCS
+          value: '15'
+        - name: TAC
+          value: {{ .Values.gnb.tac | quote }}
+        resources:
+{{ toYaml .Values.gnb.resources | indent 10 }}
+      - name: ue
+        image: {{ template "srslte.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            sed -i 's/device_args =.*/device_args = tx_port=tcp:\/\/127.0.0.1:2001,rx_port=tcp:\/\/127.0.0.1:2000,base_srate=11.52e6/'  /etc/srsran/ue.conf ;\
+            sed -i 's/tx_gain =.*/tx_gain =50\nrx_gain = 40\nsrate = 11.52e6\nnof_antennas = 1/'  /etc/srsran/ue.conf ;\
+            /entrypoint.sh  $0 $@
+        args:
+        - ue
+        env:
+        - name: ENB_HOSTNAME
+          value: {{ .Values.ue.gnb_host | quote }}
+        - name: ENB_ADDRESS
+          value: {{ .Values.ue.gnb_addr | quote }}
+        securityContext:
+          privileged: true
+        resources:
+{{ toYaml .Values.ue.resources | indent 10 }}
