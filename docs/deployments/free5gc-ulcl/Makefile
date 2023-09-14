@@ -17,6 +17,7 @@ upf:
 		free5gc-upf towards5gs/free5gc-upf \
 		--values global.yaml \
 		--values upf.yaml \
+		--version 0.2.6 \
 		-n $(NAMESPACE) \
 		$(HELM_ARGS)
 

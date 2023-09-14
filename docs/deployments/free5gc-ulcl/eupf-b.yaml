@@ -73,9 +73,6 @@ metrics:
       port: metrics
       path: "/metrics"
 
-imagePullSecrets:
-  - name: gh-container-registry
-
 extraContainerPorts:
   - name: pfcp
     containerPort: 8805
