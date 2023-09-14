@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/RoaringBitmap/roaring v1.3.0
 	github.com/cilium/ebpf v0.10.0
+	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/gopacket v1.1.19
 	github.com/prometheus/client_golang v1.16.0
