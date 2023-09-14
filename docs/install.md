@@ -2,6 +2,8 @@
 The easyest way to install eUPF is to use helm charts for one of the supported opensource 5G core projects in your own kubernetes cluster.
 Alternatively, eUPF could be deployed in docker-compose (only with free5gc config is ready at the moment).
 
+## Node requirements
+
 **eUPF need Linux kernel > 5.14 version (we used Ubuntu 22.04 LTS)**
 
 ## Kubenetes environment
@@ -19,29 +21,10 @@ We have prepared templates to deploy with two opensource environments: **open5gs
 
 [UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity.
 
-## How to deploy eUPF with free5gc core
+## Deployment variants
 
-### Option add second network slice
-1. This will install eUPF2 with slice `sd: 112233`. UEs subnet is `10.2.0.0/16`
-    ```powershell
-    helm upgrade --install \
-      eupf2 .deploy/helm/universal-chart \
-      --values docs/examples/free5gc/eupf2-rout-static.yaml \
-      -n free5gc \
-      --wait --timeout 100s
-    ```
-1. Create subscriber in free5gc via WebUI: go to menu "subscribers", click "new subscriber", leave all values as is, except SUPI (IMSI)* : `208930000000004` & SD* : `112233`, press "submit".
+[Here](./deployments/README.md) you can read more information abount deployment variants
 
-1. Open UE's console and put
-`nr-ue -c ue.yaml -n 1 -i 208930000000004 &` <br>
-New `uesimtun1` interface will appear with IP address from 10.2.0.0
-
-To undeploy second eUPF:
-`helm  uninstall eupf2 -n free5gc`
-
-</p>
-</details>
-</p>
 
 ## How to deploy eUPF with free5gc core (docker-compose)
 
@@ -78,17 +61,6 @@ So you can clone free5gc docker-compose and test free5gc upf, then add edgecom o
 </p>
 </details>
 
-
-## Option NAT at the node
-
-If you need NAT (Network Address Translation, or Masqerading) at your node to access Internet, the easiest way is to use standart daemonset [IP Masquerade Agent](https://kubernetes.io/docs/tasks/administer-cluster/ip-masq-agent/):
-```powershell
-sudo kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/ip-masq-agent/master/ip-masq-agent.yaml
-```
-   > The below entries show the default set of rules that are applied by the ip-masq-agent:
-    ` iptables -t nat -L IP-MASQ-AGENT`
-
----
 
 ## Test scenarios
 

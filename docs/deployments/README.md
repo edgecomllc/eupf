@@ -11,3 +11,7 @@
 ## Free5GC + Calico BGP
 
 [see doc](./free5gc-with-bgp/README.md)
+
+## Free5GC + ULCL
+
+[see doc](./free5gc-ulcl/README.md)
