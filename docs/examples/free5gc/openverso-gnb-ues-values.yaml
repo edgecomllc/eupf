@@ -18,7 +18,7 @@ tac: '1'
 podAnnotations:
   k8s.v1.cni.cncf.io/networks: |
     [
-      { "name": "n3network-upf",
+      { "name": "n3network-free5gc-upf",
         "interface": "n3",
         "ips": [ "10.100.50.235/29" ]
       },
