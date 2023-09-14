@@ -19,42 +19,42 @@ helm repo update
 
 ## Deployment steps
 
-* install eupf
+1. install eupf
 
 `make upf`
 
-* configure calico BGP settings
+2. configure calico BGP settings
 
 `make calico`
 
-* install open5gs
+3. install open5gs
 
 `make open5gs`
 
-* configure SMF
+4. configure SMF
 
 `make smf`
 
-* install gNB
+5. install gNB
 
 `make gnb`
 
-* install UERANSim
+6. install UERANSim
 
 `make ue1`
 
 ## Check steps
 
-* exec shell in UE pod
+1. exec shell in UE pod
 
 `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
 
-* run ICMP test
+2. run ICMP test
 
 `ping -I uesimtun0 1.1.1.1`
 
 ## Undeploy steps
 
-* undeploy all
+1. undeploy all
 
 `make clean`

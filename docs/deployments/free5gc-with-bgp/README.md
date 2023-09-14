@@ -33,11 +33,11 @@ helm repo update
 
 ## Deployment steps
 
-* install free5gc
+1. install free5gc
 
 `make free5gc`
 
-* create subscriber in free5gc via WebUI
+2. create subscriber in free5gc via WebUI
 
  redirect port from webui pod to localhost
 
@@ -49,30 +49,30 @@ helm repo update
 
  close port forward with `Ctrl + C`
 
-* configure calico BGP settings
+3. configure calico BGP settings
 
 `make calico`
 
-* install eupf
+4. install eupf
 
 `make upf`
 
-* install UERANSim
+5. install UERANSim
 
 `make ue1`
 
 ## Check steps
 
-* exec shell in UE pod
+1. exec shell in UE pod
 
 `kubectl -n free5gc exec -ti deployment/ueransim-ue -- /bin/bash`
 
-* run ICMP test
+2. run ICMP test
 
 `ping -I uesimtun0 1.1.1.1`
 
 ## Undeploy steps
 
-* undeploy all
+1. undeploy all
 
 `make clean`
