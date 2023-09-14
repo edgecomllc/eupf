@@ -23,10 +23,9 @@ We have prepared templates to deploy with two opensource environments: **open5gs
 
 ## Deployment variants
 
-[Here](./deployments/README.md) you can read more information abount deployment variants
+[Here](./deployments/README.md) you can read more information about deployment variants in Kubernetes.
 
-
-## How to deploy eUPF with free5gc core (docker-compose)
+Or deploy eUPF with free5gc core as docker-compose:
 
 <details><summary>Instruction to deploy as docker-compose</summary>
 <p>
