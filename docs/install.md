@@ -9,21 +9,36 @@ Alternatively, eUPF could be deployed in docker-compose (only with free5gc confi
 ## Kubenetes environment
 
 - Kubernetes cluster with Calico and Multus CNI
+  - with [Enabled Unsafe Sysctls](https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/#enabling-unsafe-sysctls) net.ipv4.ip_forward:
+
+    `kubelet --allowed-unsafe-sysctls 'net.ipv4.ip_forward,net.ipv6.conf.all.forwarding'`
 - [helm](https://helm.sh/docs/intro/install/) installed
 - [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) installed, or <br>
   create CustomResource ServiceMonitor as a minimum: <br>
   ```kubectl apply -f https://github.com/prometheus-community/helm-charts/raw/main/charts/kube-prometheus-stack/crds/crd-servicemonitors.yaml```
 <!-- - deployed 5g core (open5gs or free5gc) -->
 
-In our environments, we use one node K8s cluster deployed by means of [kubespray](https://github.com/kubernetes-sigs/kubespray). You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible)
+In our environments, we use one node K8s cluster deployed by means of [kubespray](https://github.com/kubernetes-sigs/kubespray). <!-- You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible) -private -->
+<details><summary>With additional file inventory/mycluster/group_vars/kube_node.yaml</summary>
+<p>
 
+```yaml
+---
+
+kubelet_node_config_extra_args:
+  allowedUnsafeSysctls:
+    - "net.ipv4.ip_forward"
+``` 
+</p>
+</details> 
+
+## Possible use cases
 We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose.
 
 [UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity.
 
-## Deployment variants
 
-[Here](./deployments/README.md) you can read more information about deployment variants in Kubernetes.
+### Go [Here](./deployments/README.md) for more information about deployment options in Kubernetes for eUPF with **open5gs** and **free5gc**.
 
 Or deploy eUPF with free5gc core as docker-compose:
 
