@@ -30,6 +30,7 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 		v1.GET("upf_pipeline", ListUpfPipeline(bpfObjects))
 		v1.GET("config", DisplayConfig())
 		v1.GET("xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
+		v1.GET("packet_stats", DisplayPacketStats(forwardPlaneStats))
 
 		qerMap := v1.Group("qer_map")
 		{
@@ -52,6 +53,19 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 
 	router.GET("swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return &ApiServer{router: router}
+}
+
+// DisplayPacketStats godoc
+// @Summary Display packet statistics
+// @Description Display packet statistics
+// @Tags Packet
+// @Produce  json
+// @Success 200 {object} ebpf.UpfCounters
+// @Router /packet_stats [get]
+func DisplayPacketStats(forwardPlaneStats ebpf.UpfXdpActionStatistic) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		c.IndentedJSON(http.StatusOK, forwardPlaneStats.GetUpfExtStatField())
+	}
 }
 
 type XdpStats struct {
