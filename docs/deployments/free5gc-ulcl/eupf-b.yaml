@@ -73,9 +73,6 @@ metrics:
       port: metrics
       path: "/metrics"
 
-imagePullSecrets:
-  - name: gh-container-registry
-
 extraContainerPorts:
   - name: pfcp
     containerPort: 8805
@@ -122,7 +119,7 @@ podAnnotations:
     [
       { "name": "n3network-upf",
         "interface": "n3",
-        "ips": [ "10.100.50.233/29" ]
+        "ips": [ "10.100.50.233/28" ]
       },
       { "name": "n4network-upf",
         "interface": "n4",
