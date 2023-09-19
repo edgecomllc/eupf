@@ -53,9 +53,9 @@ bird:
     BIRD_LOCAL_PREFIX: 10.11.0.0/16
 
 metrics:
-  enabled: true
+  enabled: false
   serviceMonitor:
-    enabled: true
+    enabled: false
     additionalLabels:
       release: kube-prometheus-stack
     endpoints:
@@ -141,7 +141,7 @@ extraDeploy:
             {
               "type": "ipvlan",
               "capabilities": { "ips": true },
-              "master": "ens3",
+              "master": "eth0",
               "mode": "l2",
               "ipam": {
                 "type": "static"

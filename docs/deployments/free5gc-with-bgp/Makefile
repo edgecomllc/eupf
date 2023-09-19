@@ -5,8 +5,6 @@ HELM_ARGS?=--timeout 30s --create-namespace
 HELM_ACTION?=upgrade --install
 
 free5gc:
-	phy_if=$(lshw -C network |grep -Fm 1 'logical name:' |awk -- '{print $NF}')
-	sed -i "s/masterIf:.*/masterIf: $phy_if/" $(HELM_VALUES_DIR)/global.yaml
 	helm $(HELM_ACTION) \
 		free5gc towards5gs/free5gc \
 		--version 1.1.7 \
@@ -20,8 +18,6 @@ calico:
 	kubectl apply -f $(HELM_VALUES_DIR)/../manifests/calico-bgp.yaml
 
 upf:
-	phy_if=$(lshw -C network |grep -Fm 1 'logical name:' |awk -- '{print $NF}')
-	sed -i "s/\"master\":.*/\"master\": \"$phy_if\",/" $(HELM_VALUES_DIR)/eupf.yaml
 	helm $(HELM_ACTION) \
 		eupf oci://registry-1.docker.io/edgecom/eupf \
 		--version 0.4.0 \

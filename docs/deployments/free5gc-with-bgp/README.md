@@ -1,5 +1,7 @@
 # Free5GC + eUPF with Calico BGP
 
+Be careful, this document work in progress
+
 ![](./schema.png)
 
 ## Requirements
@@ -36,7 +38,7 @@
 
     close port forward with `Ctrl + C`
 
-1. configure calico BGP settings
+1. configure calico BGP settings. Here, we configure Calico BGP peer and create Calico IP Pool (for NAT)
 
     `make calico`
 
