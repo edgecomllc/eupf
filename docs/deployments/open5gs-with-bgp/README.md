@@ -23,7 +23,7 @@
 
     `make upf`
 
-2. configure calico BGP settings
+2. configure calico BGP settings. Here, we configure Calico BGP peer and create Calico IP Pool (for NAT)
 
     `make calico`
 

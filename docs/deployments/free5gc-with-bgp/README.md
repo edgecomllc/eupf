@@ -20,6 +20,8 @@ Be careful, this document work in progress
     helm repo update
     ```
 
+- update values files, you should set name of network interface in file `global.yaml` (parameter masterIf)
+
 ## Deployment steps
 
 1. install free5gc
