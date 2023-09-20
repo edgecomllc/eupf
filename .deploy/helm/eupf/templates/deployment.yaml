@@ -115,6 +115,48 @@ spec:
           {{- end }}
           {{- include "helpers.pod.volumeMounts" . | nindent 10 }}
         {{- end }}
+        {{- if .Values.ui.enabled }}
+        - name:  ui
+          image: "{{ include "helpers.pod.uiImage" . }}"
+          {{- if .Values.ui.command }}
+          command: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.ui.command "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.ui.args }}
+          args: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.ui.args "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            {{- range $k, $v := .Values.ui.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          ports:
+            - name: ui
+              containerPort: {{ .Values.ui.service.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.ui.resources | nindent 12 }}
+          {{- with .Values.ui.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.ui.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- include "helpers.pod.volumeMounts" . | nindent 10 }}
+        {{- end }}
       {{- include "helpers.pod.volumes" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

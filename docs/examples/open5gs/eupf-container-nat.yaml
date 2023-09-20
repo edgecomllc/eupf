@@ -124,3 +124,22 @@ readinessProbe:
     port: http
   initialDelaySeconds: 5
   periodSeconds: 10
+
+ui:
+  enabled: true
+  image:
+    registry: ghcr.io
+    repository: edgecomllc
+    name: eupf-ui
+    tag: main
+    pullPolicy: Always
+  command:
+    - /bin/sh
+    - -c
+    - |
+        sed -i 's#__API_PORT__#'$API_PORT'#g' /usr/share/nginx/html/env.js ;\
+        nginx -g 'daemon off;'
+  env:
+    API_PORT: 8080
+  service:
+    port: 80
