@@ -5,9 +5,5 @@ metadata:
   labels:
 {{ include "srslte.labels.standard" . | nindent 4 }}
 data:
-  enb.conf: |
-{{ tpl (.Files.Get "resources/enb.conf") . | indent 4 }}
-  ue.conf: |
-{{ tpl (.Files.Get "resources/ue.conf") . | indent 4 }}
-  rr.conf: |
-{{ tpl (.Files.Get "resources/rr.conf") . | indent 4 }}
+  gnb_zmq.yaml: |
+{{ tpl (.Files.Get "resources/gnb_zmq.yaml") . | indent 4 }}
