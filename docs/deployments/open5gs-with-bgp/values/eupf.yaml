@@ -48,12 +48,13 @@ volumeMounts:
 
 bird:
   enabled: true
+  image: docker.io/edgecom/bird:0.0.4b
   env:
     BIRD_LOCAL_AS: 65001
     BIRD_LOCAL_PREFIX: 10.11.0.0/16
 
 metrics:
-  enabled: true
+  enabled: false
   serviceMonitor:
     enabled: true
     additionalLabels:
