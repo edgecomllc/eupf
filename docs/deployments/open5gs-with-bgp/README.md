@@ -4,7 +4,7 @@
 
 ## Requirements
 
-- Kubernetes cluster with Calico and Multus CNI
+- Kubernetes cluster with Calico
 - [helm](https://helm.sh/docs/intro/install/) installed
 - calico backend configured as BIRD
 
