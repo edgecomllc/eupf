@@ -3,6 +3,8 @@ HELM_ARGS?=--wait --timeout 100s --create-namespace
 HELM_ACTION?=install
 
 free5gc:
+	phy_if=$(lshw -C network |grep -Fm 1 'logical name:' |awk -- '{print $NF}')
+	sed -i "s/masterIf:.*/masterIf: $phy_if/" global.yaml
 	helm $(HELM_ACTION) \
 		free5gc towards5gs/free5gc \
 		--values global.yaml \
@@ -13,6 +15,8 @@ free5gc:
 		$(HELM_ARGS)
 
 upf:
+	phy_if=$(lshw -C network |grep -Fm 1 'logical name:' |awk -- '{print $NF}')
+	sed -i "s/masterIf:.*/masterIf: $phy_if/" global.yaml
 	helm $(HELM_ACTION) \
 		free5gc-upf towards5gs/free5gc-upf \
 		--values global.yaml \

@@ -1,0 +1,49 @@
+---
+
+global:
+  name: free5gc
+  userPlaneArchitecture: single
+  amf:
+    n2if:
+      ipAddress: 10.100.50.249
+    service:
+      ngap:
+        enabled: true
+  smf:
+    n4if:
+      ipAddress: 10.100.50.244
+  n2network:
+    name: n2network
+    masterIf: eth0
+    subnetIP: 10.100.50.248
+    cidr: 29
+    gatewayIP: 10.100.50.254
+    excludeIP: 10.100.50.254
+  n3network:
+    name: n3network
+    masterIf: eth0
+    subnetIP: 10.100.50.232
+    cidr: 29
+    gatewayIP: 10.100.50.238
+    excludeIP: 10.100.50.238
+  n4network:
+    name: n4network
+    masterIf: eth0
+    subnetIP: 10.100.50.240
+    cidr: 29
+    gatewayIP: 10.100.50.246
+    excludeIP: 10.100.50.246
+  n6network:
+    name: n6network
+    masterIf: eth0
+    subnetIP: 10.100.100.0
+    cidr: 24
+    gatewayIP: 10.100.100.1
+    excludeIP: 10.100.100.254
+  n9network:
+    name: n9network
+    masterIf: eth0
+    subnetIP: 10.100.50.224
+    cidr: 29
+    gatewayIP: 10.100.50.230
+    excludeIP: 10.100.50.230

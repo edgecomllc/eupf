@@ -2,294 +2,45 @@
 The easyest way to install eUPF is to use helm charts for one of the supported opensource 5G core projects in your own kubernetes cluster.
 Alternatively, eUPF could be deployed in docker-compose (only with free5gc config is ready at the moment).
 
+## Node requirements
+
 **eUPF need Linux kernel > 5.14 version (we used Ubuntu 22.04 LTS)**
 
 ## Kubenetes environment
 
 - Kubernetes cluster with Calico and Multus CNI
+  - with [Enabled Unsafe Sysctls](https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/#enabling-unsafe-sysctls) net.ipv4.ip_forward:
+
+    `kubelet --allowed-unsafe-sysctls 'net.ipv4.ip_forward,net.ipv6.conf.all.forwarding'`
 - [helm](https://helm.sh/docs/intro/install/) installed
 - [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) installed, or <br>
   create CustomResource ServiceMonitor as a minimum: <br>
   ```kubectl apply -f https://github.com/prometheus-community/helm-charts/raw/main/charts/kube-prometheus-stack/crds/crd-servicemonitors.yaml```
 <!-- - deployed 5g core (open5gs or free5gc) -->
 
-In our environments, we use one node K8s cluster deployed by means of [kubespray](https://github.com/kubernetes-sigs/kubespray). You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible)
+In our environments, we use one node K8s cluster deployed by means of [kubespray](https://github.com/kubernetes-sigs/kubespray). <!-- You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible) -private -->
+<details><summary>With additional file inventory/mycluster/group_vars/kube_node.yaml</summary>
+<p>
 
+```yaml
+---
+
+kubelet_node_config_extra_args:
+  allowedUnsafeSysctls:
+    - "net.ipv4.ip_forward"
+``` 
+</p>
+</details> 
+
+## Possible use cases
 We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose.
 
 [UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity.
 
-## How to deploy eUPF with open5gs core:
-<details><summary>Instructions</summary>
-<p>
 
-### To deploy:
+### Go [Here](./deployments/README.md) for more information about deployment options in Kubernetes for eUPF with **open5gs** and **free5gc**.
 
-0. [install helm](https://helm.sh/docs/intro/install/) if it's not
-0. add openverso helm repo
-
-   ```
-   helm repo add openverso https://gradiant.github.io/openverso-charts/
-   helm repo update
-   ```
-
-0. install the eUPF chart
-
-   - Option 1, fast pure routing to nodes's network:
-
-      📝 Here we use subnet `10.100.111.0/24` for `n6` ptp type interface as a door to the outer world for our eUPF. And `10.45.0.0/16` addresses for subscribers at UE. So make sure that both IP subnets is not occupied on your node host.
-
-      ```powershell
-      helm upgrade --install \
-         edgecomllc-eupf .deploy/helm/eupf \
-         --values docs/examples/open5gs/eupf-host-nat.yaml \
-         -n open5gs \
-         --wait --timeout 100s --create-namespace
-      ```
-      eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
-
-      If you need Network Address Translation (NAT) function for subscriber's egress traffic, see the chapter [about NAT](#option-nat-at-the-node) below.
-
-   - Option 2, with an additional pod that handles the NAT function:
-
-      📝 Here we use separate container for NAT:
-
-      ```
-      kubectl apply -f docs/examples/open5gs/nat.yaml -n open5gs
-      ```
-
-      ```powershell
-      helm upgrade --install \
-         eupf .deploy/helm/eupf \
-         --values docs/examples/open5gs/eupf-container-nat.yaml \
-         -n open5gs \
-         --wait --timeout 100s --create-namespace
-      ```
-
-   - Option 3, BGP connection with calico CNI:
-
-      * configure calico backend
-
-      change `calico_backend` parameter to `bird` in configmap with name `calico-config` and then restart all pods with name `calico-node-*`
-
-      * configure Calico BGP
-
-      ```bash
-      kubectl apply -f docs/examples/open5gs/calico-bgp.yaml
-      ```
-
-      * configure Calico IP Pool for UE devices
-
-      ```bash
-      kubectl apply -f docs/examples/open5gs/calico-pools.yaml
-      ```
-
-      ```bash
-      helm upgrade --install \
-         eupf .deploy/helm/eupf \
-         --values docs/examples/open5gs/eupf-bgp.yaml \
-         -n open5gs \
-         --wait --timeout 100s --create-namespace
-      ```
-
-1. install open5gs chart
-
-   ```powershell
-   helm upgrade --install \
-      open5gs openverso/open5gs \
-      --values docs/examples/open5gs/open5gs.yaml \
-      -n open5gs \
-      --version 2.0.12 \
-      --wait --timeout 100s --create-namespace
-   ```
-
-2. install ueransim chart
-
-   ```powershell
-   helm upgrade --install \
-      ueransim openverso/ueransim-gnb \
-      --values docs/examples/open5gs/ueransim-gnb.yaml \
-      -n open5gs \
-      --version 0.2.5 \
-      --wait --timeout 100s --create-namespace
-   ```
-
-### To undeploy everything:
-
-```
-helm  uninstall open5gs ueransim edgecomllc-eupf -n open5gs
-kubectl delete -f docs/examples/open5gs/nat.yaml
-```
-### Notes
-📝 Pod's interconnection. openverso-charts uses default interfaces of your kubernetes cluster. It is Calico CNI interfaces in our environment, type ipvlan. And it uses k8s services names to resolve endpoints.
-
-
-For more details refer to openverso-charts [Open5gs and UERANSIM](https://gradiant.github.io/openverso-charts/open5gs-ueransim-gnb.html)
-
-### Option add second network slice
-This will install eUPF2, SMF2 and UE2 with slice `sd: 112233`. UEs subnet is `10.46.0.1/16`
-```powershell
-helm upgrade --install \
-   eupf2 .deploy/helm/universal-chart \
-   --values docs/examples/open5gs/eupf2-rout-static.yml \
-   -n open5gs \
-   --wait --timeout 100s 
-
-helm upgrade --install \
-   smf2 openverso/open5gs-smf \
-   --values docs/examples/open5gs/smf2slice-open5gs.yaml \
-   -n open5gs \
-   --set image.tag=2.6.2 \
-   --version 2.0.10 \
-   --wait --timeout 100s 
-kubectl apply -f docs/examples/open5gs/smf2-cm.yaml -n open5gs
-
-kubectl apply -f docs/examples/open5gs/smf1-cm.yaml -n open5gs
-
-helm upgrade --install -n open5gs ueransim-ues2 openverso/ueransim-ues \
-   --values docs/examples/open5gs/ueransim-ue2.yaml \
-   --wait --timeout 100s 
-```
-To undeploy second slice:
-`helm  uninstall smf2 ueransim-ues2 eupf2 -n open5gs`
-
-</p>
-</details>
-
-## How to deploy eUPF with free5gc core
-<details><summary>Instruction</summary>
-<p>
-
-<!-- --this module is not needed for our eUPF --
-### Prepare nodes
-
-You should compile and install gtp5g kernel module on every worker node:
-
-```powershell
-apt-get update; apt-get install git build-essential -y; \
-cd /tmp; \
-git clone --depth 1 --branch v0.7.3 https://github.com/free5gc/gtp5g.git; \
-cd gtp5g/; \
-make && make install
-```
-
-check that the module is loaded:
-
-`lsmod | grep ^gtp5g`
--->
-### Deploy in Kubernetes cluster
-
-Deployment configuration is derived from towards5gs-helm project [Setup free5gc](https://github.com/Orange-OpenSource/towards5gs-helm/blob/main/docs/demo/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM.md)
-![Architecture](pictures/Setup-free5gc-on-multiple-clusters-and-test-with-UERANSIM-Architecture.png)
-
-
-0. [install helm](https://helm.sh/docs/intro/install/) if it's not
-0. add towards5gs helm repo
-
-	```powershell
-	helm repo add towards5gs https://raw.githubusercontent.com/Orange-OpenSource/towards5gs-helm/main/repo/
-	helm repo update
-	```
-
-0. install eUPF chart
-
-   - Option 1, fast pure routing to nodes's network:
-
-	```powershell
-	helm upgrade --install \
-		edgecomllc-eupf .deploy/helm/eupf \
-		--values docs/examples/free5gc/eupf-host-nat.yaml \
-		-n free5gc \
-		--wait --timeout 100s --create-namespace
-	```
-
-     📝 Here we use subnet `10.100.100.0/24` for `n6` ptp type interface as a door to the outer world for our eUPF. And `10.1.0.0/16` addresses for subscribers at UE. So make sure that both IP subnets is not occupied on your node host.
-
-     eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
-
-      If you need Network Address Translation (NAT) function for subscriber's egress traffic, see the chapter [about NAT](#option-nat-at-the-node) below.
-
-   - Option 2, with an additional pod that handles the NAT function:
-
-      📝 Here we use separate container for NAT:
-
-   ```
-   kubectl apply -f docs/examples/free5gc/nat.yaml
-   ```
-
-	```powershell
-	helm upgrade --install \
-		edgecomllc-eupf .deploy/helm/eupf \
-		--values docs/examples/free5gc/eupf-container-nat.yaml \
-		-n free5gc \
-		--wait --timeout 100s --create-namespace
-	```
-
-1. install free5gc chart
-
-	```powershell
-	helm upgrade --install \
-		free5gc towards5gs/free5gc \
-		--values docs/examples/free5gc/free5gc-single.yaml \
-		-n free5gc \
-		--version 1.1.6 \
-		--wait --timeout 100s --create-namespace
-	```
-
-2. create subscriber in free5gc via WebUI
-
-   redirect port from webui pod to localhost
-
-   ```powershell
-   kubectl port-forward service/webui-service 5000:5000 -n free5gc
-   ```
-
-   open http://127.0.0.1:5000 in your browser (for auth use user "admin" with password "free5gc"), go to menu "subscribers", click "new subscriber", leave all values as is, press "submit"
-
-   close port forward with `Ctrl + C`
-
-3. install ueransim chart
-
-	```powershell
-	helm upgrade --install \
-		ueransim towards5gs/ueransim \
-		--values docs/examples/free5gc/ueransim.yaml \
-		-n free5gc \
-		--version 2.0.17 \
-		--wait --timeout 100s --create-namespace
-	```
-
-### To undeploy everything
-
-```
-helm uninstall free5gc ueransim edgecomllc-eupf -n free5gc
-```
-📝 Pod's interconnection. towards5gs-helm uses separate subnets with ipvlan type interfaces with internal addressing.
-The only added is ptp type interface `n6` as a door to the outer world for our eUPF.
-
-### Option add second network slice
-1. This will install eUPF2 with slice `sd: 112233`. UEs subnet is `10.2.0.0/16`
-    ```powershell
-    helm upgrade --install \
-      eupf2 .deploy/helm/universal-chart \
-      --values docs/examples/free5gc/eupf2-rout-static.yaml \
-      -n free5gc \
-      --wait --timeout 100s 
-    ```
-1. Create subscriber in free5gc via WebUI: go to menu "subscribers", click "new subscriber", leave all values as is, except SUPI (IMSI)* : `208930000000004` & SD* : `112233`, press "submit".
-
-1. Open UE's console and put
-`nr-ue -c ue.yaml -n 1 -i 208930000000004 &` <br>
-New `uesimtun1` interface will appear with IP address from 10.2.0.0
-
-To undeploy second eUPF:
-`helm  uninstall eupf2 -n free5gc`
-
-</p>
-</details>
-</p>
-
-## How to deploy eUPF with free5gc core (docker-compose)
+Or deploy eUPF with free5gc core as docker-compose:
 
 <details><summary>Instruction to deploy as docker-compose</summary>
 <p>
@@ -324,17 +75,6 @@ So you can clone free5gc docker-compose and test free5gc upf, then add edgecom o
 </p>
 </details>
 
-
-## Option NAT at the node
-
-If you need NAT (Network Address Translation, or Masqerading) at your node to access Internet, the easiest way is to use standart daemonset [IP Masquerade Agent](https://kubernetes.io/docs/tasks/administer-cluster/ip-masq-agent/):
-```powershell
-sudo kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/ip-masq-agent/master/ip-masq-agent.yaml
-```
-   > The below entries show the default set of rules that are applied by the ip-masq-agent:
-    ` iptables -t nat -L IP-MASQ-AGENT`
-
----
 
 ## Test scenarios
 
