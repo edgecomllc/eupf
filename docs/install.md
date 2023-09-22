@@ -61,12 +61,16 @@ Actually we use vanilla free5gc::docker-compose with some overrides(see docker-c
 
 So you can clone free5gc docker-compose and test free5gc upf, then add edgecom override files and feel the differences.
 
-0. pull repository: `git clone https://github.com/edgecomllc/free5gc-compose.git`
+0. Pull repository: `git clone https://github.com/edgecomllc/free5gc-compose.git`
 0. Run containers based on docker hub images:
    ```bash
    cd free5gc-compose
    docker compose pull
    docker compose up -d
+   ```
+0. Check if eUPF container is running
+   ```bash
+   sudo docker compose logs edgecom-upf
    ```
 ### To undeploy everything
    ```
@@ -84,7 +88,15 @@ So you can clone free5gc docker-compose and test free5gc upf, then add edgecom o
 
 UE can send packet to internet and get response
 
-<b>actions:</b>
+<b>Initial action:</b>
+  - Before testing scenario 0 you have to register UE in the free5GC Web Console.
+  1. Type `localhost:5000/#/` in the address bar of your browser. 
+  2. Username: admin Password: free5gc
+  3. In the console click on "Subscribers" section. In that section click on "New Subcriber" button.
+  4. Change deafult IMSI to 208930000000001.
+  5. Click "Submit" button.
+
+<b>Action:</b>
 
 1. run shell in pod
 
@@ -103,14 +115,12 @@ UE can send packet to internet and get response
    kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
    ```
 
-1. run command from UE pod's shell.
-
-   `$ ping -I uesimtun0 google.com`
-
-
+2. run command from UE pod's shell.
+3. 
    <b>expected result:</b>
 
    ping command successful
+   `$ ping -I uesimtun0 google.com`
 
 # Information for troubleshooting
 
