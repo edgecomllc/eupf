@@ -68,10 +68,32 @@ So you can clone free5gc docker-compose and test free5gc upf, then add edgecom o
    docker compose pull
    docker compose up -d
    ```
-0. Check if eUPF container is running
+0. Check if UPF and SMF containers are running correctly:
    ```bash
    sudo docker compose logs edgecom-upf
    ```
+   ```bash
+   sudo docker compose logs free5gc-smf
+   ```
+0. Before running UE emulator you have to register UE in the free5GC Web Console:
+   - Type `localhost:5000/#/` in the address bar of your browser. 
+    - Username: admin Password: free5gc
+    - In the console click on "Subscribers" section. In that section click on "New Subcriber" button.
+   - Change deafult IMSI to `208930000000001`.
+   - Click "Submit" button.
+0. The command that launches UE emulator has to be executed inside of ueransim container:
+   ```bash
+   sudo docker compose exec ueransim bash
+   ```
+0. Now UE emulator can be launched
+   ```bash
+   ./nr-ue -c config/uecfg.yaml
+   ```
+0. Open another console and execute the command from step 4 to enter the ueransim container.
+0. Now traffic flow must be verified:
+    ```
+    ping -I uesimtun0 1.1.1.1
+    ```
 ### To undeploy everything
    ```
    docker compose rm
@@ -87,14 +109,6 @@ So you can clone free5gc docker-compose and test free5gc upf, then add edgecom o
 <b>description:</b>
 
 UE can send packet to internet and get response
-
-<b>Initial action:</b>
-  - Before testing scenario 0 you have to register UE in the free5GC Web Console.
-  1. Type `localhost:5000/#/` in the address bar of your browser. 
-  2. Username: admin Password: free5gc
-  3. In the console click on "Subscribers" section. In that section click on "New Subcriber" button.
-  4. Change deafult IMSI to 208930000000001.
-  5. Click "Submit" button.
 
 <b>Action:</b>
 
@@ -116,8 +130,7 @@ UE can send packet to internet and get response
    ```
 
 2. run command from UE pod's shell.
-3. 
-   <b>expected result:</b>
+3.  <b>expected result:</b>
 
    ping command successful
    `$ ping -I uesimtun0 google.com`
