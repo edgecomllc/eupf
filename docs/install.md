@@ -50,7 +50,7 @@ Prerequisites
 
 As metioned in free5gc::docker-compose repo:
 - Prepared [GTP5G kernel module](https://github.com/free5gc/gtp5g): needed to run the UPF
-  - It is optional   
+  - It is optional and only required for standard UPF from free5gc  
 - [Docker Engine](https://docs.docker.com/engine/install): needed to run the Free5GC containers
 - [Docker Compose v2](https://docs.docker.com/compose/install): needed to bootstrap the free5GC stack
 
@@ -76,11 +76,11 @@ So you can clone free5gc docker-compose and test free5gc upf, then add edgecom o
    ```bash
    sudo docker compose logs free5gc-smf
    ```
-0. Before running UE emulator you have to register UE in the free5GC Web Console:
+0. Before running UE emulator you have to register UE in 5G core network using web console:
    - Type `localhost:5000/#/` in the address bar of your browser. 
     - Username: admin Password: free5gc
     - In the console click on "Subscribers" section. In that section click on "New Subcriber" button.
-   - Change deafult IMSI to `208930000000001`.
+   - IMSI have to be the same as in UE config.
    - Click "Submit" button.
 0. The command that launches UE emulator has to be executed inside of ueransim container:
    ```bash
@@ -130,11 +130,14 @@ UE can send packet to internet and get response
    kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
    ```
 
-2. run command from UE pod's shell.
-3.  <b>expected result:</b>
+1. run command from UE pod's shell.
+
+   `$ ping -I uesimtun0 google.com`
+
+
+   <b>expected result:</b>
 
    ping command successful
-   `$ ping -I uesimtun0 google.com`
 
 # Information for troubleshooting
 
