@@ -205,7 +205,7 @@ default command for build docker image:
 
 you can define build arguments for command `go generate` like this:
 
-`docker build -t local/eupf:latest --build-arg BPF_CFLAGS="-DENABLE_LOG -DENABLE_ROUTE_CACHE" .`
+`docker build -t local/eupf:latest --build-arg BPF_ENABLE_LOG=1 --build-arg BPF_ENABLE_ROUTE_CACHE=1 .`
 
 
 ## Contribution
