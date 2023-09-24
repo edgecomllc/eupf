@@ -76,11 +76,12 @@ So you can clone free5gc docker-compose and test free5gc upf, then add edgecom o
    ```bash
    sudo docker compose logs free5gc-smf
    ```
+   - Successful association setup should be stated in both logs.
 0. Before running UE emulator you have to register UE in 5G core network using web console:
    - Type `localhost:5000/#/` in the address bar of your browser. 
     - Username: admin Password: free5gc
     - In the console click on "Subscribers" section. In that section click on "New Subcriber" button.
-   - IMSI have to be the same as in UE config.
+   - IMSI have to be the same as in UE config (`config/uecfg.yaml`).
    - Click "Submit" button.
 0. The command that launches UE emulator has to be executed inside of ueransim container:
    ```bash
@@ -90,6 +91,7 @@ So you can clone free5gc docker-compose and test free5gc upf, then add edgecom o
    ```bash
    ./nr-ue -c config/uecfg.yaml
    ```
+   - During execution of this command UE should get IP address. This can be verified in UE output.
 0. Open another console and execute the command from step 4 to enter the ueransim container.
 0. Now traffic flow must be verified:
     ```
