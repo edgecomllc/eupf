@@ -12,6 +12,7 @@ RUN go install github.com/swaggo/swag/cmd/swag@v1.8.12
 COPY go.mod go.sum ./
 COPY cmd cmd
 
+ARG BPF_CFLAGS
 RUN go generate -v ./cmd/...
 RUN CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/
 
