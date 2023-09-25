@@ -11,7 +11,7 @@ image:
   registry: ghcr.io
   repository: edgecomllc
   name: eupf
-  tag: main
+  tag: 893648fecb05faf4b92656647f26922b34148a6c
   pullPolicy: Always
 
 args:
@@ -127,15 +127,7 @@ ui:
     registry: ghcr.io
     repository: edgecomllc
     name: eupf-ui
-    tag: main
+    tag: 92294e11a733790ae2872dd1bc3128ce1a550734
     pullPolicy: Always
-  command:
-    - /bin/sh
-    - -c
-    - |
-        sed -i 's#__API_PORT__#'$API_PORT'#g' /usr/share/nginx/html/env.js ;\
-        nginx -g 'daemon off;'
   env:
-    API_PORT: 8080
-  service:
-    port: 80
+    API_ADDR: localhost:8080
