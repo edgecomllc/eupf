@@ -28,9 +28,10 @@ calico:
 	kubectl apply -f $(HELM_VALUES_DIR)/../manifests/calico-pools.yaml
 	kubectl apply -f $(HELM_VALUES_DIR)/../manifests/calico-bgp.yaml
 
+# eupf oci://registry-1.docker.io/edgecom/eupf
 upf:
 	helm $(HELM_ACTION) \
-		eupf oci://registry-1.docker.io/edgecom/eupf \
+		eupf ../../../.deploy/helm/eupf \
 		--version 0.4.0 \
 		--values $(HELM_VALUES_DIR)/eupf.yaml \
 		-n $(NAMESPACE) \
