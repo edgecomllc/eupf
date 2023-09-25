@@ -34,11 +34,17 @@ struct upf_counters {
     __u64 rx_gtp_unexp;
 };
 
+struct n3_n6_counter {
+    __u64 rx_n3;
+    __u64 rx_n6;
+};
+
 #define EUPF_MAX_XDP_ACTION 8
 #define EUPF_MAX_XDP_ACTION_MASK 0x07
 
 struct upf_statistic {
     struct upf_counters upf_counters;
+    struct n3_n6_counter upf_n3_n6_counter;
     __u64 xdp_actions[EUPF_MAX_XDP_ACTION];
 };
 
@@ -49,3 +55,5 @@ struct
     __type(value, struct upf_statistic);
     __uint(max_entries, 1);
 } upf_ext_stat SEC(".maps");
+
+
