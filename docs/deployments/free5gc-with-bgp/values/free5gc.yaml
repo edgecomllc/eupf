@@ -1,0 +1,72 @@
+---
+
+deployUpf: false
+deployDbPython: false
+
+# webui chart settings
+free5gc-webui:
+  webui:
+    service:
+      type: ClusterIP
+      nodePort: ""
+
+# mongodb chart settings
+mongodb:
+  persistence:
+    enabled: false
+
+free5gc-smf:
+  smf:
+    configuration:
+      configuration: |
+        smfName: SMF
+        snssaiInfos:
+          - sNssai:
+              sst: 1
+              sd: 010203
+            dnnInfos:
+              - dnn: internet
+                dns:
+                  ipv4: 8.8.8.8
+                  ipv6: 2001:4860:4860::8888
+        plmnList:
+          - mcc: 208
+            mnc: 93
+        userplaneInformation:
+          upNodes:
+            gNB1:
+              type: AN
+            UPF:
+              type: UPF
+              nodeID: 10.100.50.241
+              addr: 10.100.50.241
+              sNssaiUpfInfos:
+                - sNssai:
+                    sst: 1
+                    sd: 010203
+                  dnnUpfInfoList:
+                    - dnn: internet
+                      pools:
+                        - cidr: 10.11.0.0/17
+                      staticPools:
+                        - cidr: 10.11.64.0/24
+              interfaces:
+                - interfaceType: N3
+                  endpoints:
+                    - 10.100.50.233
+                  networkInstances:
+                    - internet
+          links:
+            - A: gNB1
+              B: UPF
+        locality: area1
+
+        t3591:
+          enable: true
+          expireTime: 16s
+          maxRetryTimes: 3
+
+        t3592:
+          enable: true
+          expireTime: 16s
+          maxRetryTimes: 3

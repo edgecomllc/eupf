@@ -25,5 +25,7 @@ spec:
             {{- toYaml .Values.xdpProgrammInstall.securityContext | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            {{- toYaml .Values.xdpProgrammInstall.env | nindent 12 }}
           command: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.xdpProgrammInstall.command "context" $) | nindent 12 }}
 {{- end }}
