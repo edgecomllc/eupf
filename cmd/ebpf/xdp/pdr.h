@@ -39,10 +39,30 @@ enum outer_header_removal_values {
     OHR_S_TAG_C_TAG = 8,
 };
 
+struct ip_w_mask {
+    __u8 type;
+    struct in6_addr ip;
+    struct in6_addr mask;
+};
+
+struct port_range {
+    __u16 lower_bound;
+    __u16 upper_bound;
+};
+
+struct sdf_filter {
+    __u8 protocol;
+    struct ip_w_mask src_addr;
+    struct port_range src_port;
+    struct ip_w_mask dst_addr;
+    struct port_range dst_port;
+};
+
 struct pdr_info {
     __u8 outer_header_removal;
     __u32 far_id;
     __u32 qer_id;
+    struct sdf_filter sdf_filter;
 };
 
 /* ipv4 -> PDR */ 

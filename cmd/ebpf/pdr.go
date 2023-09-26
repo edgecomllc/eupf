@@ -16,6 +16,28 @@ type PdrInfo struct {
 	OuterHeaderRemoval uint8
 	FarId              uint32
 	QerId              uint32
+	SdfFilter          SdfFilter
+}
+
+type SdfFilter struct {
+	Protocol     uint8 // 0: icmp, 1: ip, 2: tcp, 3: udp
+	SrcAddress   IpWMask
+	SrcPortRange PortRange
+	DstAddress   IpWMask
+	DstPortRange PortRange
+}
+
+type IpWMask struct {
+	// Possible optimization: combine SrcAddress.Type and DstAddress.Type into one __u8 field.
+	// To retrieve and put data use operators & and | .
+	Type uint8 // 0: any, 1: ip4, 2: ip6
+	Ip   net.IP
+	Mask net.IPMask
+}
+
+type PortRange struct {
+	LowerBound uint16
+	UpperBound uint16
 }
 
 func (bpfObjects *BpfObjects) PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error {
