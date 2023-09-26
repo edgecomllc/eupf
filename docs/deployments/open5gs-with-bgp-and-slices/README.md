@@ -27,7 +27,7 @@
 
     `make upf2`
 
-3. configure calico BGP settings
+3. configure calico BGP settings. Here, we configure Calico BGP peer, create Calico IP Pool (for NAT) and configure Felix for save external routes (recevied by BGP from eUPF BIRD)
 
     `make calico`
 
