@@ -50,6 +50,7 @@ Prerequisites
 
 As metioned in free5gc::docker-compose repo:
 - Prepared [GTP5G kernel module](https://github.com/free5gc/gtp5g): needed to run the UPF
+  - It is optional and only required for standard UPF from free5gc  
 - [Docker Engine](https://docs.docker.com/engine/install): needed to run the Free5GC containers
 - [Docker Compose v2](https://docs.docker.com/compose/install): needed to bootstrap the free5GC stack
 
@@ -61,13 +62,41 @@ Actually we use vanilla free5gc::docker-compose with some overrides(see docker-c
 
 So you can clone free5gc docker-compose and test free5gc upf, then add edgecom override files and feel the differences.
 
-0. pull repository: `git clone https://github.com/edgecomllc/free5gc-compose.git`
+0. Pull repository: `git clone https://github.com/edgecomllc/free5gc-compose.git`
 0. Run containers based on docker hub images:
    ```bash
    cd free5gc-compose
    docker compose pull
    docker compose up -d
    ```
+0. Check if UPF and SMF containers are running correctly:
+   ```bash
+   sudo docker compose logs edgecom-upf
+   ```
+   ```bash
+   sudo docker compose logs free5gc-smf
+   ```
+   - Successful association setup should be stated in both logs.
+0. Before running UE emulator you have to register UE in 5G core network using web console:
+   - Type `localhost:5000/#/` in the address bar of your browser. 
+    - Username: admin Password: free5gc
+    - In the console click on "Subscribers" section. In that section click on "New Subcriber" button.
+   - IMSI have to be the same as in UE config (`config/uecfg.yaml`).
+   - Click "Submit" button.
+0. The command that launches UE emulator has to be executed inside of ueransim container:
+   ```bash
+   sudo docker compose exec ueransim bash
+   ```
+0. Now UE emulator can be launched
+   ```bash
+   ./nr-ue -c config/uecfg.yaml
+   ```
+   - During execution of this command UE should get IP address. This can be verified in UE output.
+0. Open another console and execute the command from step 4 to enter the ueransim container.
+0. Now traffic flow must be verified:
+    ```
+    ping -I uesimtun0 1.1.1.1
+    ```
 ### To undeploy everything
    ```
    docker compose rm
@@ -84,7 +113,7 @@ So you can clone free5gc docker-compose and test free5gc upf, then add edgecom o
 
 UE can send packet to internet and get response
 
-<b>actions:</b>
+<b>Action:</b>
 
 1. run shell in pod
 
