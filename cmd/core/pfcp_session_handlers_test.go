@@ -188,7 +188,7 @@ func CheckSdfFilterEquality(i int, sdfFilter ebpf.SdfFilter, fd SdfFilterTestStr
 		return fmt.Sprintf("Iteration %d, wrong SrcType, expected: %d, got: %d", i, fd.SrcType, sdfFilter.SrcAddress.Type)
 	}
 	if sdfFilter.SrcAddress.Ip.String() != fd.SrcAddress {
-		return fmt.Sprintf("Iteration %d, wrong SrcAddress.Ip, expected: %s, got: %s", i, fd.SrcAddress, sdfFilter.SrcAddress.Ip.String())
+		return fmt.Sprintf("Iteration %d, wrong SrcAddress, expected: %s, got: %s", i, fd.SrcAddress, sdfFilter.SrcAddress.Ip.String())
 	}
 	if sdfFilter.SrcAddress.Mask.String() != fd.SrcMask {
 		return fmt.Sprintf("Iteration %d, wrong SrcMask, expected: %s, got: %s", i, fd.SrcMask, sdfFilter.SrcAddress.Mask.String())

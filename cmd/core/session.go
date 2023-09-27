@@ -3,8 +3,8 @@ package core
 import (
 	"fmt"
 	"net"
+	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 )
@@ -105,50 +105,36 @@ func (s *Session) RemovePDR(id uint32) SPDRInfo {
 }
 
 func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
-	splitted := strings.Split(flowDescription, " ")
-	if splitted[0] == "deny" {
-		return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: <deny> not supported.")
-	}
-	if splitted[1] == "in" {
-		return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: <in> not supported.")
+	re := regexp.MustCompile(`^permit out (icmp|ip|tcp|udp) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to ([\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
+	match := re.FindStringSubmatch(flowDescription)
+	if len(match) == 0 {
+		return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: bad formatting. Check for compatibility with regexp.")
 	}
 	var err error
 	sdfInfo := ebpf.SdfFilter{}
-	if sdfInfo.Protocol, err = ParseProtocol(splitted[2]); err != nil {
+	if sdfInfo.Protocol, err = ParseProtocol(match[1]); err != nil {
 		return ebpf.SdfFilter{}, err
 	}
-	if splitted[4] == "any" {
+	if match[2] == "any" {
 		sdfInfo.SrcAddress = ebpf.IpWMask{Type: 0}
 	} else {
-		if sdfInfo.SrcAddress, err = ParseCidrIp(splitted[4]); err != nil {
+		if sdfInfo.SrcAddress, err = ParseCidrIp(match[2], match[3]); err != nil {
 			return ebpf.SdfFilter{}, err
 		}
 	}
-	var offset int
 	sdfInfo.SrcPortRange = ebpf.PortRange{LowerBound: 0, UpperBound: 65535}
-	if splitted[5] != "to" {
-		if sdfInfo.SrcPortRange, err = ParsePortRange(splitted[5]); err != nil {
+	if match[4] != "" {
+		if sdfInfo.SrcPortRange, err = ParsePortRange(match[4]); err != nil {
 			return ebpf.SdfFilter{}, err
 		}
-		offset += 1
 	}
-	if splitted[6+offset] == "assigned" {
-		return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: <assigned> not supported.")
-	} else {
-		if sdfInfo.DstAddress, err = ParseCidrIp(splitted[6+offset]); err != nil {
-			return ebpf.SdfFilter{}, err
-		}
+	if sdfInfo.DstAddress, err = ParseCidrIp(match[5], match[6]); err != nil {
+		return ebpf.SdfFilter{}, err
 	}
 	sdfInfo.DstPortRange = ebpf.PortRange{LowerBound: 0, UpperBound: 65535}
-	if len(splitted) > 7+offset {
-		if splitted[7+offset] != "option" {
-			if sdfInfo.DstPortRange, err = ParsePortRange(splitted[7+offset]); err != nil {
-				return ebpf.SdfFilter{}, err
-			}
-			// offset += 1
-		} else {
-			// splitted[8 + offset] - option field
-			return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: <option> not supported.")
+	if match[7] != "" {
+		if sdfInfo.DstPortRange, err = ParsePortRange(match[7]); err != nil {
+			return ebpf.SdfFilter{}, err
 		}
 	}
 	return sdfInfo, nil
@@ -169,53 +155,44 @@ func ParseProtocol(protocol string) (uint8, error) {
 	}
 }
 
-func ParseCidrIp(str string) (ebpf.IpWMask, error) {
+func ParseCidrIp(ipStr, maskStr string) (ebpf.IpWMask, error) {
 	var ipType uint8
-	if i := strings.Index(str, "/"); i < 0 {
-		if ip := net.ParseIP(str); ip != nil {
-			if ip.To4() != nil {
-				ipType = 1
-				ip = ip.To4()
-			} else {
-				ipType = 2
-			}
-			return ebpf.IpWMask{Type: ipType, Ip: ip, Mask: nil}, nil
+	if ip := net.ParseIP(ipStr); ip != nil {
+		if ip.To4() != nil {
+			ipType = 1
+			ip = ip.To4()
 		} else {
-			return ebpf.IpWMask{}, fmt.Errorf("Bad IP formatting.")
+			ipType = 2
 		}
+		var mask net.IPMask
+		if maskStr != "" {
+			if maskUint, err := strconv.ParseUint(maskStr, 10, 64); err == nil {
+				mask = net.CIDRMask(int(maskUint), 8*len(ip))
+				ip = ip.Mask(mask)
+			} else {
+				return ebpf.IpWMask{}, fmt.Errorf("Bad IP mask formatting.")
+			}
+		}
+		return ebpf.IpWMask{Type: ipType, Ip: ip, Mask: mask}, nil
 	} else {
-		if _, ipNet, err := net.ParseCIDR(str); err == nil {
-			if ipNet.IP.To4() != nil {
-				ipType = 1
-				ipNet.IP = ipNet.IP.To4()
-			} else {
-				ipType = 2
-			}
-			return ebpf.IpWMask{Type: ipType, Ip: ipNet.IP, Mask: ipNet.Mask}, nil
-		} else {
-			return ebpf.IpWMask{}, err
-		}
+		return ebpf.IpWMask{}, fmt.Errorf("Bad IP formatting.")
 	}
 }
 
 func ParsePortRange(str string) (ebpf.PortRange, error) {
-	splittedPortRange := strings.Split(str, "-")
+	re := regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
+	match := re.FindStringSubmatch(str)
 	portRange := ebpf.PortRange{}
 	var err error
-	if len(splittedPortRange) == 2 {
-		if portRange.LowerBound, err = ParsePort(splittedPortRange[0]); err != nil {
+	if portRange.LowerBound, err = ParsePort(match[1]); err != nil {
+		return ebpf.PortRange{}, err
+	}
+	if match[2] != "" {
+		if portRange.UpperBound, err = ParsePort(match[2]); err != nil {
 			return ebpf.PortRange{}, err
 		}
-		if portRange.UpperBound, err = ParsePort(splittedPortRange[1]); err != nil {
-			return ebpf.PortRange{}, err
-		}
-	} else if len(splittedPortRange) == 1 {
-		if portRange.LowerBound, err = ParsePort(splittedPortRange[0]); err != nil {
-			return ebpf.PortRange{}, err
-		}
-		portRange.UpperBound = portRange.LowerBound
 	} else {
-		return ebpf.PortRange{}, fmt.Errorf("Bad port / port range formatting.")
+		portRange.UpperBound = portRange.LowerBound
 	}
 	return portRange, nil
 }
