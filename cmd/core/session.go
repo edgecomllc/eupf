@@ -108,7 +108,7 @@ func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
 	re := regexp.MustCompile(`^permit out (icmp|ip|tcp|udp) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to ([\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
 	match := re.FindStringSubmatch(flowDescription)
 	if len(match) == 0 {
-		return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: bad formatting. Check for compatibility with regexp.")
+		return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: bad formatting. Should be compatible with regexp: %s", re.String())
 	}
 	var err error
 	sdfInfo := ebpf.SdfFilter{}
