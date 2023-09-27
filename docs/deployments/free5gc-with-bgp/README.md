@@ -40,7 +40,7 @@ Be careful, this document work in progress
 
     close port forward with `Ctrl + C`
 
-1. configure calico BGP settings. Here, we configure Calico BGP peer and create Calico IP Pool (for NAT)
+1. configure calico BGP settings. Here, we configure Calico BGP peer, create Calico IP Pool (for NAT) and configure Felix for save external routes (recevied by BGP from eUPF BIRD)
 
     `make calico`
 

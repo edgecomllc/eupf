@@ -27,6 +27,7 @@ smf:
 calico:
 	kubectl apply -f $(HELM_VALUES_DIR)/../manifests/calico-pools.yaml
 	kubectl apply -f $(HELM_VALUES_DIR)/../manifests/calico-bgp.yaml
+	kubectl patch felixconfiguration default --type='merge' -p '{"spec":{"removeExternalRoutes":false}}'
 
 # eupf oci://registry-1.docker.io/edgecom/eupf
 upf:
