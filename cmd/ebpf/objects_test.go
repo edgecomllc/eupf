@@ -180,7 +180,9 @@ func testGtpWithPDRBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) 
 	if err := bpfObjects.QerMap.Put(uint32(1), unsafe.Pointer(&qer)); err != nil {
 		return 0, fmt.Errorf("benchmark run failed: %v", err)
 	}
-	bpfObjects.PdrMapUplinkIp4.Put(teid, unsafe.Pointer(&pdr))
+	if err := bpfObjects.PdrMapUplinkIp4.Put(teid, unsafe.Pointer(&pdr)); err != nil {
+		return 0, fmt.Errorf("benchmark run failed: %v", err)
+	}
 
 	_, duration, err := bpfObjects.UpfIpEntrypointFunc.Benchmark(packet.Bytes(), repeat, func() {})
 	if err != nil {
