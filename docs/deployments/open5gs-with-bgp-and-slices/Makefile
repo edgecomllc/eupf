@@ -39,6 +39,7 @@ smf2:
 calico:
 	kubectl apply -f $(HELM_VALUES_DIR)/../manifests/calico-pools.yaml
 	kubectl apply -f $(HELM_VALUES_DIR)/../manifests/calico-bgp.yaml
+	kubectl patch felixconfiguration default --type='merge' -p '{"spec":{"removeExternalRoutes":false}}'
 
 upf:
 	helm $(HELM_ACTION) \

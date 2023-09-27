@@ -290,3 +290,35 @@ extraDeploy: []
   #           }
   #         ]
   #       }
+
+ui:
+  enabled: false
+  image:
+    registry: ghcr.io
+    repository: edgecomllc
+    name: eupf-ui
+    tag: main
+    pullPolicy: Always
+  env:
+    API_ADDR: localhost:8080
+  service:
+    port: 8081
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10
