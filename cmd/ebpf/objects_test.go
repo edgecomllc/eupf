@@ -53,6 +53,28 @@ func testArp(bpfObjects *BpfObjects) error {
 	return nil
 }
 
+func testArpBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) {
+
+	packetArp := gopacket.NewSerializeBuffer()
+	if err := gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
+		&layers.Ethernet{
+			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
+			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			EthernetType: layers.EthernetTypeARP,
+		},
+		&layers.ARP{},
+	); err != nil {
+		return 0, fmt.Errorf("serializing input packet failed: %v", err)
+	}
+
+	_, duration, err := bpfObjects.UpfIpEntrypointFunc.Benchmark(packetArp.Bytes(), repeat, func() {})
+	if err != nil {
+		return 0, fmt.Errorf("benchmark run failed: %v", err)
+	}
+
+	return duration.Nanoseconds(), nil
+}
+
 func testGtpEcho(bpfObjects *BpfObjects) error {
 
 	packetArp := gopacket.NewSerializeBuffer()
@@ -137,5 +159,38 @@ func TestEntrypoint(t *testing.T) {
 		if err != nil {
 			t.Fatalf("test failed: %s", err)
 		}
+	})
+}
+
+func TestEntrypointBenchmark(t *testing.T) {
+
+	if err := IncreaseResourceLimits(); err != nil {
+		t.Fatalf("Can't increase resource limits: %s", err.Error())
+	}
+
+	bpfObjects := &BpfObjects{}
+
+	if err := bpfObjects.Load(); err != nil {
+		t.Fatalf("Loading bpf objects failed: %s", err.Error())
+	}
+
+	defer bpfObjects.Close()
+
+	t.Run("Arp (x1)) benchmark", func(t *testing.T) {
+		duration, err := testArpBenchmark(bpfObjects, 1)
+		if err != nil {
+			t.Fatalf("test failed: %s", err)
+		}
+
+		t.Logf("%s result: %d ns", t.Name(), duration)
+	})
+
+	t.Run("Arp (x1000000) benchmark", func(t *testing.T) {
+		duration, err := testArpBenchmark(bpfObjects, 1000000)
+		if err != nil {
+			t.Fatalf("test failed: %s", err)
+		}
+
+		t.Logf("%s result: %d ns", t.Name(), duration)
 	})
 }
