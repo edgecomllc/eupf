@@ -59,7 +59,8 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 	}
 
 	if req.CreateBAR != nil {
-		displayBar(&sb, req)
+		sb.WriteString("  Create")
+		displayBar(&sb, req.CreateBAR)
 	}
 	log.Print(sb.String())
 }
@@ -69,6 +70,31 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, "Session Modification Request:", 0)
+	for _, pdr := range req.CreatePDR {
+		sb.WriteString("  Create")
+		displayPdr(&sb, pdr)
+	}
+
+	for _, far := range req.CreateFAR {
+		sb.WriteString("  Create")
+		displayFar(&sb, far)
+	}
+
+	for _, qer := range req.CreateQER {
+		sb.WriteString("  Create")
+		displayQer(&sb, qer)
+	}
+
+	for _, urr := range req.CreateURR {
+		sb.WriteString("  Create")
+		displayUrr(&sb, urr)
+	}
+
+	if req.CreateBAR != nil {
+		sb.WriteString("  Create")
+		displayBar(&sb, req.CreateBAR)
+	}
+
 	for _, pdr := range req.UpdatePDR {
 		sb.WriteString("  Update")
 		displayPdr(&sb, pdr)
@@ -147,19 +173,19 @@ func printSessionDeleteRequest(req *message.SessionDeletionRequest) {
 	writeLineTabbed(&sb, fmt.Sprintf("SEID: %d", req.SEID()), 1)
 }
 
-func displayBar(sb *strings.Builder, req *message.SessionEstablishmentRequest) {
-	barId, _ := req.CreateBAR.BARID()
+func displayBar(sb *strings.Builder, bar *ie.IE) {
+	barId, _ := bar.BARID()
 	sb.WriteString(fmt.Sprintf("BAR ID: %d\n", barId))
 
-	downlink, err := req.CreateBAR.DownlinkDataNotificationDelay()
+	downlink, err := bar.DownlinkDataNotificationDelay()
 	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Downlink Data Notification Delay: %s ", downlink), 2)
 	}
-	suggestedBufferingPackets, err := req.CreateBAR.SuggestedBufferingPacketsCount()
+	suggestedBufferingPackets, err := bar.SuggestedBufferingPacketsCount()
 	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Suggested Buffering Packets Count: %d ", suggestedBufferingPackets), 2)
 	}
-	mtEdtControl, err := req.CreateBAR.MTEDTControlInformation()
+	mtEdtControl, err := bar.MTEDTControlInformation()
 	if err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("MT EDI: %d ", mtEdtControl), 2)
 	}
@@ -289,13 +315,11 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 	pdrId, _ := pdr.PDRID()
 	sb.WriteString(fmt.Sprintf("PDR ID: %d \n", pdrId))
 
-	outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription()
-	if err == nil {
+	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Outer Header Removal: %d ", outerHeaderRemoval), 2)
 	}
 
-	farid, err := pdr.FARID()
-	if err == nil {
+	if farid, err := pdr.FARID(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("FAR ID: %d ", farid), 2)
 	}
 
@@ -309,51 +333,40 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 		}
 	}
 
-	urrid, err := pdr.URRID()
-	if err == nil {
+	if urrid, err := pdr.URRID(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("URR ID: %d ", urrid), 2)
 	}
 
-	barid, err := pdr.BARID()
-	if err == nil {
+	if barid, err := pdr.BARID(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("BAR ID: %d ", barid), 2)
 	}
 
-	pdi, err := pdr.PDI()
-	if err == nil {
+	if pdi, err := pdr.PDI(); err == nil {
 		srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
 		srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
 		writeLineTabbed(sb, fmt.Sprintf("Source Interface: %d ", srcInterface), 2)
-		if srcInterface == ie.SrcInterfaceAccess {
-			teidPdiId := findIEindex(pdi, 21) // IE Type F-TEID
 
-			if teidPdiId != -1 {
-				fteid, err := pdi[teidPdiId].FTEID()
-				if err == nil {
-					writeLineTabbed(sb, fmt.Sprintf("TEID: %d ", fteid.TEID), 2)
-					writeLineTabbed(sb, fmt.Sprintf("Ipv4: %+v ", fteid.IPv4Address), 2)
-					writeLineTabbed(sb, fmt.Sprintf("Ipv6: %+v ", fteid.IPv6Address), 2)
-				}
+		if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
+			if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+				writeLineTabbed(sb, fmt.Sprintf("TEID: %d ", fteid.TEID), 2)
+				writeLineTabbed(sb, fmt.Sprintf("Ipv4: %+v ", fteid.IPv4Address), 2)
+				writeLineTabbed(sb, fmt.Sprintf("Ipv6: %+v ", fteid.IPv6Address), 2)
 			}
+		}
 
-			sdfFilterId := findIEindex(pdi, 23) // IE Type SDF Filter
-			if sdfFilterId != -1 {
-				sdfFilter, err := pdi[sdfFilterId].SDFFilter()
-				if err == nil {
-					writeLineTabbed(sb, fmt.Sprintf("SDF Filter: %s ", sdfFilter.FlowDescription), 2)
-				}
+		if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 { // IE Type UE IP Address
+			ueIp, _ := pdi[ueipPdiId].UEIPAddress()
+			if ueIp.IPv4Address != nil {
+				writeLineTabbed(sb, fmt.Sprintf("UE IPv4 Address: %s ", ueIp.IPv4Address), 2)
 			}
+			if ueIp.IPv6Address != nil {
+				writeLineTabbed(sb, fmt.Sprintf("UE IPv6 Address: %s ", ueIp.IPv6Address), 2)
+			}
+		}
 
-		} else {
-			ueipPdiId := findIEindex(pdi, 93) // IE Type UE IP Address
-			if ueipPdiId != -1 {
-				ueIp, _ := pdi[ueipPdiId].UEIPAddress()
-				if ueIp.IPv4Address != nil {
-					writeLineTabbed(sb, fmt.Sprintf("UE IPv4 Address: %s ", ueIp.IPv4Address), 2)
-				}
-				if ueIp.IPv6Address != nil {
-					writeLineTabbed(sb, fmt.Sprintf("UE IPv6 Address: %s ", ueIp.IPv6Address), 2)
-				}
+		if sdfFilterId := findIEindex(pdi, 23); sdfFilterId != -1 { // IE Type SDF Filter
+			if sdfFilter, err := pdi[sdfFilterId].SDFFilter(); err == nil {
+				writeLineTabbed(sb, fmt.Sprintf("SDF Filter: %s ", sdfFilter.FlowDescription), 2)
 			}
 		}
 	}

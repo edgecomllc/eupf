@@ -16,9 +16,6 @@ import (
 var errMandatoryIeMissing = fmt.Errorf("mandatory IE missing")
 var errNoEstablishedAssociation = fmt.Errorf("no established association")
 
-// #TODO: Extract Create/Update/Delete IE to separate functions
-// #TODO: Research how to merge UplinkPDRs and DownlinkPDRs
-
 func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Printf("Got Session Establishment Request from: %s.", addr)
@@ -79,45 +76,16 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
-			spdrInfo := SPDRInfo{}
 			pdrId, err := pdr.PDRID()
 			if err != nil {
-				return fmt.Errorf("PDR ID missing")
+				log.Printf("PDR ID missing")
+				continue
 			}
-			updateSPDRInfo(pdr, &spdrInfo, session)
-			pdi, err := pdr.PDI()
-			if err != nil {
-				return err
-			}
-			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
-			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
-			switch srcInterface {
-			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
-				{
-					sdfFilterId := findIEindex(pdi, 23) // IE Type SDF Filter
-					if sdfFilterId != -1 {
-						log.Printf("WARN: SDF Filter is not supported yet. Ignore PDR")
-						continue
-					}
 
-					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
-						log.Printf("Errored while applying PDR: %s", err.Error())
-						return err
-					}
-				}
-			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
-				{
-					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
-					if err == fmt.Errorf("IPv6 not supported") {
-						continue
-					}
-					if err != nil {
-						log.Printf("Errored[ while applying PDR: %s", err.Error())
-						return err
-					}
-				}
-			default:
-				log.Printf("WARN: Unsupported Source Interface type: %d", srcInterface)
+			spdrInfo := SPDRInfo{}
+			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+				session.PutPDR(uint32(pdrId), spdrInfo)
+				applyPDR(spdrInfo, mapOperations)
 			}
 		}
 		return nil
@@ -149,6 +117,81 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	return estResp, nil
 }
 
+func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
+	if spdrInfo.Ipv4 != nil {
+		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+			log.Printf("Can't apply IPv4 PDR: %s", err.Error())
+		}
+	} else if spdrInfo.Ipv6 != nil {
+		if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
+			log.Printf("Can't apply IPv6 PDR: %s", err.Error())
+		}
+	} else {
+		if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
+			log.Printf("Can't apply GTP PDR: %s", err.Error())
+		}
+	}
+}
+
+func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
+	if spdrInfo.Ipv4 != nil {
+		if err := mapOperations.DeletePdrDownLink(spdrInfo.Ipv4); err != nil {
+			return fmt.Errorf("Can't delete IPv4 PDR: %s", err.Error())
+		}
+	} else if spdrInfo.Ipv6 != nil {
+		if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
+			return fmt.Errorf("Can't delete IPv6 PDR: %s", err.Error())
+		}
+	} else {
+		if err := mapOperations.DeletePdrUpLink(spdrInfo.Teid); err != nil {
+			return fmt.Errorf("Can't delete GTP PDR: %s", err.Error())
+		}
+	}
+	return nil
+}
+
+func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
+
+	if sdfFilter, _ := pdr.SDFFilter(); sdfFilter != nil {
+		return fmt.Errorf("WARN: SDF Filter is not supported yet. Ignore PDR")
+	}
+
+	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+	}
+	if farid, err := pdr.FARID(); err == nil {
+		spdrInfo.PdrInfo.FarId = session.GetFar(farid).GlobalId
+	}
+	if qerid, err := pdr.QERID(); err == nil {
+		spdrInfo.PdrInfo.QerId = session.GetQer(qerid).GlobalId
+	}
+
+	pdi, err := pdr.PDI()
+	if err != nil {
+		return fmt.Errorf("PDI IE is missing")
+	}
+
+	//Bug in go-pfcp:
+	//if fteid, err := pdr.FTEID(); err == nil {
+	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
+		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+			spdrInfo.Teid = fteid.TEID
+		}
+	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
+		if ueIP.IPv4Address != nil {
+			spdrInfo.Ipv4 = cloneIP(ueIP.IPv4Address)
+		} else if ueIP.IPv6Address != nil {
+			spdrInfo.Ipv6 = cloneIP(ueIP.IPv6Address)
+		} else {
+			return fmt.Errorf("UE IP Address IE is missing")
+		}
+	} else {
+		log.Println("Both F-TEID IE and UE IP Address IE are missing")
+		return err
+	}
+	return nil
+}
+
 func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	req := msg.(*message.SessionDeletionRequest)
 	log.Printf("Got Session Deletion Request from: %s. \n", addr)
@@ -167,14 +210,8 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 	mapOperations := conn.mapOperations
-	for _, pdrInfo := range session.UplinkPDRs {
-		if err := mapOperations.DeletePdrUpLink(pdrInfo.Teid); err != nil {
-			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
-			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
-		}
-	}
-	for _, pdrInfo := range session.DownlinkPDRs {
-		if err := mapOperations.DeletePdrDownLink(pdrInfo.Ipv4); err != nil {
+	for _, pdrInfo := range session.PDRs {
+		if err := deletePDR(pdrInfo, mapOperations); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
@@ -271,8 +308,8 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 		}
 
-		for _, removeFar := range req.RemoveFAR {
-			farid, _ := removeFar.FARID()
+		for _, far := range req.RemoveFAR {
+			farid, _ := far.FARID()
 			log.Printf("Removing FAR: %d", farid)
 			sFarInfo := session.RemoveFar(farid)
 			if err := mapOperations.DeleteFar(sFarInfo.GlobalId); err != nil {
@@ -318,7 +355,6 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 			log.Printf("Removing QER ID: %d", qerId)
 			sQerInfo := session.RemoveQer(qerId)
-			log.Printf("Removing QER ID: %d", qerId)
 			if err := mapOperations.DeleteQer(sQerInfo.GlobalId); err != nil {
 				log.Printf("Can't remove QER: %s", err.Error())
 				return err
@@ -327,45 +363,16 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
-			spdrInfo := SPDRInfo{}
 			pdrId, err := pdr.PDRID()
 			if err != nil {
-				return fmt.Errorf("PDR ID missing")
+				log.Printf("PDR ID missing")
+				continue
 			}
-			updateSPDRInfo(pdr, &spdrInfo, session)
-			pdi, err := pdr.PDI()
-			if err != nil {
-				return err
-			}
-			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
-			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
-			switch srcInterface {
-			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
-				{
-					sdfFilterId := findIEindex(pdi, 23) // IE Type SDF Filter
-					if sdfFilterId != -1 {
-						log.Printf("WARN: SDF Filter is not supported yet. Ignore PDR")
-						continue
-					}
 
-					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
-						log.Printf("Errored while applying PDR: %s", err.Error())
-						return err
-					}
-				}
-			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
-				{
-					err := applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
-					if err == fmt.Errorf("IPv6 not supported") {
-						continue
-					}
-					if err != nil {
-						log.Printf("Errored[ while applying PDR: %s", err.Error())
-						return err
-					}
-				}
-			default:
-				log.Printf("WARN: Unsupported Source Interface type: %d", srcInterface)
+			spdrInfo := SPDRInfo{}
+			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+				session.PutPDR(uint32(pdrId), spdrInfo)
+				applyPDR(spdrInfo, mapOperations)
 			}
 		}
 
@@ -374,54 +381,22 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err != nil {
 				return fmt.Errorf("PDR ID missing")
 			}
-			pdi, err := pdr.PDI()
-			if err != nil {
-				return err
-			}
-			srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
-			srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
-			switch srcInterface {
-			case ie.SrcInterfaceAccess, ie.SrcInterfaceCPFunction:
-				{
-					spdrInfo := session.GetUplinkPDR(pdrId)
-					updateSPDRInfo(pdr, &spdrInfo, session)
-					if err := applyUplinkPDR(pdi, spdrInfo, pdrId, session, mapOperations); err != nil {
-						log.Printf("Errored while applying PDR: %s", err.Error())
-						return err
-					}
-				}
-			case ie.SrcInterfaceCore, ie.SrcInterfaceSGiLANN6LAN:
-				{
-					spdrInfo := session.GetDownlinkPDR(pdrId)
-					updateSPDRInfo(pdr, &spdrInfo, session)
-					err = applyDownlinkPDR(pdi, spdrInfo, pdrId, session, mapOperations)
-					if err == fmt.Errorf("IPv6 not supported") {
-						continue
-					}
-					if err != nil {
-						log.Printf("Errored while applying PDR: %s", err.Error())
-						return err
-					}
-				}
-			default:
-				log.Printf("WARN: Unsupported Source Interface type: %d", srcInterface)
+
+			spdrInfo := session.GetPDR(pdrId)
+			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+				session.PutPDR(uint32(pdrId), spdrInfo)
+				applyPDR(spdrInfo, mapOperations)
 			}
 		}
 
 		for _, pdr := range req.RemovePDR {
 			pdrId, _ := pdr.PDRID()
-			if _, ok := session.UplinkPDRs[uint32(pdrId)]; ok {
+			if _, ok := session.PDRs[uint32(pdrId)]; ok {
 				log.Printf("Removing uplink PDR: %d", pdrId)
-				session.RemoveUplinkPDR(uint32(pdrId))
-				if err := mapOperations.DeletePdrUpLink(session.UplinkPDRs[uint32(pdrId)].Teid); err != nil {
+				sPDRInfo := session.RemovePDR(uint32(pdrId))
+
+				if err := deletePDR(sPDRInfo, mapOperations); err != nil {
 					log.Printf("Failed to remove uplink PDR: %v", err)
-				}
-			}
-			if _, ok := session.DownlinkPDRs[uint32(pdrId)]; ok {
-				log.Printf("Removing downlink PDR: %d", pdrId)
-				session.RemoveDownlinkPDR(uint32(pdrId))
-				if err := mapOperations.DeletePdrDownLink(session.DownlinkPDRs[uint32(pdrId)].Ipv4); err != nil {
-					log.Printf("Failed to remove downlink PDR: %v", err)
 				}
 			}
 		}
@@ -446,18 +421,6 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	)
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return modResp, nil
-}
-
-func updateSPDRInfo(pdr *ie.IE, spdrInfo *SPDRInfo, session *Session) {
-	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
-		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
-	}
-	if farid, err := pdr.FARID(); err == nil {
-		spdrInfo.PdrInfo.FarId = session.GetFar(farid).GlobalId
-	}
-	if qerid, err := pdr.QERID(); err == nil {
-		spdrInfo.PdrInfo.QerId = session.GetQer(qerid).GlobalId
-	}
 }
 
 func convertErrorToIeCause(err error) *ie.IE {
@@ -536,60 +499,14 @@ func causeToString(cause uint8) string {
 	}
 }
 
-func applyUplinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Session, mapOperations ebpf.ForwardingPlaneController) error {
-	// IE Type F-TEID
-	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 {
-		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-			spdrInfo.Teid = fteid.TEID
-			session.PutUplinkPDR(uint32(pdrId), spdrInfo)
-			if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
-				log.Printf("Can't put uplink PDR: %s", err.Error())
-			}
-		} else {
-			log.Println(err)
-			return err
-		}
-	} else {
-		log.Println("F-TEID IE missing")
-	}
-	return nil
-}
-
 func cloneIP(ip net.IP) net.IP {
 	dup := make(net.IP, len(ip))
 	copy(dup, ip)
 	return dup
 }
 
-func applyDownlinkPDR(pdi []*ie.IE, spdrInfo SPDRInfo, pdrId uint16, session *Session, mapOperations ebpf.ForwardingPlaneController) error {
-	// IE Type UE IP Address
-	if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 {
-		ueIp, _ := pdi[ueipPdiId].UEIPAddress()
-		if ueIp.IPv4Address == nil && ueIp.IPv6Address == nil {
-			return fmt.Errorf("UE IP Address IE missing")
-		}
-		if ueIp.IPv4Address != nil {
-			// net.IP is a trap, it needs to be copied, otherwise it will be overwritten by next packet.
-			spdrInfo.Ipv4 = cloneIP(ueIp.IPv4Address)
-			session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
-			if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-				log.Printf("Can't put downlink PDR: %s", err.Error())
-			}
-		}
-		if ueIp.IPv6Address != nil {
-			spdrInfo.Ipv6 = cloneIP(ueIp.IPv6Address)
-			session.PutDownlinkPDR(uint32(pdrId), spdrInfo)
-			if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
-				log.Printf("Can't put downlink PDR: %s", err.Error())
-			}
-		}
-	} else {
-		log.Println("UE IP Address IE missing")
-	}
-	return nil
-}
-
 func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarInfo, error) {
+	farInfo.LocalIP = binary.LittleEndian.Uint32(localIp)
 	if applyAction, err := far.ApplyAction(); err == nil {
 		farInfo.Action = applyAction[0]
 	}
@@ -612,7 +529,6 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarI
 			farInfo.Teid = outerHeaderCreation.TEID
 			if outerHeaderCreation.HasIPv4() {
 				farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
-				farInfo.LocalIP = binary.LittleEndian.Uint32(localIp)
 			}
 			if outerHeaderCreation.HasIPv6() {
 				log.Print("WARN: IPv6 not supported yet, ignoring")

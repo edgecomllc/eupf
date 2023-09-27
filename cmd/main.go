@@ -92,7 +92,7 @@ func main() {
 		}
 	}()
 
-	core.RegisterMetrics(ForwardPlaneStats)
+	core.RegisterMetrics(ForwardPlaneStats, pfcpConn)
 	go func() {
 		if err := core.StartMetrics(config.Conf.MetricsAddress); err != nil {
 			log.Fatalf("Could not start metrics server: %s", err.Error())

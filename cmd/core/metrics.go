@@ -1,9 +1,10 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"net/http"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -26,11 +27,13 @@ var (
 		Help: "The total number of received PFCP messages with cause code",
 	}, []string{"message_name", "cause_code"})
 
-	UpfXdpAborted  prometheus.CounterFunc
-	UpfXdpDrop     prometheus.CounterFunc
-	UpfXdpPass     prometheus.CounterFunc
-	UpfXdpTx       prometheus.CounterFunc
-	UpfXdpRedirect prometheus.CounterFunc
+	UpfXdpAborted       prometheus.CounterFunc
+	UpfXdpDrop          prometheus.CounterFunc
+	UpfXdpPass          prometheus.CounterFunc
+	UpfXdpTx            prometheus.CounterFunc
+	UpfXdpRedirect      prometheus.CounterFunc
+	UpfPfcpSessions     prometheus.GaugeFunc
+	UpfPfcpAssociations prometheus.GaugeFunc
 
 	UpfRx = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "upf_rx",
@@ -51,7 +54,7 @@ func StartMetrics(addr string) error {
 	return err
 }
 
-func RegisterMetrics(stats ebpf.UpfXdpActionStatistic) {
+func RegisterMetrics(stats ebpf.UpfXdpActionStatistic, conn *PfcpConnection) {
 	// Metrics for the upf_xdp_statistic (xdp_action)
 	UpfXdpAborted = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_aborted",
@@ -88,11 +91,28 @@ func RegisterMetrics(stats ebpf.UpfXdpActionStatistic) {
 		return float64(stats.GetRedirect())
 	})
 
+	UpfPfcpSessions = prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "upf_pfcp_sessions",
+		Help: "The current number of PFCP sessions",
+	}, func() float64 {
+		return float64(conn.GetSessionCount())
+	})
+
+	UpfPfcpAssociations = prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "upf_pfcp_associations",
+		Help: "The current number of PFCP associations",
+	}, func() float64 {
+		return float64(conn.GetAssiciationCount())
+	})
+
+	// Register metrics
 	prometheus.MustRegister(UpfXdpAborted)
 	prometheus.MustRegister(UpfXdpDrop)
 	prometheus.MustRegister(UpfXdpPass)
 	prometheus.MustRegister(UpfXdpTx)
 	prometheus.MustRegister(UpfXdpRedirect)
+	prometheus.MustRegister(UpfPfcpSessions)
+	prometheus.MustRegister(UpfPfcpAssociations)
 
 	// Used for getting difference between two counters to increment the prometheus counter (counters cannot be written only incremented)
 	var prevUpfCounters ebpf.UpfCounters

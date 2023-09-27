@@ -11,6 +11,7 @@ import (
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -24,12 +25,17 @@ type ApiServer struct {
 
 func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwardPlaneStats ebpf.UpfXdpActionStatistic) *ApiServer {
 	router := gin.Default()
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	router.Use(cors.New(config))
+
 	eupfDocs.SwaggerInfo.BasePath = "/api/v1"
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("upf_pipeline", ListUpfPipeline(bpfObjects))
 		v1.GET("config", DisplayConfig())
 		v1.GET("xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
+		v1.GET("packet_stats", DisplayPacketStats(forwardPlaneStats))
 
 		qerMap := v1.Group("qer_map")
 		{
@@ -52,6 +58,48 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 
 	router.GET("swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return &ApiServer{router: router}
+}
+
+type PacketStats struct {
+	RxArp      uint64 `json:"rx_arp"`
+	RxIcmp     uint64 `json:"rx_icmp"`
+	RxIcmp6    uint64 `json:"rx_icmp6"`
+	RxIp4      uint64 `json:"rx_ip4"`
+	RxIp6      uint64 `json:"rx_ip6"`
+	RxTcp      uint64 `json:"rx_tcp"`
+	RxUdp      uint64 `json:"rx_udp"`
+	RxOther    uint64 `json:"rx_other"`
+	RxGtpEcho  uint64 `json:"rx_gtp_echo"`
+	RxGtpPdu   uint64 `json:"rx_gtp_pdu"`
+	RxGtpOther uint64 `json:"rx_gtp_other"`
+	RxGtpUnexp uint64 `json:"rx_gtp_unexp"`
+}
+
+// DisplayPacketStats godoc
+// @Summary Display packet statistics
+// @Description Display packet statistics
+// @Tags Packet
+// @Produce  json
+// @Success 200 {object} PacketStats
+// @Router /packet_stats [get]
+func DisplayPacketStats(forwardPlaneStats ebpf.UpfXdpActionStatistic) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		packets := forwardPlaneStats.GetUpfExtStatField()
+		c.IndentedJSON(http.StatusOK, PacketStats{
+			RxArp:      packets.RxArp,
+			RxIcmp:     packets.RxIcmp,
+			RxIcmp6:    packets.RxIcmp6,
+			RxIp4:      packets.RxIp4,
+			RxIp6:      packets.RxIp6,
+			RxTcp:      packets.RxTcp,
+			RxUdp:      packets.RxUdp,
+			RxOther:    packets.RxOther,
+			RxGtpEcho:  packets.RxGtpEcho,
+			RxGtpPdu:   packets.RxGtpPdu,
+			RxGtpOther: packets.RxGtpOther,
+			RxGtpUnexp: packets.RxGtpUnexp,
+		})
+	}
 }
 
 type XdpStats struct {
@@ -147,13 +195,8 @@ func GetAllSessions(nodeMap *map[string]*NodeAssociation) (sessions []Session) {
 func FilterSessionsByIP(nodeMap *map[string]*NodeAssociation, filterByIP net.IP) *Session {
 	for _, nodeAssoc := range *nodeMap {
 		for _, session := range nodeAssoc.Sessions {
-			for _, uplinkPDR := range session.UplinkPDRs {
-				if uplinkPDR.Ipv4.Equal(filterByIP) {
-					return session
-				}
-			}
-			for _, downlinkPDR := range session.DownlinkPDRs {
-				if downlinkPDR.Ipv4.Equal(filterByIP) {
+			for _, PDR := range session.PDRs {
+				if PDR.Ipv4.Equal(filterByIP) {
 					return session
 				}
 			}
@@ -165,13 +208,8 @@ func FilterSessionsByIP(nodeMap *map[string]*NodeAssociation, filterByIP net.IP)
 func FilterSessionsByTeid(nodeMap *map[string]*NodeAssociation, filterByTeid uint32) *Session {
 	for _, nodeAssoc := range *nodeMap {
 		for _, session := range nodeAssoc.Sessions {
-			for _, uplinkPDR := range session.UplinkPDRs {
-				if uplinkPDR.Teid == filterByTeid {
-					return session
-				}
-			}
-			for _, downlinkPDR := range session.DownlinkPDRs {
-				if downlinkPDR.Teid == filterByTeid {
+			for _, PDR := range session.PDRs {
+				if PDR.Teid == filterByTeid {
 					return session
 				}
 			}

@@ -15,6 +15,7 @@ type NodeAssociation struct {
 	Sessions         map[uint64]*Session
 	HeartbeatRetries uint32
 	cancelRetries    context.CancelFunc
+	// AssociationStart time.Time // Held until propper failure detection is implemented
 }
 
 func NewNodeAssociation(remoteNodeID string, addr string) *NodeAssociation {
@@ -24,6 +25,7 @@ func NewNodeAssociation(remoteNodeID string, addr string) *NodeAssociation {
 		NextSessionID:  1,
 		NextSequenceID: 1,
 		Sessions:       make(map[uint64]*Session),
+		// AssociationStart: time.Now(),
 	}
 }
 

@@ -8,6 +8,16 @@
 
 {{- end -}}
 
+{{- define "helpers.pod.uiImage" -}}
+
+{{- if .Values.image.tag }}
+{{- printf "%s/%s/%s:%s" .Values.ui.image.registry .Values.ui.image.repository .Values.ui.image.name .Values.ui.image.tag }}
+{{- else }}
+{{- printf "%s/%s/%s:%s" .Values.ui.image.registry .Values.ui.image.repository .Values.ui.image.name .Chart.AppVersion }}
+{{- end }}
+
+{{- end -}}
+
 {{- define "helpers.pod.initContainers" -}}
 
 {{- $all := . -}}

@@ -1,12 +1,10 @@
 package core
 
 import (
-	"log"
-	"net"
-	"time"
-
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
+	"log"
+	"net"
 )
 
 func HandlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
@@ -22,7 +20,7 @@ func HandlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr 
 		log.Printf("Got Heartbeat Request with TS: %s, from: %s", ts, addr)
 	}
 
-	hbres := message.NewHeartbeatResponse(hbreq.SequenceNumber, ie.NewRecoveryTimeStamp(time.Now()))
+	hbres := message.NewHeartbeatResponse(hbreq.SequenceNumber, ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp))
 	log.Printf("Sent Heartbeat Response to: %s", addr)
 	return hbres, nil
 }
@@ -43,7 +41,7 @@ func HandlePfcpHeartbeatResponse(conn *PfcpConnection, msg message.Message, addr
 }
 
 func SendHeartbeatRequest(conn *PfcpConnection, sequenceID uint32, associationAddr string) {
-	hbreq := message.NewHeartbeatRequest(sequenceID, ie.NewRecoveryTimeStamp(time.Now()), nil)
+	hbreq := message.NewHeartbeatRequest(sequenceID, ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp), nil)
 	log.Printf("Sent Heartbeat Request to: %s", associationAddr)
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err == nil {

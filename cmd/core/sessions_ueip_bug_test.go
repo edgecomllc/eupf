@@ -1,7 +1,6 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"net"
 	"testing"
 
@@ -12,13 +11,7 @@ import (
 // Test for the bug where the session's UE IP address is overwritten because it is a pointer to the buffer for incoming UDP packets.
 func TestSessionUEIpOverwrite(t *testing.T) {
 
-	bpfObjects := &ebpf.BpfObjects{
-		FarIdTracker: ebpf.NewIdTracker(100),
-		QerIdTracker: ebpf.NewIdTracker(100),
-	}
-	if err := bpfObjects.Load(); err != nil {
-		t.Errorf("Loading bpf objects failed: %s", err.Error())
-	}
+	mapOps := MapOperationsMock{}
 
 	var pfcpHandlers = PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            HandlePfcpHeartbeatRequest,
@@ -27,22 +20,18 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 		message.MsgTypeSessionDeletionRequest:      HandlePfcpSessionDeletionRequest,
 		message.MsgTypeSessionModificationRequest:  HandlePfcpSessionModificationRequest,
 	}
-	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:35655")
-	if err != nil {
-		t.Errorf("Error resolving UDP address: %s", err)
-	}
-	udpConn, _ := net.ListenUDP("udp", udpAddr)
+
+	smfIP := "127.0.0.1"
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),
 		nodeId:           "test-node",
-		mapOperations:    bpfObjects,
+		mapOperations:    &mapOps,
 		pfcpHandlerMap:   pfcpHandlers,
-		udpConn:          udpConn,
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
 	)
-	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, udpAddr.IP.String())
+	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling association setup request: %s", err)
 	}
@@ -61,7 +50,7 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 	if nodeId != "test-node" {
 		t.Errorf("Unexpected node ID in association setup response: %s", nodeId)
 	}
-	if _, ok := pfcpConn.NodeAssociations[udpAddr.IP.String()]; !ok {
+	if _, ok := pfcpConn.NodeAssociations[smfIP]; !ok {
 		t.Errorf("Association not created")
 	}
 
@@ -76,12 +65,12 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 	seReq1 := message.NewSessionEstablishmentRequest(0, 0,
 		1, 1, 0,
 		ie.NewNodeID("", "", "test"),
-		ie.NewFSEID(1, udpAddr.IP, nil),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
 		ie.NewCreatePDR(
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+				//ie.NewFTEID(0, 0, ip1.IP, nil, 0),
 				ie.NewUEIPAddress(2, ip1.IP.String(), "", 0, 0),
 			),
 		),
@@ -90,31 +79,34 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 	seReq2 := message.NewSessionEstablishmentRequest(0, 0,
 		2, 1, 0,
 		ie.NewNodeID("", "", "test"),
-		ie.NewFSEID(2, udpAddr.IP, nil),
+		ie.NewFSEID(2, net.ParseIP(smfIP), nil),
 		ie.NewCreatePDR(
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip2.IP, nil, 0),
+				//ie.NewFTEID(0, 0, ip2.IP, nil, 0),
 				ie.NewUEIPAddress(2, ip2.IP.String(), "", 0, 0),
 			),
 		),
 	)
 
-	buf := make([]byte, 1500)
-	bytes1, _ := seReq1.Marshal()
-	copy(buf, bytes1)
-	pfcpConn.Handle(buf, udpAddr)
+	// Send first request
+	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq1, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
 
-	bytes2, _ := seReq2.Marshal()
-	copy(buf, bytes2)
-	pfcpConn.Handle(buf, udpAddr)
+	// Send second request
+	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq2, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
 
 	// Check that session PDRs are correct
-	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[2].DownlinkPDRs[1].Ipv4.String() != "1.1.1.1" {
+	if pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].Ipv4.String() != "1.1.1.1" {
 		t.Errorf("Session 1, got broken")
 	}
-	if pfcpConn.NodeAssociations[udpAddr.IP.String()].Sessions[3].DownlinkPDRs[1].Ipv4.String() != "2.2.2.2" {
+	if pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[1].Ipv4.String() != "2.2.2.2" {
 		t.Errorf("Session 2, got broken")
 	}
 

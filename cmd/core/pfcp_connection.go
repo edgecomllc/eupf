@@ -2,23 +2,25 @@ package core
 
 import (
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/config"
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"log"
 	"net"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/wmnsk/go-pfcp/message"
 )
 
 type PfcpConnection struct {
-	udpConn          *net.UDPConn
-	pfcpHandlerMap   PfcpHandlerMap
-	NodeAssociations map[string]*NodeAssociation
-	nodeId           string
-	nodeAddrV4       net.IP
-	n3Address        net.IP
-	mapOperations    ebpf.ForwardingPlaneController
+	udpConn           *net.UDPConn
+	pfcpHandlerMap    PfcpHandlerMap
+	NodeAssociations  map[string]*NodeAssociation
+	nodeId            string
+	nodeAddrV4        net.IP
+	n3Address         net.IP
+	mapOperations     ebpf.ForwardingPlaneController
+	RecoveryTimestamp time.Time
 }
 
 func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
@@ -47,13 +49,14 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 	log.Printf("Starting PFCP connection: %v with Node ID: %v and N3 address: %v", udpAddr, nodeId, n3Addr)
 
 	return &PfcpConnection{
-		udpConn:          udpConn,
-		pfcpHandlerMap:   pfcpHandlerMap,
-		NodeAssociations: map[string]*NodeAssociation{},
-		nodeId:           nodeId,
-		nodeAddrV4:       udpAddr.IP,
-		n3Address:        n3Addr,
-		mapOperations:    mapOperations,
+		udpConn:           udpConn,
+		pfcpHandlerMap:    pfcpHandlerMap,
+		NodeAssociations:  map[string]*NodeAssociation{},
+		nodeId:            nodeId,
+		nodeAddrV4:        udpAddr.IP,
+		n3Address:         n3Addr,
+		mapOperations:     mapOperations,
+		RecoveryTimestamp: time.Now(),
 	}, nil
 }
 
@@ -143,15 +146,19 @@ func (connection *PfcpConnection) DeleteSession(session *Session) {
 	for _, qer := range session.QERs {
 		_ = connection.mapOperations.DeleteQer(qer.GlobalId)
 	}
-	for _, uplinkPdr := range session.UplinkPDRs {
-		_ = connection.mapOperations.DeletePdrUpLink(uplinkPdr.Teid)
+	for _, PDR := range session.PDRs {
+		_ = deletePDR(PDR, connection.mapOperations)
 	}
-	for _, downlinkPdr := range session.DownlinkPDRs {
-		if downlinkPdr.Ipv4 != nil {
-			_ = connection.mapOperations.DeletePdrDownLink(downlinkPdr.Ipv4)
-		}
-		if downlinkPdr.Ipv6 != nil {
-			_ = connection.mapOperations.DeleteDownlinkPdrIp6(downlinkPdr.Ipv6)
-		}
+}
+
+func (connection *PfcpConnection) GetSessionCount() int {
+	count := 0
+	for _, assoc := range connection.NodeAssociations {
+		count += len(assoc.Sessions)
 	}
+	return count
+}
+
+func (connection *PfcpConnection) GetAssiciationCount() int {
+	return len(connection.NodeAssociations)
 }
