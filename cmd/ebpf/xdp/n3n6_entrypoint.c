@@ -58,6 +58,7 @@ static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context 
         return XDP_ABORTED;
 
     bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+    
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
@@ -103,6 +104,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     __u8 tos = far->transport_level_marking >> 8;
 
     bpf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
+    increment_counter(ctx->n3_n6_counter, tx_n3);
     return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, far->teid);
 }
 
@@ -148,6 +150,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     __u8 tos = far->transport_level_marking >> 8;
 
     bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
+    increment_counter(ctx->n3_n6_counter, tx_n3);
     return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, far->teid);
 }
 
@@ -243,12 +246,16 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     /*
      *   Step 4: Route packet finally
      */
-    if (ctx->ip4)
+    if (ctx->ip4) {
+        increment_counter(ctx->n3_n6_counter, tx_n6);
         return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
-    else if (ctx->ip6)
+    } else if (ctx->ip6) {
+        increment_counter(ctx->n3_n6_counter, tx_n6);
         return route_ipv6(ctx->xdp_ctx, ctx->eth, ctx->ip6);
-    else
+    } else {
         return XDP_ABORTED;
+    }
+        
 }
 
 static __always_inline enum xdp_action handle_gtpu(struct packet_context *ctx) {
@@ -288,7 +295,6 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
             if (GTP_UDP_PORT == parse_udp(ctx)) {
                 bpf_printk("upf: gtp-u received");
                 increment_counter(ctx->n3_n6_counter, rx_n3);
-                increment_counter(ctx->n3_n6_counter, tx_n6);
                 return handle_gtpu(ctx);
             }
             break;
@@ -301,7 +307,6 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
     }
 
     increment_counter(ctx->n3_n6_counter, rx_n6);
-    increment_counter(ctx->n3_n6_counter, tx_n3);
     return handle_n6_packet_ipv4(ctx);
 }
 
@@ -329,7 +334,6 @@ static __always_inline enum xdp_action handle_ip6(struct packet_context *ctx) {
             return DEFAULT_XDP_ACTION;
     }
     increment_counter(ctx->n3_n6_counter, rx_n6);
-    increment_counter(ctx->n3_n6_counter, tx_n3);
     return handle_n6_packet_ipv6(ctx);
 }
 
