@@ -36,7 +36,9 @@ struct upf_counters {
 
 struct n3_n6_counter {
     __u64 rx_n3;
+    __u64 tx_n3;
     __u64 rx_n6;
+    __u64 tx_n6;
 };
 
 #define EUPF_MAX_XDP_ACTION 8

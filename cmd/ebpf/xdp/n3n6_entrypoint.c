@@ -288,6 +288,7 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
             if (GTP_UDP_PORT == parse_udp(ctx)) {
                 bpf_printk("upf: gtp-u received");
                 increment_counter(ctx->n3_n6_counter, rx_n3);
+                increment_counter(ctx->n3_n6_counter, tx_n6);
                 return handle_gtpu(ctx);
             }
             break;
@@ -296,11 +297,11 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
             break;
         default:
             increment_counter(ctx->counters, rx_other);
-            increment_counter(ctx->n3_n6_counter, rx_n3);
             return DEFAULT_XDP_ACTION;
     }
 
     increment_counter(ctx->n3_n6_counter, rx_n6);
+    increment_counter(ctx->n3_n6_counter, tx_n3);
     return handle_n6_packet_ipv4(ctx);
 }
 
@@ -325,10 +326,10 @@ static __always_inline enum xdp_action handle_ip6(struct packet_context *ctx) {
             break;
         default:
             increment_counter(ctx->counters, rx_other);
-            increment_counter(ctx->n3_n6_counter, rx_n3);
             return DEFAULT_XDP_ACTION;
     }
     increment_counter(ctx->n3_n6_counter, rx_n6);
+    increment_counter(ctx->n3_n6_counter, tx_n3);
     return handle_n6_packet_ipv6(ctx);
 }
 
