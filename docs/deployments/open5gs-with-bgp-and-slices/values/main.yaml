@@ -1,0 +1,76 @@
+---
+
+mongodb:
+  persistence:
+    enabled: false
+
+upf:
+  enabled: false
+
+hss:
+  enabled: false
+
+mme:
+  enabled: false
+
+pcrf:
+  enabled: false
+
+smf:
+  enabled: false
+
+sgwc:
+  enabled: false
+
+sgwu:
+  enabled: false
+
+amf:
+  config:
+    guamiList:
+      - plmn_id:
+          mcc: "999"
+          mnc: "70"
+        amf_id:
+          region: 2
+          set: 1
+    taiList:
+      - plmn_id:
+          mcc: "999"
+          mnc: "70"
+        tac: [1]
+    plmnList:
+      - plmn_id:
+          mcc: "999"
+          mnc: "70"
+        s_nssai:
+          - sst: 1
+            sd: "0x111111"
+          - sst: 1
+            sd: "0x222222"
+
+nssf:
+  config:
+    nsiList:
+      - nrf:
+          hostname: ""
+          port: 7777
+        sst: 1
+        sd: "0x111111"
+      - nrf:
+          hostname: ""
+          port: 7777
+        sst: 1
+        sd: "0x222222"
+
+webui:
+  ingress:
+    enabled: false
+
+populate:
+  enabled: true
+  initCommands:
+    - open5gs-dbctl add_ue_with_slice 999700000000001 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 111111
+    - open5gs-dbctl add_ue_with_slice 999700000000002 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 111111
+    - open5gs-dbctl add_ue_with_slice 999700000000003 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
+    - open5gs-dbctl add_ue_with_slice 999700000000004 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222

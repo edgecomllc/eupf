@@ -79,6 +79,7 @@ xdpProgrammInstall:
     capabilities:
       add:
         - NET_ADMIN
+        - BPF
     privileged: true
     runAsNonRoot: false
   env:
@@ -88,6 +89,7 @@ xdpProgrammInstall:
     - /bin/sh
     - -c
     - |
+      apk add iproute2; \
       echo "starting"; \
       i=0; IFACE_NAME=""; \
       while [ -z "$IFACE_NAME" ]; \
@@ -99,7 +101,7 @@ xdpProgrammInstall:
       echo "done: current interface name is ${IFACE_NAME}" ;\
       set -x ;\
       ls -alh /app ;\
-      ip link set dev ${IFACE_NAME} xdpdrv obj /app/zero_entrypoint_bpf.o sec xdp/upf_zero_entrypoint
+      ip link set dev ${IFACE_NAME} xdpdrv obj /app/zeroentrypoint_bpf.o sec xdp/upf_zero_entrypoint
 
 bird:
   enabled: false
@@ -288,3 +290,35 @@ extraDeploy: []
   #           }
   #         ]
   #       }
+
+ui:
+  enabled: false
+  image:
+    registry: ghcr.io
+    repository: edgecomllc
+    name: eupf-ui
+    tag: main
+    pullPolicy: Always
+  env:
+    API_ADDR: localhost:8080
+  service:
+    port: 8081
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10

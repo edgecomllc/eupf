@@ -26,9 +26,9 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 Super fast & simple way is to download and run our docker image. It will start standalone eUPF with the default configuration:
 ```bash
-docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \ 
-  --cap-add SYS_ADMIN --cap-add NET_ADMIN \ 
-  -p 8080 -p 9090 --name your-eupf-def \ 
+docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
+  --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+  -p 8080 -p 9090 --name your-eupf-def \
   -v /sys/kernel/debug:/sys/kernel/debug:ro ghcr.io/edgecomllc/eupf:main
 ```
 ### Notes
@@ -37,7 +37,7 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 
 <blockquote><details><summary><i>Startup parameters you might want to change: </i></summary>
 <p>
- 
+
    - UPF_INTERFACE_NAME=lo    *Network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
    - UPF_N3_ADDRESS=127.0.0.1 *IPv4 address for N3 interface*
    - UPF_XDP_ATTACH_MODE=generic *XDP attach mode. Generic-only at the moment*
@@ -45,7 +45,7 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
    - UPF_PFCP_ADDRESS=:8805   *Local host:port that PFCP server will listen to*
    - UPF_PFCP_NODE_ID=127.0.0.1  *Local NodeID for PFCP protocol. Format is IPv4 address*
    - UPF_METRICS_ADDRESS=:9090   *Local host:port for serving Prometheus mertrics endpoint*
- 
+
 </p>
 </details> </blockquote>
 </p>
@@ -197,6 +197,15 @@ sudo ./bin/eupf
 
 This should start application with the default configuration. Please adjust the contents of the configuration file and the command-line arguments as needed for your application and environment.
 
+### Build docker image
+
+default command for build docker image:
+
+`docker build -t local/eupf:latest .`
+
+you can define build arguments for command `go generate` like this:
+
+`docker build -t local/eupf:latest --build-arg BPF_ENABLE_LOG=1 --build-arg BPF_ENABLE_ROUTE_CACHE=1 .`
 
 
 ## Contribution
