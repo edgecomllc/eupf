@@ -58,7 +58,7 @@ static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context 
         return XDP_ABORTED;
 
     bpf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
-    
+    increment_counter(ctx->n3_n6_counter, tx_n3);
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
@@ -104,7 +104,6 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     __u8 tos = far->transport_level_marking >> 8;
 
     bpf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
-    increment_counter(ctx->n3_n6_counter, tx_n3);
     return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, far->teid);
 }
 
@@ -150,7 +149,6 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     __u8 tos = far->transport_level_marking >> 8;
 
     bpf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
-    increment_counter(ctx->n3_n6_counter, tx_n3);
     return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, far->teid);
 }
 

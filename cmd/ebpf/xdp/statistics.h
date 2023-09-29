@@ -34,7 +34,7 @@ struct upf_counters {
     __u64 rx_gtp_unexp;
 };
 
-struct n3_n6_counter {
+struct n3_n6_counters {
     __u64 rx_n3;
     __u64 tx_n3;
     __u64 rx_n6;
@@ -46,7 +46,7 @@ struct n3_n6_counter {
 
 struct upf_statistic {
     struct upf_counters upf_counters;
-    struct n3_n6_counter upf_n3_n6_counter;
+    struct n3_n6_counters upf_n3_n6_counter;
     __u64 xdp_actions[EUPF_MAX_XDP_ACTION];
 };
 
