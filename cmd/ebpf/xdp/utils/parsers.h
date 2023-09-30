@@ -24,6 +24,7 @@
 #include <linux/udp.h>
 
 #include "xdp/utils/packet_context.h"
+#include "xdp/utils/trace.h"
 
 static __always_inline int parse_ethernet(struct packet_context *ctx) {
     struct ethhdr *eth = (struct ethhdr *)ctx->data;
@@ -131,14 +132,14 @@ static __always_inline long context_reinit(struct packet_context *ctx, char *dat
     switch (ethertype) {
         case ETH_P_IPV6: {
             if (-1 == parse_ip6(ctx)) {
-                bpf_printk("upf: can't parse ip6");
+                upf_printk("upf: can't parse ip6");
                 return -1;
             }
             return 0;
         }
         case ETH_P_IP: {
             if (-1 == parse_ip4(ctx)) {
-                bpf_printk("upf: can't parse ip4");
+                upf_printk("upf: can't parse ip4");
                 return -1;
             }
             return 0;
@@ -146,7 +147,7 @@ static __always_inline long context_reinit(struct packet_context *ctx, char *dat
 
         default:
             /* do nothing with non-ip packets */
-            bpf_printk("upf: can't process not an ip packet: %d", ethertype);
+            upf_printk("upf: can't process not an ip packet: %d", ethertype);
             return -1;
     }
 }
