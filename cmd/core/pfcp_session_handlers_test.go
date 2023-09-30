@@ -82,6 +82,7 @@ func SdfFilterStorePreSetup(t *testing.T) (PfcpConnection, string) {
 		nodeId:           "test-node",
 		mapOperations:    &mapOps,
 		pfcpHandlerMap:   pfcpHandlers,
+		n3Address:        net.ParseIP("1.2.3.4"),
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
@@ -250,16 +251,13 @@ func TestSdfFilterStoreValid(t *testing.T) {
 	pdrInfo := pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].PdrInfo
 	err = CheckSdfFilterEquality(pdrInfo.AdditionalRules.SdfFilter, fd)
 	if err != nil {
-		t.Error(err)
+		t.Error(err.Error())
 	}
-	// Checking FAR and QUR for additional mapping.
-	// if pdrInfo.AdditionalRules.FarId ==
-	// if pdrInfo.AdditionalRules.QerId ==
 
 	pdrInfo = pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[1].PdrInfo
 	err = CheckSdfFilterEquality(pdrInfo.AdditionalRules.SdfFilter, fd)
 	if err != nil {
-		t.Error(err)
+		t.Error(err.Error())
 	}
 }
 

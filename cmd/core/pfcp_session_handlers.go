@@ -134,15 +134,15 @@ func HasSdf(pdr *ie.IE) bool {
 
 func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 	if spdrInfo.Ipv4 != nil {
-		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, ebpf.ToIpEntrypointPdrInfo(spdrInfo.PdrInfo)); err != nil {
 			log.Printf("Can't apply IPv4 PDR: %s", err.Error())
 		}
 	} else if spdrInfo.Ipv6 != nil {
-		if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
+		if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, ebpf.ToIpEntrypointPdrInfo(spdrInfo.PdrInfo)); err != nil {
 			log.Printf("Can't apply IPv6 PDR: %s", err.Error())
 		}
 	} else {
-		if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
+		if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, ebpf.ToIpEntrypointPdrInfo(spdrInfo.PdrInfo)); err != nil {
 			log.Printf("Can't apply GTP PDR: %s", err.Error())
 		}
 	}

@@ -81,7 +81,11 @@ func ParseCidrIp(ipStr, maskStr string) (ebpf.IpWMask, error) {
 				return ebpf.IpWMask{}, fmt.Errorf("Bad IP mask formatting.")
 			}
 		}
-		return ebpf.IpWMask{Type: ipType, Ip: ip, Mask: mask}, nil
+		return ebpf.IpWMask{
+			Type: ipType,
+			Ip:   ip,
+			Mask: mask,
+		}, nil
 	} else {
 		return ebpf.IpWMask{}, fmt.Errorf("Bad IP formatting.")
 	}

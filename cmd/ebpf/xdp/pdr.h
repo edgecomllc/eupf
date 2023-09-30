@@ -41,8 +41,8 @@ enum outer_header_removal_values {
 
 struct ip_w_mask {
     __u8 type;
-    struct in6_addr ip;
-    struct in6_addr mask;
+    __uint128_t ip;
+    __uint128_t mask;
 };
 
 struct port_range {

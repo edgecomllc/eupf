@@ -46,44 +46,44 @@ type PortRange struct {
 	UpperBound uint16
 }
 
-func (bpfObjects *BpfObjects) PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error {
+func (bpfObjects *BpfObjects) PutPdrUpLink(teid uint32, pdrInfo IpEntrypointPdrInfo) error {
 	log.Printf("EBPF: Put PDR Uplink: teid=%d, pdrInfo=%+v", teid, pdrInfo)
 	return bpfObjects.PdrMapUplinkIp4.Put(teid, unsafe.Pointer(&pdrInfo))
 }
 
-func (bpfObjects *BpfObjects) PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
+func (bpfObjects *BpfObjects) PutPdrDownLink(ipv4 net.IP, pdrInfo IpEntrypointPdrInfo) error {
 	log.Printf("EBPF: Put PDR Downlink: ipv4=%s, pdrInfo=%+v", ipv4, pdrInfo)
 	return bpfObjects.PdrMapDownlinkIp4.Put(ipv4, unsafe.Pointer(&pdrInfo))
 }
 
-func (bpfObjects *BpfObjects) UpdatePdrUpLink(teid uint32, pdrInfo PdrInfo) error {
+func (bpfObjects *BpfObjects) UpdatePdrUpLink(teid uint32, pdrInfo IpEntrypointPdrInfo) error {
 	log.Printf("EBPF: Update PDR Uplink: teid=%d, pdrInfo=%+v", teid, pdrInfo)
 	return bpfObjects.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&pdrInfo), ebpf.UpdateExist)
 }
 
-func (bpfObjects *BpfObjects) UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
+func (bpfObjects *BpfObjects) UpdatePdrDownLink(ipv4 net.IP, pdrInfo IpEntrypointPdrInfo) error {
 	log.Printf("EBPF: Update PDR Downlink: ipv4=%s, pdrInfo=%+v", ipv4, pdrInfo)
 	return bpfObjects.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(&pdrInfo), ebpf.UpdateExist)
 }
 
 func (bpfObjects *BpfObjects) DeletePdrUpLink(teid uint32) error {
 	log.Printf("EBPF: Delete PDR Uplink: teid=%d", teid)
-	return bpfObjects.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&PdrInfo{}), ebpf.UpdateExist)
+	return bpfObjects.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&IpEntrypointPdrInfo{}), ebpf.UpdateExist)
 	//return o.PdrMapUplinkIp4.Delete(teid)
 }
 
 func (bpfObjects *BpfObjects) DeletePdrDownLink(ipv4 net.IP) error {
 	log.Printf("EBPF: Delete PDR Downlink: ipv4=%s", ipv4)
-	return bpfObjects.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(&PdrInfo{}), ebpf.UpdateExist)
+	return bpfObjects.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(&IpEntrypointPdrInfo{}), ebpf.UpdateExist)
 	//return o.PdrMapDownlinkIp4.Delete(ipv4)
 }
 
-func (bpfObjects *BpfObjects) PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error {
+func (bpfObjects *BpfObjects) PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo IpEntrypointPdrInfo) error {
 	log.Printf("EBPF: Put PDR Ipv6 Downlink: ipv6=%s, pdrInfo=%+v", ipv6, pdrInfo)
 	return bpfObjects.PdrMapDownlinkIp6.Put(ipv6, unsafe.Pointer(&pdrInfo))
 }
 
-func (bpfObjects *BpfObjects) UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error {
+func (bpfObjects *BpfObjects) UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo IpEntrypointPdrInfo) error {
 	log.Printf("EBPF: Update PDR Ipv6 Downlink: ipv6=%s, pdrInfo=%+v", ipv6, pdrInfo)
 	return bpfObjects.PdrMapDownlinkIp6.Update(ipv6, unsafe.Pointer(&pdrInfo), ebpf.UpdateExist)
 }
@@ -169,14 +169,14 @@ func (bpfObjects *BpfObjects) DeleteQer(internalId uint32) error {
 }
 
 type ForwardingPlaneController interface {
-	PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error
-	PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
-	UpdatePdrUpLink(teid uint32, pdrInfo PdrInfo) error
-	UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error
+	PutPdrUpLink(teid uint32, pdrInfo IpEntrypointPdrInfo) error
+	PutPdrDownLink(ipv4 net.IP, pdrInfo IpEntrypointPdrInfo) error
+	UpdatePdrUpLink(teid uint32, pdrInfo IpEntrypointPdrInfo) error
+	UpdatePdrDownLink(ipv4 net.IP, pdrInfo IpEntrypointPdrInfo) error
 	DeletePdrUpLink(teid uint32) error
 	DeletePdrDownLink(ipv4 net.IP) error
-	PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error
-	UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error
+	PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo IpEntrypointPdrInfo) error
+	UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo IpEntrypointPdrInfo) error
 	DeleteDownlinkPdrIp6(ipv6 net.IP) error
 	NewFar(farInfo FarInfo) (uint32, error)
 	UpdateFar(internalId uint32, farInfo FarInfo) error
@@ -184,4 +184,43 @@ type ForwardingPlaneController interface {
 	NewQer(qerInfo QerInfo) (uint32, error)
 	UpdateQer(internalId uint32, qerInfo QerInfo) error
 	DeleteQer(internalId uint32) error
+}
+
+func ToIpEntrypointPdrInfo(pdrInfo PdrInfo) IpEntrypointPdrInfo {
+	var pdrToStore IpEntrypointPdrInfo
+	pdrToStore.OuterHeaderRemoval = pdrInfo.OuterHeaderRemoval
+	pdrToStore.FarId = pdrInfo.FarId
+	pdrToStore.QerId = pdrInfo.QerId
+	pdrToStore.AdditionalRules.SdfFilter.Protocol = pdrInfo.AdditionalRules.SdfFilter.Protocol
+	pdrToStore.AdditionalRules.SdfFilter.SrcAddr.Type = pdrInfo.AdditionalRules.SdfFilter.SrcAddress.Type
+	pdrToStore.AdditionalRules.SdfFilter.SrcAddr.Ip = Copy16Ip(pdrInfo.AdditionalRules.SdfFilter.SrcAddress.Ip)
+	pdrToStore.AdditionalRules.SdfFilter.SrcAddr.Mask = Copy16Ip(pdrInfo.AdditionalRules.SdfFilter.SrcAddress.Mask)
+	pdrToStore.AdditionalRules.SdfFilter.SrcPort.LowerBound = pdrInfo.AdditionalRules.SdfFilter.SrcPortRange.LowerBound
+	pdrToStore.AdditionalRules.SdfFilter.SrcPort.UpperBound = pdrInfo.AdditionalRules.SdfFilter.SrcPortRange.UpperBound
+	pdrToStore.AdditionalRules.SdfFilter.DstAddr.Type = pdrInfo.AdditionalRules.SdfFilter.DstAddress.Type
+	pdrToStore.AdditionalRules.SdfFilter.DstAddr.Ip = Copy16Ip(pdrInfo.AdditionalRules.SdfFilter.DstAddress.Ip)
+	pdrToStore.AdditionalRules.SdfFilter.DstAddr.Mask = Copy16Ip(pdrInfo.AdditionalRules.SdfFilter.DstAddress.Mask)
+	pdrToStore.AdditionalRules.SdfFilter.DstPort.LowerBound = pdrInfo.AdditionalRules.SdfFilter.DstPortRange.LowerBound
+	pdrToStore.AdditionalRules.SdfFilter.DstPort.UpperBound = pdrInfo.AdditionalRules.SdfFilter.DstPortRange.UpperBound
+	pdrToStore.AdditionalRules.FarId = pdrInfo.AdditionalRules.FarId
+	pdrToStore.AdditionalRules.QerId = pdrInfo.AdditionalRules.QerId
+	return pdrToStore
+}
+
+func Copy16Ip[T ~[]byte](arr T) [16]byte {
+	const Ipv4len = 4
+	const Ipv6len = 16
+	var c [Ipv6len]byte
+	var arrLen int
+	if len(arr) == Ipv4len {
+		arrLen = Ipv4len
+	} else if len(arr) == Ipv6len {
+		arrLen = Ipv6len
+	} else if len(arr) == 0 || arr == nil {
+		return c
+	}
+	for i := 0; i < arrLen; i++ {
+		c[i] = (arr)[arrLen-1-i]
+	}
+	return c
 }

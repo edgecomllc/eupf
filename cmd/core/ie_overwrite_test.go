@@ -12,16 +12,16 @@ import (
 type MapOperationsMock struct {
 }
 
-func (mapOps *MapOperationsMock) PutPdrUpLink(teid uint32, pdrInfo ebpf.PdrInfo) error {
+func (mapOps *MapOperationsMock) PutPdrUpLink(teid uint32, pdrInfo ebpf.IpEntrypointPdrInfo) error {
 	return nil
 }
-func (mapOps *MapOperationsMock) PutPdrDownLink(ipv4 net.IP, pdrInfo ebpf.PdrInfo) error {
+func (mapOps *MapOperationsMock) PutPdrDownLink(ipv4 net.IP, pdrInfo ebpf.IpEntrypointPdrInfo) error {
 	return nil
 }
-func (mapOps *MapOperationsMock) UpdatePdrUpLink(teid uint32, pdrInfo ebpf.PdrInfo) error {
+func (mapOps *MapOperationsMock) UpdatePdrUpLink(teid uint32, pdrInfo ebpf.IpEntrypointPdrInfo) error {
 	return nil
 }
-func (mapOps *MapOperationsMock) UpdatePdrDownLink(ipv4 net.IP, pdrInfo ebpf.PdrInfo) error {
+func (mapOps *MapOperationsMock) UpdatePdrDownLink(ipv4 net.IP, pdrInfo ebpf.IpEntrypointPdrInfo) error {
 	return nil
 }
 func (mapOps *MapOperationsMock) DeletePdrUpLink(teid uint32) error {
@@ -30,10 +30,10 @@ func (mapOps *MapOperationsMock) DeletePdrUpLink(teid uint32) error {
 func (mapOps *MapOperationsMock) DeletePdrDownLink(ipv4 net.IP) error {
 	return nil
 }
-func (mapOps *MapOperationsMock) PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo ebpf.PdrInfo) error {
+func (mapOps *MapOperationsMock) PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo ebpf.IpEntrypointPdrInfo) error {
 	return nil
 }
-func (mapOps *MapOperationsMock) UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo ebpf.PdrInfo) error {
+func (mapOps *MapOperationsMock) UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo ebpf.IpEntrypointPdrInfo) error {
 	return nil
 }
 func (mapOps *MapOperationsMock) DeleteDownlinkPdrIp6(ipv6 net.IP) error {
