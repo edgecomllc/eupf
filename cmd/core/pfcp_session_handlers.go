@@ -84,6 +84,12 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			spdrInfo := SPDRInfo{}
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+				if HasSdf(pdr) {
+					pdrId, spdrInfo, err = session.GetPdrWithAdditionalRules(spdrInfo)
+					if err != nil {
+						log.Println(err.Error())
+					}
+				}
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {
@@ -117,6 +123,13 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	log.Printf("Session Establishment Request from %s accepted.", addr)
 	return estResp, nil
+}
+
+func HasSdf(pdr *ie.IE) bool {
+	if _, err := pdr.SDFFilter(); err == nil {
+		return true
+	}
+	return false
 }
 
 func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
@@ -171,7 +184,11 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
 
 	if sdfFilter, err := pdr.SDFFilter(); err == nil {
 		if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
-			spdrInfo.PdrInfo.SdfFilter = sdfFilterParsed
+			spdrInfo.PdrInfo.AdditionalRules = ebpf.AdditionalRules{
+				SdfFilter: sdfFilterParsed,
+				FarId:     spdrInfo.PdrInfo.FarId,
+				QerId:     spdrInfo.PdrInfo.QerId,
+			}
 			// log.Printf("Sdf Filter Parsed: %+v", sdfFilterParsed)
 		} else {
 			return err
@@ -378,6 +395,12 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 			spdrInfo := SPDRInfo{}
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+				if HasSdf(pdr) {
+					pdrId, spdrInfo, err = session.GetPdrWithAdditionalRules(spdrInfo)
+					if err != nil {
+						log.Println(err.Error())
+					}
+				}
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {
@@ -393,6 +416,12 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 			spdrInfo := session.GetPDR(pdrId)
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+				if HasSdf(pdr) {
+					pdrId, spdrInfo, err = session.GetPdrWithAdditionalRules(spdrInfo)
+					if err != nil {
+						log.Println(err.Error())
+					}
+				}
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {

@@ -58,11 +58,17 @@ struct sdf_filter {
     struct port_range dst_port;
 };
 
+struct additional_rules {
+    struct sdf_filter sdf_filter;
+    __u32 far_id;
+    __u32 qer_id;
+};
+
 struct pdr_info {
     __u8 outer_header_removal;
     __u32 far_id;
     __u32 qer_id;
-    struct sdf_filter sdf_filter;
+    struct additional_rules additional_rules;
 };
 
 /* ipv4 -> PDR */ 

@@ -111,36 +111,29 @@ func SdfFilterStorePreSetup(t *testing.T) (PfcpConnection, string) {
 	return pfcpConn, smfIP
 }
 
-func TestSdfFilterStoreValid(t *testing.T) {
-
-	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
-
+func SendDefaulMappingPdrs(t *testing.T, pfcpConn *PfcpConnection, smfIP string) {
 	ip1, _ := net.ResolveIPAddr("ip", "1.1.1.1")
 	ip2, _ := net.ResolveIPAddr("ip", "2.2.2.2")
 
-	fd := SdfFilterTestStruct{FlowDescription: "permit out ip from 10.62.0.1 to 8.8.8.8/32", Protocol: 1,
-		SrcType: 1, SrcAddress: "10.62.0.1", SrcMask: "<nil>", SrcPortLower: 0, SrcPortUpper: 65535,
-		DstType: 1, DstAddress: "8.8.8.8", DstMask: "ffffffff", DstPortLower: 0, DstPortUpper: 65535}
+	// Requests for default mapping (without SDF filter)
 
 	// Request with UEIP Address
-	seReq1 := message.NewSessionEstablishmentRequest(0, 0,
-		1, 1, 0,
+	seReqPre1 := message.NewSessionEstablishmentRequest(0, 0,
+		2, 1, 0,
 		ie.NewNodeID("", "", "test"),
 		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
 		ie.NewCreatePDR(
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				//ie.NewFTEID(0, 0, ip1.IP, nil, 0),
 				ie.NewUEIPAddress(2, ip1.IP.String(), "", 0, 0),
-				ie.NewSDFFilter(fd.FlowDescription, "", "", "", 0),
 			),
 		),
 	)
 
 	// Request with TEID
-	seReq2 := message.NewSessionEstablishmentRequest(0, 0,
-		2, 1, 0,
+	seReqPre2 := message.NewSessionEstablishmentRequest(0, 0,
+		3, 1, 0,
 		ie.NewNodeID("", "", "test"),
 		ie.NewFSEID(2, net.ParseIP(smfIP), nil),
 		ie.NewCreatePDR(
@@ -148,19 +141,17 @@ func TestSdfFilterStoreValid(t *testing.T) {
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
 				ie.NewFTEID(0, 0, ip2.IP, nil, 0),
-				// ie.NewUEIPAddress(2, ip2.IP.String(), "", 0, 0),
-				ie.NewSDFFilter(fd.FlowDescription, "", "", "", 0),
 			),
 		),
 	)
 
 	var err error
-	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq1, smfIP)
+	_, err = HandlePfcpSessionEstablishmentRequest(pfcpConn, seReqPre1, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
 
-	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq2, smfIP)
+	_, err = HandlePfcpSessionEstablishmentRequest(pfcpConn, seReqPre2, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
@@ -172,13 +163,101 @@ func TestSdfFilterStoreValid(t *testing.T) {
 	if pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[1].Teid != 0 {
 		t.Errorf("Session 2, got broken")
 	}
+}
+
+func TestSdfFilterStoreValid(t *testing.T) {
+
+	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+	SendDefaulMappingPdrs(t, &pfcpConn, smfIP)
+
+	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 1 {
+		t.Errorf("Session 1, should have already stored 1 PDR")
+	}
+
+	if len(pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs) != 1 {
+		t.Errorf("Session 2, should have already stored 1 PDR")
+	}
+
+	ip1, _ := net.ResolveIPAddr("ip", "1.1.1.1")
+	ip2, _ := net.ResolveIPAddr("ip", "2.2.2.2")
+
+	fd := SdfFilterTestStruct{FlowDescription: "permit out ip from 10.62.0.1 to 8.8.8.8/32", Protocol: 1,
+		SrcType: 1, SrcAddress: "10.62.0.1", SrcMask: "<nil>", SrcPortLower: 0, SrcPortUpper: 65535,
+		DstType: 1, DstAddress: "8.8.8.8", DstMask: "ffffffff", DstPortLower: 0, DstPortUpper: 65535}
+
+	// Requests for additional mapping (with SDF filter)
+
+	// Request with UEIP Address
+	seReq1 := message.NewSessionModificationRequest(0, 0,
+		2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil), // Why do we need FSEID?
+		ie.NewCreatePDR(
+			ie.NewPDRID(2),
+			ie.NewPDI(
+				ie.NewSourceInterface(ie.SrcInterfaceCore),
+				//ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+				ie.NewUEIPAddress(2, ip1.IP.String(), "", 0, 0),
+				ie.NewSDFFilter(fd.FlowDescription, "", "", "", 0),
+			),
+		),
+	)
+
+	// Request with TEID
+	seReq2 := message.NewSessionModificationRequest(0, 0,
+		3, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(2, net.ParseIP(smfIP), nil),
+		ie.NewCreatePDR(
+			ie.NewPDRID(2),
+			ie.NewPDI(
+				ie.NewSourceInterface(ie.SrcInterfaceCore),
+				ie.NewFTEID(0, 0, ip2.IP, nil, 0),
+				// ie.NewUEIPAddress(2, ip2.IP.String(), "", 0, 0),
+				ie.NewSDFFilter(fd.FlowDescription, "", "", "", 0),
+			),
+		),
+	)
+
+	var err error
+	_, err = HandlePfcpSessionModificationRequest(&pfcpConn, seReq1, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	_, err = HandlePfcpSessionModificationRequest(&pfcpConn, seReq2, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	// Check that session PDRs are correct
+	// And that no new PDR has been created
+	if pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].Ipv4.String() != "1.1.1.1" {
+		t.Errorf("Session 1, got broken")
+	}
+	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 1 {
+		t.Errorf("Session 2, no new PDRs should appear")
+	}
+
+	if pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[1].Teid != 0 {
+		t.Errorf("Session 2, got broken")
+	}
+	if len(pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs) != 1 {
+		t.Errorf("Session 2, no new PDRs should appear")
+	}
 
 	// Check that SDF filter is stored inside session
-	err = CheckSdfFilterEquality(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].PdrInfo.SdfFilter, fd)
+	pdrInfo := pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].PdrInfo
+	err = CheckSdfFilterEquality(pdrInfo.AdditionalRules.SdfFilter, fd)
 	if err != nil {
 		t.Error(err)
 	}
-	err = CheckSdfFilterEquality(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].PdrInfo.SdfFilter, fd)
+	// Checking FAR and QUR for additional mapping.
+	// if pdrInfo.AdditionalRules.FarId ==
+	// if pdrInfo.AdditionalRules.QerId ==
+
+	pdrInfo = pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[1].PdrInfo
+	err = CheckSdfFilterEquality(pdrInfo.AdditionalRules.SdfFilter, fd)
 	if err != nil {
 		t.Error(err)
 	}
@@ -187,33 +266,41 @@ func TestSdfFilterStoreValid(t *testing.T) {
 func TestSdfFilterStoreInvalid(t *testing.T) {
 
 	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+	SendDefaulMappingPdrs(t, &pfcpConn, smfIP)
+
+	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 1 {
+		t.Errorf("Session 1, should have already stored 1 PDR")
+	}
 
 	ip1, _ := net.ResolveIPAddr("ip", "1.1.1.1")
 
 	// Request with bad/unsuported SDF
-	seReq1 := message.NewSessionEstablishmentRequest(0, 0,
-		1, 1, 0,
+	seReq1 := message.NewSessionModificationRequest(0, 0,
+		2, 1, 0,
 		ie.NewNodeID("", "", "test"),
-		ie.NewFSEID(2, net.ParseIP(smfIP), nil),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
 		ie.NewCreatePDR(
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
 				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
-				// ie.NewUEIPAddress(2, ip2.IP.String(), "", 0, 0),
 				ie.NewSDFFilter("deny out ip from 10.62.0.1 to 8.8.8.8/32", "", "", "", 0),
 			),
 		),
 	)
 
 	var err error
-	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq1, smfIP)
+	_, err = HandlePfcpSessionModificationRequest(&pfcpConn, seReq1, smfIP)
 	if err != nil {
-		t.Errorf("No error should appear while handling session establishment request. PDR with bad SDF should be skipped.")
+		t.Errorf("No error should appear while handling session establishment request. PDR with bad SDF should be skipped")
+	}
+	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 1 {
+		t.Errorf("No new PDRs should appear")
 	}
 
 	// Check that session PDR wasn't stored
-	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 0 {
-		t.Errorf("Session 1, PDR with bad SDF shouldn't be stored")
+	// TODO: check all SDF fields, with FAR and QER
+	if pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].PdrInfo.AdditionalRules.SdfFilter.SrcAddress.Ip != nil {
+		t.Errorf("Bad SDF shouldn't be stored")
 	}
 }

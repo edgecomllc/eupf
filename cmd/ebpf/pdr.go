@@ -16,7 +16,13 @@ type PdrInfo struct {
 	OuterHeaderRemoval uint8
 	FarId              uint32
 	QerId              uint32
-	SdfFilter          SdfFilter
+	AdditionalRules    AdditionalRules
+}
+
+type AdditionalRules struct {
+	SdfFilter SdfFilter
+	FarId     uint32
+	QerId     uint32
 }
 
 type SdfFilter struct {

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
@@ -89,6 +90,37 @@ func (s *Session) RemoveQer(id uint32) SQerInfo {
 
 func (s *Session) PutPDR(id uint32, info SPDRInfo) {
 	s.PDRs[id] = info
+}
+
+func (s *Session) FindPdrId(info SPDRInfo) (uint32, error) {
+	for pdrId := range s.PDRs {
+		// Compare all three fields (TEID, IPv4, IPv6),
+		// because TEID's default value is 0, even not specifically set.
+		if s.PDRs[pdrId].Teid == info.Teid &&
+			(s.PDRs[pdrId].Ipv4 == nil && info.Ipv4 == nil ||
+				s.PDRs[pdrId].Ipv4 != nil && info.Ipv4 != nil && s.PDRs[pdrId].Ipv4.Equal(info.Ipv4)) &&
+			(s.PDRs[pdrId].Ipv6 == nil && info.Ipv6 == nil ||
+				s.PDRs[pdrId].Ipv6 != nil && info.Ipv6 != nil && s.PDRs[pdrId].Ipv6.Equal(info.Ipv6)) {
+			return pdrId, nil
+		}
+	}
+	return 0, fmt.Errorf("Correponding PDR not found")
+}
+
+func (s *Session) PutSdfToPdr(pdrId uint32, info ebpf.AdditionalRules) {
+	pdr := s.PDRs[pdrId]
+	pdr.PdrInfo.AdditionalRules = info
+	s.PDRs[pdrId] = pdr
+}
+
+func (s *Session) GetPdrWithAdditionalRules(add SPDRInfo) (uint16, SPDRInfo, error) {
+	if pdrId, err := s.FindPdrId(add); err == nil {
+		newPdr := s.PDRs[pdrId]
+		newPdr.PdrInfo.AdditionalRules = add.PdrInfo.AdditionalRules
+		return uint16(pdrId), newPdr, nil
+	} else {
+		return 0, SPDRInfo{}, err
+	}
 }
 
 func (s *Session) GetPDR(id uint16) SPDRInfo {
