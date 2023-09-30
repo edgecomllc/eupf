@@ -40,7 +40,7 @@ jobs:
           working-directory: ./cmd
 
       - name: Run tests
-        run: go test -v ./cmd/...
+        run: sudo go test -v ./cmd/...
 
       - name: Build
         run: go build -v -o bin/eupf ./cmd

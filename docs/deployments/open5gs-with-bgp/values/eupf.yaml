@@ -7,7 +7,12 @@ deploymentStrategy:
   type: Recreate
 
 image:
-  tag: 0ac3d9fb28808dbca7e123205323e2c09f377971@sha256:a03bdd30efa623b0d3ddc99d9a6472453a43d2d64ed715a9a042e893d82ffb68
+  # tag: 0ac3d9fb28808dbca7e123205323e2c09f377971@sha256:a03bdd30efa623b0d3ddc99d9a6472453a43d2d64ed715a9a042e893d82ffb68
+  registry: ghcr.io
+  repository: edgecomllc
+  name: eupf
+  tag: 893648fecb05faf4b92656647f26922b34148a6c
+  pullPolicy: Always
 
 args:
   - --config
@@ -115,3 +120,14 @@ readinessProbe:
     port: http
   initialDelaySeconds: 5
   periodSeconds: 10
+
+ui:
+  enabled: true
+  image:
+    registry: ghcr.io
+    repository: edgecomllc
+    name: eupf-ui
+    tag: 92294e11a733790ae2872dd1bc3128ce1a550734
+    pullPolicy: Always
+  env:
+    API_ADDR: localhost:8080
