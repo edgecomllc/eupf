@@ -46,8 +46,9 @@
 static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, int teid) {
     if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, teid))
         return XDP_ABORTED;
-
+  
     upf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+    increment_counter(ctx->n3_n6_counter, tx_n3);
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
@@ -233,12 +234,16 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     /*
      *   Step 4: Route packet finally
      */
-    if (ctx->ip4)
+    if (ctx->ip4) {
+        increment_counter(ctx->n3_n6_counter, tx_n6);
         return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
-    else if (ctx->ip6)
+    } else if (ctx->ip6) {
+        increment_counter(ctx->n3_n6_counter, tx_n6);
         return route_ipv6(ctx->xdp_ctx, ctx->eth, ctx->ip6);
-    else
+    } else {
         return XDP_ABORTED;
+    }
+        
 }
 
 static __always_inline enum xdp_action handle_gtpu(struct packet_context *ctx) {
@@ -277,6 +282,7 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
             increment_counter(ctx->counters, rx_udp);
             if (GTP_UDP_PORT == parse_udp(ctx)) {
                 upf_printk("upf: gtp-u received");
+                increment_counter(ctx->n3_n6_counter, rx_n3);
                 return handle_gtpu(ctx);
             }
             break;
@@ -288,13 +294,14 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
             return DEFAULT_XDP_ACTION;
     }
 
+    increment_counter(ctx->n3_n6_counter, rx_n6);
     return handle_n6_packet_ipv4(ctx);
 }
 
 static __always_inline enum xdp_action handle_ip6(struct packet_context *ctx) {
     int l4_protocol = parse_ip6(ctx);
     switch (l4_protocol) {
-        case IPPROTO_ICMPV6:  // Let kernel stack takes care
+        case IPPROTO_ICMPV6:  // Let kernel stack take care
             upf_printk("upf: icmp received. passing to kernel");
             increment_counter(ctx->counters, rx_icmp6);
             return XDP_PASS;
@@ -314,7 +321,7 @@ static __always_inline enum xdp_action handle_ip6(struct packet_context *ctx) {
             increment_counter(ctx->counters, rx_other);
             return DEFAULT_XDP_ACTION;
     }
-
+    increment_counter(ctx->n3_n6_counter, rx_n6);
     return handle_n6_packet_ipv6(ctx);
 }
 
@@ -357,7 +364,8 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
         .data = (char *)(long)ctx->data,
         .data_end = (const char *)(long)ctx->data_end,
         .xdp_ctx = ctx,
-        .counters = &statistic->upf_counters};
+        .counters = &statistic->upf_counters,
+        .n3_n6_counter = &statistic->upf_n3_n6_counter};
 
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
