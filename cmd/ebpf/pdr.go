@@ -3,6 +3,7 @@ package ebpf
 import (
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"unsafe"
@@ -264,4 +265,8 @@ func Copy16Ip[T ~[]byte](arr T) [16]byte {
 		c[i] = (arr)[arrLen-1-i]
 	}
 	return c
+}
+
+func (sdfFilter *SdfFilter) String() string {
+	return fmt.Sprintf("%+v", *sdfFilter)
 }
