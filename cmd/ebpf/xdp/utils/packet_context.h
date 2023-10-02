@@ -29,6 +29,7 @@ struct packet_context {
     char *data;
     const char *data_end;
     struct upf_counters *counters;
+    struct n3_n6_counters *n3_n6_counter;
     struct xdp_md *xdp_ctx;
     struct ethhdr *eth;
     struct iphdr *ip4;
