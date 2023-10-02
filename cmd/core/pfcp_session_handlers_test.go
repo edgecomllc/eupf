@@ -183,7 +183,7 @@ func TestSdfFilterStoreValid(t *testing.T) {
 	ip2, _ := net.ResolveIPAddr("ip", "2.2.2.2")
 
 	fd := SdfFilterTestStruct{FlowDescription: "permit out ip from 10.62.0.1 to 8.8.8.8/32", Protocol: 1,
-		SrcType: 1, SrcAddress: "10.62.0.1", SrcMask: "<nil>", SrcPortLower: 0, SrcPortUpper: 65535,
+		SrcType: 1, SrcAddress: "10.62.0.1", SrcMask: "ffffffff", SrcPortLower: 0, SrcPortUpper: 65535,
 		DstType: 1, DstAddress: "8.8.8.8", DstMask: "ffffffff", DstPortLower: 0, DstPortUpper: 65535}
 
 	// Requests for additional mapping (with SDF filter)

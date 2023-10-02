@@ -39,21 +39,29 @@ enum outer_header_removal_values {
     OHR_S_TAG_C_TAG = 8,
 };
 
+// Possible optimizations: 
+// 0. Store SDFs in a separate map. PDR will have only id of corresponding SDF.
+// 1. Combine SrcAddress.Type and DstAddress.Type into one __u8 field. Then to retrieve and put data will be used operators & and | .
+// 2. Put all fields into one big structure. Sort in specific order to reduce paddings inside structure.
+
 struct ip_w_mask {
-    // Possible optimization: combine SrcAddress.Type and DstAddress.Type into one __u8 field.
-	// To retrieve and put data use operators & and | .
-    __u8 type; // 0: any (ip and mask should be zeros in this case), 1: ip4, 2: ip6
-    __uint128_t ip; // Ipv4 -> lower 32 bits. Ipv6 -> all 128 bits.
-    __uint128_t mask; // Ipv4 mask -> lower 32 bits. Ipv6 mask -> all 128 bits.
+    __u8 type; // 0: any, 1: ip4, 2: ip6
+    // If type != any, ip field has meaningful value.
+    // If IPv4 -> lower 32 bits. If IPv6 -> all 128 bits.
+    __uint128_t ip;
+    // If type != any, mask field has meaningful value.
+    // If IPv4 mask -> lower 32 bits. If IPv6 mask -> all 128 bits.
+    // Should always be applied to matching ip (except type == any).
+    __uint128_t mask;
 };
 
 struct port_range {
-    __u16 lower_bound;
-    __u16 upper_bound;
+    __u16 lower_bound; // If not specified in SDF: 0
+    __u16 upper_bound; // If not specified in SDF: 65535
 };
 
 struct sdf_filter {
-    __u8 protocol; // 0: icmp, 1: ip, 2: tcp, 3: udp
+    __u8 protocol; // Required by SDF. 0: icmp, 1: ip, 2: tcp, 3: udp
     struct ip_w_mask src_addr;
     struct port_range src_port;
     struct ip_w_mask dst_addr;

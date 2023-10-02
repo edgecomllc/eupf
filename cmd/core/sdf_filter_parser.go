@@ -72,7 +72,7 @@ func ParseCidrIp(ipStr, maskStr string) (ebpf.IpWMask, error) {
 		} else {
 			ipType = 2
 		}
-		var mask net.IPMask
+		mask := net.CIDRMask(8*len(ip), 8*len(ip))
 		if maskStr != "" {
 			if maskUint, err := strconv.ParseUint(maskStr, 10, 64); err == nil {
 				mask = net.CIDRMask(int(maskUint), 8*len(ip))

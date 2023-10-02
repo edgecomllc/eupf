@@ -85,7 +85,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			spdrInfo := SPDRInfo{}
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
-				applyPDR(spdrInfo, mapOperations, session)
+				applyPDR(spdrInfo, mapOperations)
 			} else {
 				log.Printf("Error extracting PDR info: %s", err.Error())
 			}
@@ -126,27 +126,17 @@ func HasSdf(pdr *ie.IE) bool {
 	return false
 }
 
-func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, session *Session) {
-	defaultPdr := spdrInfo.PdrInfo
-	var sdfPdr *ebpf.PdrInfo
-	if spdrInfo.PdrInfo.SdfFilter != nil {
-		sdfPdr = &spdrInfo.PdrInfo
-		if defaultPdrId, err := session.FindDefaultPdrId(spdrInfo.Teid, spdrInfo.Ipv4, spdrInfo.Ipv6); err == nil {
-			defaultPdr = session.GetPDR(defaultPdrId).PdrInfo
-		} else {
-			log.Printf("Can't apply PDR with SDF: %s", err.Error())
-		}
-	}
+func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 	if spdrInfo.Ipv4 != nil {
-		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, ebpf.ToIpEntrypointPdrInfo(defaultPdr, sdfPdr)); err != nil {
+		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
 			log.Printf("Can't apply IPv4 PDR: %s", err.Error())
 		}
 	} else if spdrInfo.Ipv6 != nil {
-		if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, ebpf.ToIpEntrypointPdrInfo(defaultPdr, sdfPdr)); err != nil {
+		if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
 			log.Printf("Can't apply IPv6 PDR: %s", err.Error())
 		}
 	} else {
-		if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, ebpf.ToIpEntrypointPdrInfo(defaultPdr, sdfPdr)); err != nil {
+		if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
 			log.Printf("Can't apply GTP PDR: %s", err.Error())
 		}
 	}
@@ -396,7 +386,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			spdrInfo := SPDRInfo{}
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
-				applyPDR(spdrInfo, mapOperations, session)
+				applyPDR(spdrInfo, mapOperations)
 			} else {
 				log.Printf("Error extracting PDR info: %s", err.Error())
 			}
@@ -411,7 +401,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			spdrInfo := session.GetPDR(pdrId)
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
-				applyPDR(spdrInfo, mapOperations, session)
+				applyPDR(spdrInfo, mapOperations)
 			} else {
 				log.Printf("Error extracting PDR info: %s", err.Error())
 			}

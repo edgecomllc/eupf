@@ -10,13 +10,13 @@ import (
 func TestSdfFilterParseValid(t *testing.T) {
 	fds := [...]SdfFilterTestStruct{
 		{FlowDescription: "permit out ip from 10.62.0.1 to 8.8.8.8/32", Protocol: 1,
-			SrcType: 1, SrcAddress: "10.62.0.1", SrcMask: "<nil>", SrcPortLower: 0, SrcPortUpper: 65535,
+			SrcType: 1, SrcAddress: "10.62.0.1", SrcMask: "ffffffff", SrcPortLower: 0, SrcPortUpper: 65535,
 			DstType: 1, DstAddress: "8.8.8.8", DstMask: "ffffffff", DstPortLower: 0, DstPortUpper: 65535},
 		{FlowDescription: "permit out tcp from 1.1.1.1/20 80 to 100.1.2.3 9121-10202", Protocol: 2,
 			SrcType: 1, SrcAddress: "1.1.0.0", SrcMask: "fffff000", SrcPortLower: 80, SrcPortUpper: 80,
-			DstType: 1, DstAddress: "100.1.2.3", DstMask: "<nil>", DstPortLower: 9121, DstPortUpper: 10202},
+			DstType: 1, DstAddress: "100.1.2.3", DstMask: "ffffffff", DstPortLower: 9121, DstPortUpper: 10202},
 		{FlowDescription: "permit out udp from 2001:db8:3333:4444:CCCC:DDDD:EEEE:FFFF 8080-8081 to 2001:0db8::42/30", Protocol: 3,
-			SrcType: 2, SrcAddress: "2001:db8:3333:4444:cccc:dddd:eeee:ffff", SrcMask: "<nil>", SrcPortLower: 8080, SrcPortUpper: 8081,
+			SrcType: 2, SrcAddress: "2001:db8:3333:4444:cccc:dddd:eeee:ffff", SrcMask: "ffffffffffffffffffffffffffffffff", SrcPortLower: 8080, SrcPortUpper: 8081,
 			DstType: 2, DstAddress: "2001:db8::", DstMask: "fffffffc000000000000000000000000", DstPortLower: 0, DstPortUpper: 65535},
 		{FlowDescription: "permit out icmp from any 4-5 to ::1234:5678/2 2", Protocol: 0,
 			SrcType: 0, SrcAddress: "<nil>", SrcMask: "<nil>", SrcPortLower: 4, SrcPortUpper: 5,
