@@ -25,7 +25,7 @@ func TestSdfFilterParseValid(t *testing.T) {
 
 	for i := 0; i < len(fds); i++ {
 		if sdfFilter, err := ParseSdfFilter(fds[i].FlowDescription); err == nil {
-			if err := CheckSdfFilterEquality(sdfFilter, fds[i]); err != nil {
+			if err := CheckSdfFilterEquality(&sdfFilter, fds[i]); err != nil {
 				t.Errorf("Iteration %d.\nFlowDescription: %s\nError: %s", i, fds[i].FlowDescription, err.Error())
 			}
 		} else {
@@ -81,7 +81,10 @@ type SdfFilterTestStruct struct {
 	DstPortUpper    uint16
 }
 
-func CheckSdfFilterEquality(sdfFilter ebpf.SdfFilter, fd SdfFilterTestStruct) error {
+func CheckSdfFilterEquality(sdfFilter *ebpf.SdfFilter, fd SdfFilterTestStruct) error {
+	if sdfFilter == nil {
+		return fmt.Errorf("Wrong SdfFilter, expected: not nil, got: nil")
+	}
 	if sdfFilter.Protocol != fd.Protocol {
 		return fmt.Errorf("Wrong Protocol, expected: %d, got: %d", fd.Protocol, sdfFilter.Protocol)
 	}

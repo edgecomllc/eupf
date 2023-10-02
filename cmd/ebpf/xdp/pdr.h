@@ -40,9 +40,11 @@ enum outer_header_removal_values {
 };
 
 struct ip_w_mask {
-    __u8 type;
-    __uint128_t ip;
-    __uint128_t mask;
+    // Possible optimization: combine SrcAddress.Type and DstAddress.Type into one __u8 field.
+	// To retrieve and put data use operators & and | .
+    __u8 type; // 0: any (ip and mask should be zeros in this case), 1: ip4, 2: ip6
+    __uint128_t ip; // Ipv4 -> lower 32 bits. Ipv6 -> all 128 bits.
+    __uint128_t mask; // Ipv4 mask -> lower 32 bits. Ipv6 mask -> all 128 bits.
 };
 
 struct port_range {
@@ -51,14 +53,14 @@ struct port_range {
 };
 
 struct sdf_filter {
-    __u8 protocol;
+    __u8 protocol; // 0: icmp, 1: ip, 2: tcp, 3: udp
     struct ip_w_mask src_addr;
     struct port_range src_port;
     struct ip_w_mask dst_addr;
     struct port_range dst_port;
 };
 
-struct additional_rules {
+struct sdf_rules {
     struct sdf_filter sdf_filter;
     __u32 far_id;
     __u32 qer_id;
@@ -68,7 +70,7 @@ struct pdr_info {
     __u8 outer_header_removal;
     __u32 far_id;
     __u32 qer_id;
-    struct additional_rules additional_rules;
+    struct sdf_rules sdf_rules;
 };
 
 /* ipv4 -> PDR */ 

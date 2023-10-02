@@ -232,33 +232,28 @@ func TestSdfFilterStoreValid(t *testing.T) {
 	}
 
 	// Check that session PDRs are correct
-	// And that no new PDR has been created
-	if pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].Ipv4.String() != "1.1.1.1" {
+	if pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[2].Ipv4.String() != "1.1.1.1" {
 		t.Errorf("Session 1, got broken")
 	}
-	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 1 {
-		t.Errorf("Session 2, no new PDRs should appear")
-	}
 
-	if pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[1].Teid != 0 {
+	if pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[2].Teid != 0 {
 		t.Errorf("Session 2, got broken")
-	}
-	if len(pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs) != 1 {
-		t.Errorf("Session 2, no new PDRs should appear")
 	}
 
 	// Check that SDF filter is stored inside session
-	pdrInfo := pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].PdrInfo
-	err = CheckSdfFilterEquality(pdrInfo.AdditionalRules.SdfFilter, fd)
+	pdrInfo := pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[2].PdrInfo
+	err = CheckSdfFilterEquality(pdrInfo.SdfFilter, fd)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	pdrInfo = pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[1].PdrInfo
-	err = CheckSdfFilterEquality(pdrInfo.AdditionalRules.SdfFilter, fd)
+	pdrInfo = pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[2].PdrInfo
+	err = CheckSdfFilterEquality(pdrInfo.SdfFilter, fd)
 	if err != nil {
 		t.Error(err.Error())
 	}
+
+	// TODO: Check that FAR and QER are successfully stored in PDR with SDF
 }
 
 func TestSdfFilterStoreInvalid(t *testing.T) {
@@ -290,15 +285,11 @@ func TestSdfFilterStoreInvalid(t *testing.T) {
 	var err error
 	_, err = HandlePfcpSessionModificationRequest(&pfcpConn, seReq1, smfIP)
 	if err != nil {
-		t.Errorf("No error should appear while handling session establishment request. PDR with bad SDF should be skipped")
-	}
-	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 1 {
-		t.Errorf("No new PDRs should appear")
+		t.Errorf("No error should appear while handling session establishment request. PDR with bad SDF should be skipped?")
 	}
 
-	// Check that session PDR wasn't stored
-	// TODO: check all SDF fields, with FAR and QER
-	if pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].PdrInfo.AdditionalRules.SdfFilter.SrcAddress.Ip != nil {
+	// Check that session PDR wasn't stored? Now it is, just without SDF.
+	if pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[2].PdrInfo.SdfFilter != nil {
 		t.Errorf("Bad SDF shouldn't be stored")
 	}
 }

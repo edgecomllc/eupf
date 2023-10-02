@@ -92,35 +92,22 @@ func (s *Session) PutPDR(id uint32, info SPDRInfo) {
 	s.PDRs[id] = info
 }
 
-func (s *Session) FindPdrId(info SPDRInfo) (uint32, error) {
+func (s *Session) FindDefaultPdrId(teid uint32, ipv4 net.IP, ipv6 net.IP) (uint16, error) {
 	for pdrId := range s.PDRs {
+		if s.PDRs[pdrId].PdrInfo.SdfFilter != nil {
+			continue
+		}
 		// Compare all three fields (TEID, IPv4, IPv6),
 		// because TEID's default value is 0, even not specifically set.
-		if s.PDRs[pdrId].Teid == info.Teid &&
-			(s.PDRs[pdrId].Ipv4 == nil && info.Ipv4 == nil ||
-				s.PDRs[pdrId].Ipv4 != nil && info.Ipv4 != nil && s.PDRs[pdrId].Ipv4.Equal(info.Ipv4)) &&
-			(s.PDRs[pdrId].Ipv6 == nil && info.Ipv6 == nil ||
-				s.PDRs[pdrId].Ipv6 != nil && info.Ipv6 != nil && s.PDRs[pdrId].Ipv6.Equal(info.Ipv6)) {
-			return pdrId, nil
+		if s.PDRs[pdrId].Teid == teid &&
+			(s.PDRs[pdrId].Ipv4 == nil && ipv4 == nil ||
+				s.PDRs[pdrId].Ipv4 != nil && ipv4 != nil && s.PDRs[pdrId].Ipv4.Equal(ipv4)) &&
+			(s.PDRs[pdrId].Ipv6 == nil && ipv6 == nil ||
+				s.PDRs[pdrId].Ipv6 != nil && ipv6 != nil && s.PDRs[pdrId].Ipv6.Equal(ipv6)) {
+			return uint16(pdrId), nil
 		}
 	}
-	return 0, fmt.Errorf("Correponding PDR not found")
-}
-
-func (s *Session) PutSdfToPdr(pdrId uint32, info ebpf.AdditionalRules) {
-	pdr := s.PDRs[pdrId]
-	pdr.PdrInfo.AdditionalRules = info
-	s.PDRs[pdrId] = pdr
-}
-
-func (s *Session) GetPdrWithAdditionalRules(add SPDRInfo) (uint16, SPDRInfo, error) {
-	if pdrId, err := s.FindPdrId(add); err == nil {
-		newPdr := s.PDRs[pdrId]
-		newPdr.PdrInfo.AdditionalRules = add.PdrInfo.AdditionalRules
-		return uint16(pdrId), newPdr, nil
-	} else {
-		return 0, SPDRInfo{}, err
-	}
+	return 0, fmt.Errorf("Default PDR not found by 3-tuple: teid: %d, ipv4: %v, ipv6: %v", teid, ipv4, ipv6)
 }
 
 func (s *Session) GetPDR(id uint16) SPDRInfo {

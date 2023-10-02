@@ -16,13 +16,7 @@ type PdrInfo struct {
 	OuterHeaderRemoval uint8
 	FarId              uint32
 	QerId              uint32
-	AdditionalRules    AdditionalRules
-}
-
-type AdditionalRules struct {
-	SdfFilter SdfFilter
-	FarId     uint32
-	QerId     uint32
+	SdfFilter          *SdfFilter
 }
 
 type SdfFilter struct {
@@ -34,8 +28,6 @@ type SdfFilter struct {
 }
 
 type IpWMask struct {
-	// Possible optimization: combine SrcAddress.Type and DstAddress.Type into one __u8 field.
-	// To retrieve and put data use operators & and | .
 	Type uint8 // 0: any, 1: ip4, 2: ip6
 	Ip   net.IP
 	Mask net.IPMask
@@ -186,24 +178,26 @@ type ForwardingPlaneController interface {
 	DeleteQer(internalId uint32) error
 }
 
-func ToIpEntrypointPdrInfo(pdrInfo PdrInfo) IpEntrypointPdrInfo {
+func ToIpEntrypointPdrInfo(defaultPdr PdrInfo, sdfPdr *PdrInfo) IpEntrypointPdrInfo {
 	var pdrToStore IpEntrypointPdrInfo
-	pdrToStore.OuterHeaderRemoval = pdrInfo.OuterHeaderRemoval
-	pdrToStore.FarId = pdrInfo.FarId
-	pdrToStore.QerId = pdrInfo.QerId
-	pdrToStore.AdditionalRules.SdfFilter.Protocol = pdrInfo.AdditionalRules.SdfFilter.Protocol
-	pdrToStore.AdditionalRules.SdfFilter.SrcAddr.Type = pdrInfo.AdditionalRules.SdfFilter.SrcAddress.Type
-	pdrToStore.AdditionalRules.SdfFilter.SrcAddr.Ip = Copy16Ip(pdrInfo.AdditionalRules.SdfFilter.SrcAddress.Ip)
-	pdrToStore.AdditionalRules.SdfFilter.SrcAddr.Mask = Copy16Ip(pdrInfo.AdditionalRules.SdfFilter.SrcAddress.Mask)
-	pdrToStore.AdditionalRules.SdfFilter.SrcPort.LowerBound = pdrInfo.AdditionalRules.SdfFilter.SrcPortRange.LowerBound
-	pdrToStore.AdditionalRules.SdfFilter.SrcPort.UpperBound = pdrInfo.AdditionalRules.SdfFilter.SrcPortRange.UpperBound
-	pdrToStore.AdditionalRules.SdfFilter.DstAddr.Type = pdrInfo.AdditionalRules.SdfFilter.DstAddress.Type
-	pdrToStore.AdditionalRules.SdfFilter.DstAddr.Ip = Copy16Ip(pdrInfo.AdditionalRules.SdfFilter.DstAddress.Ip)
-	pdrToStore.AdditionalRules.SdfFilter.DstAddr.Mask = Copy16Ip(pdrInfo.AdditionalRules.SdfFilter.DstAddress.Mask)
-	pdrToStore.AdditionalRules.SdfFilter.DstPort.LowerBound = pdrInfo.AdditionalRules.SdfFilter.DstPortRange.LowerBound
-	pdrToStore.AdditionalRules.SdfFilter.DstPort.UpperBound = pdrInfo.AdditionalRules.SdfFilter.DstPortRange.UpperBound
-	pdrToStore.AdditionalRules.FarId = pdrInfo.AdditionalRules.FarId
-	pdrToStore.AdditionalRules.QerId = pdrInfo.AdditionalRules.QerId
+	pdrToStore.OuterHeaderRemoval = defaultPdr.OuterHeaderRemoval
+	pdrToStore.FarId = defaultPdr.FarId
+	pdrToStore.QerId = defaultPdr.QerId
+	if sdfPdr != nil {
+		pdrToStore.SdfRules.SdfFilter.Protocol = sdfPdr.SdfFilter.Protocol
+		pdrToStore.SdfRules.SdfFilter.SrcAddr.Type = sdfPdr.SdfFilter.SrcAddress.Type
+		pdrToStore.SdfRules.SdfFilter.SrcAddr.Ip = Copy16Ip(sdfPdr.SdfFilter.SrcAddress.Ip)
+		pdrToStore.SdfRules.SdfFilter.SrcAddr.Mask = Copy16Ip(sdfPdr.SdfFilter.SrcAddress.Mask)
+		pdrToStore.SdfRules.SdfFilter.SrcPort.LowerBound = sdfPdr.SdfFilter.SrcPortRange.LowerBound
+		pdrToStore.SdfRules.SdfFilter.SrcPort.UpperBound = sdfPdr.SdfFilter.SrcPortRange.UpperBound
+		pdrToStore.SdfRules.SdfFilter.DstAddr.Type = sdfPdr.SdfFilter.DstAddress.Type
+		pdrToStore.SdfRules.SdfFilter.DstAddr.Ip = Copy16Ip(sdfPdr.SdfFilter.DstAddress.Ip)
+		pdrToStore.SdfRules.SdfFilter.DstAddr.Mask = Copy16Ip(sdfPdr.SdfFilter.DstAddress.Mask)
+		pdrToStore.SdfRules.SdfFilter.DstPort.LowerBound = sdfPdr.SdfFilter.DstPortRange.LowerBound
+		pdrToStore.SdfRules.SdfFilter.DstPort.UpperBound = sdfPdr.SdfFilter.DstPortRange.UpperBound
+		pdrToStore.SdfRules.FarId = sdfPdr.FarId
+		pdrToStore.SdfRules.QerId = sdfPdr.QerId
+	}
 	return pdrToStore
 }
 
