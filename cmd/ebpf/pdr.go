@@ -242,16 +242,9 @@ func CombinePdrWithSdf(defaultPdr IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntrypo
 
 func ToIpEntrypointPdrInfo(defaultPdr PdrInfo) IpEntrypointPdrInfo {
 	var pdrToStore IpEntrypointPdrInfo
-	// Default mapping options.
 	pdrToStore.OuterHeaderRemoval = defaultPdr.OuterHeaderRemoval
 	pdrToStore.FarId = defaultPdr.FarId
 	pdrToStore.QerId = defaultPdr.QerId
-	// SDF mapping options.
-	var nil16Arr []byte
-	pdrToStore.SdfRules.SdfFilter.SrcAddr.Ip = Copy16Ip(nil16Arr)
-	pdrToStore.SdfRules.SdfFilter.SrcAddr.Mask = Copy16Ip(nil16Arr)
-	pdrToStore.SdfRules.SdfFilter.DstAddr.Ip = Copy16Ip(nil16Arr)
-	pdrToStore.SdfRules.SdfFilter.DstAddr.Mask = Copy16Ip(nil16Arr)
 	return pdrToStore
 }
 
