@@ -70,6 +70,7 @@ struct sdf_filter {
 
 struct sdf_rules {
     struct sdf_filter sdf_filter;
+    __u8 outer_header_removal;
     __u32 far_id;
     __u32 qer_id;
 };

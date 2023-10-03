@@ -236,6 +236,7 @@ func CombinePdrWithSdf(defaultPdr IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntrypo
 	pdrToStore.SdfRules.SdfFilter.DstAddr.Mask = Copy16Ip(sdfPdr.SdfFilter.DstAddress.Mask)
 	pdrToStore.SdfRules.SdfFilter.DstPort.LowerBound = sdfPdr.SdfFilter.DstPortRange.LowerBound
 	pdrToStore.SdfRules.SdfFilter.DstPort.UpperBound = sdfPdr.SdfFilter.DstPortRange.UpperBound
+	pdrToStore.SdfRules.OuterHeaderRemoval = sdfPdr.OuterHeaderRemoval
 	pdrToStore.SdfRules.FarId = sdfPdr.FarId
 	pdrToStore.SdfRules.QerId = sdfPdr.QerId
 	return pdrToStore
