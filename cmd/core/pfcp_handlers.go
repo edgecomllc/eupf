@@ -1,10 +1,10 @@
 package core
 
 import (
-	"log"
 	"net"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -17,7 +17,7 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 	log.Printf("Handling PFCP message from %s", addr)
 	incomingMsg, err := message.Parse(buf)
 	if err != nil {
-		log.Printf("Ignored undecodable message: %x, error: %s", buf, err)
+		log.Warn().Msgf("Ignored undecodable message: %x, error: %s", buf, err)
 		return err
 	}
 	PfcpMessageRx.WithLabelValues(incomingMsg.MessageTypeName()).Inc()
@@ -27,7 +27,7 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 		stringIpAddr := addr.IP.String()
 		outgoingMsg, err := handler(conn, incomingMsg, stringIpAddr)
 		if err != nil {
-			log.Printf("Error handling PFCP message: %s", err.Error())
+			log.Error().Msgf("Error handling PFCP message: %s", err.Error())
 			return err
 		}
 		duration := time.Since(startTime)
@@ -39,7 +39,7 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 		}
 		return nil
 	} else {
-		log.Printf("Got unexpected message %s: %s, from: %s", incomingMsg.MessageTypeName(), incomingMsg, addr)
+		log.Warn().Msgf("Got unexpected message %s: %s, from: %s", incomingMsg.MessageTypeName(), incomingMsg, addr)
 	}
 	return nil
 }
@@ -73,7 +73,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	if _, ok := conn.NodeAssociations[remoteNodeID]; ok {
 		log.Printf("Association Setup Request with NodeID: %s from: %s already exists", remoteNodeID, addr)
 		// retain the PFCP sessions that were established with the existing PFCP association and that are requested to be retained, if the PFCP Session Retention Information IE was received in the request; otherwise, delete the PFCP sessions that were established with the existing PFCP association;
-		log.Println("Session retention is not yet implemented")
+		log.Warn().Msg("Session retention is not yet implemented")
 	}
 
 	// If the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established

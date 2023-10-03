@@ -2,12 +2,12 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"time"
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
+	"github.com/rs/zerolog/log"
 
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -33,12 +33,12 @@ func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociat
 func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
-		log.Panicf("Can't resolve UDP address: %s", err.Error())
+		log.Panic().Msgf("Can't resolve UDP address: %s", err.Error())
 		return nil, err
 	}
 	udpConn, err := net.ListenUDP("udp", udpAddr)
 	if err != nil {
-		log.Printf("Can't listen UDP address: %s", err.Error())
+		log.Error().Msgf("Can't listen UDP address: %s", err.Error())
 		return nil, err
 	}
 
@@ -71,7 +71,7 @@ func (connection *PfcpConnection) Run() {
 	for {
 		n, addr, err := connection.Receive(buf)
 		if err != nil {
-			log.Printf("Error reading from UDP socket: %s", err.Error())
+			log.Error().Msgf("Error reading from UDP socket: %s", err.Error())
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -91,7 +91,7 @@ func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, e
 func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
 	err := connection.pfcpHandlerMap.Handle(connection, b, addr)
 	if err != nil {
-		log.Printf("Error handling PFCP message: %s", err.Error())
+		log.Error().Msgf("Error handling PFCP message: %s", err.Error())
 	}
 }
 
@@ -102,11 +102,11 @@ func (connection *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error)
 func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDPAddr) error {
 	responseBytes := make([]byte, msg.MarshalLen())
 	if err := msg.MarshalTo(responseBytes); err != nil {
-		log.Print(err)
+		log.Error().Msg(err.Error())
 		return err
 	}
 	if _, err := connection.Send(responseBytes, addr); err != nil {
-		log.Print(err)
+		log.Error().Msgf(err.Error())
 		return err
 	}
 	return nil
