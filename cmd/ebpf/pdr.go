@@ -43,11 +43,10 @@ func HandlePdrWithSdf(lookup func(interface{}, interface{}) error, key interface
 	var pdrToStore IpEntrypointPdrInfo
 	if pdrInfo.SdfFilter != nil {
 		var defaultPdr IpEntrypointPdrInfo
-		if err := lookup(key, &defaultPdr); err == nil {
-			pdrToStore = CombinePdrWithSdf(defaultPdr, pdrInfo)
-		} else {
+		if err := lookup(key, &defaultPdr); err != nil {
 			return nil, err
 		}
+		pdrToStore = CombinePdrWithSdf(defaultPdr, pdrInfo)
 	} else {
 		pdrToStore = ToIpEntrypointPdrInfo(pdrInfo)
 	}
