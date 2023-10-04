@@ -71,13 +71,6 @@ static __always_inline __u8 match_sdf_filter_ipv6(const struct ipv6hdr *ip6, str
     struct in6_addr packet_src_ip = ip6->saddr;
     struct in6_addr packet_dst_ip = ip6->daddr;
 
-    // __uint128_t packet_src_ip_128 = 0;
-    // __uint128_t packet_dst_ip_128 = 0;
-    // for (int i = 0; i < 16; i++) {
-    //     packet_src_ip_128 = (packet_src_ip_128 << 8) | packet_src_ip.s6_addr[i];
-    //     packet_dst_ip_128 = (packet_dst_ip_128 << 8) | packet_dst_ip.s6_addr[i];
-    // }
-
     __uint128_t packet_src_ip_128 = *((__uint128_t*)packet_src_ip.s6_addr);
     __uint128_t packet_dst_ip_128 = *((__uint128_t*)packet_dst_ip.s6_addr);
 
@@ -100,33 +93,38 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
         return DEFAULT_XDP_ACTION;
     }
 
-    struct sdf_filter *sdf = &pdr->additional_rules.sdf_filter;
+    struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
     __u8 packet_matched = 0;
-    if(!sdf) {
-        upf_printk("upf: no sdf filter for pdr");
-    }  else {
-        packet_matched = match_sdf_filter_ipv4(ip4, &pdr->additional_rules.sdf_filter);
-    }
-
-    struct far_info *far;
-    struct qer_info *qer;
-
-    if(packet_matched) {
-        upf_printk("Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
-        far = bpf_map_lookup_elem(&far_map, &pdr->additional_rules.far_id);
-        qer = bpf_map_lookup_elem(&qer_map, &pdr->additional_rules.qer_id);
+    __u32 far_id;
+    __u32 qer_id;
+    __u8 outer_header_removal;
+    if(sdf) {
+        packet_matched = match_sdf_filter_ipv4(ip4, &pdr->sdf_rules.sdf_filter);
+        if(packet_matched) {
+            upf_printk("Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
+            far_id = pdr->sdf_rules.far_id;
+            qer_id = pdr->sdf_rules.qer_id;
+            outer_header_removal = pdr->sdf_rules.outer_header_removal;
+        } else {
+            upf_printk("No matches found for Ipv4 packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
+            far_id = pdr->far_id;
+            qer_id = pdr->qer_id;
+            outer_header_removal = pdr->outer_header_removal;
+            
+        }
     } else {
-        upf_printk("No matches found for Ipv4 packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
-        far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
-        qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
+        far_id = pdr->far_id;
+        qer_id = pdr->qer_id;
+        outer_header_removal = pdr->outer_header_removal;
     }
 
+    struct far_info *far = bpf_map_lookup_elem(&far_map, &far_id);
     if (!far) {
-        upf_printk("upf: no downlink session far for ip:%pI4 far:%d", &ip4->daddr, pdr->far_id);
+        upf_printk("upf: no downlink session far for ip:%pI4 far:%d", &ip4->daddr, far_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: downlink session for ip:%pI4  far:%d action:%d", &ip4->daddr, pdr->far_id, far->action);
+    upf_printk("upf: downlink session for ip:%pI4  far:%d action:%d", &ip4->daddr, far_id, far->action);
 
     // Only forwarding action is supported at the moment
     if (!(far->action & FAR_FORW))
@@ -136,13 +134,13 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     if (!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
         return XDP_DROP;
 
-    
+    struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &qer_id);  
     if (!qer) {
-        upf_printk("upf: no downlink session qer for ip:%pI4 qer:%d", &ip4->daddr, pdr->qer_id);
+        upf_printk("upf: no downlink session qer for ip:%pI4 qer:%d", &ip4->daddr, qer_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
+    upf_printk("upf: qer:%d gate_status:%d mbr:%d", qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
 
     if (qer->dl_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
@@ -165,33 +163,38 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
         return DEFAULT_XDP_ACTION;
     }
 
-    struct sdf_filter *sdf = &pdr->additional_rules.sdf_filter;
-     __u8 packet_matched = 0;
-    if(!sdf) {
-        upf_printk("upf: no sdf filter for pdr");
-    }  else {
-        packet_matched = match_sdf_filter_ipv6(ip6, &pdr->additional_rules.sdf_filter);
-    }
-    
-    struct far_info *far;
-    struct qer_info *qer;
-
-    if(packet_matched) {
-        upf_printk("Packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
-        far = bpf_map_lookup_elem(&far_map, &pdr->additional_rules.far_id);
-        qer = bpf_map_lookup_elem(&qer_map, &pdr->additional_rules.qer_id);
+    struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
+    __u8 packet_matched = 0;
+    __u32 far_id;
+    __u32 qer_id;
+    __u8 outer_header_removal;
+    if(sdf) {
+        packet_matched = match_sdf_filter_ipv4(ip6, &pdr->sdf_rules.sdf_filter);
+        if(packet_matched) {
+            upf_printk("Packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
+            far_id = pdr->sdf_rules.far_id;
+            qer_id = pdr->sdf_rules.qer_id;
+            outer_header_removal = pdr->sdf_rules.outer_header_removal;
+        } else {
+            upf_printk("No matches found for Ipv4 packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
+            far_id = pdr->far_id;
+            qer_id = pdr->qer_id;
+            outer_header_removal = pdr->outer_header_removal;
+            
+        }
     } else {
-        upf_printk("No matches found for Ipv4 packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
-        far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
-        qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
+        far_id = pdr->far_id;
+        qer_id = pdr->qer_id;
+        outer_header_removal = pdr->outer_header_removal;
     }
 
+    struct far_info *far = bpf_map_lookup_elem(&far_map, &far_id);
     if (!far) {
-        upf_printk("upf: no downlink session far for ip:%pI6c far:%d", &ip6->daddr, pdr->far_id);
+        upf_printk("upf: no downlink session far for ip:%pI6c far:%d", &ip6->daddr, far_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, pdr->far_id, far->action);
+    upf_printk("upf: downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, far_id, far->action);
 
     // Only forwarding action supported at the moment
     if (!(far->action & FAR_FORW))
@@ -201,12 +204,13 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     if (!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
         return XDP_DROP;
 
+    struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &qer_id);  
     if (!qer) {
-        upf_printk("upf: no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, pdr->qer_id);
+        upf_printk("upf: no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, qer_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
+    upf_printk("upf: qer:%d gate_status:%d mbr:%d", qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
 
     if (qer->dl_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
