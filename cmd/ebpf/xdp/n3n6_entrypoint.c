@@ -49,7 +49,7 @@ static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context 
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
-static __always_inline __u8 packet_matches_sdf_filter_ipv4(const struct iphdr *ip4, struct sdf_filter *sdf) {
+static __always_inline __u8 match_sdf_filter_ipv4(const struct iphdr *ip4, struct sdf_filter *sdf) {
     __u8 packet_protocol = ip4->protocol;
     __u32 packet_src_ip = ip4->saddr;
     __u32 packet_dst_ip = ip4->daddr;
@@ -66,17 +66,20 @@ static __always_inline __u8 packet_matches_sdf_filter_ipv4(const struct iphdr *i
     return 1;
 }
 
-static __always_inline __u8 packet_matches_sdf_filter_ipv6(const struct ipv6hdr *ip6, struct sdf_filter *sdf) {
+static __always_inline __u8 match_sdf_filter_ipv6(const struct ipv6hdr *ip6, struct sdf_filter *sdf) {
     __u8 packet_protocol = ip6->nexthdr;
     struct in6_addr packet_src_ip = ip6->saddr;
     struct in6_addr packet_dst_ip = ip6->daddr;
 
-    __uint128_t packet_src_ip_128 = 0;
-    __uint128_t packet_dst_ip_128 = 0;
-    for (int i = 0; i < 16; i++) {
-        packet_src_ip_128 = (packet_src_ip_128 << 8) | packet_src_ip.s6_addr[i];
-        packet_dst_ip_128 = (packet_dst_ip_128 << 8) | packet_dst_ip.s6_addr[i];
-    }
+    // __uint128_t packet_src_ip_128 = 0;
+    // __uint128_t packet_dst_ip_128 = 0;
+    // for (int i = 0; i < 16; i++) {
+    //     packet_src_ip_128 = (packet_src_ip_128 << 8) | packet_src_ip.s6_addr[i];
+    //     packet_dst_ip_128 = (packet_dst_ip_128 << 8) | packet_dst_ip.s6_addr[i];
+    // }
+
+    __uint128_t packet_src_ip_128 = *((__uint128_t*)packet_src_ip.s6_addr);
+    __uint128_t packet_dst_ip_128 = *((__uint128_t*)packet_dst_ip.s6_addr);
 
     if (sdf->protocol != packet_protocol ||
         (packet_src_ip_128 & sdf->src_addr.mask) != sdf->src_addr.ip || 
@@ -98,21 +101,27 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     }
 
     struct sdf_filter *sdf = &pdr->additional_rules.sdf_filter;
+    __u8 packet_matched = 0;
     if(!sdf) {
         upf_printk("upf: no sdf filter for pdr");
-        return DEFAULT_XDP_ACTION;
+    }  else {
+        packet_matched = match_sdf_filter_ipv4(ip4, &pdr->additional_rules.sdf_filter);
     }
-    __u8 packet_matched = packet_matches_sdf_filter_ipv4(ip4, &pdr->additional_rules.sdf_filter);
+
+    struct far_info *far;
+    struct qer_info *qer;
 
     if(packet_matched) {
         upf_printk("Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
+        far = bpf_map_lookup_elem(&far_map, &pdr->additional_rules.far_id);
+        qer = bpf_map_lookup_elem(&qer_map, &pdr->additional_rules.qer_id);
     } else {
         upf_printk("No matches found for Ipv4 packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
+        far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+        qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
     }
 
-    struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
     if (!far) {
-
         upf_printk("upf: no downlink session far for ip:%pI4 far:%d", &ip4->daddr, pdr->far_id);
         return XDP_DROP;
     }
@@ -127,7 +136,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     if (!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
         return XDP_DROP;
 
-    struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
+    
     if (!qer) {
         upf_printk("upf: no downlink session qer for ip:%pI4 qer:%d", &ip4->daddr, pdr->qer_id);
         return XDP_DROP;
@@ -157,19 +166,26 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     }
 
     struct sdf_filter *sdf = &pdr->additional_rules.sdf_filter;
+     __u8 packet_matched = 0;
     if(!sdf) {
         upf_printk("upf: no sdf filter for pdr");
-        return DEFAULT_XDP_ACTION;
+    }  else {
+        packet_matched = match_sdf_filter_ipv6(ip6, &pdr->additional_rules.sdf_filter);
     }
-    __u8 packet_matched = packet_matches_sdf_filter_ipv6(ip6, &pdr->additional_rules.sdf_filter);
+    
+    struct far_info *far;
+    struct qer_info *qer;
 
     if(packet_matched) {
         upf_printk("Packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
+        far = bpf_map_lookup_elem(&far_map, &pdr->additional_rules.far_id);
+        qer = bpf_map_lookup_elem(&qer_map, &pdr->additional_rules.qer_id);
     } else {
-        upf_printk("No matches found for Ipv6 packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
+        upf_printk("No matches found for Ipv4 packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
+        far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+        qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
     }
 
-    struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
     if (!far) {
         upf_printk("upf: no downlink session far for ip:%pI6c far:%d", &ip6->daddr, pdr->far_id);
         return XDP_DROP;
@@ -185,7 +201,6 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     if (!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
         return XDP_DROP;
 
-    struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
     if (!qer) {
         upf_printk("upf: no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, pdr->qer_id);
         return XDP_DROP;
