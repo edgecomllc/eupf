@@ -125,6 +125,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
 
     struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
     if (!far) {
+
         upf_printk("upf: no downlink session far for ip:%pI4 far:%d", &ip4->daddr, pdr->far_id);
         return XDP_DROP;
     }
