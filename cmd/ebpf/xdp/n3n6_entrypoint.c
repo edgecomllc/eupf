@@ -74,7 +74,7 @@ static __always_inline __u8 packet_matches_sdf_filter_ipv4(const struct iphdr *i
         return 0;
     }
 
-    upf_printk("Pakcet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
+    upf_printk("Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
 
     return 1;
 }
@@ -97,7 +97,7 @@ static __always_inline __u8 packet_matches_sdf_filter_ipv6(const struct ipv6hdr 
         return 0;
     }
 
-    upf_printk("Pakcet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
+    upf_printk("Packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
 
     return 1;
 }
@@ -118,7 +118,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     __u8 packet_matched = packet_matches_sdf_filter_ipv4(ip4, &pdr->additional_rules.sdf_filter);
 
     if(packet_matched) {
-        upf_printk("Pakcet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
+        upf_printk("Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
     } else {
         upf_printk("No matches found for Ipv4 packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
     }
@@ -176,7 +176,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     __u8 packet_matched = packet_matches_sdf_filter_ipv6(ip6, &pdr->additional_rules.sdf_filter);
 
     if(packet_matched) {
-        upf_printk("Pakcet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
+        upf_printk("Packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
     } else {
         upf_printk("No matches found for Ipv6 packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
     }
