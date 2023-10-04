@@ -39,25 +39,88 @@
 #include "xdp/utils/routing.h"
 #include "xdp/utils/icmp.h"
 
-
+#undef bpf_printk
+#ifdef ENABLE_LOG  // trace_pipe logs disabled by default
+#warning "Debug log enabled"
+#define bpf_printk(fmt, ...)                       \
+    ({                                             \
+        static const char ____fmt[] = fmt;         \
+        bpf_trace_printk(____fmt, sizeof(____fmt), \
+                         ##__VA_ARGS__);           \
+    })
+#else
+#define bpf_printk(fmt, ...)
+#endif
 
 #define DEFAULT_XDP_ACTION XDP_PASS
 
 static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, int teid) {
     if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, teid))
         return XDP_ABORTED;
-  
     upf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
     increment_counter(ctx->n3_n6_counter, tx_n3);
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
-static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_context *ctx) {
+static __always_inline __u8 packet_matches_sdf_filter_ipv4(const struct iphdr *ip4, struct sdf_filter *sdf) {
+    __u8 packet_protocol = ip4->protocol;
+    __u32 packet_src_ip = ip4->saddr;
+    __u32 packet_dst_ip = ip4->daddr;
+
+
+    if (sdf->protocol != packet_protocol ||
+        (packet_src_ip & sdf->src_addr.mask) != sdf->src_addr.ip || 
+        (packet_dst_ip & sdf->dst_addr.mask) != sdf->dst_addr.ip) {
+        return 0;
+    }
+
+    upf_printk("Pakcet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
+
+    return 1;
+}
+
+static __always_inline __u8 packet_matches_sdf_filter_ipv6(const struct ipv6hdr *ip6, struct sdf_filter *sdf) {
+    __u8 packet_protocol = ip6->nexthdr;
+    struct in6_addr packet_src_ip = ip6->saddr;
+    struct in6_addr packet_dst_ip = ip6->daddr;
+
+    __uint128_t packet_src_ip_128 = 0;
+    __uint128_t packet_dst_ip_128 = 0;
+    for (int i = 0; i < 16; i++) {
+        packet_src_ip_128 = (packet_src_ip_128 << 8) | packet_src_ip.s6_addr[i];
+        packet_dst_ip_128 = (packet_dst_ip_128 << 8) | packet_dst_ip.s6_addr[i];
+    }
+
+    if (sdf->protocol != packet_protocol ||
+        (packet_src_ip_128 & sdf->src_addr.mask) != sdf->src_addr.ip || 
+        (packet_dst_ip_128 & sdf->dst_addr.mask) != sdf->dst_addr.ip) {
+        return 0;
+    }
+
+    upf_printk("Pakcet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
+
+    return 1;
+}
+
+static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     const struct iphdr *ip4 = ctx->ip4;
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
     if (!pdr) {
         upf_printk("upf: no downlink session for ip:%pI4", &ip4->daddr);
         return DEFAULT_XDP_ACTION;
+    }
+
+    struct sdf_filter *sdf = &pdr->additional_rules.sdf_filter;
+    if(!sdf) {
+        upf_printk("upf: no sdf filter for pdr");
+        return DEFAULT_XDP_ACTION;
+    }
+    __u8 packet_matched = packet_matches_sdf_filter_ipv4(ip4, &pdr->additional_rules.sdf_filter);
+
+    if(packet_matched) {
+        upf_printk("Pakcet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
+    } else {
+        upf_printk("No matches found for Ipv4 packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
     }
 
     struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
@@ -103,6 +166,19 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     if (!pdr) {
         upf_printk("upf: no downlink session for ip:%pI6c", &ip6->daddr);
         return DEFAULT_XDP_ACTION;
+    }
+
+    struct sdf_filter *sdf = &pdr->additional_rules.sdf_filter;
+    if(!sdf) {
+        upf_printk("upf: no sdf filter for pdr");
+        return DEFAULT_XDP_ACTION;
+    }
+    __u8 packet_matched = packet_matches_sdf_filter_ipv6(ip6, &pdr->additional_rules.sdf_filter);
+
+    if(packet_matched) {
+        upf_printk("Pakcet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
+    } else {
+        upf_printk("No matches found for Ipv6 packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
     }
 
     struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
@@ -167,7 +243,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         return XDP_DROP;
     }
 
-    upf_printk("upf: far:%d action:%d outer_header_creation:%d", pdr->far_id, far->action, far->outer_header_creation);
+    bpf_printk("upf: far:%d action:%d outer_header_creation:%d", pdr->far_id, far->action, far->outer_header_creation);
 
     // Only forwarding action supported at the moment
     if (!(far->action & FAR_FORW))
@@ -214,7 +290,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     //     if (-1 == add_icmp_over_ip4_headers(ctx, far->localip, ctx->ip4->saddr))
     //         return XDP_ABORTED;
 
-    //     upf_printk("upf: send icmp ttl exeeded %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+    //     bpf_printk("upf: send icmp ttl exeeded %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
     //     return handle_n6_packet_ipv4(ctx);
     // }
 
@@ -254,8 +330,8 @@ static __always_inline enum xdp_action handle_gtpu(struct packet_context *ctx) {
             return handle_gtp_packet(ctx);
         case GTPU_ECHO_REQUEST:
             increment_counter(ctx->counters, rx_gtp_echo);
-            // upf_printk("upf: gtp header [ version=%d, pt=%d, e=%d]", gtp->version, gtp->pt, gtp->e);
-            // upf_printk("upf: gtp echo request [ type=%d ]", pdu_type);
+            // bpf_printk("upf: gtp header [ version=%d, pt=%d, e=%d]", gtp->version, gtp->pt, gtp->e);
+            // bpf_printk("upf: gtp echo request [ type=%d ]", pdu_type);
             upf_printk("upf: gtp echo request [ %pI4 -> %pI4 ]", &ctx->ip4->saddr, &ctx->ip4->daddr);
             return handle_echo_request(ctx);
         case GTPU_ECHO_RESPONSE:
@@ -310,7 +386,7 @@ static __always_inline enum xdp_action handle_ip6(struct packet_context *ctx) {
             // Don't expect GTP over IPv6 at the moment
             // if (GTP_UDP_PORT == parse_udp(ctx))
             // {
-            //     upf_printk("upf: gtp-u received");
+            //     bpf_printk("upf: gtp-u received");
             //     return handle_gtpu(ctx);
             // }
             break;
@@ -348,7 +424,7 @@ static __always_inline enum xdp_action process_packet(struct packet_context *ctx
 // Combined N3 & N6 entrypoint. Use for "on-a-stick" interfaces
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx) {
-    // upf_printk("upf n3 & n6 combined entrypoint start");
+    // bpf_printk("upf n3 & n6 combined entrypoint start");
     const __u32 key = 0;
     struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat, &key);
     if (!statistic) {
