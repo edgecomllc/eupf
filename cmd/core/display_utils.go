@@ -3,10 +3,10 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -31,7 +31,7 @@ func printAssociationSetupRequest(req *message.AssociationSetupRequest) {
 			writeLineTabbed(&sb, fmt.Sprintf("Recovery Time: %s", recoveryTime.String()), 1)
 		}
 	}
-	log.Print(sb.String())
+	log.Info().Msg(sb.String())
 }
 
 func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) {
@@ -62,7 +62,7 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 		sb.WriteString("  Create")
 		displayBar(&sb, req.CreateBAR)
 	}
-	log.Print(sb.String())
+	log.Info().Msg(sb.String())
 }
 
 // IE Contents of Create/Update/Remove are mostly the same
@@ -163,7 +163,7 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 			writeLineTabbed(&sb, fmt.Sprintf("BAR ID: %d ", barId), 2)
 		}
 	}
-	log.Print(sb.String())
+	log.Info().Msg(sb.String())
 }
 
 func printSessionDeleteRequest(req *message.SessionDeletionRequest) {

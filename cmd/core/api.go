@@ -1,7 +1,6 @@
 package core
 
 import (
-	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -13,6 +12,7 @@ import (
 	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -270,7 +270,7 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 func ListQerMapContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if elements, err := ebpf.ListQerMapContents(bpfObjects.IpEntrypointObjects.QerMap); err != nil {
-			log.Printf("Error reading map: %s", err.Error())
+			log.Info().Msgf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
 			c.IndentedJSON(http.StatusOK, elements)
@@ -291,7 +291,7 @@ func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 		id := c.Param("id")
 		aid, err := strconv.Atoi(id)
 		if err != nil {
-			log.Printf("Error converting id to int: %s", err.Error())
+			log.Info().Msgf("Error converting id to int: %s", err.Error())
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -299,7 +299,7 @@ func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 		var value ebpf.QerInfo
 
 		if err = bpfObjects.IpEntrypointObjects.QerMap.Lookup(uint32(aid), unsafe.Pointer(&value)); err != nil {
-			log.Printf("Error reading map: %s", err.Error())
+			log.Info().Msgf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -325,7 +325,7 @@ func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 func ListUpfPipeline(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if elements, err := ebpf.ListMapProgArrayContents(bpfObjects.UpfXdpObjects.UpfPipeline); err != nil {
-			log.Printf("Error reading map: %s", err.Error())
+			log.Info().Msgf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
 			c.IndentedJSON(http.StatusOK, elements)
