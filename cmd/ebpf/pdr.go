@@ -39,54 +39,68 @@ type PortRange struct {
 	UpperBound uint16
 }
 
-func HandlePdrWithSdf(lookup func(interface{}, interface{}) error, key interface{}, pdrInfo PdrInfo) (*IpEntrypointPdrInfo, error) {
-	var pdrToStore IpEntrypointPdrInfo
-	if pdrInfo.SdfFilter != nil {
-		var defaultPdr IpEntrypointPdrInfo
-		if err := lookup(key, &defaultPdr); err != nil {
-			return nil, err
-		}
-		pdrToStore = CombinePdrWithSdf(defaultPdr, pdrInfo)
-	} else {
-		pdrToStore = ToIpEntrypointPdrInfo(pdrInfo)
+func PreprocessPdrWithSdf(lookup func(interface{}, interface{}) error, key interface{}, pdrInfo PdrInfo) (IpEntrypointPdrInfo, error) {
+	var defaultPdr IpEntrypointPdrInfo
+	if err := lookup(key, &defaultPdr); err != nil {
+		return IpEntrypointPdrInfo{}, err
 	}
-	return &pdrToStore, nil
+	return CombinePdrWithSdf(defaultPdr, pdrInfo), nil
 }
 
 func (bpfObjects *BpfObjects) PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error {
 	log.Printf("EBPF: Put PDR Uplink: teid=%d, pdrInfo=%+v", teid, pdrInfo)
-	if pdrToStore, err := HandlePdrWithSdf(bpfObjects.PdrMapUplinkIp4.Lookup, teid, pdrInfo); err == nil {
-		return bpfObjects.PdrMapUplinkIp4.Put(teid, unsafe.Pointer(pdrToStore))
+	var pdrToStore IpEntrypointPdrInfo
+	var err error
+	if pdrInfo.SdfFilter != nil {
+		if pdrToStore, err = PreprocessPdrWithSdf(bpfObjects.PdrMapUplinkIp4.Lookup, teid, pdrInfo); err != nil {
+			return err
+		}
 	} else {
-		return err
+		pdrToStore = ToIpEntrypointPdrInfo(pdrInfo)
 	}
+	return bpfObjects.PdrMapUplinkIp4.Put(teid, unsafe.Pointer(&pdrToStore))
 }
 
 func (bpfObjects *BpfObjects) PutPdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
 	log.Printf("EBPF: Put PDR Downlink: ipv4=%s, pdrInfo=%+v", ipv4, pdrInfo)
-	if pdrToStore, err := HandlePdrWithSdf(bpfObjects.PdrMapDownlinkIp4.Lookup, ipv4, pdrInfo); err == nil {
-		return bpfObjects.PdrMapDownlinkIp4.Put(ipv4, unsafe.Pointer(pdrToStore))
+	var pdrToStore IpEntrypointPdrInfo
+	var err error
+	if pdrInfo.SdfFilter != nil {
+		if pdrToStore, err = PreprocessPdrWithSdf(bpfObjects.PdrMapDownlinkIp4.Lookup, ipv4, pdrInfo); err != nil {
+			return err
+		}
 	} else {
-		return err
+		pdrToStore = ToIpEntrypointPdrInfo(pdrInfo)
 	}
+	return bpfObjects.PdrMapDownlinkIp4.Put(ipv4, unsafe.Pointer(&pdrToStore))
 }
 
 func (bpfObjects *BpfObjects) UpdatePdrUpLink(teid uint32, pdrInfo PdrInfo) error {
 	log.Printf("EBPF: Update PDR Uplink: teid=%d, pdrInfo=%+v", teid, pdrInfo)
-	if pdrToStore, err := HandlePdrWithSdf(bpfObjects.PdrMapUplinkIp4.Lookup, teid, pdrInfo); err == nil {
-		return bpfObjects.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(pdrToStore), ebpf.UpdateExist)
+	var pdrToStore IpEntrypointPdrInfo
+	var err error
+	if pdrInfo.SdfFilter != nil {
+		if pdrToStore, err = PreprocessPdrWithSdf(bpfObjects.PdrMapUplinkIp4.Lookup, teid, pdrInfo); err != nil {
+			return err
+		}
 	} else {
-		return err
+		pdrToStore = ToIpEntrypointPdrInfo(pdrInfo)
 	}
+	return bpfObjects.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&pdrToStore), ebpf.UpdateExist)
 }
 
 func (bpfObjects *BpfObjects) UpdatePdrDownLink(ipv4 net.IP, pdrInfo PdrInfo) error {
 	log.Printf("EBPF: Update PDR Downlink: ipv4=%s, pdrInfo=%+v", ipv4, pdrInfo)
-	if pdrToStore, err := HandlePdrWithSdf(bpfObjects.PdrMapDownlinkIp4.Lookup, ipv4, pdrInfo); err == nil {
-		return bpfObjects.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(pdrToStore), ebpf.UpdateExist)
+	var pdrToStore IpEntrypointPdrInfo
+	var err error
+	if pdrInfo.SdfFilter != nil {
+		if pdrToStore, err = PreprocessPdrWithSdf(bpfObjects.PdrMapDownlinkIp4.Lookup, ipv4, pdrInfo); err != nil {
+			return err
+		}
 	} else {
-		return err
+		pdrToStore = ToIpEntrypointPdrInfo(pdrInfo)
 	}
+	return bpfObjects.PdrMapDownlinkIp4.Update(ipv4, unsafe.Pointer(&pdrToStore), ebpf.UpdateExist)
 }
 
 func (bpfObjects *BpfObjects) DeletePdrUpLink(teid uint32) error {
@@ -103,20 +117,30 @@ func (bpfObjects *BpfObjects) DeletePdrDownLink(ipv4 net.IP) error {
 
 func (bpfObjects *BpfObjects) PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error {
 	log.Printf("EBPF: Put PDR Ipv6 Downlink: ipv6=%s, pdrInfo=%+v", ipv6, pdrInfo)
-	if pdrToStore, err := HandlePdrWithSdf(bpfObjects.PdrMapDownlinkIp6.Lookup, ipv6, pdrInfo); err == nil {
-		return bpfObjects.PdrMapDownlinkIp6.Put(ipv6, unsafe.Pointer(&pdrToStore))
+	var pdrToStore IpEntrypointPdrInfo
+	var err error
+	if pdrInfo.SdfFilter != nil {
+		if pdrToStore, err = PreprocessPdrWithSdf(bpfObjects.PdrMapDownlinkIp6.Lookup, ipv6, pdrInfo); err != nil {
+			return err
+		}
 	} else {
-		return err
+		pdrToStore = ToIpEntrypointPdrInfo(pdrInfo)
 	}
+	return bpfObjects.PdrMapDownlinkIp6.Put(ipv6, unsafe.Pointer(&pdrToStore))
 }
 
 func (bpfObjects *BpfObjects) UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error {
 	log.Printf("EBPF: Update PDR Ipv6 Downlink: ipv6=%s, pdrInfo=%+v", ipv6, pdrInfo)
-	if pdrToStore, err := HandlePdrWithSdf(bpfObjects.PdrMapDownlinkIp6.Lookup, ipv6, pdrInfo); err == nil {
-		return bpfObjects.PdrMapDownlinkIp6.Update(ipv6, unsafe.Pointer(&pdrToStore), ebpf.UpdateExist)
+	var pdrToStore IpEntrypointPdrInfo
+	var err error
+	if pdrInfo.SdfFilter != nil {
+		if pdrToStore, err = PreprocessPdrWithSdf(bpfObjects.PdrMapDownlinkIp6.Lookup, ipv6, pdrInfo); err != nil {
+			return err
+		}
 	} else {
-		return err
+		pdrToStore = ToIpEntrypointPdrInfo(pdrInfo)
 	}
+	return bpfObjects.PdrMapDownlinkIp6.Update(ipv6, unsafe.Pointer(&pdrToStore), ebpf.UpdateExist)
 }
 
 func (bpfObjects *BpfObjects) DeleteDownlinkPdrIp6(ipv6 net.IP) error {

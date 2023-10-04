@@ -119,13 +119,6 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	return estResp, nil
 }
 
-func HasSdf(pdr *ie.IE) bool {
-	if _, err := pdr.SDFFilter(); err == nil {
-		return true
-	}
-	return false
-}
-
 func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 	if spdrInfo.Ipv4 != nil {
 		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
