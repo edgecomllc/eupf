@@ -169,7 +169,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     __u32 qer_id;
     __u8 outer_header_removal;
     if(sdf) {
-        packet_matched = match_sdf_filter_ipv4(ip6, &pdr->sdf_rules.sdf_filter);
+        packet_matched = match_sdf_filter_ipv6(ip6, &pdr->sdf_rules.sdf_filter);
         if(packet_matched) {
             upf_printk("Packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
             far_id = pdr->sdf_rules.far_id;
