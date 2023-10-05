@@ -1,4 +1,4 @@
-# Open5GS + eUPF with Calico BGP + Slices
+# Open5GS + eUPF with Calico BGP + Slices. UE2 with two interfaces connected to different slices
 
 ![](./schema.png)
 
@@ -51,7 +51,7 @@
 
     `make ue1`
 
-9. install UERANSim for slice 2
+9. install UERANSim for PDU sessions in slice 2 + slice 1 
 
     `make ue2`
 
@@ -59,7 +59,7 @@
 
 1. exec shell in UE1 pod
 
-    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
+    `kubectl -n open5gslices2 exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
 
 2. run ICMP test
 
@@ -67,7 +67,25 @@
 
 3. exec shell in UE2 pod
 
-    `kubectl -n open5gs exec -ti deployment/ueransim2-ueransim-ues-ues -- /bin/bash`
+    ```
+	kubectl -n open5gslices2 exec -ti deployment/ueransim2-ueransim-ues-ues -- /bin/bash
+	ip a
+	```
+	See there is two interfaces `uesimtun` with ip addresses from different subnets, like this:
+	```
+	7: uesimtun0: <POINTOPOINT,PROMISC,NOTRAILERS,UP,LOWER_UP> mtu 1400 qdisc fq_codel state UNKNOWN group default qlen 500
+		link/none
+		inet 10.11.0.17/32 scope global uesimtun0
+		   valid_lft forever preferred_lft forever
+		inet6 fe80::bb72:195c:a705:d4ef/64 scope link stable-privacy
+		   valid_lft forever preferred_lft forever
+	8: uesimtun1: <POINTOPOINT,PROMISC,NOTRAILERS,UP,LOWER_UP> mtu 1400 qdisc fq_codel state UNKNOWN group default qlen 500
+		link/none
+		inet 10.22.0.4/32 scope global uesimtun1
+		   valid_lft forever preferred_lft forever
+		inet6 fe80::8a1d:8a51:ff53:f9c2/64 scope link stable-privacy
+		   valid_lft forever preferred_lft forever
+	```
 
 4. run ICMP test
 

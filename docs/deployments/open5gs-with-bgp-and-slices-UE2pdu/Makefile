@@ -80,6 +80,11 @@ ue2:
 		--values $(HELM_VALUES_DIR)/ue2.yaml \
 		-n $(NAMESPACE) \
 		$(HELM_ARGS)
+	kubectl scale --replicas=0 deployment ueransim2-ueransim-ues -n $(NAMESPACE)
+	# change default configmap to our
+	kubectl apply -f $(HELM_VALUES_DIR)/../manifests/ue2-configmap.yaml -n $(NAMESPACE)
+	# scale deployment from 0 to 1
+	kubectl scale --replicas=1 deployment ueransim2-ueransim-ues -n $(NAMESPACE)
 
 clean:
 	helm delete open5gs -n $(NAMESPACE) || true
