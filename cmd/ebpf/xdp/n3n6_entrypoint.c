@@ -94,12 +94,11 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     }
 
     struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
-    __u8 packet_matched = 0;
-    __u32 far_id;
-    __u32 qer_id;
-    __u8 outer_header_removal;
+    __u32 far_id = pdr->far_id;
+    __u32 qer_id = pdr->qer_id;
+    __u8 outer_header_removal = pdr->outer_header_removal;
     if(sdf) {
-        packet_matched = match_sdf_filter_ipv4(ip4, &pdr->sdf_rules.sdf_filter);
+        __u8 packet_matched = match_sdf_filter_ipv4(ip4, &pdr->sdf_rules.sdf_filter);
         if(packet_matched) {
             upf_printk("Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
             far_id = pdr->sdf_rules.far_id;
@@ -110,12 +109,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
             far_id = pdr->far_id;
             qer_id = pdr->qer_id;
             outer_header_removal = pdr->outer_header_removal;
-            
         }
-    } else {
-        far_id = pdr->far_id;
-        qer_id = pdr->qer_id;
-        outer_header_removal = pdr->outer_header_removal;
     }
 
     struct far_info *far = bpf_map_lookup_elem(&far_map, &far_id);
@@ -164,12 +158,11 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     }
 
     struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
-    __u8 packet_matched = 0;
-    __u32 far_id;
-    __u32 qer_id;
-    __u8 outer_header_removal;
+    __u32 far_id = pdr->far_id;
+    __u32 qer_id = pdr->qer_id;
+    __u8 outer_header_removal = pdr->outer_header_removal;
     if(sdf) {
-        packet_matched = match_sdf_filter_ipv6(ip6, &pdr->sdf_rules.sdf_filter);
+        __u8 packet_matched = match_sdf_filter_ipv6(ip6, &pdr->sdf_rules.sdf_filter);
         if(packet_matched) {
             upf_printk("Packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
             far_id = pdr->sdf_rules.far_id;
@@ -182,10 +175,6 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
             outer_header_removal = pdr->outer_header_removal;
             
         }
-    } else {
-        far_id = pdr->far_id;
-        qer_id = pdr->qer_id;
-        outer_header_removal = pdr->outer_header_removal;
     }
 
     struct far_info *far = bpf_map_lookup_elem(&far_map, &far_id);

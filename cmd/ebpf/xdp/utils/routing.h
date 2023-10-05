@@ -94,8 +94,6 @@ static __always_inline enum xdp_action do_route_ipv4(struct xdp_md *ctx, struct 
 
     if (ifindex == ctx->ingress_ifindex)
         return XDP_TX;
-        
-        
     return bpf_redirect(ifindex, 0);
 }
 
