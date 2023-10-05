@@ -104,12 +104,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
             far_id = pdr->sdf_rules.far_id;
             qer_id = pdr->sdf_rules.qer_id;
             outer_header_removal = pdr->sdf_rules.outer_header_removal;
-        } else {
-            upf_printk("No matches found for Ipv4 packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
-            far_id = pdr->far_id;
-            qer_id = pdr->qer_id;
-            outer_header_removal = pdr->outer_header_removal;
-        }
+        } 
     }
 
     struct far_info *far = bpf_map_lookup_elem(&far_map, &far_id);
@@ -168,13 +163,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
             far_id = pdr->sdf_rules.far_id;
             qer_id = pdr->sdf_rules.qer_id;
             outer_header_removal = pdr->sdf_rules.outer_header_removal;
-        } else {
-            upf_printk("No matches found for Ipv4 packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
-            far_id = pdr->far_id;
-            qer_id = pdr->qer_id;
-            outer_header_removal = pdr->outer_header_removal;
-            
-        }
+        } 
     }
 
     struct far_info *far = bpf_map_lookup_elem(&far_map, &far_id);
