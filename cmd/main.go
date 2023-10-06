@@ -25,6 +25,8 @@ func main() {
 
 	config.Init()
 
+	// Warning: inefficient log writing.
+	// As zerolog docs says: "Pretty logging on the console is made possible using the provided (but inefficient) zerolog.ConsoleWriter."
 	ConfigureLogger()
 
 	if err := ebpf.IncreaseResourceLimits(); err != nil {
