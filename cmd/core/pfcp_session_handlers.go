@@ -86,6 +86,8 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
+			} else {
+				log.Printf("Error extracting PDR info: %s", err.Error())
 			}
 		}
 		return nil
@@ -152,10 +154,6 @@ func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) 
 
 func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
 
-	if sdfFilter, _ := pdr.SDFFilter(); sdfFilter != nil {
-		return fmt.Errorf("WARN: SDF Filter is not supported yet. Ignore PDR")
-	}
-
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}
@@ -169,6 +167,15 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
 	pdi, err := pdr.PDI()
 	if err != nil {
 		return fmt.Errorf("PDI IE is missing")
+	}
+
+	if sdfFilter, err := pdr.SDFFilter(); err == nil {
+		if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
+			spdrInfo.PdrInfo.SdfFilter = &sdfFilterParsed
+			// log.Printf("Sdf Filter Parsed: %+v", sdfFilterParsed)
+		} else {
+			return err
+		}
 	}
 
 	//Bug in go-pfcp:
@@ -373,6 +380,8 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
+			} else {
+				log.Printf("Error extracting PDR info: %s", err.Error())
 			}
 		}
 
@@ -386,6 +395,8 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
+			} else {
+				log.Printf("Error extracting PDR info: %s", err.Error())
 			}
 		}
 
