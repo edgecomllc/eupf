@@ -21,7 +21,7 @@
 #include <linux/ipv6.h>
 #include <linux/types.h>
 #include <linux/udp.h>
-
+#include <netinet/tcp.h>
 #include "xdp/utils/gtpu.h"
 
 /* Header cursor to keep track of current parsing position */
@@ -35,5 +35,6 @@ struct packet_context {
     struct iphdr *ip4;
     struct ipv6hdr *ip6;
     struct udphdr *udp;
+    struct tcphdr *tcp;
     struct gtpuhdr *gtp;
 };

@@ -22,6 +22,7 @@
 #include <linux/ip.h>
 #include <linux/types.h>
 #include <linux/udp.h>
+#include <netinet/tcp.h>
 
 #include "xdp/utils/packet_context.h"
 #include "xdp/utils/trace.h"
@@ -76,6 +77,30 @@ static __always_inline int parse_udp(struct packet_context *ctx) {
     ctx->udp = udp;
     return bpf_ntohs(udp->dest);
 }
+
+static __always_inline struct udphdr *parse_udp_src_dst(struct packet_context *ctx) {
+    struct udphdr *udp = (struct udphdr *)ctx->data;
+    if ((const char *)(udp + 1) > ctx->data_end)
+        return NULL;
+
+    ctx->data += sizeof(*udp);
+    ctx->udp = udp;
+    return udp;
+}
+
+static __always_inline struct tcphdr *parse_tcp_src_dst(struct packet_context *ctx) {
+        struct tcphdr *tcp = (struct tcphdr *)ctx->data;
+        if ((const char *)(tcp + 1) > ctx->data_end)
+            return NULL;
+
+        ctx->data += sizeof(*tcp);
+        ctx->tcp = tcp;
+        return tcp;
+}
+
+
+
+
 
 static __always_inline void swap_mac(struct ethhdr *eth) {
     __u8 mac[6];
