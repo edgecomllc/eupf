@@ -22,7 +22,7 @@
 #include <linux/ip.h>
 #include <linux/types.h>
 #include <linux/udp.h>
-#include <netinet/tcp.h>
+#include <linux/tcp.h>
 
 #include "xdp/utils/packet_context.h"
 #include "xdp/utils/trace.h"

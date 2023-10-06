@@ -21,7 +21,7 @@
 #include <linux/ipv6.h>
 #include <linux/types.h>
 #include <linux/udp.h>
-#include <netinet/tcp.h>
+#include <linux/tcp.h>
 #include "xdp/utils/gtpu.h"
 
 /* Header cursor to keep track of current parsing position */
