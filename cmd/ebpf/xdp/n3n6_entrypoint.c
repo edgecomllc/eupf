@@ -61,7 +61,6 @@ static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, st
     __u8 packet_protocol = inner_ip4->protocol;
     __u32 packet_src_ip = inner_ip4->saddr;
     __u32 packet_dst_ip = inner_ip4->daddr;
-
     __u16 packet_src_port = 0;
     __u16 packet_dst_port = 0;
 
@@ -74,23 +73,21 @@ static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, st
         packet_src_port = bpf_ntohs(udp_header->source);
         packet_dst_port = bpf_ntohs(udp_header->dest);
     }
-    
-    
-    
 
+    upf_printk("SDF Filter values to be matched:");
+    upf_printk("Protocol: %u", sdf->protocol);
+    upf_printk("Source ip: %pI4, Destination ip: %pI4",  &sdf->src_addr.ip,  &sdf->dst_addr.ip);
+    upf_printk("Source port lower bound: %u, Source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
+    upf_printk("Source address mask: %pI4, Destination address mask: %pI4", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
+    
+    
     if (sdf->protocol != packet_protocol ||
-        (packet_src_ip & sdf->src_addr.mask) != sdf->src_addr.ip || 
-        (packet_dst_ip & sdf->dst_addr.mask) != sdf->dst_addr.ip ||
+        (sdf->src_addr.ip & sdf->src_addr.mask) != sdf->src_addr.ip || 
+        (sdf->dst_addr.ip & sdf->dst_addr.mask) != sdf->dst_addr.ip ||
          packet_src_port < sdf->src_port.lower_bound || packet_src_port > sdf->src_port.upper_bound ||
          packet_dst_port < sdf->dst_port.lower_bound || packet_dst_port > sdf->dst_port.upper_bound) {
         return 0;
     }
-
-    upf_printk("SDF Filter values:");
-    upf_printk("Protocol: %u", sdf->protocol);
-    upf_printk("Source ip: %p, Destination ip: %p",  &sdf->src_addr.ip,  &sdf->dst_addr.ip);
-    upf_printk("Source port lower bound: %u, Source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
-    upf_printk("Source address mask: %p, Destination address mask: %p", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
     
     upf_printk("Packet with source ip:%pI4, destination ip:%pI4 matches SDF filter",
                &inner_ip4->saddr, &inner_ip4->daddr);
@@ -125,6 +122,12 @@ static __always_inline __u8 match_sdf_filter_ipv6(struct packet_context *ctx, st
         packet_dst_port = bpf_ntohs(udp_header->dest);
     }
 
+    // upf_printk("SDF Filter values to be matched:");
+    // upf_printk("Protocol: %u", sdf->protocol);
+    // upf_printk("Source ip: %pI6c, Destination ip: %pI6c",  &sdf->src_addr.ip,  &sdf->dst_addr.ip);
+    // upf_printk("Source port lower bound: %u, Source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
+    // upf_printk("Source address mask: %pI6c, Destination address mask: %pI6c", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
+
     if (sdf->protocol != packet_protocol ||
         (packet_src_ip_128 & sdf->src_addr.mask) != sdf->src_addr.ip || 
         (packet_dst_ip_128 & sdf->dst_addr.mask) != sdf->dst_addr.ip ||
@@ -133,11 +136,11 @@ static __always_inline __u8 match_sdf_filter_ipv6(struct packet_context *ctx, st
         return 0;
     }
 
-    upf_printk("SDF Filter values:");
-    upf_printk("Protocol: %u", sdf->protocol);
-    upf_printk("Source ip: %p, Destination ip: %p",  &sdf->src_addr.ip,  &sdf->dst_addr.ip);
-    upf_printk("Source port lower bound: %u, Source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
-    upf_printk("Source address mask: %p, Destination address mask: %p", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
+    // upf_printk("SDF Filter values:");
+    // upf_printk("Protocol: %u", sdf->protocol);
+    // upf_printk("Source ip: %p, Destination ip: %p",  &sdf->src_addr.ip,  &sdf->dst_addr.ip);
+    // upf_printk("Source port lower bound: %u, Source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
+    // upf_printk("Source address mask: %p, Destination address mask: %p", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
 
     upf_printk("Packet with source ip:%pI6, destination ip:%pI6 matches SDF filter",
                &inner_ipv6->saddr, &inner_ipv6->daddr);
@@ -158,7 +161,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     __u32 qer_id = pdr->qer_id;
     __u8 outer_header_removal = pdr->outer_header_removal;
     if (sdf && (sdf->protocol >= 0 && sdf->protocol <= 3)) {
-        __u8 packet_matched = match_sdf_filter_ipv4(ctx, &pdr->sdf_rules.sdf_filter);
+        __u8 packet_matched = match_sdf_filter_ipv4(ctx, sdf);
         if(packet_matched) {
             upf_printk("Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
             far_id = pdr->sdf_rules.far_id;
@@ -217,9 +220,9 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     __u32 qer_id = pdr->qer_id;
     __u8 outer_header_removal = pdr->outer_header_removal;
     if (sdf && (sdf->protocol >= 0 && sdf->protocol <= 3)) {
-        __u8 packet_matched = match_sdf_filter_ipv6(ctx, &pdr->sdf_rules.sdf_filter);
+        __u8 packet_matched = match_sdf_filter_ipv6(ctx, sdf);
         if(packet_matched) {
-            upf_printk("Packet with source ip:%pI6 and destination ip:%pI6 matches SDF filter", &ip6->saddr, &ip6->daddr);
+            upf_printk("Packet with source ip:%pI6c and destination ip:%pI6c matches SDF filter", &ip6->saddr, &ip6->daddr);
             far_id = pdr->sdf_rules.far_id;
             qer_id = pdr->sdf_rules.qer_id;
             outer_header_removal = pdr->sdf_rules.outer_header_removal;
