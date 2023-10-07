@@ -81,7 +81,7 @@ static __always_inline int parse_udp(struct packet_context *ctx) {
 static __always_inline struct udphdr *parse_udp_src_dst(struct packet_context *ctx) {
     struct udphdr *udp = (struct udphdr *)ctx->data;
     if ((const char *)(udp + 1) > ctx->data_end)
-        return NULL;
+        return 0;
 
     ctx->data += sizeof(*udp);
     ctx->udp = udp;
@@ -91,7 +91,7 @@ static __always_inline struct udphdr *parse_udp_src_dst(struct packet_context *c
 static __always_inline struct tcphdr *parse_tcp_src_dst(struct packet_context *ctx) {
         struct tcphdr *tcp = (struct tcphdr *)ctx->data;
         if ((const char *)(tcp + 1) > ctx->data_end)
-            return NULL;
+            return 0;
 
         ctx->data += sizeof(*tcp);
         ctx->tcp = tcp;
