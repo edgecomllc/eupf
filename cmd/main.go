@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -13,6 +12,8 @@ import (
 
 	"github.com/cilium/ebpf/link"
 	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -24,18 +25,22 @@ func main() {
 
 	config.Init()
 
+	// Warning: inefficient log writing.
+	// As zerolog docs says: "Pretty logging on the console is made possible using the provided (but inefficient) zerolog.ConsoleWriter."
+	ConfigureLogger()
+
 	if err := ebpf.IncreaseResourceLimits(); err != nil {
-		log.Fatalf("Can't increase resource limits: %s", err.Error())
+		log.Fatal().Msgf("Can't increase resource limits: %s", err.Error())
 	}
 
 	bpfObjects := ebpf.NewBpfObjects()
 	if err := bpfObjects.Load(); err != nil {
-		log.Fatalf("Loading bpf objects failed: %s", err.Error())
+		log.Fatal().Msgf("Loading bpf objects failed: %s", err.Error())
 	}
 
 	if config.Conf.EbpfMapResize {
 		if err := bpfObjects.ResizeAllMaps(config.Conf.QerMapSize, config.Conf.FarMapSize, config.Conf.PdrMapSize); err != nil {
-			log.Fatalf("Failed to set ebpf map sizes: %s", err)
+			log.Fatal().Msgf("Failed to set ebpf map sizes: %s", err)
 		}
 	}
 
@@ -46,7 +51,7 @@ func main() {
 	for _, ifaceName := range config.Conf.InterfaceName {
 		iface, err := net.InterfaceByName(ifaceName)
 		if err != nil {
-			log.Fatalf("Lookup network iface %q: %s", ifaceName, err.Error())
+			log.Fatal().Msgf("Lookup network iface %q: %s", ifaceName, err.Error())
 		}
 
 		// Attach the program.
@@ -56,11 +61,11 @@ func main() {
 			Flags:     StringToXDPAttachMode(config.Conf.XDPAttachMode),
 		})
 		if err != nil {
-			log.Fatalf("Could not attach XDP program: %s", err.Error())
+			log.Fatal().Msgf("Could not attach XDP program: %s", err.Error())
 		}
 		defer l.Close()
 
-		log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
+		log.Info().Msgf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	}
 
 	// Create PFCP connection
@@ -75,7 +80,7 @@ func main() {
 
 	pfcpConn, err := core.CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects)
 	if err != nil {
-		log.Fatalf("Could not create PFCP connection: %s", err.Error())
+		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}
 	go pfcpConn.Run()
 	defer pfcpConn.Close()
@@ -88,14 +93,14 @@ func main() {
 	api := core.CreateApiServer(bpfObjects, pfcpConn, ForwardPlaneStats)
 	go func() {
 		if err := api.Run(config.Conf.ApiAddress); err != nil {
-			log.Fatalf("Could not start api server: %s", err.Error())
+			log.Fatal().Msgf("Could not start api server: %s", err.Error())
 		}
 	}()
 
 	core.RegisterMetrics(ForwardPlaneStats, pfcpConn)
 	go func() {
 		if err := core.StartMetrics(config.Conf.MetricsAddress); err != nil {
-			log.Fatalf("Could not start metrics server: %s", err.Error())
+			log.Fatal().Msgf("Could not start metrics server: %s", err.Error())
 		}
 	}()
 
@@ -113,7 +118,7 @@ func main() {
 			// }
 			// log.Printf("Pipeline map contents:\n%s", s)
 		case <-stopper:
-			log.Println("Received signal, exiting program..")
+			log.Info().Msgf("Received signal, exiting program..")
 			return
 		}
 	}
@@ -129,5 +134,16 @@ func StringToXDPAttachMode(Mode string) link.XDPAttachFlags {
 		return link.XDPOffloadMode
 	default:
 		return link.XDPGenericMode
+	}
+}
+
+func ConfigureLogger() {
+	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006/01/02 15:04:05"}
+	log.Logger = zerolog.New(output).With().Timestamp().Logger()
+
+	if loglvl, err := zerolog.ParseLevel(config.Conf.LoggingLevel); err == nil {
+		zerolog.SetGlobalLevel(loglvl)
+	} else {
+		log.Warn().Msgf("Can't parse logging level: %s. Using \"info\" level.", err.Error())
 	}
 }
