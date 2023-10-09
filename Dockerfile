@@ -12,7 +12,7 @@ RUN go install github.com/swaggo/swag/cmd/swag@v1.8.12
 COPY go.mod go.sum ./
 COPY cmd cmd
 
-ARG BPF_ENABLE_LOG "0"
+ARG BPF_ENABLE_LOG "1"
 ARG BPF_ENABLE_ROUTE_CACHE "0"
 RUN BPF_CFLAGS="" \
     && if [ "$BPF_ENABLE_LOG" = "1" ]; then BPF_CFLAGS="$BPF_CFLAGS -DENABLE_LOG"; fi \

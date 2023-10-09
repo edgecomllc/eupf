@@ -56,6 +56,13 @@ static __always_inline int parse_ip4(struct packet_context *ctx) {
     return ip4->protocol;
 }
 
+static __always_inline int get_ip4_protocol(struct packet_context *ctx) {
+    struct iphdr *ip4 = (struct iphdr *)ctx->data;
+    if ((const char *)(ip4 + 1) > ctx->data_end)
+        return -1;
+    return ip4->protocol;
+}
+
 static __always_inline int parse_ip6(struct packet_context *ctx) {
     struct ipv6hdr *ip6 = (struct ipv6hdr *)ctx->data;
     if ((const char *)(ip6 + 1) > ctx->data_end)
@@ -65,6 +72,13 @@ static __always_inline int parse_ip6(struct packet_context *ctx) {
 
     ctx->data += sizeof(*ip6);
     ctx->ip6 = ip6;
+    return ip6->nexthdr;
+}
+
+static __always_inline int get_ip6_protocol(struct packet_context *ctx) {
+    struct ipv6hdr *ip6 = (struct ipv6hdr *)ctx->data;
+    if ((const char *)(ip6 + 1) > ctx->data_end)
+        return -1;
     return ip6->nexthdr;
 }
 
@@ -97,10 +111,6 @@ static __always_inline struct tcphdr *parse_tcp_src_dst(struct packet_context *c
         ctx->tcp = tcp;
         return tcp;
 }
-
-
-
-
 
 static __always_inline void swap_mac(struct ethhdr *eth) {
     __u8 mac[6];

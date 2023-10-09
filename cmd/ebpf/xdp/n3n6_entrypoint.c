@@ -54,7 +54,7 @@ static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context 
 
 static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, struct sdf_filter *sdf) {
     const struct iphdr *outer_ip4 = ctx->ip4; // Preserve the outer IPv4 header
-    int l4_protocol = parse_ip4(ctx);         // Parse the inner IPv4 header
+    int l4_protocol = get_ip4_protocol(ctx);         // Parse the inner IPv4 header
 
     // Create a separate pointer to the inner IPv4 header
     const struct iphdr *inner_ip4 = ctx->ip4;
@@ -79,11 +79,16 @@ static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, st
     upf_printk("Source ip: %pI4, Destination ip: %pI4",  &sdf->src_addr.ip,  &sdf->dst_addr.ip);
     upf_printk("Source port lower bound: %u, Source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
     upf_printk("Source address mask: %pI4, Destination address mask: %pI4", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
+
+    upf_printk("Packet values:");
+    upf_printk("Protocol: %u", packet_protocol);
+    upf_printk("Source ip: %pI4, Destination ip: %pI4",  &packet_src_ip,  &packet_dst_ip);
+    upf_printk("Source port: %u, destination port: %u", packet_src_port, packet_dst_port);
     
     
     if (sdf->protocol != packet_protocol ||
-        (sdf->src_addr.ip & sdf->src_addr.mask) != sdf->src_addr.ip || 
-        (sdf->dst_addr.ip & sdf->dst_addr.mask) != sdf->dst_addr.ip ||
+        (packet_src_ip & sdf->src_addr.mask) != sdf->src_addr.ip || 
+        (packet_dst_ip & sdf->dst_addr.mask) != sdf->dst_addr.ip ||
          packet_src_port < sdf->src_port.lower_bound || packet_src_port > sdf->src_port.upper_bound ||
          packet_dst_port < sdf->dst_port.lower_bound || packet_dst_port > sdf->dst_port.upper_bound) {
         return 0;
@@ -97,7 +102,7 @@ static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, st
 
 static __always_inline __u8 match_sdf_filter_ipv6(struct packet_context *ctx, struct sdf_filter *sdf) {
     const struct ipv6hdr *outer_ipv6 = ctx->ip6;  // Preserve the outer IPv6 header
-    int l4_protocol = parse_ip6(ctx);             // Parse the inner IPv6 header
+    int l4_protocol = get_ip6_protocol(ctx);             // Parse the inner IPv6 header
 
     // Create a separate pointer to the inner IPv6 header
     const struct ipv6hdr *inner_ipv6 = ctx->ip6;
@@ -122,11 +127,16 @@ static __always_inline __u8 match_sdf_filter_ipv6(struct packet_context *ctx, st
         packet_dst_port = bpf_ntohs(udp_header->dest);
     }
 
-    // upf_printk("SDF Filter values to be matched:");
-    // upf_printk("Protocol: %u", sdf->protocol);
-    // upf_printk("Source ip: %pI6c, Destination ip: %pI6c",  &sdf->src_addr.ip,  &sdf->dst_addr.ip);
-    // upf_printk("Source port lower bound: %u, Source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
-    // upf_printk("Source address mask: %pI6c, Destination address mask: %pI6c", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
+    upf_printk("SDF Filter values to be matched:");
+    upf_printk("Protocol: %u", sdf->protocol);
+    upf_printk("Source ip: %pI6c, Destination ip: %pI6c",  &sdf->src_addr.ip,  &sdf->dst_addr.ip);
+    upf_printk("Source port lower bound: %u, Source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
+    upf_printk("Source address mask: %pI6c, Destination address mask: %pI6c", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
+
+    upf_printk("Packet values:");
+    upf_printk("Protocol: %u", packet_protocol);
+    upf_printk("Source ip: %pI6c, Destination ip: %pI6c",  &packet_src_ip_128,  &packet_dst_ip_128);
+    upf_printk("Source port: %u, destination port: %u", packet_src_port, packet_dst_port);
 
     if (sdf->protocol != packet_protocol ||
         (packet_src_ip_128 & sdf->src_addr.mask) != sdf->src_addr.ip || 
@@ -135,12 +145,6 @@ static __always_inline __u8 match_sdf_filter_ipv6(struct packet_context *ctx, st
          packet_dst_port < sdf->dst_port.lower_bound || packet_dst_port > sdf->dst_port.upper_bound) {
         return 0;
     }
-
-    // upf_printk("SDF Filter values:");
-    // upf_printk("Protocol: %u", sdf->protocol);
-    // upf_printk("Source ip: %p, Destination ip: %p",  &sdf->src_addr.ip,  &sdf->dst_addr.ip);
-    // upf_printk("Source port lower bound: %u, Source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
-    // upf_printk("Source address mask: %p, Destination address mask: %p", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
 
     upf_printk("Packet with source ip:%pI6, destination ip:%pI6 matches SDF filter",
                &inner_ipv6->saddr, &inner_ipv6->daddr);
@@ -282,16 +286,34 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         return DEFAULT_XDP_ACTION;
     }
 
+    struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
+    __u32 far_id = pdr->far_id;
+    __u32 qer_id = pdr->qer_id;
+    __u8 outer_header_removal = pdr->outer_header_removal;
+    if (sdf && (sdf->protocol >= 0 && sdf->protocol <= 3)) {
+        __u8 packet_matched = match_sdf_filter_ipv4(ctx, sdf);
+        if(packet_matched) {
+            upf_printk("upf: sdf filter matched for teid:%d", teid);
+            far_id = pdr->sdf_rules.far_id;
+            qer_id = pdr->sdf_rules.qer_id;
+            outer_header_removal = pdr->sdf_rules.outer_header_removal;
+        } else {
+            upf_printk("upf: sdf filter did not match for teid:%d", teid);
+        }
+    } else {
+        upf_printk("upf: no sdf for teid:%d", teid);
+    }
+
     /*
      *   Step 2: search for FAR and apply FAR instructions
      */
-    struct far_info *far = bpf_map_lookup_elem(&far_map, &pdr->far_id);
+    struct far_info *far = bpf_map_lookup_elem(&far_map, &far_id);
     if (!far) {
-        upf_printk("upf: no session far for teid:%d far:%d", teid, pdr->far_id);
+        upf_printk("upf: no session far for teid:%d far:%d", teid, far_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: far:%d action:%d outer_header_creation:%d", pdr->far_id, far->action, far->outer_header_creation);
+    upf_printk("upf: far:%d action:%d outer_header_creation:%d", far_id, far->action, far->outer_header_creation);
 
     // Only forwarding action supported at the moment
     if (!(far->action & FAR_FORW))
@@ -300,13 +322,13 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     /*
      *   Step 3: search for QER and apply QER instructions
      */
-    struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &pdr->qer_id);
+    struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &qer_id);
     if (!qer) {
-        upf_printk("upf: no session qer for teid:%d qer:%d", teid, pdr->qer_id);
+        upf_printk("upf: no session qer for teid:%d qer:%d", teid, qer_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: qer:%d gate_status:%d mbr:%d", pdr->qer_id, qer->ul_gate_status, qer->ul_maximum_bitrate);
+    upf_printk("upf: qer:%d gate_status:%d mbr:%d", qer_id, qer->ul_gate_status, qer->ul_maximum_bitrate);
 
     if (qer->ul_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
@@ -315,14 +337,14 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->ul_start, qer->ul_maximum_bitrate))
         return XDP_DROP;
 
-    upf_printk("upf: session for teid:%d far:%d outer_header_removal:%d", teid, pdr->far_id, pdr->outer_header_removal);
+    upf_printk("upf: session for teid:%d far:%d outer_header_removal:%d", teid, pdr->far_id, outer_header_removal);
 
     // N9: Only outer header GTP/UDP/IPv4 is supported at the moment
     if (far->outer_header_creation & OHC_GTP_U_UDP_IPv4)
     {
         upf_printk("upf: session for teid:%d -> %d remote:%pI4", teid, far->teid, &far->remoteip);
         update_gtp_tunnel(ctx, far->localip, far->remoteip, 0, far->teid);
-    } else if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) {
+    } else if (outer_header_removal == OHR_GTP_U_UDP_IPv4) {
         long result = remove_gtp_header(ctx);
         if (result) {
             upf_printk("upf: handle_gtp_packet: can't remove gtp header: %d", result);
