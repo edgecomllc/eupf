@@ -29,10 +29,9 @@ calico:
 	kubectl apply -f $(HELM_VALUES_DIR)/../manifests/calico-bgp.yaml
 	kubectl patch felixconfiguration default --type='merge' -p '{"spec":{"removeExternalRoutes":false}}'
 
-# eupf oci://registry-1.docker.io/edgecom/eupf
 upf:
 	helm $(HELM_ACTION) \
-		eupf ../../../.deploy/helm/eupf \
+		eupf oci://registry-1.docker.io/edgecom/eupf \
 		--version 0.4.0 \
 		--values $(HELM_VALUES_DIR)/eupf.yaml \
 		-n $(NAMESPACE) \
@@ -40,7 +39,7 @@ upf:
 
 srs:
 	helm $(HELM_ACTION) \
-		srsran ../../../../srsRAN5Gue-zmg-gNB \
+		srsran oci://registry-1.docker.io/edgecom/srsran5gue-zmq-gnb \
 		--values $(HELM_VALUES_DIR)/srsue-gnb.yaml \
 		-n $(NAMESPACE) \
 		$(HELM_ARGS)

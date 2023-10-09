@@ -1,7 +1,7 @@
 # Open5GS + eUPF with Calico BGP + srsUE
 
 ![](./schema.png)
-This deployment helps to create an end-to-end fully open-source 5G network with srsUE, the srsRAN Project gNodeB with Open5GS 5G core network.
+This deployment helps to create an end-to-end fully open-source 5G network, consisting from srsUE, the srsRAN Project gNodeB with Open5GS 5G core network.
 
 ## Requirements
 
