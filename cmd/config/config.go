@@ -25,6 +25,7 @@ type UpfConfig struct {
 	HeartbeatRetries  uint32   `mapstructure:"heartbeat_retries"`
 	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval"`
 	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout"`
+	LoggingLevel      string   `mapstructure:"logging_level"`
 }
 
 func init() {
@@ -44,6 +45,7 @@ func init() {
 	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
+	pflag.String("loglvl", "", "Logging level")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -61,6 +63,7 @@ func init() {
 	_ = v.BindPFlag("heartbeat_retries", pflag.Lookup("hbretries"))
 	_ = v.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
 	_ = v.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
+	_ = v.BindPFlag("logging_level", pflag.Lookup("loglvl"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -76,6 +79,7 @@ func init() {
 	v.SetDefault("heartbeat_retries", 3)
 	v.SetDefault("heartbeat_interval", 5)
 	v.SetDefault("heartbeat_timeout", 5)
+	v.SetDefault("logging_level", "info")
 
 	v.SetConfigFile(*configPath)
 

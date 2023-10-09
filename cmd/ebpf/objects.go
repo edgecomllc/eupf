@@ -3,11 +3,11 @@ package ebpf
 import (
 	"errors"
 	"io"
-	"log"
 	"os"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/rs/zerolog/log"
 
 	"github.com/cilium/ebpf"
 )
@@ -48,7 +48,7 @@ func NewBpfObjects() *BpfObjects {
 func (bpfObjects *BpfObjects) Load() error {
 	pinPath := "/sys/fs/bpf/upf_pipeline"
 	if err := os.MkdirAll(pinPath, os.ModePerm); err != nil {
-		log.Printf("failed to create bpf fs subpath: %+v", err)
+		log.Info().Msgf("failed to create bpf fs subpath: %+v", err)
 		return err
 	}
 
@@ -125,7 +125,7 @@ func CloseAllObjects(closers ...io.Closer) error {
 func ResizeEbpfMap(eMap **ebpf.Map, eProg *ebpf.Program, newSize uint32) error {
 	mapInfo, err := (*eMap).Info()
 	if err != nil {
-		log.Printf("Failed get ebpf map info: %s", err)
+		log.Info().Msgf("Failed get ebpf map info: %s", err)
 		return err
 	}
 	mapInfo.MaxEntries = newSize
@@ -139,21 +139,21 @@ func ResizeEbpfMap(eMap **ebpf.Map, eProg *ebpf.Program, newSize uint32) error {
 		Flags:      mapInfo.Flags,
 	}
 	if err != nil {
-		log.Printf("Failed to close old ebpf map: %s, %+v", err, *eMap)
+		log.Info().Msgf("Failed to close old ebpf map: %s, %+v", err, *eMap)
 		return err
 	}
 
 	// Unpin the old map
 	err = (*eMap).Unpin()
 	if err != nil {
-		log.Printf("Failed to unpin old ebpf map: %s, %+v", err, *eMap)
+		log.Info().Msgf("Failed to unpin old ebpf map: %s, %+v", err, *eMap)
 		return err
 	}
 
 	// Close the old map
 	err = (*eMap).Close()
 	if err != nil {
-		log.Printf("Failed to close old ebpf map: %s, %+v", err, *eMap)
+		log.Info().Msgf("Failed to close old ebpf map: %s, %+v", err, *eMap)
 		return err
 	}
 
@@ -161,12 +161,12 @@ func ResizeEbpfMap(eMap **ebpf.Map, eProg *ebpf.Program, newSize uint32) error {
 
 	*eMap, err = ebpf.NewMapWithOptions(mapSpec, ebpf.MapOptions{})
 	if err != nil {
-		log.Printf("Failed to create resized ebpf map: %s", err)
+		log.Info().Msgf("Failed to create resized ebpf map: %s", err)
 		return err
 	}
 	err = eProg.BindMap(*eMap)
 	if err != nil {
-		log.Printf("Failed to bind resized ebpf map: %s", err)
+		log.Info().Msgf("Failed to bind resized ebpf map: %s", err)
 		return err
 	}
 	return nil
@@ -175,25 +175,25 @@ func ResizeEbpfMap(eMap **ebpf.Map, eProg *ebpf.Program, newSize uint32) error {
 func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32, pdrMapSize uint32) error {
 	// QEQ
 	if err := ResizeEbpfMap(&bpfObjects.QerMap, bpfObjects.UpfQerProgramFunc, qerMapSize); err != nil {
-		log.Printf("Failed to resize qer map: %s", err)
+		log.Info().Msgf("Failed to resize qer map: %s", err)
 		return err
 	}
 	// FAR
 	if err := ResizeEbpfMap(&bpfObjects.FarMap, bpfObjects.UpfFarProgramFunc, farMapSize); err != nil {
-		log.Printf("Failed to resize far map: %s", err)
+		log.Info().Msgf("Failed to resize far map: %s", err)
 		return err
 	}
 	// PDR
 	if err := ResizeEbpfMap(&bpfObjects.PdrMapDownlinkIp4, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
-		log.Printf("Failed to resize qer map: %s", err)
+		log.Info().Msgf("Failed to resize qer map: %s", err)
 		return err
 	}
 	if err := ResizeEbpfMap(&bpfObjects.PdrMapDownlinkIp6, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
-		log.Printf("Failed to resize qer map: %s", err)
+		log.Info().Msgf("Failed to resize qer map: %s", err)
 		return err
 	}
 	if err := ResizeEbpfMap(&bpfObjects.PdrMapUplinkIp4, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
-		log.Printf("Failed to resize qer map: %s", err)
+		log.Info().Msgf("Failed to resize qer map: %s", err)
 		return err
 	}
 

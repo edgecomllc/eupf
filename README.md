@@ -179,13 +179,13 @@ cd eupf
 #### Step 3: Run the code generators
 
 ```bash
-go generate -v ./cmd/eupf
+go generate -v ./cmd/...
 ```
 
 #### Step 4: Build eUPF
 
 ```bash
-go build -v -o bin/eupf ./cmd/eupf
+go build -v -o bin/eupf ./cmd/
 ```
 #### Step 5: Run the application
 
