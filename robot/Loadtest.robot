@@ -6,7 +6,7 @@ Library    Process
 
 *** Variables ***
 ${EUPF_API_ADDRESS}    localhost:8080 
-@{TCPREPLAY_EXTRA_ARGS}   --limit=70000
+@{TCPREPLAY_EXTRA_ARGS}   --limit=700000
 ${payload}   ${{'a'*1024}} 
 
 *** Test Cases ***
@@ -15,10 +15,9 @@ Perform load test
     ${TOTAL_START}    Evaluate    ${response.json()}[tx] + ${response.json()}[redirect]
     Log To Console  Total on start: ${TOTAL_START}
 
-    #sudo ./bpftool map update id 53 key hex 00 00 00 00  value hex 00 00 00 00 00 00 00 00 00 00 00 00
-    #sudo ./bpftool maupdate id 50 key hex 00 00 00 00  value hex 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-    #${RESULT} =    Run Process    ~/projects/bpftool/src/bpftool map update id 53 key hex 00 00 00 00 value hex 00 00 00 00 00 00 00 00 00 00 00 00  shell=True  stderr=STDOUT
-    #Log To Console   ${RESULT.stdout} 
+    Set Uplink PDR    teid=0    far_id=${0}    qer_id=${0}
+    Set FAR    far_id=${0}
+    Set QER    qer_id=${0}
 
     ${PACKET}  Create GTP-U Packet
     ${RESULT}    Sendpfast  ${PACKET}  iface=lo  file_cache=true  loop=${0}  replay_args=@{TCPREPLAY_EXTRA_ARGS}  parse_results=true
@@ -43,3 +42,21 @@ Create GTP-U Packet
     ${PACKET}    Compose Packet    ${eth}    ${ip}    ${udp}    ${gtp}    ${ip-int}    ${udp}    ${payload}
     Log Packets    ${PACKET}
     [return]  ${PACKET}
+
+Set Uplink PDR
+    [Arguments]   ${teid}=${0}    ${far_id}=${0}    ${qer_id}=${0}
+    ${body}    Create Dictionary    outer_header_removal=${2}    far_id=${far_id}    qer_id=${qer_id}
+    ${response}    PUT    url=http://${EUPF_API_ADDRESS}/api/v1/uplink_pdr_map/${teid}    json=${body}
+    Log    ${response.json()}
+
+Set FAR
+    [Arguments]   ${far_id}=${0}
+    ${body}    Create Dictionary    action=${2}    outer_header_creation=${0}    teid=${0}    remote_ip=${0}    local_ip=${0}    transport_level_marking=${0}
+    ${response}    PUT    url=http://${EUPF_API_ADDRESS}/api/v1/far_map/${far_id}    json=${body}
+    Log    ${response.json()}
+
+Set QER
+    [Arguments]   ${qer_id}=0
+    ${body}    Create Dictionary    gate_status_ul=${0}    gate_status_dl=${0}    qfi=${0}    max_bitrate_ul=${0}    max_bitrate_dl=${0}
+    ${response}    PUT    url=http://${EUPF_API_ADDRESS}/api/v1/qer_map/${qer_id}    json=${body}
+    Log    ${response.json()}
