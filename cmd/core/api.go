@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -36,6 +38,7 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 		v1.GET("config", DisplayConfig())
 		v1.GET("xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
 		v1.GET("packet_stats", DisplayPacketStats(forwardPlaneStats))
+		v1.POST("edit_config", EditConfig)
 
 		qerMap := v1.Group("qer_map")
 		{
@@ -58,6 +61,35 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 
 	router.GET("swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return &ApiServer{router: router}
+}
+
+type EditConfigRequest struct {
+	ConfigName  string `json:"config_name"`
+	ConfigValue string `json:"config_value"`
+}
+
+func EditConfig(c *gin.Context) {
+	var editConfigRequest EditConfigRequest
+	if err := c.BindJSON(&editConfigRequest); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{
+			"message": "Request body should have config_name and config_value fields",
+		})
+		return
+	}
+	switch editConfigRequest.ConfigName {
+	case "logging_level":
+		if err := ConfigureLoggerLevel(editConfigRequest.ConfigValue); err != nil {
+			c.IndentedJSON(http.StatusBadRequest,
+				gin.H{
+					"message": fmt.Sprintf("Can't parse logging level: '%s'. Using '%s' level",
+						editConfigRequest.ConfigValue, zerolog.GlobalLevel().String()),
+				})
+		} else {
+			c.Status(http.StatusOK)
+		}
+	default:
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Unsupported config_name"})
+	}
 }
 
 type PacketStats struct {
