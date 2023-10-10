@@ -24,7 +24,7 @@ func ConfigureLoggerLevel(loggingLevel string) error {
 		zerolog.SetGlobalLevel(loglvl)
 		config.Conf.LoggingLevel = zerolog.GlobalLevel().String()
 	} else {
-		return err
+		return fmt.Errorf("Can't parse logging level: '%s'", loggingLevel)
 	}
 	return nil
 }

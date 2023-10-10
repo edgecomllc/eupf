@@ -81,8 +81,8 @@ func EditConfig(c *gin.Context) {
 		if err := ConfigureLoggerLevel(editConfigRequest.ConfigValue); err != nil {
 			c.IndentedJSON(http.StatusBadRequest,
 				gin.H{
-					"message": fmt.Sprintf("Can't parse logging level: '%s'. Using '%s' level",
-						editConfigRequest.ConfigValue, zerolog.GlobalLevel().String()),
+					"message": fmt.Sprintf("Logger configuring error: %s. Using '%s' level",
+						err.Error(), zerolog.GlobalLevel().String()),
 				})
 		} else {
 			c.Status(http.StatusOK)

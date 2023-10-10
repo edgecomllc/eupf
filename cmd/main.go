@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/ebpf/link"
 	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -27,7 +28,9 @@ func main() {
 	// Warning: inefficient log writing.
 	// As zerolog docs says: "Pretty logging on the console is made possible using the provided (but inefficient) zerolog.ConsoleWriter."
 	core.InitLogger()
-	core.ConfigureLoggerLevel(config.Conf.LoggingLevel)
+	if err := core.ConfigureLoggerLevel(config.Conf.LoggingLevel); err != nil {
+		log.Warn().Msgf("Logger configuring error: %s. Using '%s' level", err.Error(), zerolog.GlobalLevel().String())
+	}
 
 	if err := ebpf.IncreaseResourceLimits(); err != nil {
 		log.Fatal().Msgf("Can't increase resource limits: %s", err.Error())
