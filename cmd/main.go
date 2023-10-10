@@ -109,7 +109,7 @@ func main() {
 		}
 	}()
 
-	// Handle config file change
+	// Handle config file change.
 	if config.IsConfigFileAvailable() {
 		viper.OnConfigChange(OnConfigChange)
 		viper.WatchConfig()
