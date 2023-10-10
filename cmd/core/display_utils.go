@@ -20,6 +20,9 @@ func InitLogger() {
 }
 
 func SetLoggerLevel(loggingLevel string) error {
+	if loggingLevel == "" {
+		return fmt.Errorf("Logging level can't be empty")
+	}
 	if loglvl, err := zerolog.ParseLevel(loggingLevel); err == nil {
 		zerolog.SetGlobalLevel(loglvl)
 		config.Conf.LoggingLevel = zerolog.GlobalLevel().String()

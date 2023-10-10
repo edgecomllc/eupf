@@ -64,31 +64,25 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 }
 
 type EditConfigRequest struct {
-	ConfigName  string `json:"config_name"`
-	ConfigValue string `json:"config_value"`
+	LoggingLevel string `json:"logging_level"`
 }
 
 func EditConfig(c *gin.Context) {
 	var editConfigRequest EditConfigRequest
 	if err := c.BindJSON(&editConfigRequest); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{
-			"message": "Request body should have config_name and config_value fields",
+			"message": "Request body should have logging_level field",
 		})
 		return
 	}
-	switch editConfigRequest.ConfigName {
-	case "logging_level":
-		if err := SetLoggerLevel(editConfigRequest.ConfigValue); err != nil {
-			c.IndentedJSON(http.StatusBadRequest,
-				gin.H{
-					"message": fmt.Sprintf("Logger configuring error: %s. Using '%s' level",
-						err.Error(), zerolog.GlobalLevel().String()),
-				})
-		} else {
-			c.Status(http.StatusOK)
-		}
-	default:
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Unsupported config_name"})
+	if err := SetLoggerLevel(editConfigRequest.LoggingLevel); err != nil {
+		c.IndentedJSON(http.StatusBadRequest,
+			gin.H{
+				"message": fmt.Sprintf("Logger configuring error: %s. Using '%s' level",
+					err.Error(), zerolog.GlobalLevel().String()),
+			})
+	} else {
+		c.Status(http.StatusOK)
 	}
 }
 
