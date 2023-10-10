@@ -56,11 +56,12 @@ static __always_inline int parse_ip4(struct packet_context *ctx) {
     return ip4->protocol;
 }
 
-static __always_inline int get_ip4_protocol(struct packet_context *ctx) {
+static __always_inline struct iphdr * parse_ip4_protocol(struct packet_context *ctx) {
     struct iphdr *ip4 = (struct iphdr *)ctx->data;
     if ((const char *)(ip4 + 1) > ctx->data_end)
-        return -1;
-    return ip4->protocol;
+        return 0;
+    ctx->data += ip4->ihl * 4;
+    return ip4;
 }
 
 static __always_inline int parse_ip6(struct packet_context *ctx) {
@@ -75,11 +76,12 @@ static __always_inline int parse_ip6(struct packet_context *ctx) {
     return ip6->nexthdr;
 }
 
-static __always_inline int get_ip6_protocol(struct packet_context *ctx) {
+static __always_inline struct ipv6hdr * parse_ip6_protocol(struct packet_context *ctx) {
     struct ipv6hdr *ip6 = (struct ipv6hdr *)ctx->data;
     if ((const char *)(ip6 + 1) > ctx->data_end)
-        return -1;
-    return ip6->nexthdr;
+        return 0;
+    ctx->data += sizeof(*ip6);
+    return ip6;
 }
 
 static __always_inline int parse_udp(struct packet_context *ctx) {
@@ -92,23 +94,23 @@ static __always_inline int parse_udp(struct packet_context *ctx) {
     return bpf_ntohs(udp->dest);
 }
 
+//FIXME: Naming
 static __always_inline struct udphdr *parse_udp_src_dst(struct packet_context *ctx) {
     struct udphdr *udp = (struct udphdr *)ctx->data;
     if ((const char *)(udp + 1) > ctx->data_end)
         return 0;
 
     ctx->data += sizeof(*udp);
-    ctx->udp = udp;
     return udp;
 }
 
+//FIXME: Naming
 static __always_inline struct tcphdr *parse_tcp_src_dst(struct packet_context *ctx) {
         struct tcphdr *tcp = (struct tcphdr *)ctx->data;
         if ((const char *)(tcp + 1) > ctx->data_end)
             return 0;
 
         ctx->data += sizeof(*tcp);
-        ctx->tcp = tcp;
         return tcp;
 }
 
