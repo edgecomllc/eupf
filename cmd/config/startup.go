@@ -18,3 +18,18 @@ func Init() {
 
 	log.Printf("Apply eUPF config: %+v", Conf)
 }
+
+func ReloadOnChange() error {
+	if err := Conf.UnmarshalUpdatableKeys(); err != nil {
+		log.Fatalf("Unable to decode into struct, %v", err)
+		return err
+	}
+
+	if err := Conf.Validate(); err != nil {
+		log.Fatalf("eUPF config is invalid: %v", err)
+		return err
+	}
+
+	log.Printf("Apply updated eUPF config: %+v", Conf)
+	return nil
+}
