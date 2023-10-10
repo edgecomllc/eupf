@@ -41,6 +41,7 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 		{
 			qerMap.GET("", ListQerMapContent(bpfObjects))
 			qerMap.GET(":id", GetQerContent(bpfObjects))
+			qerMap.PUT(":id", SetQerValue(bpfObjects))
 		}
 
 		associations := v1.Group("pfcp_associations")
@@ -312,6 +313,25 @@ func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 			MaxBitrateUL: value.MaxBitrateUL,
 			MaxBitrateDL: value.MaxBitrateDL,
 		})
+	}
+}
+
+func SetQerValue(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		var qerElement ebpf.QerMapElement
+		if err := c.BindJSON(&qerElement); err != nil {
+			log.Printf("Parsing request body error: %s", err.Error())
+			return
+		}
+
+		if err := bpfObjects.IpEntrypointObjects.QerMap.Put(uint32(qerElement.Id), unsafe.Pointer(&qerElement)); err != nil {
+			log.Printf("Error writting map: %s", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.IndentedJSON(http.StatusCreated, qerElement)
 	}
 }
 
