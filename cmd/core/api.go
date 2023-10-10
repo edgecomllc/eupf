@@ -38,7 +38,7 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 		v1.GET("config", DisplayConfig())
 		v1.GET("xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
 		v1.GET("packet_stats", DisplayPacketStats(forwardPlaneStats))
-		v1.POST("edit_config", EditConfig)
+		v1.POST("config", EditConfig)
 
 		qerMap := v1.Group("qer_map")
 		{
@@ -78,7 +78,7 @@ func EditConfig(c *gin.Context) {
 	}
 	switch editConfigRequest.ConfigName {
 	case "logging_level":
-		if err := ConfigureLoggerLevel(editConfigRequest.ConfigValue); err != nil {
+		if err := SetLoggerLevel(editConfigRequest.ConfigValue); err != nil {
 			c.IndentedJSON(http.StatusBadRequest,
 				gin.H{
 					"message": fmt.Sprintf("Logger configuring error: %s. Using '%s' level",

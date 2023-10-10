@@ -19,7 +19,7 @@ func InitLogger() {
 	log.Logger = zerolog.New(output).With().Timestamp().Logger()
 }
 
-func ConfigureLoggerLevel(loggingLevel string) error {
+func SetLoggerLevel(loggingLevel string) error {
 	if loglvl, err := zerolog.ParseLevel(loggingLevel); err == nil {
 		zerolog.SetGlobalLevel(loglvl)
 		config.Conf.LoggingLevel = zerolog.GlobalLevel().String()
