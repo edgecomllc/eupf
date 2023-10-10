@@ -71,7 +71,8 @@ func EditConfig(c *gin.Context) {
 	var editConfigRequest EditConfigRequest
 	if err := c.BindJSON(&editConfigRequest); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{
-			"message": "Request body should have logging_level field",
+			"message":       "Request body json has incorrect format",
+			"correctFormat": EditConfigRequest{},
 		})
 		return
 	}
