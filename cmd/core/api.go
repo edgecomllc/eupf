@@ -1,18 +1,19 @@
 package core
 
 import (
-	"log"
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
 	"unsafe"
 
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
-	"github.com/edgecomllc/eupf/cmd/config"
 	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -33,15 +34,20 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("upf_pipeline", ListUpfPipeline(bpfObjects))
-		v1.GET("config", DisplayConfig())
 		v1.GET("xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
 		v1.GET("packet_stats", DisplayPacketStats(forwardPlaneStats))
-
-		pdrMap := v1.Group("uplink_pdr_map")
+    
+    config := v1.Group("config")
+		{
+			config.GET("", DisplayConfig())
+			config.POST("", EditConfig)
+		}
+		
+    pdrMap := v1.Group("uplink_pdr_map")
 		{
 			pdrMap.GET(":id", GetUplinkPdrValue(bpfObjects))
 			pdrMap.PUT(":id", SetUplinkPdrValue(bpfObjects))
-		}
+    }	
 
 		qerMap := v1.Group("qer_map")
 		{
@@ -71,6 +77,24 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 
 	router.GET("swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return &ApiServer{router: router}
+}
+
+func EditConfig(c *gin.Context) {
+	var conf config.UpfConfig
+	if err := c.BindJSON(&conf); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{
+			"message":       "Request body json has incorrect format. Use one or more fields from the following structure",
+			"correctFormat": config.UpfConfig{},
+		})
+		return
+	}
+	if err := SetConfig(conf); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Error during editing config: %s", err.Error()),
+		})
+	} else {
+		c.Status(http.StatusOK)
+	}
 }
 
 type PacketStats struct {
@@ -283,7 +307,7 @@ func ListPfcpSessionsFiltered(pfcpSrv *PfcpConnection) func(c *gin.Context) {
 func ListQerMapContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if elements, err := ebpf.ListQerMapContents(bpfObjects.IpEntrypointObjects.QerMap); err != nil {
-			log.Printf("Error reading map: %s", err.Error())
+			log.Info().Msgf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
 			c.IndentedJSON(http.StatusOK, elements)
@@ -303,7 +327,7 @@ func GetQerValue(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			log.Printf("Error converting id to int: %s", err.Error())
+			log.Info().Msgf("Error converting id to int: %s", err.Error())
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -489,7 +513,7 @@ func SetUplinkPdrValue(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 func ListUpfPipeline(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if elements, err := ebpf.ListMapProgArrayContents(bpfObjects.UpfXdpObjects.UpfPipeline); err != nil {
-			log.Printf("Error reading map: %s", err.Error())
+			log.Info().Msgf("Error reading map: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
 			c.IndentedJSON(http.StatusOK, elements)

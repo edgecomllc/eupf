@@ -1,7 +1,7 @@
 package ebpf
 
 import (
-	"log"
+	"github.com/rs/zerolog/log"
 )
 
 type UpfXdpActionStatistic struct {
@@ -49,7 +49,7 @@ func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint64 
 	var statistics []IpEntrypointUpfStatistic
 	err := stat.BpfObjects.UpfExtStat.Lookup(uint32(0), &statistics)
 	if err != nil {
-		log.Println(err)
+		log.Info().Msg(err.Error())
 		return 0
 	}
 
@@ -89,7 +89,7 @@ func (stat *UpfXdpActionStatistic) GetUpfExtStatField() UpfCounters {
 	var counters UpfCounters
 	err := stat.BpfObjects.UpfExtStat.Lookup(uint32(0), &statistics)
 	if err != nil {
-		log.Println(err)
+		log.Info().Msg(err.Error())
 		return counters
 	}
 

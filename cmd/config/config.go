@@ -11,20 +11,21 @@ import (
 var v = viper.GetViper()
 
 type UpfConfig struct {
-	InterfaceName     []string `mapstructure:"interface_name"`
-	XDPAttachMode     string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload"`
-	ApiAddress        string   `mapstructure:"api_address" validate:"hostname_port"`
-	PfcpAddress       string   `mapstructure:"pfcp_address" validate:"hostname_port"`
-	PfcpNodeId        string   `mapstructure:"pfcp_node_id" validate:"hostname|ip"`
-	MetricsAddress    string   `mapstructure:"metrics_address" validate:"hostname_port"`
-	N3Address         string   `mapstructure:"n3_address" validate:"ipv4"`
-	QerMapSize        uint32   `mapstructure:"qer_map_size" validate:"min=1"`
-	FarMapSize        uint32   `mapstructure:"far_map_size" validate:"min=1"`
-	PdrMapSize        uint32   `mapstructure:"pdr_map_size" validate:"min=1"`
-	EbpfMapResize     bool     `mapstructure:"resize_ebpf_maps"`
-	HeartbeatRetries  uint32   `mapstructure:"heartbeat_retries"`
-	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval"`
-	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout"`
+	InterfaceName     []string `mapstructure:"interface_name" json:"interface_name"`
+	XDPAttachMode     string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload" json:"xdp_attach_mode"`
+	ApiAddress        string   `mapstructure:"api_address" validate:"hostname_port" json:"api_address"`
+	PfcpAddress       string   `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
+	PfcpNodeId        string   `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
+	MetricsAddress    string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
+	N3Address         string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
+	QerMapSize        uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
+	FarMapSize        uint32   `mapstructure:"far_map_size" validate:"min=1" json:"far_map_size"`
+	PdrMapSize        uint32   `mapstructure:"pdr_map_size" validate:"min=1" json:"pdr_map_size"`
+	EbpfMapResize     bool     `mapstructure:"resize_ebpf_maps" json:"resize_ebpf_maps"`
+	HeartbeatRetries  uint32   `mapstructure:"heartbeat_retries" json:"heartbeat_retries"`
+	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
+	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
+	LoggingLevel      string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
 }
 
 func init() {
@@ -44,6 +45,7 @@ func init() {
 	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
+	pflag.String("loglvl", "", "Logging level")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -61,6 +63,7 @@ func init() {
 	_ = v.BindPFlag("heartbeat_retries", pflag.Lookup("hbretries"))
 	_ = v.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
 	_ = v.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
+	_ = v.BindPFlag("logging_level", pflag.Lookup("loglvl"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -76,6 +79,7 @@ func init() {
 	v.SetDefault("heartbeat_retries", 3)
 	v.SetDefault("heartbeat_interval", 5)
 	v.SetDefault("heartbeat_timeout", 5)
+	v.SetDefault("logging_level", "info")
 
 	v.SetConfigFile(*configPath)
 
