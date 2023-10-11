@@ -36,17 +36,30 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 		v1.GET("upf_pipeline", ListUpfPipeline(bpfObjects))
 		v1.GET("xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
 		v1.GET("packet_stats", DisplayPacketStats(forwardPlaneStats))
-
-		config := v1.Group("config")
+    
+    config := v1.Group("config")
 		{
 			config.GET("", DisplayConfig())
 			config.POST("", EditConfig)
 		}
+		
+    pdrMap := v1.Group("uplink_pdr_map")
+		{
+			pdrMap.GET(":id", GetUplinkPdrValue(bpfObjects))
+			pdrMap.PUT(":id", SetUplinkPdrValue(bpfObjects))
+    }	
 
 		qerMap := v1.Group("qer_map")
 		{
 			qerMap.GET("", ListQerMapContent(bpfObjects))
-			qerMap.GET(":id", GetQerContent(bpfObjects))
+			qerMap.GET(":id", GetQerValue(bpfObjects))
+			qerMap.PUT(":id", SetQerValue(bpfObjects))
+		}
+
+		farMap := v1.Group("far_map")
+		{
+			farMap.GET(":id", GetFarValue(bpfObjects))
+			farMap.PUT(":id", SetFarValue(bpfObjects))
 		}
 
 		associations := v1.Group("pfcp_associations")
@@ -302,7 +315,7 @@ func ListQerMapContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	}
 }
 
-// GetQerContent godoc
+// GetQerValue godoc
 // @Summary List QER map content
 // @Description List QER map content
 // @Tags QER
@@ -310,10 +323,9 @@ func ListQerMapContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 // @Param id path int true "Qer ID"
 // @Success 200 {object} []ebpf.QerMapElement
 // @Router /qer_map/{id} [get]
-func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
+func GetQerValue(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		id := c.Param("id")
-		aid, err := strconv.Atoi(id)
+		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
 			log.Info().Msgf("Error converting id to int: %s", err.Error())
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -322,20 +334,172 @@ func GetQerContent(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
 
 		var value ebpf.QerInfo
 
-		if err = bpfObjects.IpEntrypointObjects.QerMap.Lookup(uint32(aid), unsafe.Pointer(&value)); err != nil {
-			log.Info().Msgf("Error reading map: %s", err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err = bpfObjects.IpEntrypointObjects.QerMap.Lookup(uint32(id), unsafe.Pointer(&value)); err != nil {
+			log.Printf("Error reading map: %s", err.Error())
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
 
 		c.IndentedJSON(http.StatusOK, ebpf.QerMapElement{
-			Id:           uint32(aid),
+			Id:           uint32(id),
 			GateStatusUL: value.GateStatusUL,
 			GateStatusDL: value.GateStatusDL,
 			Qfi:          value.Qfi,
 			MaxBitrateUL: value.MaxBitrateUL,
 			MaxBitrateDL: value.MaxBitrateDL,
 		})
+	}
+}
+
+func SetQerValue(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		var qerElement ebpf.QerMapElement
+		if err := c.BindJSON(&qerElement); err != nil {
+			log.Printf("Parsing request body error: %s", err.Error())
+			return
+		}
+
+		var value = ebpf.QerInfo{
+			GateStatusUL: qerElement.GateStatusUL,
+			GateStatusDL: qerElement.GateStatusDL,
+			Qfi:          qerElement.Qfi,
+			MaxBitrateUL: qerElement.MaxBitrateUL,
+			MaxBitrateDL: qerElement.MaxBitrateDL,
+			StartUL:      0,
+			StartDL:      0,
+		}
+
+		if err := bpfObjects.IpEntrypointObjects.QerMap.Put(uint32(qerElement.Id), unsafe.Pointer(&value)); err != nil {
+			log.Printf("Error writting map: %s", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.IndentedJSON(http.StatusCreated, qerElement)
+	}
+}
+
+type FarMapElement struct {
+	Id                    uint32 `json:"id"`
+	Action                uint8  `json:"action"`
+	OuterHeaderCreation   uint8  `json:"outer_header_creation"`
+	Teid                  uint32 `json:"teid"`
+	RemoteIP              uint32 `json:"remote_ip"`
+	LocalIP               uint32 `json:"local_ip"`
+	TransportLevelMarking uint16 `json:"transport_level_marking"`
+}
+
+func GetFarValue(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Printf("Not an integer id: %s", err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		var value ebpf.FarInfo
+		if err = bpfObjects.IpEntrypointObjects.FarMap.Lookup(uint32(id), unsafe.Pointer(&value)); err != nil {
+			log.Printf("Error reading map: %s", err.Error())
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, FarMapElement{
+			Id:                    uint32(id),
+			Action:                value.Action,
+			OuterHeaderCreation:   value.OuterHeaderCreation,
+			Teid:                  value.Teid,
+			RemoteIP:              value.RemoteIP,
+			LocalIP:               value.LocalIP,
+			TransportLevelMarking: value.TransportLevelMarking,
+		})
+	}
+}
+
+func SetFarValue(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		var farElement FarMapElement
+		if err := c.BindJSON(&farElement); err != nil {
+			log.Printf("Parsing request body error: %s", err.Error())
+			return
+		}
+
+		var value = ebpf.FarInfo{
+			Action:                farElement.Action,
+			OuterHeaderCreation:   farElement.OuterHeaderCreation,
+			Teid:                  farElement.Teid,
+			RemoteIP:              farElement.RemoteIP,
+			LocalIP:               farElement.LocalIP,
+			TransportLevelMarking: farElement.TransportLevelMarking,
+		}
+
+		if err := bpfObjects.IpEntrypointObjects.FarMap.Put(uint32(farElement.Id), unsafe.Pointer(&value)); err != nil {
+			log.Printf("Error writting map: %s", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.IndentedJSON(http.StatusCreated, farElement)
+	}
+}
+
+type PdrElement struct {
+	Id                 uint32 `json:"id"`
+	OuterHeaderRemoval uint8  `json:"outer_header_removal"`
+	FarId              uint32 `json:"far_id"`
+	QerId              uint32 `json:"qer_id"`
+}
+
+func GetUplinkPdrValue(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Printf("Not an integer id: %s", err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		var value ebpf.PdrInfo
+		if err = bpfObjects.IpEntrypointObjects.PdrMapUplinkIp4.Lookup(uint32(id), unsafe.Pointer(&value)); err != nil {
+			log.Printf("Error reading map: %s", err.Error())
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, PdrElement{
+			Id:                 uint32(id),
+			OuterHeaderRemoval: value.OuterHeaderRemoval,
+			FarId:              value.FarId,
+			QerId:              value.QerId,
+		})
+	}
+}
+
+func SetUplinkPdrValue(bpfObjects *ebpf.BpfObjects) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		var pdrElement PdrElement
+		if err := c.BindJSON(&pdrElement); err != nil {
+			log.Printf("Parsing request body error: %s", err.Error())
+			return
+		}
+
+		var value = ebpf.PdrInfo{
+			OuterHeaderRemoval: pdrElement.OuterHeaderRemoval,
+			FarId:              pdrElement.FarId,
+			QerId:              pdrElement.QerId,
+		}
+
+		if err := bpfObjects.IpEntrypointObjects.PdrMapUplinkIp4.Put(uint32(pdrElement.Id), unsafe.Pointer(&value)); err != nil {
+			log.Printf("Error writting map: %s", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.IndentedJSON(http.StatusCreated, pdrElement)
 	}
 }
 

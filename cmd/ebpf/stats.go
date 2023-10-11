@@ -46,7 +46,7 @@ func (current *UpfCounters) Add(new UpfCounters) {
 
 func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint64 {
 
-	var statistics []UpfStatistic
+	var statistics []IpEntrypointUpfStatistic
 	err := stat.BpfObjects.UpfExtStat.Lookup(uint32(0), &statistics)
 	if err != nil {
 		log.Info().Msg(err.Error())
@@ -55,7 +55,7 @@ func (stat *UpfXdpActionStatistic) getUpfXdpStatisticField(field uint32) uint64 
 
 	var totalValue uint64 = 0
 	for _, statistic := range statistics {
-		totalValue += statistic.XdpStats[field]
+		totalValue += statistic.XdpActions[field]
 	}
 
 	return totalValue
@@ -85,7 +85,7 @@ func (stat *UpfXdpActionStatistic) GetRedirect() uint64 {
 // #TODO: Do not retrieve the whole struct each time.
 func (stat *UpfXdpActionStatistic) GetUpfExtStatField() UpfCounters {
 
-	var statistics []UpfStatistic
+	var statistics []IpEntrypointUpfStatistic
 	var counters UpfCounters
 	err := stat.BpfObjects.UpfExtStat.Lookup(uint32(0), &statistics)
 	if err != nil {
@@ -94,7 +94,7 @@ func (stat *UpfXdpActionStatistic) GetUpfExtStatField() UpfCounters {
 	}
 
 	for _, statistic := range statistics {
-		counters.Add(statistic.Counters)
+		counters.Add(statistic.UpfCounters)
 	}
 
 	return counters
