@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -11,21 +12,21 @@ import (
 var v = viper.GetViper()
 
 type UpfConfig struct {
-	InterfaceName     []string `mapstructure:"interface_name"`
-	XDPAttachMode     string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload"`
-	ApiAddress        string   `mapstructure:"api_address" validate:"hostname_port"`
-	PfcpAddress       string   `mapstructure:"pfcp_address" validate:"hostname_port"`
-	PfcpNodeId        string   `mapstructure:"pfcp_node_id" validate:"hostname|ip"`
-	MetricsAddress    string   `mapstructure:"metrics_address" validate:"hostname_port"`
-	N3Address         string   `mapstructure:"n3_address" validate:"ipv4"`
-	QerMapSize        uint32   `mapstructure:"qer_map_size" validate:"min=1"`
-	FarMapSize        uint32   `mapstructure:"far_map_size" validate:"min=1"`
-	PdrMapSize        uint32   `mapstructure:"pdr_map_size" validate:"min=1"`
-	EbpfMapResize     bool     `mapstructure:"resize_ebpf_maps"`
-	HeartbeatRetries  uint32   `mapstructure:"heartbeat_retries"`
-	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval"`
-	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout"`
-	LoggingLevel      string   `mapstructure:"logging_level"`
+	InterfaceName     []string `mapstructure:"interface_name" json:"interface_name"`
+	XDPAttachMode     string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload" json:"xdp_attach_mode"`
+	ApiAddress        string   `mapstructure:"api_address" validate:"hostname_port" json:"api_address"`
+	PfcpAddress       string   `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
+	PfcpNodeId        string   `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
+	MetricsAddress    string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
+	N3Address         string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
+	QerMapSize        uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
+	FarMapSize        uint32   `mapstructure:"far_map_size" validate:"min=1" json:"far_map_size"`
+	PdrMapSize        uint32   `mapstructure:"pdr_map_size" validate:"min=1" json:"pdr_map_size"`
+	EbpfMapResize     bool     `mapstructure:"resize_ebpf_maps" json:"resize_ebpf_maps"`
+	HeartbeatRetries  uint32   `mapstructure:"heartbeat_retries" json:"heartbeat_retries"`
+	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
+	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
+	LoggingLevel      string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
 }
 
 func init() {
@@ -107,17 +108,9 @@ func (c *UpfConfig) Unmarshal() error {
 
 var configFileAvailable bool
 
-func IsConfigFileAvailable() bool {
-	return configFileAvailable
-}
-
-func (c *UpfConfig) UnmarshalUpdatableKeys() error {
-	log.Println("Only logging_level parameter update in config file is supported yet")
-	keysFieldsMap := map[string]interface{}{"logging_level": &c.LoggingLevel}
-	for key := range keysFieldsMap {
-		if err := v.UnmarshalKey(key, keysFieldsMap[key]); err != nil {
-			return err
-		}
+func SetWatchConfig(onConfigChange func(e fsnotify.Event)) {
+	if configFileAvailable {
+		viper.OnConfigChange(onConfigChange)
+		viper.WatchConfig()
 	}
-	return nil
 }

@@ -9,13 +9,12 @@ import (
 
 	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
+	"github.com/fsnotify/fsnotify"
 
 	"github.com/cilium/ebpf/link"
 	"github.com/edgecomllc/eupf/cmd/config"
-	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/viper"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -31,7 +30,7 @@ func main() {
 	// As zerolog docs says: "Pretty logging on the console is made possible using the provided (but inefficient) zerolog.ConsoleWriter."
 	core.InitLogger()
 	if err := core.SetLoggerLevel(config.Conf.LoggingLevel); err != nil {
-		log.Warn().Msgf("Logger configuring error: %s. Using '%s' level", err.Error(), zerolog.GlobalLevel().String())
+		log.Error().Msgf("Logger configuring error: %s. Using '%s' level", err.Error(), zerolog.GlobalLevel().String())
 	}
 
 	if err := ebpf.IncreaseResourceLimits(); err != nil {
@@ -110,10 +109,7 @@ func main() {
 	}()
 
 	// Handle config file change.
-	if config.IsConfigFileAvailable() {
-		viper.OnConfigChange(OnConfigChange)
-		viper.WatchConfig()
-	}
+	config.SetWatchConfig(OnConfigFileChange)
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
@@ -148,11 +144,12 @@ func StringToXDPAttachMode(Mode string) link.XDPAttachFlags {
 	}
 }
 
-func OnConfigChange(e fsnotify.Event) {
-	if err := config.ReloadOnChange(); err == nil {
-		// For now only logging_level parameter update in config file is supported.
-		if err := core.SetLoggerLevel(config.Conf.LoggingLevel); err != nil {
-			log.Warn().Msgf("Logger configuring error: %s. Using '%s' level", err.Error(), zerolog.GlobalLevel().String())
+func OnConfigFileChange(e fsnotify.Event) {
+	if e.Has(fsnotify.Create) || e.Has(fsnotify.Write) {
+		if conf, err := config.GetUpdatedConf(); err == nil {
+			if err := core.SetConfig(conf); err != nil {
+				log.Error().Msgf("Error during config file change handling: %s", err.Error())
+			}
 		}
 	}
 }

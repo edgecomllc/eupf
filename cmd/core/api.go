@@ -7,13 +7,12 @@ import (
 	"strconv"
 	"unsafe"
 
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
-	"github.com/edgecomllc/eupf/cmd/config"
 	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -35,10 +34,14 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("upf_pipeline", ListUpfPipeline(bpfObjects))
-		v1.GET("config", DisplayConfig())
 		v1.GET("xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
 		v1.GET("packet_stats", DisplayPacketStats(forwardPlaneStats))
-		v1.POST("config", EditConfig)
+
+		config := v1.Group("config")
+		{
+			config.GET("", DisplayConfig())
+			config.POST("", EditConfig)
+		}
 
 		qerMap := v1.Group("qer_map")
 		{
@@ -63,25 +66,19 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 	return &ApiServer{router: router}
 }
 
-type EditConfigRequest struct {
-	LoggingLevel string `json:"logging_level"`
-}
-
 func EditConfig(c *gin.Context) {
-	var editConfigRequest EditConfigRequest
-	if err := c.BindJSON(&editConfigRequest); err != nil {
+	var conf config.UpfConfig
+	if err := c.BindJSON(&conf); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{
-			"message":       "Request body json has incorrect format",
-			"correctFormat": EditConfigRequest{},
+			"message":       "Request body json has incorrect format. Use one or more fields from the following structure",
+			"correctFormat": config.UpfConfig{},
 		})
 		return
 	}
-	if err := SetLoggerLevel(editConfigRequest.LoggingLevel); err != nil {
-		c.IndentedJSON(http.StatusBadRequest,
-			gin.H{
-				"message": fmt.Sprintf("Logger configuring error: %s. Using '%s' level",
-					err.Error(), zerolog.GlobalLevel().String()),
-			})
+	if err := SetConfig(conf); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Error during editing config: %s", err.Error()),
+		})
 	} else {
 		c.Status(http.StatusOK)
 	}
