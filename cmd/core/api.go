@@ -1,14 +1,15 @@
 package core
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
 	"unsafe"
 
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
-	"github.com/edgecomllc/eupf/cmd/config"
 	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -33,9 +34,14 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("upf_pipeline", ListUpfPipeline(bpfObjects))
-		v1.GET("config", DisplayConfig())
 		v1.GET("xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
 		v1.GET("packet_stats", DisplayPacketStats(forwardPlaneStats))
+
+		config := v1.Group("config")
+		{
+			config.GET("", DisplayConfig())
+			config.POST("", EditConfig)
+		}
 
 		qerMap := v1.Group("qer_map")
 		{
@@ -58,6 +64,24 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 
 	router.GET("swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return &ApiServer{router: router}
+}
+
+func EditConfig(c *gin.Context) {
+	var conf config.UpfConfig
+	if err := c.BindJSON(&conf); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{
+			"message":       "Request body json has incorrect format. Use one or more fields from the following structure",
+			"correctFormat": config.UpfConfig{},
+		})
+		return
+	}
+	if err := SetConfig(conf); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Error during editing config: %s", err.Error()),
+		})
+	} else {
+		c.Status(http.StatusOK)
+	}
 }
 
 type PacketStats struct {
