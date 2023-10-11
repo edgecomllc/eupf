@@ -9,7 +9,6 @@ import (
 
 	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
-	"github.com/fsnotify/fsnotify"
 
 	"github.com/cilium/ebpf/link"
 	"github.com/edgecomllc/eupf/cmd/config"
@@ -108,9 +107,6 @@ func main() {
 		}
 	}()
 
-	// Handle config file change.
-	config.SetWatchConfig(OnConfigFileChange)
-
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
@@ -141,15 +137,5 @@ func StringToXDPAttachMode(Mode string) link.XDPAttachFlags {
 		return link.XDPOffloadMode
 	default:
 		return link.XDPGenericMode
-	}
-}
-
-func OnConfigFileChange(e fsnotify.Event) {
-	if e.Has(fsnotify.Create) || e.Has(fsnotify.Write) {
-		if conf, err := config.GetUpdatedConf(); err == nil {
-			if err := core.SetConfig(conf); err != nil {
-				log.Error().Msgf("Error during config file change handling: %s", err.Error())
-			}
-		}
 	}
 }
