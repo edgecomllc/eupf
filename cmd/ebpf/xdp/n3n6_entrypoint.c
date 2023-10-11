@@ -63,10 +63,11 @@ static __always_inline __u8 get_sdf_protocol(__u8 ip_protocol) {
 }
 
 static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, struct sdf_filter *sdf) {
-    // const struct iphdr *ip4 = ctx->ip4;
-    struct iphdr* ip4 = parse_ip4_protocol(ctx);   
-    if(!ip4)
-        return 0;
+    const struct iphdr *ip4 = ctx->ip4;
+    // struct iphdr* ip4 = parse_ip4_protocol(ctx);   
+    // if(!ip4)
+    //     return 0;
+
     __u8 packet_protocol = get_sdf_protocol(ip4->protocol); //TODO: convert protocol in golang part
     __u32 sdf_src_ip = bpf_htonl(sdf->src_addr.ip);
     __u32 sdf_dst_ip = bpf_htonl(sdf->dst_addr.ip);
@@ -76,7 +77,8 @@ static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, st
     switch (ip4->protocol) {
         case IPPROTO_UDP:
             upf_printk("The packet is adhering to the UDP standards");
-            struct udphdr *udp_header = parse_udp_src_dst(ctx); 
+            // struct udphdr *udp_header = parse_udp_src_dst(ctx); 
+            struct udphdr *udp_header = ctx->udp;
             if(!udp_header) {
                 return 0;
             }
@@ -85,7 +87,8 @@ static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, st
             break;
         case IPPROTO_TCP:
             upf_printk("The packet is adhering to the TCP standards");
-            struct tcphdr *tcp_header = parse_tcp_src_dst(ctx); //FIXME: use ctx
+            // struct tcphdr *tcp_header = parse_tcp_src_dst(ctx); //FIXME: use ctx
+            struct tcphdr *tcp_header = ctx->tcp;
             if(!tcp_header) {
                 return 0;
             }
@@ -332,9 +335,55 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
             .data = (char *)(long)ctx->data,
             .data_end = (const char *)(long)ctx->data_end,
             .xdp_ctx = ctx->xdp_ctx,
-            .counters = &fake_stat,
-            .n3_n6_counter = &fake_stat
+            .counters = &fake_stat.upf_counters,
+            .n3_n6_counter = &fake_stat.upf_n3_n6_counter
         };
+
+        int eth_protocol = get_eth_protocol(inner_context.data);
+        int ip_protocol;
+        
+
+        switch (eth_protocol) {
+            case ETH_P_IP:
+                inner_context.ip4 = parse_ip4_protocol(&inner_context);
+                ip_protocol = inner_context.ip4->protocol;
+                if (ip_protocol == -1) {
+                    upf_printk("upf: unable to parse IPv4 header");
+                    return DEFAULT_XDP_ACTION;
+                }
+                break;
+            case ETH_P_IPV6:
+                inner_context.ip6 = parse_ip6_protocol(&inner_context);
+                ip_protocol = inner_context.ip6->nexthdr;
+                if (ip_protocol == -1) {
+                    upf_printk("upf: unable to parse IPv6 header");
+                    return DEFAULT_XDP_ACTION;
+                }
+                break;
+            default:
+                upf_printk("upf: unsupported Ethernet protocol");
+                return DEFAULT_XDP_ACTION;
+        }
+
+        switch (ip_protocol) {
+            case IPPROTO_UDP:
+                inner_context.udp = parse_udp_src_dst(&inner_context);
+                if (!inner_context.udp) {
+                    upf_printk("upf: unable to parse UDP header");
+                    return DEFAULT_XDP_ACTION;
+                }
+                break;
+            case IPPROTO_TCP:
+                inner_context.tcp = parse_tcp_src_dst(&inner_context);
+                if (!inner_context.tcp) {
+                    upf_printk("upf: unable to parse TCP header");
+                    return DEFAULT_XDP_ACTION;
+                }
+                break;
+            default:
+                upf_printk("upf: unsupported IP protocol");
+                return DEFAULT_XDP_ACTION;
+        }
 
         //1. check ip4 or ip6 (see get_eth_protocol)
         //2. parse ip4/ip6 (with keeping header in context)

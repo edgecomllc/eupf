@@ -104,29 +104,6 @@ static __always_inline struct udphdr *parse_udp_src_dst(struct packet_context *c
     return udp;
 }
 
-static __always_inline char *parse_tcp_udp_src_dst(struct packet_context *ctx, int l4_protocol) {
-    switch (l4_protocol) {
-        case IPPROTO_UDP:
-            upf_printk("The packet is adhering to the UDP standards");
-            struct udphdr *udp = (struct udphdr *)ctx->data;
-            if ((const char *)(udp + 1) > ctx->data_end)
-                return 0;
-            ctx->data += sizeof(*udp);
-            return ctx->data;
-        case IPPROTO_TCP:
-            upf_printk("The packet is adhering to the TCP standards");
-            struct tcphdr *tcp = (struct tcphdr *)ctx->data;
-            if ((const char *)(tcp + 1) > ctx->data_end)
-                return 0;
-
-            ctx->data += sizeof(*tcp);
-            return ctx->data;
-        default:
-            upf_printk("The packet is not adhering to TCP or UDP");
-            return 0;
-    }
-}
-
 //FIXME: Naming
 static __always_inline struct tcphdr *parse_tcp_src_dst(struct packet_context *ctx) {
         struct tcphdr *tcp = (struct tcphdr *)ctx->data;
