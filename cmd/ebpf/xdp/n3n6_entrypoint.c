@@ -63,10 +63,10 @@ static __always_inline __u8 get_sdf_protocol(__u8 ip_protocol) {
 }
 
 static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, struct sdf_filter *sdf) {
-    const struct iphdr *ip4 = ctx->ip4;
-    // struct iphdr* ip4 = parse_ip4_protocol(ctx);   
-    // if(!ip4)
-    //     return 0;
+    // const struct iphdr *ip4 = ctx->ip4;
+    struct iphdr* ip4 = parse_ip4_protocol(ctx);   
+    if(!ip4)
+        return 0;
     __u8 packet_protocol = get_sdf_protocol(ip4->protocol); //TODO: convert protocol in golang part
     __u32 sdf_src_ip = bpf_htonl(sdf->src_addr.ip);
     __u32 sdf_dst_ip = bpf_htonl(sdf->dst_addr.ip);
@@ -76,7 +76,7 @@ static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, st
     switch (ip4->protocol) {
         case IPPROTO_UDP:
             upf_printk("The packet is adhering to the UDP standards");
-            struct udphdr *udp_header = ctx->udp; 
+            struct udphdr *udp_header = parse_udp_src_dst(ctx); 
             if(!udp_header) {
                 return 0;
             }
@@ -85,7 +85,7 @@ static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, st
             break;
         case IPPROTO_TCP:
             upf_printk("The packet is adhering to the TCP standards");
-            struct tcphdr *tcp_header = ctx->tcp;
+            struct tcphdr *tcp_header = parse_tcp_src_dst(ctx); //FIXME: use ctx
             if(!tcp_header) {
                 return 0;
             }
@@ -123,10 +123,10 @@ static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, st
 }
 
 static __always_inline __u8 match_sdf_filter_ipv6(struct packet_context *ctx, struct sdf_filter *sdf) {
-    const struct ipv6hdr *ipv6 = ctx->ip6;  
-    // struct ipv6hdr *ipv6 = parse_ip6_protocol(ctx);  
-    // if(!ipv6)
-    //     return 0;           
+    // const struct ipv6hdr *ipv6 = ctx->ip6;  
+    struct ipv6hdr *ipv6 = parse_ip6_protocol(ctx);  
+    if(!ipv6)
+        return 0;           
     __u8 packet_protocol = get_sdf_protocol(ipv6->nexthdr);
     struct in6_addr packet_src_ip = ipv6->saddr;
     struct in6_addr packet_dst_ip = ipv6->daddr;
@@ -305,7 +305,6 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, far->teid);
 }
 
-
 static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx) {
     if (!ctx->gtp) {
         upf_printk("upf: unexpected packet context. no gtp header");
@@ -326,57 +325,22 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     __u32 far_id = pdr->far_id;
     __u32 qer_id = pdr->qer_id;
     __u8 outer_header_removal = pdr->outer_header_removal;
-    if (sdf->protocol >= 0 && sdf->protocol <= 3) {
+    if (sdf && (sdf->protocol >= 0 && sdf->protocol <= 3)) {
+
         struct upf_statistic fake_stat;
         struct packet_context inner_context = {
             .data = (char *)(long)ctx->data,
             .data_end = (const char *)(long)ctx->data_end,
             .xdp_ctx = ctx->xdp_ctx,
-            .counters = &fake_stat.upf_counters,
-            .n3_n6_counter = &fake_stat.upf_n3_n6_counter
+            .counters = &fake_stat,
+            .n3_n6_counter = &fake_stat
         };
-    
-        const int eth_proto = get_eth_protocol(inner_context.data);
-         if (eth_proto == -1)
-            return XDP_DROP;
 
-        __u8 packet_matched = 0;
-        int l4_protocol = -1;
-        switch(eth_proto) {
-            case ETH_P_IPV6:
-            upf_printk("upf: packet with teid adhers to IPv6:%d", teid);
-            l4_protocol = parse_ip6(&inner_context);
-            if(l4_protocol == -1) {
-                return XDP_DROP;
-            }
-            inner_context.data = (char *)(long)parse_tcp_udp_src_dst(ctx, l4_protocol);
-            if(!inner_context.data) {
-                return XDP_DROP;
-            }
-
-            packet_matched = match_sdf_filter_ipv6(&inner_context, sdf);
-            break;
-        case ETH_P_IP:
-            upf_printk("upf: packet with teid: %d adhers to IPv4", teid);
-            l4_protocol = parse_ip4(&inner_context);
-            if(l4_protocol == -1) {
-                return XDP_DROP;
-            }
-            inner_context.data = (char *)(long)parse_tcp_udp_src_dst(ctx, l4_protocol);
-            if(!inner_context.data) {
-                return XDP_DROP;
-            }
-            packet_matched = match_sdf_filter_ipv4(&inner_context, sdf);
-            break;
-        default:
-            upf_printk("upf: packet with teid: %d adhers to IPv4 or Ipv6", teid);
-            break; 
-        }
         //1. check ip4 or ip6 (see get_eth_protocol)
         //2. parse ip4/ip6 (with keeping header in context)
         //3. parse tcp/udp (with keeping header in context)
 
-        
+        __u8 packet_matched = match_sdf_filter_ipv4(&inner_context, sdf);
         if(packet_matched) {
             upf_printk("upf: sdf filter matched for teid:%d", teid);
             far_id = pdr->sdf_rules.far_id;
