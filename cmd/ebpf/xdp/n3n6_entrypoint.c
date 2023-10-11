@@ -345,16 +345,14 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
 
         switch (eth_protocol) {
             case ETH_P_IP:
-                inner_context.ip4 = parse_ip4_protocol(&inner_context);
-                ip_protocol = inner_context.ip4->protocol;
+                ip_protocol = parse_ip4(&inner_context);
                 if (ip_protocol == -1) {
                     upf_printk("upf: unable to parse IPv4 header");
                     return DEFAULT_XDP_ACTION;
                 }
                 break;
             case ETH_P_IPV6:
-                inner_context.ip6 = parse_ip6_protocol(&inner_context);
-                ip_protocol = inner_context.ip6->nexthdr;
+                ip_protocol = parse_ip6(&inner_context);
                 if (ip_protocol == -1) {
                     upf_printk("upf: unable to parse IPv6 header");
                     return DEFAULT_XDP_ACTION;
