@@ -27,6 +27,9 @@
 #include "xdp/utils/packet_context.h"
 #include "xdp/utils/trace.h"
 
+#define ETH_P_IPV6_BE	0xDD86
+#define ETH_P_IP_BE 	0x0008
+
 static __always_inline int parse_ethernet(struct packet_context *ctx) {
     struct ethhdr *eth = (struct ethhdr *)ctx->data;
     if ((const char *)(eth + 1) > ctx->data_end)
@@ -56,32 +59,16 @@ static __always_inline int parse_ip4(struct packet_context *ctx) {
     return ip4->protocol;
 }
 
-static __always_inline struct iphdr * parse_ip4_protocol(struct packet_context *ctx) {
-    struct iphdr *ip4 = (struct iphdr *)ctx->data;
-    if ((const char *)(ip4 + 1) > ctx->data_end)
-        return 0;
-    ctx->data += ip4->ihl * 4;
-    return ip4;
-}
-
 static __always_inline int parse_ip6(struct packet_context *ctx) {
     struct ipv6hdr *ip6 = (struct ipv6hdr *)ctx->data;
     if ((const char *)(ip6 + 1) > ctx->data_end)
         return -1;
-
+    
     /* TODO: Add extention headers support */
 
     ctx->data += sizeof(*ip6);
     ctx->ip6 = ip6;
     return ip6->nexthdr;
-}
-
-static __always_inline struct ipv6hdr * parse_ip6_protocol(struct packet_context *ctx) {
-    struct ipv6hdr *ip6 = (struct ipv6hdr *)ctx->data;
-    if ((const char *)(ip6 + 1) > ctx->data_end)
-        return 0;
-    ctx->data += sizeof(*ip6);
-    return ip6;
 }
 
 static __always_inline int parse_udp(struct packet_context *ctx) {
@@ -94,24 +81,28 @@ static __always_inline int parse_udp(struct packet_context *ctx) {
     return bpf_ntohs(udp->dest);
 }
 
-//FIXME: Naming
-static __always_inline struct udphdr *parse_udp_src_dst(struct packet_context *ctx) {
-    struct udphdr *udp = (struct udphdr *)ctx->data;
-    if ((const char *)(udp + 1) > ctx->data_end)
-        return 0;
+static __always_inline int parse_tcp(struct packet_context *ctx) {
+    struct tcphdr *tcp = (struct tcphdr *)ctx->data;
+    if ((const char *)(tcp + 1) > ctx->data_end)
+        return -1;
 
-    ctx->data += sizeof(*udp);
-    return udp;
+    //TODO: parse header lenght correctly (tcp options)
+
+    ctx->data += sizeof(*tcp);
+    ctx->tcp = tcp;
+    return bpf_ntohs(tcp->dest);
 }
 
-//FIXME: Naming
-static __always_inline struct tcphdr *parse_tcp_src_dst(struct packet_context *ctx) {
-        struct tcphdr *tcp = (struct tcphdr *)ctx->data;
-        if ((const char *)(tcp + 1) > ctx->data_end)
+static __always_inline int parse_l4(int ip_protocol, struct packet_context *ctx)
+{
+    switch (ip_protocol) {
+        case IPPROTO_UDP:
+            return parse_udp(ctx);
+        case IPPROTO_TCP:
+            return parse_tcp(ctx);
+        default:
             return 0;
-
-        ctx->data += sizeof(*tcp);
-        return tcp;
+    }
 }
 
 static __always_inline void swap_mac(struct ethhdr *eth) {

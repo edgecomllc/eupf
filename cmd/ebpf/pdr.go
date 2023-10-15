@@ -248,6 +248,7 @@ func CombinePdrWithSdf(defaultPdr IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntrypo
 	pdrToStore.OuterHeaderRemoval = defaultPdr.OuterHeaderRemoval
 	pdrToStore.FarId = defaultPdr.FarId
 	pdrToStore.QerId = defaultPdr.QerId
+	pdrToStore.HasSdf = 1
 	// SDF mapping options.
 	pdrToStore.SdfRules.SdfFilter.Protocol = sdfPdr.SdfFilter.Protocol
 	pdrToStore.SdfRules.SdfFilter.SrcAddr.Type = sdfPdr.SdfFilter.SrcAddress.Type

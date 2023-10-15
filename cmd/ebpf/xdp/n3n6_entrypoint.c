@@ -30,6 +30,7 @@
 #include "xdp/statistics.h"
 #include "xdp/qer.h"
 #include "xdp/pdr.h"
+#include "xdp/sdf_filter.h"
 
 #include "xdp/utils/common.h"
 #include "xdp/utils/trace.h"
@@ -52,143 +53,7 @@ static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context 
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
-static __always_inline __u8 get_sdf_protocol(__u8 ip_protocol) {
-    switch(ip_protocol)
-    {
-        case IPPROTO_ICMP: return 1;
-        case IPPROTO_TCP: return 2;
-        case IPPROTO_UDP: return 3;
-        default: return 0;
-    }
-}
 
-static __always_inline __u8 match_sdf_filter_ipv4(struct packet_context *ctx, struct sdf_filter *sdf) {
-    const struct iphdr *ip4 = ctx->ip4;
-    // struct iphdr* ip4 = parse_ip4_protocol(ctx);   
-    // if(!ip4)
-    //     return 0;
-
-    __u8 packet_protocol = get_sdf_protocol(ip4->protocol); //TODO: convert protocol in golang part
-    __u32 sdf_src_ip = bpf_htonl(sdf->src_addr.ip);
-    __u32 sdf_dst_ip = bpf_htonl(sdf->dst_addr.ip);
-
-    __u16 packet_src_port = 0;
-    __u16 packet_dst_port = 0;
-    switch (ip4->protocol) {
-        case IPPROTO_UDP:
-            upf_printk("The packet is adhering to the UDP standards");
-            // struct udphdr *udp_header = parse_udp_src_dst(ctx); 
-            struct udphdr *udp_header = ctx->udp;
-            if(!udp_header) {
-                return 0;
-            }
-            packet_src_port = bpf_ntohs(udp_header->source); //TODO: convert port in golang part
-            packet_dst_port = bpf_ntohs(udp_header->dest); //TODO: convert port in golang part
-            break;
-        case IPPROTO_TCP:
-            upf_printk("The packet is adhering to the TCP standards");
-            // struct tcphdr *tcp_header = parse_tcp_src_dst(ctx); //FIXME: use ctx
-            struct tcphdr *tcp_header = ctx->tcp;
-            if(!tcp_header) {
-                return 0;
-            }
-            packet_src_port = bpf_ntohs(tcp_header->source); //TODO: convert port in golang part
-            packet_dst_port = bpf_ntohs(tcp_header->dest); //TODO: convert port in golang part
-            break;
-        default:
-            upf_printk("The packet is not adhering to TCP or UDP");
-    }
-
-    upf_printk("SDF: filter protocol: %u", sdf->protocol);
-    upf_printk("SDF: filter source ip: %pI4, destination ip: %pI4",  &sdf_src_ip,  &sdf_dst_ip);
-    upf_printk("SDF: filter source port lower bound: %u, source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
-    upf_printk("SDF: filter destination port lower bound: %u, destination port upper bound: %u", sdf->dst_port.lower_bound, sdf->dst_port.upper_bound);
-    upf_printk("SDF: filter source address mask: %pI4, destination address mask: %pI4", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
-
-    upf_printk("SDF: packet protocol: %u", ip4->protocol);
-    upf_printk("SDF: packet source ip: %pI4, destination ip: %pI4",  &ip4->saddr,  &ip4->daddr);
-    upf_printk("SDF: packet source port: %u, destination port: %u", packet_src_port, packet_dst_port);
-    
-    
-    if (sdf->protocol != packet_protocol 
-        || ((ip4->saddr & sdf->src_addr.mask) != sdf_src_ip)  
-        || ((ip4->daddr & sdf->dst_addr.mask) != sdf_dst_ip) 
-        || (packet_src_port < sdf->src_port.lower_bound || packet_src_port > sdf->src_port.upper_bound) 
-        || (packet_dst_port < sdf->dst_port.lower_bound || packet_dst_port > sdf->dst_port.upper_bound)) 
-    {
-        return 0;
-    }
-    
-    upf_printk("Packet with source ip:%pI4, destination ip:%pI4 matches SDF filter",
-               &ip4->saddr, &ip4->daddr);
-
-    return 1;
-}
-
-static __always_inline __u8 match_sdf_filter_ipv6(struct packet_context *ctx, struct sdf_filter *sdf) {
-    // const struct ipv6hdr *ipv6 = ctx->ip6;  
-    struct ipv6hdr *ipv6 = parse_ip6_protocol(ctx);  
-    if(!ipv6)
-        return 0;           
-    __u8 packet_protocol = get_sdf_protocol(ipv6->nexthdr);
-    struct in6_addr packet_src_ip = ipv6->saddr;
-    struct in6_addr packet_dst_ip = ipv6->daddr;
-
-    __uint128_t packet_src_ip_128 = *((__uint128_t*)packet_src_ip.s6_addr);
-    __uint128_t packet_dst_ip_128 = *((__uint128_t*)packet_dst_ip.s6_addr);
-
-    __u16 packet_src_port = 0;
-    __u16 packet_dst_port = 0;
-
-    __uint128_t sdf_src_ip = bpf_htonl(sdf->src_addr.ip);
-    __uint128_t sdf_dst_ip = bpf_htonl(sdf->dst_addr.ip);
-
-    switch (ipv6->nexthdr) {
-        case IPPROTO_UDP:
-            upf_printk("The packet is adhering to the UDP standards");
-            struct udphdr *udp_header = parse_udp_src_dst(ctx);
-            if(!udp_header) {
-                return 0;
-            }
-            packet_src_port = bpf_ntohs(udp_header->source);
-            packet_dst_port = bpf_ntohs(udp_header->dest);
-            break;
-        case IPPROTO_TCP:
-            upf_printk("The packet is adhering to the TCP standards");
-            struct tcphdr *tcp_header = parse_tcp_src_dst(ctx);
-            if(!tcp_header) {
-                return 0;
-            }
-            packet_src_port = bpf_ntohs(tcp_header->source);
-            packet_dst_port = bpf_ntohs(tcp_header->dest);
-            break;
-        default:
-            upf_printk("The packet is not adhering to TCP or UDP");
-    }
-
-    upf_printk("SDF: filter protocol: %u", sdf->protocol);
-    upf_printk("SDF: filter source ip: %pI6c, destination ip: %pI6c",  &sdf_src_ip,  &sdf_dst_ip);
-    upf_printk("SDF: filter source port lower bound: %u, source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
-    upf_printk("SDF: filter destination port lower bound: %u, destination port upper bound: %u", sdf->dst_port.lower_bound, sdf->dst_port.upper_bound);
-    upf_printk("SDF: filter source address mask: %pI4, destination address mask: %pI4", &sdf->dst_addr.mask, &sdf->dst_addr.mask);
-
-    upf_printk("SDF: packet protocol: %u", packet_protocol);
-    upf_printk("SDF: packet source ip: %pI6c, destination ip: %pI6c",  &packet_src_ip_128,  &packet_dst_ip_128);
-    upf_printk("SDF: packet source port: %u, destination port: %u", packet_src_port, packet_dst_port);
-
-    if (sdf->protocol != packet_protocol ||
-        (packet_src_ip_128 & sdf->src_addr.mask) != sdf_src_ip || 
-        (packet_dst_ip_128 & sdf->dst_addr.mask) != sdf_dst_ip ||
-         packet_src_port < sdf->src_port.lower_bound || packet_src_port > sdf->src_port.upper_bound ||
-         packet_dst_port < sdf->dst_port.lower_bound || packet_dst_port > sdf->dst_port.upper_bound) {
-        return 0;
-    }
-
-    upf_printk("SDF: packet with source ip:%pI6c, destination ip:%pI6c matches SDF filter",
-               &packet_src_ip_128, &packet_dst_ip_128);
-
-    return 1;
-}
 
 static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     const struct iphdr *ip4 = ctx->ip4;
@@ -197,18 +62,18 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
         upf_printk("upf: no downlink session for ip:%pI4", &ip4->daddr);
         return DEFAULT_XDP_ACTION;
     }
-
-    struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
+    
     __u32 far_id = pdr->far_id;
     __u32 qer_id = pdr->qer_id;
-    __u8 outer_header_removal = pdr->outer_header_removal;
-    if (sdf->protocol >= 0 && sdf->protocol <= 3) {
+    //__u8 outer_header_removal = pdr->outer_header_removal;
+    if (pdr->has_sdf) {
+        struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
         __u8 packet_matched = match_sdf_filter_ipv4(ctx, sdf);
         if(packet_matched) {
             upf_printk("Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
             far_id = pdr->sdf_rules.far_id;
             qer_id = pdr->sdf_rules.qer_id;
-            outer_header_removal = pdr->sdf_rules.outer_header_removal;
+            //outer_header_removal = pdr->sdf_rules.outer_header_removal;
         } 
     }
 
@@ -257,17 +122,16 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
         return DEFAULT_XDP_ACTION;
     }
 
-    struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
     __u32 far_id = pdr->far_id;
     __u32 qer_id = pdr->qer_id;
-    __u8 outer_header_removal = pdr->outer_header_removal;
-    if (sdf && (sdf->protocol >= 0 && sdf->protocol <= 3)) {
-        __u8 packet_matched = match_sdf_filter_ipv6(ctx, sdf);
-        if(packet_matched) {
+    //__u8 outer_header_removal = pdr->outer_header_removal;
+    if (pdr->has_sdf) {
+        struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
+        if(match_sdf_filter_ipv6(ctx, sdf)) {
             upf_printk("Packet with source ip:%pI6c and destination ip:%pI6c matches SDF filter", &ip6->saddr, &ip6->daddr);
             far_id = pdr->sdf_rules.far_id;
             qer_id = pdr->sdf_rules.qer_id;
-            outer_header_removal = pdr->sdf_rules.outer_header_removal;
+            //outer_header_removal = pdr->sdf_rules.outer_header_removal;
         } 
     }
 
@@ -324,80 +188,72 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         return DEFAULT_XDP_ACTION;
     }
 
-    struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
     __u32 far_id = pdr->far_id;
     __u32 qer_id = pdr->qer_id;
     __u8 outer_header_removal = pdr->outer_header_removal;
-    if (sdf && (sdf->protocol >= 0 && sdf->protocol <= 3)) {
-
-        struct upf_statistic fake_stat;
+    
+    if (pdr->has_sdf) {
         struct packet_context inner_context = {
             .data = (char *)(long)ctx->data,
             .data_end = (const char *)(long)ctx->data_end,
-            .xdp_ctx = ctx->xdp_ctx,
-            .counters = &fake_stat.upf_counters,
-            .n3_n6_counter = &fake_stat.upf_n3_n6_counter
         };
 
-        int eth_protocol = get_eth_protocol(inner_context.data);
-        int ip_protocol;
-        
-
+        if (inner_context.data + 1 > inner_context.data_end)
+            return -1;
+        int eth_protocol = guess_eth_protocol(inner_context.data);
         switch (eth_protocol) {
-            case ETH_P_IP:
-                ip_protocol = parse_ip4(&inner_context);
-                if (ip_protocol == -1) {
+            case ETH_P_IP_BE:
+            {
+                int ip_protocol = parse_ip4(&inner_context);
+                if (-1 == ip_protocol) {
                     upf_printk("upf: unable to parse IPv4 header");
                     return DEFAULT_XDP_ACTION;
                 }
+
+                if( -1 == parse_l4(ip_protocol, &inner_context)) {
+                    upf_printk("upf: unable to parse L4 header");
+                    return DEFAULT_XDP_ACTION;
+                }
+
+                const struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
+                if(match_sdf_filter_ipv4(&inner_context, sdf)) {
+                    upf_printk("upf: sdf filter matches teid:%d", teid);
+                    far_id = pdr->sdf_rules.far_id;
+                    qer_id = pdr->sdf_rules.qer_id;
+                    outer_header_removal = pdr->sdf_rules.outer_header_removal;
+                } else {
+                    upf_printk("upf: sdf filter doesn't match teid:%d", teid);
+                }
                 break;
-            case ETH_P_IPV6:
-                ip_protocol = parse_ip6(&inner_context);
+            }
+            case ETH_P_IPV6_BE:
+            {
+                int ip_protocol = parse_ip6(&inner_context);
                 if (ip_protocol == -1) {
                     upf_printk("upf: unable to parse IPv6 header");
                     return DEFAULT_XDP_ACTION;
                 }
-                break;
-            default:
-                upf_printk("upf: unsupported Ethernet protocol");
-                return DEFAULT_XDP_ACTION;
-        }
 
-        switch (ip_protocol) {
-            case IPPROTO_UDP:
-                inner_context.udp = parse_udp_src_dst(&inner_context);
-                if (!inner_context.udp) {
-                    upf_printk("upf: unable to parse UDP header");
+                if( -1 == parse_l4(ip_protocol, &inner_context)) {
+                    upf_printk("upf: unable to parse L4 header");
                     return DEFAULT_XDP_ACTION;
                 }
-                break;
-            case IPPROTO_TCP:
-                inner_context.tcp = parse_tcp_src_dst(&inner_context);
-                if (!inner_context.tcp) {
-                    upf_printk("upf: unable to parse TCP header");
-                    return DEFAULT_XDP_ACTION;
+
+                const struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
+                if(match_sdf_filter_ipv6(&inner_context, sdf)) {
+                    upf_printk("upf: sdf filter matches teid:%d", teid);
+                    far_id = pdr->sdf_rules.far_id;
+                    qer_id = pdr->sdf_rules.qer_id;
+                    outer_header_removal = pdr->sdf_rules.outer_header_removal;
+                } else {
+                    upf_printk("upf: sdf filter doesn't match teid:%d", teid);
                 }
                 break;
+            }
             default:
-                upf_printk("upf: unsupported IP protocol");
-                return DEFAULT_XDP_ACTION;
+                upf_printk("upf: unsupported inner ethernet protocol: %d", eth_protocol);
+                break;
         }
-
-        //1. check ip4 or ip6 (see get_eth_protocol)
-        //2. parse ip4/ip6 (with keeping header in context)
-        //3. parse tcp/udp (with keeping header in context)
-
-        __u8 packet_matched = match_sdf_filter_ipv4(&inner_context, sdf);
-        if(packet_matched) {
-            upf_printk("upf: sdf filter matched for teid:%d", teid);
-            far_id = pdr->sdf_rules.far_id;
-            qer_id = pdr->sdf_rules.qer_id;
-            outer_header_removal = pdr->sdf_rules.outer_header_removal;
-        } else {
-            upf_printk("upf: sdf filter did not match for teid:%d", teid);
-        }
-    } else {
-        upf_printk("upf: no sdf for teid:%d", teid);
     }
 
     /*

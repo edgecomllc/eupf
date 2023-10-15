@@ -20,6 +20,7 @@
 #include <linux/bpf.h>
 #include <linux/ipv6.h>
 
+#include "xdp/sdf_filter.h"
 
 #define PDR_MAP_UPLINK_SIZE 1024
 #define PDR_MAP_DOWNLINK_IPV4_SIZE 1024
@@ -44,30 +45,6 @@ enum outer_header_removal_values {
 // 1. Combine SrcAddress.Type and DstAddress.Type into one __u8 field. Then to retrieve and put data will be used operators & and | .
 // 2. Put all fields into one big structure. Sort in specific order to reduce paddings inside structure.
 
-struct ip_w_mask {
-    __u8 type; // 0: any, 1: ip4, 2: ip6
-    // If type != any, ip field has meaningful value.
-    // If IPv4 -> lower 32 bits. If IPv6 -> all 128 bits.
-    __uint128_t ip;
-    // If type != any, mask field has meaningful value.
-    // If IPv4 mask -> lower 32 bits. If IPv6 mask -> all 128 bits.
-    // Should always be applied to matching ip (except type == any).
-    __uint128_t mask;
-};
-
-struct port_range {
-    __u16 lower_bound; // If not specified in SDF: 0
-    __u16 upper_bound; // If not specified in SDF: 65535
-};
-
-struct sdf_filter {
-    __u8 protocol; // Required by SDF. 0: icmp, 1: ip, 2: tcp, 3: udp
-    struct ip_w_mask src_addr;
-    struct port_range src_port;
-    struct ip_w_mask dst_addr;
-    struct port_range dst_port;
-};
-
 struct sdf_rules {
     struct sdf_filter sdf_filter;
     __u8 outer_header_removal;
@@ -76,9 +53,10 @@ struct sdf_rules {
 };
 
 struct pdr_info {
-    __u8 outer_header_removal;
     __u32 far_id;
     __u32 qer_id;
+    __u8 outer_header_removal;
+    __u8 has_sdf;
     struct sdf_rules sdf_rules;
 };
 
