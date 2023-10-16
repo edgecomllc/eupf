@@ -8,6 +8,7 @@ Library    runKeywordAsync
 *** Variables ***
 ${EUPF_API_ADDRESS}    localhost:8080 
 ${TCPREPLAY_LIMIT}    ${70000}
+${TCPREPLAY_THREADS}  ${6}
 ${payload}   ${{'a'*1024}} 
 
 *** Test Cases ***
@@ -20,15 +21,15 @@ Perform load test
 
     ${PACKET}  Create GTP-U Packet
     ${TCPREPLAY_EXTRA_ARGS}   Create List    --limit=${TCPREPLAY_LIMIT}
-    FOR    ${i}    IN RANGE    999999
-           Exit For Loop If    ${i} == 2
+    FOR    ${i}    IN RANGE    ${TCPREPLAY_THREADS}
+           Exit For Loop If    ${i} == ${TCPREPLAY_THREADS}
            ${handle1}=     Run Keyword Async    Sendpfast  ${PACKET}  ${None}  ${None}  ${False}  ${0}  ${True}  lo  ${TCPREPLAY_EXTRA_ARGS}  ${True}
     END
     ${return_value}=     Wait Async All     timeout=5
 
     ${RESULT}=    Create Dictionary    pps=${0}    mbps=${0}    packets=${0}
-    FOR    ${i}    IN RANGE    999999
-           Exit For Loop If    ${i} == 2
+    FOR    ${i}    IN RANGE    ${TCPREPLAY_THREADS}
+           Exit For Loop If    ${i} == ${TCPREPLAY_THREADS}
            ${pps_sum}=    Evaluate    ${RESULT}[pps] + ${return_value}[${i}][pps]
            ${mbps_sum}=    Evaluate    ${RESULT}[mbps] + ${return_value}[${i}][mbps]
            ${packets_sum}=    Evaluate    ${RESULT}[packets] + ${return_value}[${i}][packets]
