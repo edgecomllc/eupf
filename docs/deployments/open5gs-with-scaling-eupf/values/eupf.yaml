@@ -1,0 +1,114 @@
+---
+
+replicaCount: 2
+
+deploymentType: statefulset
+
+image:
+  registry: ghcr.io
+  repository: edgecomllc
+  name: eupf
+  tag: 0.5.0
+  pullPolicy: Always
+
+args:
+  - --config
+  - /app/conf/config.yml
+
+env:
+  UPF_PFCP_NODE_ID: $(MY_POD_IP)
+  UPF_N3_ADDRESS: $(MY_POD_IP)
+
+configMaps:
+  config:
+    data:
+      config.yml: |
+        interface_name: eth0
+        api_address: :8080
+        pfcp_address: :8805
+        metrics_address: :9090
+
+volumes:
+  - name: sys
+    hostPath:
+      path: /sys
+  - name: config
+    configMap:
+      name: eupf-config
+      defaultMode: 420
+      items:
+        - key: config.yml
+          mode: 493
+          path: config.yml
+
+volumeMounts:
+  - name: sys
+    mountPath: /sys
+    readOnly:  true
+  - name: config
+    mountPath: /app/conf
+
+bird:
+  enabled: false
+
+metrics:
+  enabled: false
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+    endpoints:
+      port: metrics
+      path: "/metrics"
+
+podSecurityContext:
+  sysctls:
+  - name: net.ipv4.ip_forward
+    value: "1"
+
+securityContext:
+  privileged: true
+
+extraContainerPorts:
+  - name: gtpu
+    containerPort: 2152
+    protocol: UDP
+  - name: pfcp
+    containerPort: 8805
+    protocol: UDP
+
+service:
+  type: ClusterIP
+  port: 8080
+  extraPorts:
+    - port: 2152
+      targetPort: gtpu
+      protocol: UDP
+      name: gtpu
+    - port: 8805
+      targetPort: pfcp
+      protocol: UDP
+      name: pfcp
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+ui:
+  enabled: false
