@@ -199,7 +199,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         };
 
         if (inner_context.data + 1 > inner_context.data_end)
-            return -1;
+            return DEFAULT_XDP_ACTION;
         int eth_protocol = guess_eth_protocol(inner_context.data);
         switch (eth_protocol) {
             case ETH_P_IP_BE:
