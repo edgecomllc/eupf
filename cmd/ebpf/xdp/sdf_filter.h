@@ -95,7 +95,7 @@ static __always_inline __u8 match_sdf_filter_ipv4(const struct packet_context *c
     upf_printk("SDF: packet source ip: %pI4, destination ip: %pI4",  &ip4->saddr,  &ip4->daddr);
     upf_printk("SDF: packet source port: %u, destination port: %u", packet_src_port, packet_dst_port);
     
-    if (sdf->protocol != packet_protocol 
+    if ((sdf->protocol != packet_protocol && sdf->protocol != 1) 
         || ((ip4->saddr & sdf_src_mask) != sdf_src_ip)  
         || ((ip4->daddr & sdf_dst_mask) != sdf_dst_ip) 
         || (packet_src_port < sdf->src_port.lower_bound || packet_src_port > sdf->src_port.upper_bound) 
@@ -137,7 +137,7 @@ static __always_inline __u8 match_sdf_filter_ipv6(const struct packet_context *c
     upf_printk("SDF: packet source ip: %pI6c, destination ip: %pI6c",  &packet_src_ip_128,  &packet_dst_ip_128);
     upf_printk("SDF: packet source port: %u, destination port: %u", packet_src_port, packet_dst_port);
 
-    if (sdf->protocol != packet_protocol ||
+    if ((sdf->protocol != packet_protocol && sdf->protocol != 1) ||
         (packet_src_ip_128 & sdf->src_addr.mask) != sdf_src_ip || 
         (packet_dst_ip_128 & sdf->dst_addr.mask) != sdf_dst_ip ||
          packet_src_port < sdf->src_port.lower_bound || packet_src_port > sdf->src_port.upper_bound ||
