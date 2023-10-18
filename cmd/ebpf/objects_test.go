@@ -314,9 +314,12 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 	}
 
 	sdf := SdfFilter{
-		Protocol:   0,
-		SrcAddress: IpWMask{Type: 1, Ip: net.IP{10, 60, 0, 0}, Mask: net.IPMask{255, 255, 0, 0}},
-		DstAddress: IpWMask{Type: 1, Ip: net.IP{1, 1, 1, 1}, Mask: net.IPMask{255, 255, 255, 255}}}
+		Protocol:     1,
+		SrcAddress:   IpWMask{Type: 1, Ip: net.IP{10, 60, 0, 1}, Mask: net.IPMask{255, 255, 255, 255}},
+		DstAddress:   IpWMask{Type: 1, Ip: net.IP{1, 1, 1, 1}, Mask: net.IPMask{255, 255, 255, 255}},
+		SrcPortRange: PortRange{LowerBound: 0, UpperBound: 65535},
+		DstPortRange: PortRange{LowerBound: 0, UpperBound: 65535},
+	}
 	pdr.SdfFilter = &sdf
 	pdr.FarId = 2
 	if err := bpfObjects.PutPdrUpLink(teid, pdr); err != nil {
