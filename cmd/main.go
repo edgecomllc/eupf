@@ -27,7 +27,10 @@ func main() {
 
 	// Warning: inefficient log writing.
 	// As zerolog docs says: "Pretty logging on the console is made possible using the provided (but inefficient) zerolog.ConsoleWriter."
-	ConfigureLogger()
+	core.InitLogger()
+	if err := core.SetLoggerLevel(config.Conf.LoggingLevel); err != nil {
+		log.Error().Msgf("Logger configuring error: %s. Using '%s' level", err.Error(), zerolog.GlobalLevel().String())
+	}
 
 	if err := ebpf.IncreaseResourceLimits(); err != nil {
 		log.Fatal().Msgf("Can't increase resource limits: %s", err.Error())
@@ -134,16 +137,5 @@ func StringToXDPAttachMode(Mode string) link.XDPAttachFlags {
 		return link.XDPOffloadMode
 	default:
 		return link.XDPGenericMode
-	}
-}
-
-func ConfigureLogger() {
-	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006/01/02 15:04:05"}
-	log.Logger = zerolog.New(output).With().Timestamp().Logger()
-
-	if loglvl, err := zerolog.ParseLevel(config.Conf.LoggingLevel); err == nil {
-		zerolog.SetGlobalLevel(loglvl)
-	} else {
-		log.Warn().Msgf("Can't parse logging level: %s. Using \"info\" level.", err.Error())
 	}
 }
