@@ -5,6 +5,9 @@ metadata:
   labels:
     {{- include "eupf.labels" . | nindent 4 }}
 spec:
+  {{- if eq .Values.deploymentType "statefulset" }}
+  clusterIP: None
+  {{- end }}
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}

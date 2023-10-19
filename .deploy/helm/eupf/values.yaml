@@ -10,6 +10,9 @@ replicaCount: 1
 deploymentStrategy:
   type: RollingUpdate
 
+deploymentType: deployment
+# deploymentType: statefulset
+
 image:
   registry: ghcr.io
   repository: edgecomllc
