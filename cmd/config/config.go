@@ -87,11 +87,9 @@ func init() {
 	v.SetEnvPrefix("upf")
 	v.AutomaticEnv()
 
-	configFileAvailable = true
-
 	if err := v.ReadInConfig(); err != nil {
 		log.Printf("Unable to read config file, %v", err)
-		configFileAvailable = false
+		isConfigFileAvailable = false
 	}
 
 	log.Printf("Get raw config: %+v", v.AllSettings())
@@ -106,10 +104,10 @@ func (c *UpfConfig) Unmarshal() error {
 	return v.UnmarshalExact(c)
 }
 
-var configFileAvailable bool
+var isConfigFileAvailable bool = true
 
-func SetWatchConfig(onConfigChange func(e fsnotify.Event)) {
-	if configFileAvailable {
+func WatchConfig(onConfigChange func(e fsnotify.Event)) {
+	if isConfigFileAvailable {
 		viper.OnConfigChange(onConfigChange)
 		viper.WatchConfig()
 	}

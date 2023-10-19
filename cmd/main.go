@@ -109,7 +109,7 @@ func main() {
 	}()
 
 	// Handle config file change.
-	config.SetWatchConfig(OnConfigFileChange)
+	config.WatchConfig(OnConfigFileChange)
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
@@ -146,7 +146,7 @@ func StringToXDPAttachMode(Mode string) link.XDPAttachFlags {
 
 func OnConfigFileChange(e fsnotify.Event) {
 	if e.Has(fsnotify.Create) || e.Has(fsnotify.Write) {
-		if conf, err := config.GetUpdatedConf(); err == nil {
+		if conf, err := config.ReadConfig(); err == nil {
 			if err := core.SetConfig(conf); err != nil {
 				log.Error().Msgf("Error during config file change handling: %s", err.Error())
 			}

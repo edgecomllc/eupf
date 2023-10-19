@@ -40,7 +40,7 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 		config := v1.Group("config")
 		{
 			config.GET("", DisplayConfig())
-			config.POST("", EditConfig)
+			config.POST("", UpdateConfig)
 		}
 
 		qerMap := v1.Group("qer_map")
@@ -66,7 +66,7 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 	return &ApiServer{router: router}
 }
 
-func EditConfig(c *gin.Context) {
+func UpdateConfig(c *gin.Context) {
 	var conf config.UpfConfig
 	if err := c.BindJSON(&conf); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{
@@ -77,7 +77,7 @@ func EditConfig(c *gin.Context) {
 	}
 	if err := SetConfig(conf); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{
-			"message": fmt.Sprintf("Error during editing config: %s", err.Error()),
+			"message": fmt.Sprintf("Error during updating config: %s", err.Error()),
 		})
 	} else {
 		c.Status(http.StatusOK)
