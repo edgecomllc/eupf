@@ -24,9 +24,6 @@ func init() {
 }
 
 func main() {
-	stopper := make(chan os.Signal, 1)
-	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
-
 	var cfg *config.Config
 	var err error
 
