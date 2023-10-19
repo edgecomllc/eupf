@@ -3,11 +3,12 @@ Library    ScapyLibrary
 Library    RequestsLibrary
 Library    Collections
 Library    Process
-#Library    runKeywordAsync
+Library    runKeywordAsync
 
 *** Variables ***
 ${EUPF_API_ADDRESS}    localhost:8080 
 ${TCPREPLAY_LIMIT}    ${7000000}
+${TCPREPLAY_THREADS}  ${6}
 ${payload}   ${{'a'*1024}} 
 
 *** Test Cases ***
@@ -19,11 +20,23 @@ Perform load test
     Set eUPF QER    qer_id=${0}
 
     ${PACKET}  Create GTP-U Packet
-    #${handle}=     Run Method Async    Sendpfast  ${PACKET}  iface=lo  file_cache=true  loop=${0}  replay_args=@{TCPREPLAY_EXTRA_ARGS}  parse_results=true
-    #${return_value}=     Wait Async All     timeout=5
-    #${RESULT}    get async return    handle=${handle}     timeout=${15}
-    @{TCPREPLAY_EXTRA_ARGS}   Create List    --limit=${TCPREPLAY_LIMIT}
-    ${RESULT}    Sendpfast  ${PACKET}  iface=lo  file_cache=true  loop=${0}  replay_args=@{TCPREPLAY_EXTRA_ARGS}  parse_results=true
+    ${TCPREPLAY_EXTRA_ARGS}   Create List    --limit=${TCPREPLAY_LIMIT}
+    FOR    ${i}    IN RANGE    ${TCPREPLAY_THREADS}
+           Exit For Loop If    ${i} == ${TCPREPLAY_THREADS}
+           #${handle}=    Run Keyword Async    Sendpfast  packet     pps      mbps     realtime  loop  file_cache  iface  replay_args              parse_results
+           ${handle}=     Run Keyword Async    Sendpfast  ${PACKET}  ${None}  ${None}  ${False}  ${0}  ${True}     lo     ${TCPREPLAY_EXTRA_ARGS}  ${True}
+    END
+    # Give it 15 minutes (900 sec) to finish each Sendpfast process. If not - robot test fails.
+    ${return_value}=     Wait Async All     timeout=900
+
+    ${RESULT}=    Create Dictionary    pps=${0}    mbps=${0}    packets=${0}
+    FOR    ${i}    IN RANGE    ${TCPREPLAY_THREADS}
+           Exit For Loop If    ${i} == ${TCPREPLAY_THREADS}
+           ${pps_sum}=    Evaluate    ${RESULT}[pps] + ${return_value}[${i}][pps]
+           ${mbps_sum}=    Evaluate    ${RESULT}[mbps] + ${return_value}[${i}][mbps]
+           ${packets_sum}=    Evaluate    ${RESULT}[packets] + ${return_value}[${i}][packets]
+           Set To Dictionary    ${RESULT}    pps    ${pps_sum}    mbps    ${mbps_sum}    packets    ${packets_sum}
+    END
     Log To Console  Resulting pps: ${RESULT}[pps]
     Log To Console  Resulting mbps: ${RESULT}[mbps]
     Log To Console  Resulting packets: ${RESULT}[packets]
