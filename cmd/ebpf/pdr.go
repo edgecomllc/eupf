@@ -43,9 +43,10 @@ type PortRange struct {
 func PreprocessPdrWithSdf(lookup func(interface{}, interface{}) error, key interface{}, pdrInfo PdrInfo) (IpEntrypointPdrInfo, error) {
 	var defaultPdr IpEntrypointPdrInfo
 	if err := lookup(key, &defaultPdr); err != nil {
-		return IpEntrypointPdrInfo{}, err
+		return CombinePdrWithSdf(nil, pdrInfo), nil
 	}
-	return CombinePdrWithSdf(defaultPdr, pdrInfo), nil
+
+	return CombinePdrWithSdf(&defaultPdr, pdrInfo), nil
 }
 
 func (bpfObjects *BpfObjects) PutPdrUpLink(teid uint32, pdrInfo PdrInfo) error {
@@ -242,13 +243,18 @@ type ForwardingPlaneController interface {
 	DeleteQer(internalId uint32) error
 }
 
-func CombinePdrWithSdf(defaultPdr IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntrypointPdrInfo {
+func CombinePdrWithSdf(defaultPdr *IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntrypointPdrInfo {
 	var pdrToStore IpEntrypointPdrInfo
 	// Default mapping options.
-	pdrToStore.OuterHeaderRemoval = defaultPdr.OuterHeaderRemoval
-	pdrToStore.FarId = defaultPdr.FarId
-	pdrToStore.QerId = defaultPdr.QerId
-	pdrToStore.HasSdf = 1
+	if defaultPdr != nil {
+		pdrToStore.OuterHeaderRemoval = defaultPdr.OuterHeaderRemoval
+		pdrToStore.FarId = defaultPdr.FarId
+		pdrToStore.QerId = defaultPdr.QerId
+		pdrToStore.SdfMode = 2
+	} else {
+		pdrToStore.SdfMode = 1
+	}
+
 	// SDF mapping options.
 	pdrToStore.SdfRules.SdfFilter.Protocol = sdfPdr.SdfFilter.Protocol
 	pdrToStore.SdfRules.SdfFilter.SrcAddr.Type = sdfPdr.SdfFilter.SrcAddress.Type
