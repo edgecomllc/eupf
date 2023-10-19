@@ -74,7 +74,7 @@ metrics:
       path: "/metrics"
 
 extraContainerPorts:
-  - name: pfcp
+  - name: core
     containerPort: 8805
     protocol: UDP
   - name: metrics
@@ -86,9 +86,9 @@ service:
   port: 8080
   extraPorts:
     - port: 8805
-      targetPort: pfcp
+      targetPort: core
       protocol: UDP
-      name: pfcp
+      name: core
     - port: 9090
       targetPort: metrics
       protocol: TCP

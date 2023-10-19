@@ -84,7 +84,7 @@ extraContainerPorts:
   - name: gtpu
     containerPort: 2152
     protocol: UDP
-  - name: pfcp
+  - name: core
     containerPort: 8805
     protocol: UDP
 
@@ -97,9 +97,9 @@ service:
       protocol: UDP
       name: gtpu
     - port: 8805
-      targetPort: pfcp
+      targetPort: core
       protocol: UDP
-      name: pfcp
+      name: core
 
 resources:
   limits:

@@ -1,9 +1,0 @@
-.git/
-.deploy/
-.github/
-docs/
-README.md
-
-cmd/eupf/docs
-*.o
-*_bpf.go

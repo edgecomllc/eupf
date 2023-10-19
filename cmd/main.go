@@ -1,129 +1,113 @@
 package main
 
 import (
+	"context"
+	"github.com/cilium/ebpf/link"
+	"github.com/edgecomllc/eupf/components/core"
+	ebpf2 "github.com/edgecomllc/eupf/components/ebpf"
+	"github.com/edgecomllc/eupf/config"
+	"github.com/edgecomllc/eupf/internal/server"
+	"github.com/edgecomllc/eupf/internal/transport/rest"
+	"github.com/edgecomllc/eupf/pkg/logger"
+	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/edgecomllc/eupf/cmd/core"
-	"github.com/edgecomllc/eupf/cmd/ebpf"
-
-	"github.com/cilium/ebpf/link"
-	"github.com/edgecomllc/eupf/cmd/config"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"github.com/wmnsk/go-pfcp/message"
 )
 
 //go:generate swag init --parseDependency
+
+func init() {
+	logger.SetLogger(logger.NewZeroLogger("debug"))
+}
 
 func main() {
 	stopper := make(chan os.Signal, 1)
 	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
 
-	config.Init()
-	// Warning: inefficient log writing.
-	// As zerolog docs says: "Pretty logging on the console is made possible using the provided (but inefficient) zerolog.ConsoleWriter."
-	core.InitLogger()
-	if err := core.SetLoggerLevel(config.Conf.LoggingLevel); err != nil {
-		log.Error().Msgf("Logger configuring error: %s. Using '%s' level", err.Error(), zerolog.GlobalLevel().String())
+	var cfg *config.Config
+	var err error
+
+	if cfg, err = config.New(); err != nil {
+		logger.Fatalf("config err %+v", err)
 	}
 
-	if err := ebpf.IncreaseResourceLimits(); err != nil {
-		log.Fatal().Msgf("Can't increase resource limits: %s", err.Error())
-	}
+	var (
+		_, cancel = context.WithCancel(context.Background())
+		quit      = make(chan os.Signal, 1)
+	)
 
-	bpfObjects := ebpf.NewBpfObjects()
-	if err := bpfObjects.Load(); err != nil {
-		log.Fatal().Msgf("Loading bpf objects failed: %s", err.Error())
+	bpfObjects, err := ebpf2.New(cfg)
+	if err != nil {
+		logger.Fatalf("bpf init err: %+v", err)
 	}
-
-	if config.Conf.EbpfMapResize {
-		if err := bpfObjects.ResizeAllMaps(config.Conf.QerMapSize, config.Conf.FarMapSize, config.Conf.PdrMapSize); err != nil {
-			log.Fatal().Msgf("Failed to set ebpf map sizes: %s", err)
-		}
-	}
-
 	defer bpfObjects.Close()
-
 	bpfObjects.BuildPipeline()
 
-	for _, ifaceName := range config.Conf.InterfaceName {
+	for _, ifaceName := range cfg.InterfaceName {
 		iface, err := net.InterfaceByName(ifaceName)
 		if err != nil {
-			log.Fatal().Msgf("Lookup network iface %q: %s", ifaceName, err.Error())
+			log.Fatalf("Lookup network iface %q: %s", ifaceName, err.Error())
 		}
 
 		// Attach the program.
 		l, err := link.AttachXDP(link.XDPOptions{
 			Program:   bpfObjects.UpfIpEntrypointFunc,
 			Interface: iface.Index,
-			Flags:     StringToXDPAttachMode(config.Conf.XDPAttachMode),
+			Flags:     StringToXDPAttachMode(cfg.XDPAttachMode),
 		})
 		if err != nil {
-			log.Fatal().Msgf("Could not attach XDP program: %s", err.Error())
+			log.Fatalf("Could not attach XDP program: %s", err.Error())
 		}
 		defer l.Close()
 
-		log.Info().Msgf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
+		logger.Infof("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	}
 
-	// Create PFCP connection
-	var pfcpHandlers = core.PfcpHandlerMap{
-		message.MsgTypeHeartbeatRequest:            core.HandlePfcpHeartbeatRequest,
-		message.MsgTypeHeartbeatResponse:           core.HandlePfcpHeartbeatResponse,
-		message.MsgTypeAssociationSetupRequest:     core.HandlePfcpAssociationSetupRequest,
-		message.MsgTypeSessionEstablishmentRequest: core.HandlePfcpSessionEstablishmentRequest,
-		message.MsgTypeSessionDeletionRequest:      core.HandlePfcpSessionDeletionRequest,
-		message.MsgTypeSessionModificationRequest:  core.HandlePfcpSessionModificationRequest,
-	}
-
-	pfcpConn, err := core.CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects)
+	pfcpConn, err := core.New(cfg, bpfObjects)
 	if err != nil {
-		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
+		log.Fatalf("Could not create PFCP connection: %s", err.Error())
 	}
 	go pfcpConn.Run()
 	defer pfcpConn.Close()
 
-	ForwardPlaneStats := ebpf.UpfXdpActionStatistic{
-		BpfObjects: bpfObjects,
-	}
+	forwardPlaneStats := ebpf2.NewUpfXdpActionStatistic(bpfObjects)
+
+	h := rest.NewHandler(bpfObjects, pfcpConn, forwardPlaneStats, cfg)
+
+	engine := h.InitRoutes()
 
 	// Start api server
-	api := core.CreateApiServer(bpfObjects, pfcpConn, ForwardPlaneStats)
+	srv := server.New(cfg.ApiAddress, engine)
 	go func() {
-		if err := api.Run(config.Conf.ApiAddress); err != nil {
-			log.Fatal().Msgf("Could not start api server: %s", err.Error())
+		if err = srv.Run(); err != nil {
+			logger.Fatalf("Could not start api server: %s", err.Error())
 		}
 	}()
 
-	core.RegisterMetrics(ForwardPlaneStats, pfcpConn)
-	go func() {
-		if err := core.StartMetrics(config.Conf.MetricsAddress); err != nil {
-			log.Fatal().Msgf("Could not start metrics server: %s", err.Error())
-		}
-	}()
+	//core.RegisterMetrics(forwardPlaneStats, pfcpConn)
+	//go func() {
+	//	if err := core.StartMetrics(cfg.MetricsAddress); err != nil {
+	//		log.Fatalf("Could not start metrics server: %s", err.Error())
+	//	}
+	//}()
 
-	// Print the contents of the BPF hash map (source IP address -> packet count).
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	for {
-		select {
-		case <-ticker.C:
-			// s, err := FormatMapContents(bpfObjects.UpfXdpObjects.UpfPipeline)
-			// if err != nil {
-			// 	log.Printf("Error reading map: %s", err)
-			// 	continue
-			// }
-			// log.Printf("Pipeline map contents:\n%s", s)
-		case <-stopper:
-			log.Info().Msgf("Received signal, exiting program..")
-			return
-		}
+	sig := <-quit
+
+	ctxSrvStop, cancelSrvStop := context.WithTimeout(context.Background(), 5*time.Second)
+
+	if err = srv.Stop(ctxSrvStop); err != nil {
+		logger.Fatale(err)
 	}
+
+	cancelSrvStop()
+	cancel()
+
+	logger.Infof("admin shutdown signal %v", sig)
 }
 
 func StringToXDPAttachMode(Mode string) link.XDPAttachFlags {
