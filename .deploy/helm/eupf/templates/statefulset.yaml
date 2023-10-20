@@ -1,19 +1,16 @@
-{{- if eq .Values.deploymentType "deployment" }}
+{{- if eq .Values.deploymentType "statefulset" }}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "eupf.fullname" . }}
   labels:
     {{- include "eupf.labels" . | nindent 4 }}
 spec:
+  serviceName: eupf
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       {{- include "eupf.selectorLabels" . | nindent 6 }}
-  {{- with .Values.deploymentStrategy }}
-  strategy:
-    {{- toYaml . | trim | nindent 4 }}
-  {{- end }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}

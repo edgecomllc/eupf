@@ -9,6 +9,8 @@ BGP is used to announce the subscriber's subnet to the route table of Kubernetes
 
 ## [Open5GS + Calico BGP with Slices](./open5gs-with-bgp-and-slices/README.md)
 
+## [Open5GS + Load Balanced eUPF](./open5gs-with-scaling-eupf/README.md)
+
 ## [Free5GC + Calico BGP](./free5gc-with-bgp/README.md)
 
 ## [Free5GC UpLink CLassifier (ULCL) architecture](./free5gc-ulcl/README.md)
