@@ -34,6 +34,8 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx) {
         return -1;
 
     ctx->data += sizeof(*gtp);
+    if (gtp->e || gtp->s || gtp->pn)
+        ctx->data += sizeof(struct gtp_hdr_ext) + 4;
     ctx->gtp = gtp;
     return gtp->message_type;
 }
@@ -54,14 +56,14 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     return XDP_TX;
 }
 
-static __always_inline int get_eth_protocol(const char *data) {
+static __always_inline int guess_eth_protocol(const char *data) {
     const __u8 ip_version = (*(const __u8 *)data) >> 4;
     switch (ip_version) {
         case 6: {
-            return bpf_htons(ETH_P_IPV6);
+            return ETH_P_IPV6_BE;
         }
         case 4: {
-            return bpf_htons(ETH_P_IP);
+            return ETH_P_IP_BE;
         }
         default:
             /* do nothing with non-ip packets */
@@ -102,7 +104,7 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
     if (data + 1 > data_end)
         return -1;
 
-    const int eth_proto = get_eth_protocol(data);
+    const int eth_proto = guess_eth_protocol(data);
 
     if (eth_proto == -1)
         return -1;

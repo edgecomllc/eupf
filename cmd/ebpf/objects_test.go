@@ -250,6 +250,94 @@ func testGtpEcho(bpfObjects *BpfObjects) error {
 	return nil
 }
 
+func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
+
+	teid := uint32(1)
+
+	packet := gopacket.NewSerializeBuffer()
+	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
+		&layers.Ethernet{
+			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
+			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			EthernetType: layers.EthernetTypeIPv4,
+		},
+		&layers.IPv4{
+			Version:  4,
+			DstIP:    net.IP{10, 3, 0, 10},
+			SrcIP:    net.IP{10, 3, 0, 20},
+			Protocol: layers.IPProtocolUDP,
+			IHL:      5,
+		},
+		&layers.UDP{
+			DstPort: 2152,
+			SrcPort: 2152,
+		},
+		&layers.GTPv1U{
+			Version:        1,
+			MessageType:    255, // GTPU_G_PDU
+			TEID:           teid,
+			SequenceNumber: 0,
+		},
+		&layers.IPv4{
+			Version:  4,
+			DstIP:    net.IP{1, 1, 1, 1},
+			SrcIP:    net.IP{10, 60, 0, 1},
+			Protocol: layers.IPProtocolICMPv4,
+			IHL:      5,
+		},
+		&layers.ICMPv4{
+			TypeCode: layers.ICMPv4TypeEchoRequest,
+			Id:       0,
+			Seq:      0,
+		},
+	); err != nil {
+		return fmt.Errorf("serializing input packet failed: %v", err)
+	}
+
+	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
+	farForward := FarInfo{Action: 2, OuterHeaderCreation: 1, RemoteIP: 1, LocalIP: 2, Teid: 2, TransportLevelMarking: 0}
+	farDrop := FarInfo{Action: 1, OuterHeaderCreation: 1, RemoteIP: 1, LocalIP: 2, Teid: 2, TransportLevelMarking: 0}
+	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 0, MaxBitrateUL: 1000000, MaxBitrateDL: 100000, StartUL: 0, StartDL: 0}
+
+	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farForward)); err != nil {
+		return fmt.Errorf("can't set FAR: %v", err)
+	}
+	if err := bpfObjects.FarMap.Put(uint32(2), unsafe.Pointer(&farDrop)); err != nil {
+		return fmt.Errorf("can't set FAR: %v", err)
+	}
+	if err := bpfObjects.QerMap.Put(uint32(1), unsafe.Pointer(&qer)); err != nil {
+		return fmt.Errorf("can't set QER: %v", err)
+	}
+
+	if err := bpfObjects.PutPdrUpLink(teid, pdr); err != nil {
+		return fmt.Errorf("can't set uplink PDR: %v", err)
+	}
+
+	sdf := SdfFilter{
+		Protocol:     1,
+		SrcAddress:   IpWMask{Type: 1, Ip: net.IP{10, 60, 0, 1}, Mask: net.IPMask{255, 255, 255, 255}},
+		DstAddress:   IpWMask{Type: 1, Ip: net.IP{1, 1, 1, 1}, Mask: net.IPMask{255, 255, 255, 255}},
+		SrcPortRange: PortRange{LowerBound: 0, UpperBound: 65535},
+		DstPortRange: PortRange{LowerBound: 0, UpperBound: 65535},
+	}
+	pdr.SdfFilter = &sdf
+	pdr.FarId = 2
+	if err := bpfObjects.PutPdrUpLink(teid, pdr); err != nil {
+		return fmt.Errorf("can't set uplink PDR: %v", err)
+	}
+
+	bpfRet, _, err := bpfObjects.UpfIpEntrypointFunc.Test(packet.Bytes())
+	if err != nil {
+		return fmt.Errorf("ebpf run failed: %v", err)
+	}
+
+	if bpfRet != 1 { // XDP_DROP
+		return fmt.Errorf("unexpected return value: %d", bpfRet)
+	}
+
+	return nil
+}
+
 func TestEntrypoint(t *testing.T) {
 
 	if err := IncreaseResourceLimits(); err != nil {
@@ -273,6 +361,13 @@ func TestEntrypoint(t *testing.T) {
 
 	t.Run("GTP-U Echo test", func(t *testing.T) {
 		err := testGtpEcho(bpfObjects)
+		if err != nil {
+			t.Fatalf("test failed: %s", err)
+		}
+	})
+
+	t.Run("SDF filter test", func(t *testing.T) {
+		err := testGtpWithSDFFilter(bpfObjects)
 		if err != nil {
 			t.Fatalf("test failed: %s", err)
 		}

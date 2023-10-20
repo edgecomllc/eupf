@@ -22,9 +22,13 @@
 #include <linux/ip.h>
 #include <linux/types.h>
 #include <linux/udp.h>
+#include <linux/tcp.h>
 
 #include "xdp/utils/packet_context.h"
 #include "xdp/utils/trace.h"
+
+#define ETH_P_IPV6_BE	0xDD86
+#define ETH_P_IP_BE 	0x0008
 
 static __always_inline int parse_ethernet(struct packet_context *ctx) {
     struct ethhdr *eth = (struct ethhdr *)ctx->data;
@@ -59,7 +63,7 @@ static __always_inline int parse_ip6(struct packet_context *ctx) {
     struct ipv6hdr *ip6 = (struct ipv6hdr *)ctx->data;
     if ((const char *)(ip6 + 1) > ctx->data_end)
         return -1;
-
+    
     /* TODO: Add extention headers support */
 
     ctx->data += sizeof(*ip6);
@@ -75,6 +79,30 @@ static __always_inline int parse_udp(struct packet_context *ctx) {
     ctx->data += sizeof(*udp);
     ctx->udp = udp;
     return bpf_ntohs(udp->dest);
+}
+
+static __always_inline int parse_tcp(struct packet_context *ctx) {
+    struct tcphdr *tcp = (struct tcphdr *)ctx->data;
+    if ((const char *)(tcp + 1) > ctx->data_end)
+        return -1;
+
+    //TODO: parse header lenght correctly (tcp options)
+
+    ctx->data += sizeof(*tcp);
+    ctx->tcp = tcp;
+    return bpf_ntohs(tcp->dest);
+}
+
+static __always_inline int parse_l4(int ip_protocol, struct packet_context *ctx)
+{
+    switch (ip_protocol) {
+        case IPPROTO_UDP:
+            return parse_udp(ctx);
+        case IPPROTO_TCP:
+            return parse_tcp(ctx);
+        default:
+            return 0;
+    }
 }
 
 static __always_inline void swap_mac(struct ethhdr *eth) {
