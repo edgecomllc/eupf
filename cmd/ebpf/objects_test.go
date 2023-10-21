@@ -15,6 +15,7 @@
 package ebpf
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -338,6 +339,98 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 	return nil
 }
 
+func testGtpExtHeader(bpfObjects *BpfObjects) error {
+
+	teid := uint32(2)
+
+	packet := gopacket.NewSerializeBuffer()
+	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
+		&layers.Ethernet{
+			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
+			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			EthernetType: layers.EthernetTypeIPv4,
+		},
+		&layers.IPv4{
+			Version:  4,
+			SrcIP:    net.IP{1, 1, 1, 1},
+			DstIP:    net.IP{10, 60, 0, 1},
+			Protocol: layers.IPProtocolICMPv4,
+			IHL:      5,
+		},
+		&layers.ICMPv4{
+			TypeCode: layers.ICMPv4TypeEchoReply,
+			Id:       0,
+			Seq:      0,
+		},
+	); err != nil {
+		return fmt.Errorf("serializing input packet failed: %v", err)
+	}
+
+	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
+	farForward := FarInfo{
+		Action:                2,
+		OuterHeaderCreation:   1,
+		RemoteIP:              binary.LittleEndian.Uint32(net.IP{10, 3, 0, 10}),
+		LocalIP:               binary.LittleEndian.Uint32(net.IP{10, 3, 0, 20}),
+		Teid:                  teid,
+		TransportLevelMarking: 0}
+	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 5, MaxBitrateUL: 1000000, MaxBitrateDL: 100000, StartUL: 0, StartDL: 0}
+
+	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farForward)); err != nil {
+		return fmt.Errorf("can't set FAR: %v", err)
+	}
+	if err := bpfObjects.QerMap.Put(uint32(1), unsafe.Pointer(&qer)); err != nil {
+		return fmt.Errorf("can't set QER: %v", err)
+	}
+
+	if err := bpfObjects.PutPdrDownLink(net.IP{10, 60, 0, 1}, pdr); err != nil {
+		return fmt.Errorf("can't set downlink PDR: %v", err)
+	}
+
+	bpfRet, bufOut, err := bpfObjects.UpfIpEntrypointFunc.Test(packet.Bytes())
+	if err != nil {
+		return fmt.Errorf("ebpf run failed: %v", err)
+	}
+
+	if bpfRet != 4 { // XDP_REDIRECT
+		return fmt.Errorf("unexpected return value: %d", bpfRet)
+	}
+
+	response := gopacket.NewPacket(bufOut, layers.LayerTypeEthernet, gopacket.Default)
+	if gtpLayer := response.Layer(layers.LayerTypeGTPv1U); gtpLayer != nil {
+		gtp, _ := gtpLayer.(*layers.GTPv1U)
+
+		if gtp.MessageType != 255 { //GTPU_G_PDU
+			return fmt.Errorf("unexpected gtp response: %d", gtp.MessageType)
+		}
+		if gtp.ExtensionHeaderFlag != true {
+			return fmt.Errorf("unexpected gtp extention flag: %t", gtp.ExtensionHeaderFlag)
+		}
+		if gtp.TEID != teid {
+			return fmt.Errorf("unexpected gtp TEID: %d", gtp.TEID)
+		}
+		if len(gtp.GTPExtensionHeaders) != 1 {
+			return fmt.Errorf("unexpected gtp extention header count: %d", len(gtp.GTPExtensionHeaders))
+		}
+
+		extHeader := gtp.GTPExtensionHeaders[0]
+		if extHeader.Type != 0x85 {
+			return fmt.Errorf("unexpected gtp extention header: %d", gtp.GTPExtensionHeaders[0].Type)
+		}
+		if len(extHeader.Content) != 2 {
+			return fmt.Errorf("unexpected gtp extention header len: %d", len(extHeader.Content))
+		}
+
+		if extHeader.Content[0] != 5 {
+			return fmt.Errorf("unexpected gtp extention header QFI: %d", extHeader.Content[0])
+		}
+	} else {
+		return fmt.Errorf("unexpected response: %v", response)
+	}
+
+	return nil
+}
+
 func TestEntrypoint(t *testing.T) {
 
 	if err := IncreaseResourceLimits(); err != nil {
@@ -372,6 +465,14 @@ func TestEntrypoint(t *testing.T) {
 			t.Fatalf("test failed: %s", err)
 		}
 	})
+
+	t.Run("GTP Extention Header test", func(t *testing.T) {
+		err := testGtpExtHeader(bpfObjects)
+		if err != nil {
+			t.Fatalf("test failed: %s", err)
+		}
+	})
+
 }
 
 func TestEntrypointBenchmark(t *testing.T) {

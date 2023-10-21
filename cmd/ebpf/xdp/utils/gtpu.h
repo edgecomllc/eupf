@@ -60,3 +60,27 @@ struct gtp_hdr_ext {
     __u8 npdu;
     __u8 next_ext;
 } __attribute__((packed));
+
+#define GTPU_EXT_TYPE_PDU_SESSION_CONTAINER (0x85)
+#define PDU_SESSION_CONTAINER_PDU_TYPE_DL_PSU (0x00)
+#define PDU_SESSION_CONTAINER_PDU_TYPE_UL_PSU (0x01)
+
+struct gtp_hdr_ext_pdu_session_container {
+    __u8 length;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    unsigned int qfi    : 6;
+    unsigned int rqi    : 1;
+    unsigned int spare2 : 1;
+    unsigned int spare1 : 4;
+    unsigned int pdu_type : 4;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+    unsigned int pdu_type : 4;
+    unsigned int spare1 : 4;
+    unsigned int spare2 : 1;
+    unsigned int rqi    : 1;
+    unsigned int qfi    : 6;
+#else
+#error "Please fix <bits/endian.h>"
+#endif
+    __u8 next_ext;
+} __attribute__((packed));
