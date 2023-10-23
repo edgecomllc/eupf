@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"github.com/edgecomllc/eupf/cmd/domain"
+	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -15,9 +15,9 @@ import (
 // @Router /pfcp_associations [get]
 func (h *ApiHandler) listPfcpAssociations(c *gin.Context) {
 
-	nodeAssociationsNoSession := make(domain.NodeAssociationMapNoSession)
+	nodeAssociationsNoSession := make(core.NodeAssociationMapNoSession)
 	for k, v := range h.PfcpSrv.NodeAssociations {
-		nodeAssociationsNoSession[k] = domain.NodeAssociationNoSession{
+		nodeAssociationsNoSession[k] = core.NodeAssociationNoSession{
 			ID:            v.ID,
 			Addr:          v.Addr,
 			NextSessionID: v.NextSessionID,

@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"github.com/edgecomllc/eupf/cmd/domain"
+	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -25,7 +25,7 @@ func (h *ApiHandler) getUplinkPdrValue(c *gin.Context) {
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, domain.PdrElement{
+	c.IndentedJSON(http.StatusOK, core.PdrElement{
 		Id:                 uint32(id),
 		OuterHeaderRemoval: value.OuterHeaderRemoval,
 		FarId:              value.FarId,
@@ -34,7 +34,7 @@ func (h *ApiHandler) getUplinkPdrValue(c *gin.Context) {
 }
 
 func (h *ApiHandler) setUplinkPdrValue(c *gin.Context) {
-	var pdrElement domain.PdrElement
+	var pdrElement core.PdrElement
 	if err := c.BindJSON(&pdrElement); err != nil {
 		log.Printf("Parsing request body error: %s", err.Error())
 		return

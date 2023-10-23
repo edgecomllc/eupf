@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"github.com/edgecomllc/eupf/cmd/domain"
+	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -25,7 +25,7 @@ func (h *ApiHandler) getFarValue(c *gin.Context) {
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, domain.FarMapElement{
+	c.IndentedJSON(http.StatusOK, core.FarMapElement{
 		Id:                    uint32(id),
 		Action:                value.Action,
 		OuterHeaderCreation:   value.OuterHeaderCreation,
@@ -37,7 +37,7 @@ func (h *ApiHandler) getFarValue(c *gin.Context) {
 }
 
 func (h *ApiHandler) setFarValue(c *gin.Context) {
-	var farElement domain.FarMapElement
+	var farElement core.FarMapElement
 	if err := c.BindJSON(&farElement); err != nil {
 		log.Printf("Parsing request body error: %s", err.Error())
 		return

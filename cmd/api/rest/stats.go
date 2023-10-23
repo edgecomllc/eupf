@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"github.com/edgecomllc/eupf/cmd/domain"
+	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -32,7 +32,7 @@ func (h *ApiHandler) listUpfPipeline(c *gin.Context) {
 // @Success 200 {object} XdpStats
 // @Router /xdp_stats [get]
 func (h *ApiHandler) displayXdpStatistics(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, domain.XdpStats{
+	c.IndentedJSON(http.StatusOK, core.XdpStats{
 		Aborted:  h.ForwardPlaneStats.GetAborted(),
 		Drop:     h.ForwardPlaneStats.GetDrop(),
 		Pass:     h.ForwardPlaneStats.GetPass(),
@@ -50,7 +50,7 @@ func (h *ApiHandler) displayXdpStatistics(c *gin.Context) {
 // @Router /packet_stats [get]
 func (h *ApiHandler) displayPacketStats(c *gin.Context) {
 	packets := h.ForwardPlaneStats.GetUpfExtStatField()
-	c.IndentedJSON(http.StatusOK, domain.PacketStats{
+	c.IndentedJSON(http.StatusOK, core.PacketStats{
 		RxArp:      packets.RxArp,
 		RxIcmp:     packets.RxIcmp,
 		RxIcmp6:    packets.RxIcmp6,
