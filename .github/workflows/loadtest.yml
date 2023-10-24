@@ -17,7 +17,7 @@ jobs:
         run: sudo pip install robotframework robotframework-scapylibrary robotframework-requests robotframework-run-keyword-async python-can
 
       - name: Install robotframework-scapylibrary fork
-        run: sudo pip install git+git://github.com/kade-ddnkv/robotframework-ScapyLibrary@master
+        run: sudo pip install git+https://github.com/kade-ddnkv/robotframework-ScapyLibrary@master
 
       - name: Raw UPF Presetup
         uses: ./.github/actions/raw-upf-presetup
