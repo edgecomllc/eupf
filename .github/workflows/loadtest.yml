@@ -27,7 +27,7 @@ jobs:
         run: sudo ./bin/eupf &
 
       - name: Run robot Loadtest
-        run: sudo robot -v TCPREPLAY_LIMIT:7000 -v TCPREPLAY_THREADS:1 Loadtest.robot
+        run: sudo robot -v TCPREPLAY_LIMIT:7000 -v TCPREPLAY_THREADS:1 ./robot/Loadtest.robot
 
       - name: Stop eUPF
         run: sudo killall eupf
