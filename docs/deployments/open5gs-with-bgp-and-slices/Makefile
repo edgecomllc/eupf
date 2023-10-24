@@ -43,16 +43,16 @@ calico:
 
 upf:
 	helm $(HELM_ACTION) \
-		eupf oci://registry-1.docker.io/edgecom/eupf \
-		--version 0.4.0 \
+		eupf oci://ghcr.io/edgecomllc/charts/eupf \
+		--version 0.5.0 \
 		--values $(HELM_VALUES_DIR)/eupf.yaml \
 		-n $(NAMESPACE) \
 		$(HELM_ARGS)
 
 upf2:
 	helm $(HELM_ACTION) \
-		eupf2 oci://registry-1.docker.io/edgecom/eupf \
-		--version 0.4.0 \
+		eupf2 oci://ghcr.io/edgecomllc/charts/eupf \
+		--version 0.5.0 \
 		--values $(HELM_VALUES_DIR)/eupf2.yaml \
 		-n $(NAMESPACE) \
 		$(HELM_ARGS)
