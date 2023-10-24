@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: edgecomllc/eupf/.github/actions/raw-upf-presetup@main
+      - uses: ./.github/actions/raw-upf-presetup
         id: raw-upf-presetup
 
       - name: Go mod tidy
