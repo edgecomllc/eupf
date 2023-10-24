@@ -10,6 +10,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+
       - uses: ./actions/raw-upf-presetup@v1
         id: raw-upf-presetup
 
