@@ -11,7 +11,7 @@ import (
 // @Description List PFCP associations
 // @Tags PFCP
 // @Produce  json
-// @Success 200 {object} NodeAssociationMapNoSession
+// @Success 200 {object} core.NodeAssociationMapNoSession
 // @Router /pfcp_associations [get]
 func (h *ApiHandler) listPfcpAssociations(c *gin.Context) {
 
