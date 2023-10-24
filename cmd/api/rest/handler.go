@@ -3,6 +3,7 @@ package rest
 import (
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
+	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
