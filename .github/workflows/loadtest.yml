@@ -16,9 +16,9 @@ jobs:
         with:
           packages: |
             robotframework
-            robotframework-ScapyLibrary
+            robotframework-scapylibrary
             robotframework-requests
-            robotframework-runKeywordAsync
+            robotframework-run-keyword-async
 
       - name: Raw UPF Presetup
         uses: ./.github/actions/raw-upf-presetup
