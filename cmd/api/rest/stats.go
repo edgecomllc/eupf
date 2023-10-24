@@ -29,7 +29,7 @@ func (h *ApiHandler) listUpfPipeline(c *gin.Context) {
 // @Description Display XDP statistics
 // @Tags XDP
 // @Produce  json
-// @Success 200 {object} XdpStats
+// @Success 200 {object} core.XdpStats
 // @Router /xdp_stats [get]
 func (h *ApiHandler) displayXdpStatistics(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, core.XdpStats{
@@ -46,7 +46,7 @@ func (h *ApiHandler) displayXdpStatistics(c *gin.Context) {
 // @Description Display packet statistics
 // @Tags Packet
 // @Produce  json
-// @Success 200 {object} PacketStats
+// @Success 200 {object} core.PacketStats
 // @Router /packet_stats [get]
 func (h *ApiHandler) displayPacketStats(c *gin.Context) {
 	packets := h.ForwardPlaneStats.GetUpfExtStatField()
