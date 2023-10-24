@@ -19,7 +19,7 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 | `GET`  | ` /api/v1/qer_map/:id`           | Get QER map element by id. Returns an object of `QerMapElement`                 | `/api/v1/qer_map/1` |
 | `PUT`  | `/api/v1/qer_map/:id`            | Set values for QER map element by id. Returns a list of `QerMapElement`         | `/api/v1/qer_map/1` |
 
-[PUT] Example request body:
+ [PUT] Example request body:
 
     {
       "gate_status_ul": 1,
@@ -36,7 +36,7 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 | `GET`  | `/api/v1/config`                 | Displays the configuration. Returns an object of `UpfConfig`                    | `/api/v1/config`       |
 | `POST` | `/api/v1/config`                 | Set configuration values                                                        | `/api/v1/config`       |
 
-[POST] Example request body:
+ [POST] Example request body:
 
     {
       "interface_name": ["test", "test"],
@@ -63,7 +63,7 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 | `GET`  | `/api/v1/uplink_pdr_map/:id`     | Get Uplink PDR values by id. Returns an object of `PdrElement`                  | `/api/v1/uplink_pdr_map/1` |              
 | `PUT`  | `/api/v1/uplink_pdr_map/:id`     | Set Uplink PDR values by id. Returns a new object of `PdrElement`               | `/api/v1/uplink_pdr_map/1` |
 
-[PUT] Example request body:
+ [PUT] Example request body:
 
     {
       "outer_header_removal": 1,
