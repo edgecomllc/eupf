@@ -31,15 +31,16 @@ calico:
 
 upf:
 	helm $(HELM_ACTION) \
-		eupf oci://registry-1.docker.io/edgecom/eupf \
-		--version 0.4.0 \
+		eupf oci://ghcr.io/edgecomllc/charts/eupf \
+		--version 0.5.0 \
 		--values $(HELM_VALUES_DIR)/eupf.yaml \
 		-n $(NAMESPACE) \
 		$(HELM_ARGS)
 
 srs:
 	helm $(HELM_ACTION) \
-		srsran oci://registry-1.docker.io/edgecom/srsran5gue-zmq-gnb \
+		srsran oci://ghcr.io/edgecomllc/charts/srsran5gue-zmq-gnb \
+		--version 0.1.3 \
 		--values $(HELM_VALUES_DIR)/srsue-gnb.yaml \
 		-n $(NAMESPACE) \
 		$(HELM_ARGS)
