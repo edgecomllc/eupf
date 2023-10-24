@@ -1,13 +1,37 @@
 name: Loadtest
 
 on:
-  workflow_run:
-    workflows: [Test]
-    types: [completed]
+  push:
+    branches:
+      - "main"
+  pull_request:
 
 jobs:
-  run-robot-loadtest:
+  robot-loadtest:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - run: echo 'The triggering workflow passed'
+      - uses: actions/checkout@v4
+
+      - uses: BSFishy/pip-action@v1
+        with:
+          packages: |
+            robotframework
+            robotframework-ScapyLibrary
+            robotframework-requests
+            robotframework-runKeywordAsync
+
+      - name: Raw UPF Presetup
+        uses: ./.github/actions/raw-upf-presetup
+        id: raw-upf-presetup
+
+      - name: Build
+        run: go build -v -o bin/eupf ./cmd
+
+      - name: Run eUPF and sleep
+        run: sudo ./bin/eupf &
+
+      - name: Run robot Loadtest
+        run: sudo robot -v TCPREPLAY_LIMIT:7000 -v TCPREPLAY_THREADS:1 Loadtest.robot
+
+      - name: Stop eUPF
+        run: sudo killall eupf
