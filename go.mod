@@ -15,7 +15,7 @@ require (
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.1
 	github.com/wmnsk/go-pfcp v0.0.19
-	golang.org/x/sys v0.9.0
+	golang.org/x/sys v0.12.0
 )
 
 require (
@@ -28,7 +28,9 @@ require (
 	github.com/go-openapi/swag v0.22.4 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
+	github.com/rs/zerolog v1.31.0 // indirect
 	golang.org/x/tools v0.10.0 // indirect
 )
 

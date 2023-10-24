@@ -22,8 +22,13 @@
 #include <linux/ip.h>
 #include <linux/types.h>
 #include <linux/udp.h>
+#include <linux/tcp.h>
 
 #include "xdp/utils/packet_context.h"
+#include "xdp/utils/trace.h"
+
+#define ETH_P_IPV6_BE	0xDD86
+#define ETH_P_IP_BE 	0x0008
 
 static __always_inline int parse_ethernet(struct packet_context *ctx) {
     struct ethhdr *eth = (struct ethhdr *)ctx->data;
@@ -58,7 +63,7 @@ static __always_inline int parse_ip6(struct packet_context *ctx) {
     struct ipv6hdr *ip6 = (struct ipv6hdr *)ctx->data;
     if ((const char *)(ip6 + 1) > ctx->data_end)
         return -1;
-
+    
     /* TODO: Add extention headers support */
 
     ctx->data += sizeof(*ip6);
@@ -74,6 +79,30 @@ static __always_inline int parse_udp(struct packet_context *ctx) {
     ctx->data += sizeof(*udp);
     ctx->udp = udp;
     return bpf_ntohs(udp->dest);
+}
+
+static __always_inline int parse_tcp(struct packet_context *ctx) {
+    struct tcphdr *tcp = (struct tcphdr *)ctx->data;
+    if ((const char *)(tcp + 1) > ctx->data_end)
+        return -1;
+
+    //TODO: parse header lenght correctly (tcp options)
+
+    ctx->data += sizeof(*tcp);
+    ctx->tcp = tcp;
+    return bpf_ntohs(tcp->dest);
+}
+
+static __always_inline int parse_l4(int ip_protocol, struct packet_context *ctx)
+{
+    switch (ip_protocol) {
+        case IPPROTO_UDP:
+            return parse_udp(ctx);
+        case IPPROTO_TCP:
+            return parse_tcp(ctx);
+        default:
+            return 0;
+    }
 }
 
 static __always_inline void swap_mac(struct ethhdr *eth) {
@@ -131,14 +160,14 @@ static __always_inline long context_reinit(struct packet_context *ctx, char *dat
     switch (ethertype) {
         case ETH_P_IPV6: {
             if (-1 == parse_ip6(ctx)) {
-                bpf_printk("upf: can't parse ip6");
+                upf_printk("upf: can't parse ip6");
                 return -1;
             }
             return 0;
         }
         case ETH_P_IP: {
             if (-1 == parse_ip4(ctx)) {
-                bpf_printk("upf: can't parse ip4");
+                upf_printk("upf: can't parse ip4");
                 return -1;
             }
             return 0;
@@ -146,7 +175,7 @@ static __always_inline long context_reinit(struct packet_context *ctx, char *dat
 
         default:
             /* do nothing with non-ip packets */
-            bpf_printk("upf: can't process not an ip packet: %d", ethertype);
+            upf_printk("upf: can't process not an ip packet: %d", ethertype);
             return -1;
     }
 }

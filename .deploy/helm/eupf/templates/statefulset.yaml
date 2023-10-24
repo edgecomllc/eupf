@@ -1,0 +1,171 @@
+{{- if eq .Values.deploymentType "statefulset" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "eupf.fullname" . }}
+  labels:
+    {{- include "eupf.labels" . | nindent 4 }}
+spec:
+  serviceName: eupf
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "eupf.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "eupf.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      hostNetwork: {{ .Values.hostNetwork }}
+      serviceAccountName: {{ include "eupf.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.initContainers }}
+      initContainers:
+        {{- include "helpers.pod.initContainers" . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: eupf
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ include "helpers.pod.containerImage" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.ImagePullPolicy }}
+          {{- if .Values.command }}
+          command: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.command "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.args }}
+          args: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.args "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.env }}
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            {{- include "helpers.pod.envs" . | indent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            {{- if .Values.extraContainerPorts }}
+            {{- include "helpers.common.tplvalues.render" (dict "value" .Values.extraContainerPorts "context" $) | nindent 12 }}
+            {{- end }}
+          {{- include "helpers.pod.probes" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- include "helpers.pod.volumeMounts" . | nindent 10 }}
+        {{- if .Values.bird.enabled }}
+        - name: bird
+          image: {{ .Values.bird.image }}
+          {{- if .Values.bird.command }}
+          command: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.bird.command "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.bird.args }}
+          args: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.bird.args "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            {{- range $k, $v := .Values.bird.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          ports:
+            - name: bgp
+              containerPort: {{ .Values.bird.service.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.bird.resources | nindent 12 }}
+          {{- with .Values.bird.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.bird.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- include "helpers.pod.volumeMounts" . | nindent 10 }}
+        {{- end }}
+        {{- if .Values.ui.enabled }}
+        - name:  ui
+          image: "{{ include "helpers.pod.uiImage" . }}"
+          {{- if .Values.ui.command }}
+          command: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.ui.command "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.ui.args }}
+          args: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.ui.args "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            {{- range $k, $v := .Values.ui.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          ports:
+            - name: ui
+              containerPort: {{ .Values.ui.service.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.ui.resources | nindent 12 }}
+          {{- with .Values.ui.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.ui.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- include "helpers.pod.volumeMounts" . | nindent 10 }}
+        {{- end }}
+      {{- include "helpers.pod.volumes" . | nindent 6 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

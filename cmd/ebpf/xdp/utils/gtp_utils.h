@@ -26,6 +26,7 @@
 
 #include "xdp/utils/gtpu.h"
 #include "xdp/utils/packet_context.h"
+#include "xdp/utils/trace.h"
 
 static __always_inline __u32 parse_gtp(struct packet_context *ctx) {
     struct gtpuhdr *gtp = (struct gtpuhdr *)ctx->data;
@@ -33,6 +34,8 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx) {
         return -1;
 
     ctx->data += sizeof(*gtp);
+    if (gtp->e || gtp->s || gtp->pn)
+        ctx->data += sizeof(struct gtp_hdr_ext) + 4;
     ctx->gtp = gtp;
     return gtp->message_type;
 }
@@ -49,29 +52,29 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     swap_ip(iph);
     swap_port(udp);
     swap_mac(eth);
-    bpf_printk("upf: send gtp echo response [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
+    upf_printk("upf: send gtp echo response [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
     return XDP_TX;
 }
 
-static __always_inline int get_eth_protocol(const char *data) {
+static __always_inline int guess_eth_protocol(const char *data) {
     const __u8 ip_version = (*(const __u8 *)data) >> 4;
     switch (ip_version) {
         case 6: {
-            return bpf_htons(ETH_P_IPV6);
+            return ETH_P_IPV6_BE;
         }
         case 4: {
-            return bpf_htons(ETH_P_IP);
+            return ETH_P_IP_BE;
         }
         default:
             /* do nothing with non-ip packets */
-            bpf_printk("upf: can't process non-IP packet: %d", ip_version);
+            upf_printk("upf: can't process non-IP packet: %d", ip_version);
             return -1;
     }
 }
 
 static __always_inline long remove_gtp_header(struct packet_context *ctx) {
     if (!ctx->gtp) {
-        bpf_printk("upf: remove_gtp_header: not a gtp packet");
+        upf_printk("upf: remove_gtp_header: not a gtp packet");
         return -1;
     }
 
@@ -86,14 +89,14 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
     const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
     struct ethhdr *eth = (struct ethhdr *)data;
     if ((const char *)(eth + 1) > data_end) {
-        bpf_printk("upf: remove_gtp_header: can't parse eth");
+        upf_printk("upf: remove_gtp_header: can't parse eth");
         return -1;
     }
 
     data += gtp_encap_size;
     struct ethhdr *new_eth = (struct ethhdr *)data;
     if ((const char *)(new_eth + 1) > data_end) {
-        bpf_printk("upf: remove_gtp_header: can't set new eth");
+        upf_printk("upf: remove_gtp_header: can't set new eth");
         return -1;
     }
 
@@ -101,7 +104,7 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
     if (data + 1 > data_end)
         return -1;
 
-    const int eth_proto = get_eth_protocol(data);
+    const int eth_proto = guess_eth_protocol(data);
 
     if (eth_proto == -1)
         return -1;
