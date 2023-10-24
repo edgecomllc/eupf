@@ -23,6 +23,9 @@ jobs:
         uses: ./.github/actions/raw-upf-presetup
         id: raw-upf-presetup
 
+      - name: Install tcpreplay
+        run: sudo apt install tcpreplay
+
       - name: Build
         run: go build -v -o bin/eupf ./cmd
 
