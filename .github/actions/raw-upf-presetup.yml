@@ -1,0 +1,22 @@
+name: 'Raw UPF Presetup'
+
+runs:
+  using: "composite"
+  steps:
+    - uses: awalsh128/cache-apt-pkgs-action@v1
+      with:
+        packages: clang llvm gcc-multilib libbpf-dev
+
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '>=1.20.0'
+        cache: true
+
+    - name: Install swaggo
+      run: go install github.com/swaggo/swag/cmd/swag@v1.8.12
+
+    - name: Compile ebpf, generate go wrappers, generate swagger files.
+      run: go generate -v ./cmd/...

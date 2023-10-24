@@ -1,4 +1,4 @@
-name: Run robot tests
+name: Run Scenario-0 robot test
 
 on:
   workflow_call:
@@ -28,4 +28,4 @@ jobs:
             robotframework-kubelibrary
       - name: run tests
         run: |
-          robot -d results -v KUBE_CONTEXT:${{ github.event.inputs.kube_context }} -v ENVIRONMENT_NAME:${{ github.event.inputs.environment_name }} ./robot
+          robot -d results -v KUBE_CONTEXT:${{ github.event.inputs.kube_context }} -v ENVIRONMENT_NAME:${{ github.event.inputs.environment_name }} ./robot/Scenario-0.robot
