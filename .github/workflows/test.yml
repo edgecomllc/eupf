@@ -12,7 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: ./.github/actions/raw-upf-presetup
+      - name: Raw UPF Presetup
+        uses: ./.github/actions/raw-upf-presetup
         id: raw-upf-presetup
 
       - name: Go mod tidy
