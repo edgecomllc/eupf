@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/edgecomllc/eupf/cmd/api/rest"
+	"github.com/edgecomllc/eupf/cmd/server"
 	"net"
 	"os"
 	"os/signal"
@@ -92,17 +94,24 @@ func main() {
 		BpfObjects: bpfObjects,
 	}
 
-	// Start api server
-	api := core.CreateApiServer(bpfObjects, pfcpConn, ForwardPlaneStats)
+	h := rest.NewApiHandler(bpfObjects, pfcpConn, &ForwardPlaneStats, &config.Conf)
+
+	engine := h.InitRoutes()
+	metricsEngine := h.InitMetricsRoute()
+
+	apiSrv := server.New(config.Conf.ApiAddress, engine)
+	metricsSrv := server.New(config.Conf.MetricsAddress, metricsEngine)
+
+	// Start api servers
 	go func() {
-		if err := api.Run(config.Conf.ApiAddress); err != nil {
+		if err := apiSrv.Run(); err != nil {
 			log.Fatal().Msgf("Could not start api server: %s", err.Error())
 		}
 	}()
 
-	core.RegisterMetrics(ForwardPlaneStats, pfcpConn)
+	// Start metrics servers
 	go func() {
-		if err := core.StartMetrics(config.Conf.MetricsAddress); err != nil {
+		if err := metricsSrv.Run(); err != nil {
 			log.Fatal().Msgf("Could not start metrics server: %s", err.Error())
 		}
 	}()
