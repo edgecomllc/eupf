@@ -421,8 +421,8 @@ func testGtpExtHeader(bpfObjects *BpfObjects) error {
 			return fmt.Errorf("unexpected gtp extention header len: %d", len(extHeader.Content))
 		}
 
-		if extHeader.Content[0] != 5 {
-			return fmt.Errorf("unexpected gtp extention header QFI: %d", extHeader.Content[0])
+		if extHeader.Content[1] != 5 {
+			return fmt.Errorf("unexpected gtp extention header QFI: %d %d", extHeader.Content[0], extHeader.Content[1])
 		}
 	} else {
 		return fmt.Errorf("unexpected response: %v", response)

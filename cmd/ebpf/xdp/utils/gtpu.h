@@ -67,20 +67,10 @@ struct gtp_hdr_ext {
 
 struct gtp_hdr_ext_pdu_session_container {
     __u8 length;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-    unsigned int qfi    : 6;
-    unsigned int rqi    : 1;
-    unsigned int spare2 : 1;
-    unsigned int spare1 : 4;
-    unsigned int pdu_type : 4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
-    unsigned int pdu_type : 4;
-    unsigned int spare1 : 4;
-    unsigned int spare2 : 1;
-    unsigned int rqi    : 1;
-    unsigned int qfi    : 6;
-#else
-#error "Please fix <bits/endian.h>"
-#endif
+    __u8 spare1 : 4;
+    __u8 pdu_type : 4;
+    __u8 qfi    : 6;
+    __u8 rqi    : 1;
+    __u8 spare2 : 1;    
     __u8 next_ext;
 } __attribute__((packed));
