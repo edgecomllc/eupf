@@ -13,11 +13,11 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 
 #### - QER map
 
-| Method | URL                              | Description                                                                     | Example             |
-|--------|----------------------------------|---------------------------------------------------------------------------------|---------------------|
-| `GET`  | `/api/v1/qer_map`                | Lists the QER map content. Returns a list of `QerMapElement`                    | `/api/v1/qer_map`   |
-| `GET`  | ` /api/v1/qer_map/:id`           | Get QER map element by id. Returns an object of `QerMapElement`                 | `/api/v1/qer_map/1` |
-| `PUT`  | `/api/v1/qer_map/:id`            | Set values for QER map element by id. Returns a list of `QerMapElement`         | `/api/v1/qer_map/1` |
+| Method | URL                             | Description                                                                     | Example             |
+|--------|---------------------------------|---------------------------------------------------------------------------------|---------------------|
+| `GET`  | `/api/v1/qer_map`               | Lists the QER map content. Returns a list of `QerMapElement`                    | `/api/v1/qer_map`   |
+| `GET`  | `/api/v1/qer_map/:id`           | Get QER map element by id. Returns an object of `QerMapElement`                 | `/api/v1/qer_map/1` |
+| `PUT`  | `/api/v1/qer_map/:id`           | Set values for QER map element by id. Returns a list of `QerMapElement`         | `/api/v1/qer_map/1` |
 
  [PUT] Example request body:
 
@@ -73,10 +73,10 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 
 #### - FAR map
 
-| Method | URL                              | Description                                                                     | Example             |
-|--------|----------------------------------|---------------------------------------------------------------------------------|---------------------|
-| `GET`  | ` /api/v1/far_map/:id`           | Get FAR map element by id. Returns an object of `FarMapElement`                 | `/api/v1/far_map/1` |
-| `PUT`  | `/api/v1/far_map/:id`            | Set values for FAR map element by id. Returns a new object of `FarMapElement`   | `/api/v1/far_map/1` |
+| Method | URL                             | Description                                                                     | Example             |
+|--------|---------------------------------|---------------------------------------------------------------------------------|---------------------|
+| `GET`  | `/api/v1/far_map/:id`           | Get FAR map element by id. Returns an object of `FarMapElement`                 | `/api/v1/far_map/1` |
+| `PUT`  | `/api/v1/far_map/:id`           | Set values for FAR map element by id. Returns a new object of `FarMapElement`   | `/api/v1/far_map/1` |
 
  [PUT] Example request body:
 
@@ -94,7 +94,7 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 
 | Method | URL                              | Description                                                                     | Example                          |
 |--------|----------------------------------|---------------------------------------------------------------------------------|----------------------------------|
-| `GET`  | ` /api/v1/pfcp_associations`     | Lists the PFCP associations. Returns an object of `NodeAssociationMap`          | `/api/v1/pfcp_associations`      |
+| `GET`  | `/api/v1/pfcp_associations`      | Lists the PFCP associations. Returns an object of `NodeAssociationMap`          | `/api/v1/pfcp_associations`      |
 | `GET`  | `/api/v1/pfcp_associations/full` | Lists the full PFCP associations. Returns an object of `NodeAssociationMap`     | `/api/v1/pfcp_associations/full` |
 | `GET`  | `/api/v1/pfcp_sessions`          | Lists the PFCP sessions content. Returns a list of `Session`                    | `/api/v1/pfcp_sessions`          |
 
