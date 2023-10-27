@@ -21,12 +21,12 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 
  [PUT] Example request body:
 
-    {
-      "gate_status_ul": 1,
-      "gate_status_dl": 1,
-      "qfi": 1,
-      "max_bitrate_ul": 1,
-      "max_bitrate_dl": 1
+    {  
+      "gate_status_ul": 0,
+      "gate_status_dl": 0,
+      "qfi": 0,
+      "max_bitrate_ul": 200000000,
+      "max_bitrate_dl": 100000000
     }
 
 #### - Config
@@ -39,22 +39,27 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
  [POST] Example request body:
 
     {
-      "interface_name": ["test", "test"],
-      "xdp_attach_mode": "test",
-      "api_address": "test",
-      "pfcp_address": "test",
-      "pfcp_node_id": "test",
-      "metrics_address": "test",
-      "n3_address": "test",
-      "qer_map_size": 1,
-      "far_map_size": 1,
-      "pdr_map_size": 1,
-      "resize_ebpf_maps": true,
-      "heartbeat_retries": 1,
-      "heartbeat_interval": 1,
-      "heartbeat_timeout": 1,
-      "logging_level": "test"
+      "interface_name": [
+        "eth0",
+        "eth1"
+      ],
+      "xdp_attach_mode": "generic",
+      "api_address": "8080",
+      "pfcp_address": "10.100.200.14:8805",
+      "pfcp_node_id": "10.100.200.14",
+      "metrics_address": ":9090",
+      "n3_address": "10.100.200.14",
+      "qer_map_size": 1024,
+      "far_map_size": 1024,
+      "pdr_map_size": 1024,
+      "resize_ebpf_maps": false,
+      "heartbeat_retries": 3,
+      "heartbeat_interval": 5,
+      "heartbeat_timeout": 5,
+      "logging_level": "info"
     }
+
+
 
 #### - Uplink PDR
 
@@ -66,9 +71,9 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
  [PUT] Example request body:
 
     {
-      "outer_header_removal": 1,
-      "far_id": 1,
-      "qer_id": 1
+      "outer_header_removal": 0,
+      "far_id": 0,
+      "qer_id": 0
     }
 
 #### - FAR map
@@ -81,12 +86,12 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
  [PUT] Example request body:
 
     {
-      "action": 1,
-      "outer_header_creation": 1,
-      "teid": 1,
-      "remote_ip": 1,
-      "local_ip": 1,
-      "transport_level_marking": 1
+      "action": 0,
+      "outer_header_creation": 0,
+      "teid": 0,
+      "remote_ip": 0,
+      "local_ip": 0,
+      "transport_level_marking": 0
     }
 
 
