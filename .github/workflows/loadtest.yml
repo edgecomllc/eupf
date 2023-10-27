@@ -1,0 +1,39 @@
+name: Loadtest
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+jobs:
+  robot-loadtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v1
+      
+      - name: Install robotframework libraries
+        run: sudo pip install robotframework robotframework-requests robotframework-run-keyword-async python-can
+
+      - name: Install robotframework-scapylibrary fork
+        run: sudo pip install git+https://github.com/kade-ddnkv/robotframework-ScapyLibrary@master
+
+      - name: Raw UPF Presetup
+        uses: ./.github/actions/raw-upf-presetup
+        id: raw-upf-presetup
+
+      - name: Install tcpreplay
+        run: sudo apt install tcpreplay
+
+      - name: Build
+        run: go build -v -o bin/eupf ./cmd
+
+      - name: Run eUPF and sleep
+        run: sudo ./bin/eupf &
+
+      - name: Run robot Loadtest
+        run: sudo robot -v TCPREPLAY_LIMIT:2000000 -v TCPREPLAY_THREADS:8 ./robot/Loadtest.robot
+
+      - name: Stop eUPF
+        run: sudo killall eupf
