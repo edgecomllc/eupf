@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/edgecomllc/eupf/cmd/api/rest"
+	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/edgecomllc/eupf/cmd/server"
 	"net"
 	"os"
@@ -73,6 +74,11 @@ func main() {
 		log.Info().Msgf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	}
 
+	ipam, err := service.NewIPAM(config.Conf.Pool)
+	if err != nil {
+		log.Error().Msgf("Failed to create IPAM. err: %s", err.Error())
+	}
+
 	// Create PFCP connection
 	var pfcpHandlers = core.PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            core.HandlePfcpHeartbeatRequest,
@@ -83,7 +89,7 @@ func main() {
 		message.MsgTypeSessionModificationRequest:  core.HandlePfcpSessionModificationRequest,
 	}
 
-	pfcpConn, err := core.CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects)
+	pfcpConn, err := core.CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects, ipam)
 	if err != nil {
 		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}

@@ -1,4 +1,4 @@
-# UPF Config
+    # UPF Config
 
 ## Description
 
@@ -42,6 +42,7 @@ n3_address: 127.0.0.1
 qer_map_size: 1024
 far_map_size: 1024
 pdr_map_size: 1024
+ip_pool: 10.61.0.0/16
 ```
 
 ### Environment variables

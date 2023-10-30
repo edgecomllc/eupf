@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"time"
 
@@ -21,6 +22,7 @@ type PfcpConnection struct {
 	n3Address         net.IP
 	mapOperations     ebpf.ForwardingPlaneController
 	RecoveryTimestamp time.Time
+	ipam              *service.IPAM
 }
 
 func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
@@ -30,7 +32,7 @@ func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociat
 	return nil
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController) (*PfcpConnection, error) {
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController, ipam *service.IPAM) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Panic().Msgf("Can't resolve UDP address: %s", err.Error())
@@ -57,6 +59,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 		n3Address:         n3Addr,
 		mapOperations:     mapOperations,
 		RecoveryTimestamp: time.Now(),
+		ipam:              ipam,
 	}, nil
 }
 

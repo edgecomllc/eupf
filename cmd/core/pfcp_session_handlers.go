@@ -103,6 +103,14 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	association.Sessions[localSEID] = session
 	conn.NodeAssociations[addr] = association
 
+	//TODO Сhecking for the need to allocate an IP address
+	ip := conn.ipam.AllocateIP(req.Header.SEID) //for example "req.Header.SEID". need to set some unique value as the key
+	if ip == nil {
+		errString := causeToString(75)
+		log.Error().Msgf("Failed to allocate IP address. err: %s", errString)
+		//maybe something needs to be returned
+	}
+
 	// Send SessionEstablishmentResponse
 	estResp := message.NewSessionEstablishmentResponse(
 		0, 0,
@@ -112,6 +120,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		ie.NewCause(ie.CauseRequestAccepted),
 		newIeNodeID(conn.nodeId),
 		ie.NewFSEID(localSEID, conn.nodeAddrV4, nil),
+		ie.NewSourceIPAddress(ip, nil, 0), // I'm not sure I chose the right value. just for example
 	)
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 
@@ -237,6 +246,8 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	}
 	log.Info().Msgf("Deleting session: %d", req.SEID())
 	delete(association.Sessions, req.SEID())
+
+	conn.ipam.ReleaseIP(req.Header.SEID) //for example "req.Header.SEID". need to set some unique value as the key
 
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted)), nil
