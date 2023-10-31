@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"testing"
 
@@ -20,13 +21,17 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 		message.MsgTypeSessionDeletionRequest:      HandlePfcpSessionDeletionRequest,
 		message.MsgTypeSessionModificationRequest:  HandlePfcpSessionModificationRequest,
 	}
-
+	ipam, err := service.NewIPAM("10.61.0.0/16")
+	if err != nil {
+		t.Errorf("Failed to create IPAM. err: %s", err.Error())
+	}
 	smfIP := "127.0.0.1"
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),
 		nodeId:           "test-node",
 		mapOperations:    &mapOps,
 		pfcpHandlerMap:   pfcpHandlers,
+		ipam:             ipam,
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
