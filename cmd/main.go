@@ -74,7 +74,7 @@ func main() {
 		log.Info().Msgf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	}
 
-	ipam, err := service.NewIPAM(config.Conf.Pool)
+	ipam, err := service.NewIPAM(config.Conf.IPPool)
 	if err != nil {
 		log.Error().Msgf("Failed to create IPAM. err: %s", err.Error())
 	}

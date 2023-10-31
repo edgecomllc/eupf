@@ -26,7 +26,7 @@ type UpfConfig struct {
 	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
 	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
 	LoggingLevel      string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
-	Pool              string   `mapstructure:"ip_pool" json:"ip_pool"`
+	IPPool            string   `mapstructure:"ip_pool" json:"ip_pool"`
 }
 
 func init() {
