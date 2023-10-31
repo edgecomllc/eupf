@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"testing"
 
@@ -61,13 +62,17 @@ func (mapOps *MapOperationsMock) DeleteQer(internalId uint32) error {
 func TestSessionOverwrite(t *testing.T) {
 
 	mapOps := MapOperationsMock{}
-
+	ipam, err := service.NewIPAM("10.61.0.0/16")
+	if err != nil {
+		t.Errorf("Failed to create IPAM. err: %s", err.Error())
+	}
 	// Create pfcp connection struct
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),
 		nodeId:           "test-node",
 		mapOperations:    &mapOps,
 		n3Address:        net.ParseIP("127.0.0.1"),
+		ipam:             ipam,
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
