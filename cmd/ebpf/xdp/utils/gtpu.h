@@ -60,3 +60,17 @@ struct gtp_hdr_ext {
     __u8 npdu;
     __u8 next_ext;
 } __attribute__((packed));
+
+#define GTPU_EXT_TYPE_PDU_SESSION_CONTAINER (0x85)
+#define PDU_SESSION_CONTAINER_PDU_TYPE_DL_PSU (0x00)
+#define PDU_SESSION_CONTAINER_PDU_TYPE_UL_PSU (0x01)
+
+struct gtp_hdr_ext_pdu_session_container {
+    __u8 length;
+    __u8 spare1 : 4;
+    __u8 pdu_type : 4;
+    __u8 qfi    : 6;
+    __u8 rqi    : 1;
+    __u8 spare2 : 1;    
+    __u8 next_ext;
+} __attribute__((packed));
