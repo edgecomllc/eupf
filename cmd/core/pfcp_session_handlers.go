@@ -37,6 +37,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	session := NewSession(localSEID, remoteSEID.SEID)
 
+	var hasCHV4 bool
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
 	err = func() error {
@@ -82,6 +83,12 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				continue
 			}
 
+			pdi, err := pdr.PDI()
+			if err != nil {
+				log.Info().Msgf("PDI not found")
+			}
+			hasCHV4 = pdi[0].HasCHV4()
+
 			spdrInfo := SPDRInfo{}
 			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
@@ -103,12 +110,15 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	association.Sessions[localSEID] = session
 	conn.NodeAssociations[addr] = association
 
-	//TODO Сhecking for the need to allocate an IP address
-	ip := conn.ipam.AllocateIP(req.SEID())
-	if ip == nil {
-		errString := causeToString(75)
-		log.Error().Msgf("Failed to allocate IP address. err: %s", errString)
+	//Сhecking for the need to allocate an IP address
+	var ip net.IP
+	if hasCHV4 {
+		ip := conn.ipam.AllocateIP(req.SEID())
 		//maybe something needs to be returned
+		if ip == nil {
+			errString := causeToString(75)
+			log.Error().Msgf("Failed to allocate IP address. err: %s", errString)
+		}
 	}
 
 	// Send SessionEstablishmentResponse
