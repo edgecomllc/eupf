@@ -36,18 +36,18 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 		v1.GET("upf_pipeline", ListUpfPipeline(bpfObjects))
 		v1.GET("xdp_stats", DisplayXdpStatistics(forwardPlaneStats))
 		v1.GET("packet_stats", DisplayPacketStats(forwardPlaneStats))
-    
-    config := v1.Group("config")
+
+		config := v1.Group("config")
 		{
 			config.GET("", DisplayConfig())
 			config.POST("", EditConfig)
 		}
-		
-    pdrMap := v1.Group("uplink_pdr_map")
+
+		pdrMap := v1.Group("uplink_pdr_map")
 		{
 			pdrMap.GET(":id", GetUplinkPdrValue(bpfObjects))
 			pdrMap.PUT(":id", SetUplinkPdrValue(bpfObjects))
-    }	
+		}
 
 		qerMap := v1.Group("qer_map")
 		{
