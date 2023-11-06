@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -88,6 +89,7 @@ func init() {
 
 	if err := v.ReadInConfig(); err != nil {
 		log.Printf("Unable to read config file, %v", err)
+		isConfigFileAvailable = false
 	}
 
 	log.Printf("Get raw config: %+v", v.AllSettings())
@@ -100,4 +102,13 @@ func (c *UpfConfig) Validate() error {
 // Unmarshal data from config file
 func (c *UpfConfig) Unmarshal() error {
 	return v.UnmarshalExact(c)
+}
+
+var isConfigFileAvailable bool = true
+
+func WatchConfig(onConfigChange func(e fsnotify.Event)) {
+	if isConfigFileAvailable {
+		viper.OnConfigChange(onConfigChange)
+		viper.WatchConfig()
+	}
 }
