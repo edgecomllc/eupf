@@ -3,8 +3,9 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
+
+	"github.com/edgecomllc/eupf/cmd/core/service"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
@@ -75,6 +76,8 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 		}
 
+		// TODO: create local_teid_map
+
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
@@ -104,18 +107,17 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	association.Sessions[localSEID] = session
 	conn.NodeAssociations[addr] = association
 
-	// Send SessionEstablishmentResponse
-	estResp := message.NewSessionEstablishmentResponse(
-		0, 0,
-		remoteSEID.SEID,
-		req.Sequence(),
-		0,
+	AdditionalIEs := []*ie.IE{
 		ie.NewCause(ie.CauseRequestAccepted),
 		newIeNodeID(conn.nodeId),
 		ie.NewFSEID(localSEID, conn.nodeAddrV4, nil),
-	)
-	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
+	}
 
+	//TODO: add Created PDR IE for each generated TEID/IP
+
+	// Send SessionEstablishmentResponse
+	estResp := message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, AdditionalIEs...)
+	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	log.Info().Msgf("Session Establishment Request from %s accepted.", addr)
 	return estResp, nil
 }
@@ -183,24 +185,33 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 	//if fteid, err := pdr.FTEID(); err == nil {
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-			spdrInfo.Teid = fteid.TEID
-			//if fteid.HasCh() {
-			//	if ipam != nil {
-			//		ip, err := ipam.AllocateIP(seid)
-			//		if err != nil {
-			//			log.Error().Msgf("AllocateIP error: %v", err)
-			//			return errors.New(fmt.Sprintf("allocate IP err: %s", causeToString(ie.CauseNoResourcesAvailable)))
-			//		}
-			//		teid, err := ipam.AllocateTEID(seid)
-			//		if err != nil {
-			//			log.Error().Msgf("AllocateTEID error: %v", err)
-			//			return errors.New(fmt.Sprintf("allocate TEID err: %s", causeToString(ie.CauseNoResourcesAvailable)))
-			//		}
-			//		spdrInfo.Teid = fteid.TEID
-			//		spdrInfo.Ipv4 = ip
-			//	}
-			//}
+			if fteid.HasCh() {
+				if fteid.HasChID() {
+					//try to find teid previously allocated
+					if err, teid := teidCache.GetTEID(fteid.ChooseID); err == nil {
+						spdrInfo.Teid = teid
+						return nil
+					}
+				}
+
+				teid, err := ipam.AllocateTEID(seid)
+				if err != nil {
+					log.Error().Msgf("Allocate TEID error: %v", err)
+					return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
+				}
+
+				if fteid.HasChID() {
+					teidCache.PutTEID(fteid.ChooseID, teid)
+				}
+
+				spdrInfo.Teid = teid
+				return nil
+			} else {
+				spdrInfo.Teid = fteid.TEID
+				return nil
+			}
 		}
+		return fmt.Errorf("F-TEID IE is missing")
 	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
 		if ueIP.IPv4Address != nil {
 			spdrInfo.Ipv4 = cloneIP(ueIP.IPv4Address)
@@ -209,11 +220,12 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 		} else {
 			return fmt.Errorf("UE IP Address IE is missing")
 		}
+
+		return nil
 	} else {
 		log.Info().Msg("Both F-TEID IE and UE IP Address IE are missing")
 		return err
 	}
-	return nil
 }
 
 func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
