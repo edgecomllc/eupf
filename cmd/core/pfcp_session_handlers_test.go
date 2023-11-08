@@ -1,7 +1,6 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"testing"
 	"time"
@@ -69,10 +68,6 @@ func TestAssociationSetup(t *testing.T) {
 func SdfFilterStorePreSetup(t *testing.T) (PfcpConnection, string) {
 	mapOps := MapOperationsMock{}
 
-	ipam, err := service.NewIPAM("10.61.0.0/16")
-	if err != nil {
-		t.Errorf("Failed to create IPAM. err: %s", err.Error())
-	}
 	var pfcpHandlers = PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            HandlePfcpHeartbeatRequest,
 		message.MsgTypeAssociationSetupRequest:     HandlePfcpAssociationSetupRequest,
@@ -88,7 +83,6 @@ func SdfFilterStorePreSetup(t *testing.T) (PfcpConnection, string) {
 		mapOperations:    &mapOps,
 		pfcpHandlerMap:   pfcpHandlers,
 		n3Address:        net.ParseIP("1.2.3.4"),
-		ipam:             ipam,
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),

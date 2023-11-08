@@ -1,6 +1,7 @@
 package core
 
 import (
+	"math/big"
 	"net"
 	"time"
 
@@ -86,16 +87,22 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	conn.NodeAssociations[addr] = remoteNode
 	log.Info().Msgf("Saving new association: %+v", remoteNode)
 
+	x := big.NewInt(0)
+	x.SetBit(x, 12, 1)
+	upFunctionFeaturesIE := ie.New(ie.UPFunctionFeatures, x.Bytes())
+
 	// shall send a PFCP Association Setup Response including:
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
 		newIeNodeID(conn.nodeId),             // its Node ID;
-		ie.NewUPFunctionFeatures(),           // information of all supported optional features in the UP function; We don't support any optional features at the moment
+		upFunctionFeaturesIE,
+		//ie.NewUPFunctionFeatures(), // information of all supported optional features in the UP function; We don't support any optional features at the moment
 		// ... other IEs
 		//	optionally one or more UE IP address Pool Information IE which contains a list of UE IP Address Pool Identities per Network Instance, S-NSSAI and IP version;
 		//	optionally the NF Instance ID of the UPF if available
 	)
 
+	//a := message.
 	// Send AssociationSetupResponse
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return asres, nil

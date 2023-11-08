@@ -3,7 +3,7 @@ package rest
 import (
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
-	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
+	//eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -35,7 +35,7 @@ func (h *ApiHandler) InitRoutes() *gin.Engine {
 	config.AllowAllOrigins = true
 	router.Use(cors.New(config))
 
-	eupfDocs.SwaggerInfo.BasePath = "/api/v1"
+	//eupfDocs.SwaggerInfo.BasePath = "/api/v1"
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("/health", func(c *gin.Context) {

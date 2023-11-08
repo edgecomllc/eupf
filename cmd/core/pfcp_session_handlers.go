@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
@@ -37,7 +38,6 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	session := NewSession(localSEID, remoteSEID.SEID)
 
-	var hasCHV4 bool
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
 	err = func() error {
@@ -83,14 +83,8 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				continue
 			}
 
-			pdi, err := pdr.PDI()
-			if err != nil {
-				log.Info().Msgf("PDI not found")
-			}
-			hasCHV4 = pdi[0].HasCHV4()
-
 			spdrInfo := SPDRInfo{}
-			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+			if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {
@@ -110,17 +104,6 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	association.Sessions[localSEID] = session
 	conn.NodeAssociations[addr] = association
 
-	//Сhecking for the need to allocate an IP address
-	var ip net.IP
-	if hasCHV4 {
-		ip := conn.ipam.AllocateIP(req.SEID())
-		//maybe something needs to be returned
-		if ip == nil {
-			errString := causeToString(75)
-			log.Error().Msgf("Failed to allocate IP address. err: %s", errString)
-		}
-	}
-
 	// Send SessionEstablishmentResponse
 	estResp := message.NewSessionEstablishmentResponse(
 		0, 0,
@@ -130,7 +113,6 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		ie.NewCause(ie.CauseRequestAccepted),
 		newIeNodeID(conn.nodeId),
 		ie.NewFSEID(localSEID, conn.nodeAddrV4, nil),
-		ie.NewSourceIPAddress(ip, nil, 0), // I'm not sure I chose the right value. just for example
 	)
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 
@@ -171,7 +153,7 @@ func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) 
 	return nil
 }
 
-func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
+func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.IPAM, seid uint64) error {
 
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
@@ -202,6 +184,22 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 			spdrInfo.Teid = fteid.TEID
+			//if fteid.HasCh() {
+			//	if ipam != nil {
+			//		ip, err := ipam.AllocateIP(seid)
+			//		if err != nil {
+			//			log.Error().Msg("не получилось выделить IP :(")
+			//			return errors.New(fmt.Sprintf("allocate IP err: %s", causeToString(ie.CauseNoResourcesAvailable)))
+			//		}
+			//		teid, err := ipam.AllocateTEID(seid)
+			//		if err != nil {
+			//			log.Error().Msg("не получилось выделить TEID :(")
+			//			return errors.New(fmt.Sprintf("allocate TEID err: %s", causeToString(ie.CauseNoResourcesAvailable)))
+			//		}
+			//		spdrInfo.Teid = fteid.TEID
+			//		spdrInfo.Ipv4 = ip
+			//	}
+			//}
 		}
 	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
 		if ueIP.IPv4Address != nil {
@@ -217,6 +215,53 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
 	}
 	return nil
 }
+
+//func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
+//
+//	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
+//		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
+//	}
+//	if farid, err := pdr.FARID(); err == nil {
+//		spdrInfo.PdrInfo.FarId = session.GetFar(farid).GlobalId
+//	}
+//	if qerid, err := pdr.QERID(); err == nil {
+//		spdrInfo.PdrInfo.QerId = session.GetQer(qerid).GlobalId
+//	}
+//
+//	pdi, err := pdr.PDI()
+//	if err != nil {
+//		return fmt.Errorf("PDI IE is missing")
+//	}
+//
+//	if sdfFilter, err := pdr.SDFFilter(); err == nil {
+//		if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
+//			spdrInfo.PdrInfo.SdfFilter = &sdfFilterParsed
+//			// log.Printf("Sdf Filter Parsed: %+v", sdfFilterParsed)
+//		} else {
+//			return err
+//		}
+//	}
+//
+//	//Bug in go-pfcp:
+//	//if fteid, err := pdr.FTEID(); err == nil {
+//	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
+//		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+//			spdrInfo.Teid = fteid.TEID
+//		}
+//	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
+//		if ueIP.IPv4Address != nil {
+//			spdrInfo.Ipv4 = cloneIP(ueIP.IPv4Address)
+//		} else if ueIP.IPv6Address != nil {
+//			spdrInfo.Ipv6 = cloneIP(ueIP.IPv6Address)
+//		} else {
+//			return fmt.Errorf("UE IP Address IE is missing")
+//		}
+//	} else {
+//		log.Info().Msg("Both F-TEID IE and UE IP Address IE are missing")
+//		return err
+//	}
+//	return nil
+//}
 
 func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	req := msg.(*message.SessionDeletionRequest)
@@ -398,7 +443,9 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			spdrInfo := SPDRInfo{}
-			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+			//if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
+			if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
+				//if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {
@@ -413,7 +460,8 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			spdrInfo := session.GetPDR(pdrId)
-			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+			//if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
+			if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {
