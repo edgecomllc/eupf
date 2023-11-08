@@ -188,12 +188,12 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 			//	if ipam != nil {
 			//		ip, err := ipam.AllocateIP(seid)
 			//		if err != nil {
-			//			log.Error().Msg("не получилось выделить IP :(")
+			//			log.Error().Msgf("AllocateIP error: %v", err)
 			//			return errors.New(fmt.Sprintf("allocate IP err: %s", causeToString(ie.CauseNoResourcesAvailable)))
 			//		}
 			//		teid, err := ipam.AllocateTEID(seid)
 			//		if err != nil {
-			//			log.Error().Msg("не получилось выделить TEID :(")
+			//			log.Error().Msgf("AllocateTEID error: %v", err)
 			//			return errors.New(fmt.Sprintf("allocate TEID err: %s", causeToString(ie.CauseNoResourcesAvailable)))
 			//		}
 			//		spdrInfo.Teid = fteid.TEID
@@ -215,53 +215,6 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 	}
 	return nil
 }
-
-//func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
-//
-//	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
-//		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
-//	}
-//	if farid, err := pdr.FARID(); err == nil {
-//		spdrInfo.PdrInfo.FarId = session.GetFar(farid).GlobalId
-//	}
-//	if qerid, err := pdr.QERID(); err == nil {
-//		spdrInfo.PdrInfo.QerId = session.GetQer(qerid).GlobalId
-//	}
-//
-//	pdi, err := pdr.PDI()
-//	if err != nil {
-//		return fmt.Errorf("PDI IE is missing")
-//	}
-//
-//	if sdfFilter, err := pdr.SDFFilter(); err == nil {
-//		if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
-//			spdrInfo.PdrInfo.SdfFilter = &sdfFilterParsed
-//			// log.Printf("Sdf Filter Parsed: %+v", sdfFilterParsed)
-//		} else {
-//			return err
-//		}
-//	}
-//
-//	//Bug in go-pfcp:
-//	//if fteid, err := pdr.FTEID(); err == nil {
-//	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
-//		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-//			spdrInfo.Teid = fteid.TEID
-//		}
-//	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
-//		if ueIP.IPv4Address != nil {
-//			spdrInfo.Ipv4 = cloneIP(ueIP.IPv4Address)
-//		} else if ueIP.IPv6Address != nil {
-//			spdrInfo.Ipv6 = cloneIP(ueIP.IPv6Address)
-//		} else {
-//			return fmt.Errorf("UE IP Address IE is missing")
-//		}
-//	} else {
-//		log.Info().Msg("Both F-TEID IE and UE IP Address IE are missing")
-//		return err
-//	}
-//	return nil
-//}
 
 func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	req := msg.(*message.SessionDeletionRequest)
