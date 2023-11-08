@@ -1,7 +1,6 @@
 package core
 
 import (
-	"math/big"
 	"net"
 	"time"
 
@@ -43,6 +42,11 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 		log.Info().Msgf("Got unexpected message %s: %s, from: %s", incomingMsg.MessageTypeName(), incomingMsg, addr)
 	}
 	return nil
+}
+
+func setBit(n uint8, pos uint) uint8 {
+	n |= (1 << pos)
+	return n
 }
 
 // https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/16.04.00_60/ts_129244v160400p.pdf page 95
@@ -87,19 +91,17 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	conn.NodeAssociations[addr] = remoteNode
 	log.Info().Msgf("Saving new association: %+v", remoteNode)
 
-	x := big.NewInt(0)
-	x.SetBit(x, 12, 1)
-	upFunctionFeaturesIE := ie.New(ie.UPFunctionFeatures, x.Bytes())
+	featuresOctets := []uint8{}
+	featuresOctets = append(featuresOctets, setBit(0, 4)) //FTUP
+	//featuresOctets = append(featuresOctets, 0)
+	//featuresOctets = append(featuresOctets, setBit(0, 2)) //UEIP
+	upFunctionFeaturesIE := ie.NewUPFunctionFeatures(featuresOctets...)
 
 	// shall send a PFCP Association Setup Response including:
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
 		newIeNodeID(conn.nodeId),             // its Node ID;
 		upFunctionFeaturesIE,
-		//ie.NewUPFunctionFeatures(), // information of all supported optional features in the UP function; We don't support any optional features at the moment
-		// ... other IEs
-		//	optionally one or more UE IP address Pool Information IE which contains a list of UE IP Address Pool Identities per Network Instance, S-NSSAI and IP version;
-		//	optionally the NF Instance ID of the UPF if available
 	)
 
 	//a := message.

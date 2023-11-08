@@ -41,6 +41,8 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
+	createdPDRs := []SPDRInfo{}
+
 	err = func() error {
 		mapOperations := conn.mapOperations
 		for _, far := range req.CreateFAR {
@@ -86,10 +88,11 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				continue
 			}
 
-			spdrInfo := SPDRInfo{}
+			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
 			if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
-				session.PutPDR(uint32(pdrId), spdrInfo)
+				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
+				createdPDRs = append(createdPDRs, spdrInfo)
 			} else {
 				log.Printf("Error extracting PDR info: %s", err.Error())
 			}
@@ -107,16 +110,25 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	association.Sessions[localSEID] = session
 	conn.NodeAssociations[addr] = association
 
-	AdditionalIEs := []*ie.IE{
+	additionalIEs := []*ie.IE{
 		ie.NewCause(ie.CauseRequestAccepted),
 		newIeNodeID(conn.nodeId),
 		ie.NewFSEID(localSEID, conn.nodeAddrV4, nil),
 	}
 
-	//TODO: add Created PDR IE for each generated TEID/IP
+	//FIXME: process PDR with allocated UE/TEID only
+	for _, pdr := range createdPDRs {
+		if pdr.Ipv4 != nil {
+			additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(0), ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)))
+		} else if pdr.Ipv6 != nil {
+
+		} else {
+			additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(0), ie.NewFTEID(0, pdr.Teid, conn.n3Address, nil, 0)))
+		}
+	}
 
 	// Send SessionEstablishmentResponse
-	estResp := message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, AdditionalIEs...)
+	estResp := message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, additionalIEs...)
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	log.Info().Msgf("Session Establishment Request from %s accepted.", addr)
 	return estResp, nil
@@ -188,10 +200,10 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 			if fteid.HasCh() {
 				if fteid.HasChID() {
 					//try to find teid previously allocated
-					if err, teid := teidCache.GetTEID(fteid.ChooseID); err == nil {
-						spdrInfo.Teid = teid
-						return nil
-					}
+					// if err, teid := teidCache.GetTEID(fteid.ChooseID); err == nil {
+					// 	spdrInfo.Teid = teid
+					// 	return nil
+					// }
 				}
 
 				teid, err := ipam.AllocateTEID(seid)
@@ -200,9 +212,9 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 					return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 				}
 
-				if fteid.HasChID() {
-					teidCache.PutTEID(fteid.ChooseID, teid)
-				}
+				// if fteid.HasChID() {
+				// 	teidCache.PutTEID(fteid.ChooseID, teid)
+				// }
 
 				spdrInfo.Teid = teid
 				return nil
@@ -407,11 +419,11 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				continue
 			}
 
-			spdrInfo := SPDRInfo{}
+			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
 			//if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
 			if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
 				//if err := extractPDR(pdr, session, &spdrInfo); err == nil {
-				session.PutPDR(uint32(pdrId), spdrInfo)
+				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {
 				log.Info().Msgf("Error extracting PDR info: %s", err.Error())
