@@ -119,11 +119,11 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	//FIXME: process PDR with allocated UE/TEID only
 	for _, pdr := range createdPDRs {
 		if pdr.Ipv4 != nil {
-			additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(0), ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)))
+			additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)))
 		} else if pdr.Ipv6 != nil {
 
 		} else {
-			additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(0), ie.NewFTEID(0, pdr.Teid, conn.n3Address, nil, 0)))
+			additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0, pdr.Teid, conn.n3Address, nil, 0)))
 		}
 	}
 
@@ -206,6 +206,7 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 					// }
 				}
 
+				//FIXME: Use SEID + PDRID as a key
 				teid, err := ipam.AllocateTEID(seid)
 				if err != nil {
 					log.Error().Msgf("Allocate TEID error: %v", err)
