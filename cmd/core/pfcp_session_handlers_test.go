@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/rs/zerolog/log"
 	"net"
 	"testing"
@@ -324,6 +325,12 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 
 func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+
+	ipam, err := service.NewIPAM("10.61.0.0/16")
+	if err != nil {
+		log.Info().Msgf("[ERROR] Failed to create IPAM. err: %v", err)
+	}
+	pfcpConn.ipam = ipam
 
 	fteid1 := ie.NewFTEID(0x04, 0, net.ParseIP("127.0.0.1"), nil, 1) // 0x04 - CH true
 	createPDR1 := ie.NewCreatePDR(
