@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"net"
+	"strconv"
 	"sync"
 )
 
@@ -10,8 +11,8 @@ type IPAM struct {
 	freeIPs   []net.IP
 	busyIPs   map[uint64]net.IP
 	freeTEIDs []uint32
-	busyTEIDs map[uint64]uint32
-	sync.Mutex
+	busyTEIDs map[string]uint32
+	sync.RWMutex
 }
 
 func NewIPAM(ipRange string) (*IPAM, error) {
@@ -24,7 +25,7 @@ func NewIPAM(ipRange string) (*IPAM, error) {
 	busyIPs := make(map[uint64]net.IP)
 
 	freeTEIDs := make([]uint32, 0, 255)
-	busyTEIDs := make(map[uint64]uint32)
+	busyTEIDs := make(map[string]uint32)
 
 	var teid uint32
 	ip := ipNet.IP
@@ -59,11 +60,15 @@ func (ipam *IPAM) AllocateIP(key uint64) (net.IP, error) {
 	}
 }
 
-func (ipam *IPAM) AllocateTEID(key uint64) (uint32, error) {
+func (ipam *IPAM) AllocateTEID(seID uint64, pdrID uint16, chooseID uint8) (uint32, error) {
 	ipam.Lock()
 	defer ipam.Unlock()
 
 	if len(ipam.freeTEIDs) > 0 {
+		key := strconv.Itoa(int(seID)) + ":" + strconv.Itoa(int(pdrID))
+		if chooseID != 0 {
+			key += ":" + strconv.Itoa(int(chooseID))
+		}
 		teid := ipam.freeTEIDs[0]
 		ipam.freeTEIDs = ipam.freeTEIDs[1:]
 		ipam.busyTEIDs[key] = teid
@@ -83,13 +88,32 @@ func (ipam *IPAM) ReleaseIP(key uint64) {
 	}
 }
 
-func (ipam *IPAM) ReleaseTEID(key uint64) {
+func (ipam *IPAM) ReleaseTEID(seID uint64, pdrID uint16, chooseID uint8) {
 	ipam.Lock()
 	defer ipam.Unlock()
 
+	key := strconv.Itoa(int(seID)) + ":" + strconv.Itoa(int(pdrID))
+	if chooseID != 0 {
+		key += ":" + strconv.Itoa(int(chooseID))
+	}
 	if teid, ok := ipam.busyTEIDs[key]; ok {
 		ipam.freeTEIDs = append(ipam.freeTEIDs, teid)
 		delete(ipam.busyTEIDs, key)
+	}
+}
+
+func (ipam *IPAM) GetTEID(seID uint64, pdrID uint16, chooseID uint8) (uint32, bool) {
+	ipam.RLock()
+	defer ipam.RUnlock()
+
+	key := strconv.Itoa(int(seID)) + ":" + strconv.Itoa(int(pdrID))
+	if chooseID != 0 {
+		key += ":" + strconv.Itoa(int(chooseID))
+	}
+	if teid, ok := ipam.busyTEIDs[key]; ok {
+		return teid, ok
+	} else {
+		return 0, ok
 	}
 }
 

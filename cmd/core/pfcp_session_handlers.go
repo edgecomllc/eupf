@@ -207,15 +207,15 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 				}
 
 				//FIXME: Use SEID + PDRID as a key
-				teid, err := ipam.AllocateTEID(seid)
+				pdrID, err := pdr.PDRID()
+				if err != nil {
+					log.Info().Msgf("parse PDRID err: %v", err)
+				}
+				teid, err := ipam.AllocateTEID(seid, pdrID, fteid.ChooseID)
 				if err != nil {
 					log.Error().Msgf("Allocate TEID error: %v", err)
 					return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 				}
-
-				// if fteid.HasChID() {
-				// 	teidCache.PutTEID(fteid.ChooseID, teid)
-				// }
 
 				spdrInfo.Teid = teid
 				return nil

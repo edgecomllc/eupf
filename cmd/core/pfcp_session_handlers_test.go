@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/rs/zerolog/log"
 	"net"
 	"testing"
 	"time"
@@ -109,6 +110,7 @@ func SdfFilterStorePreSetup(t *testing.T) (PfcpConnection, string) {
 	if _, ok := pfcpConn.NodeAssociations[smfIP]; !ok {
 		t.Errorf("Association not created")
 	}
+
 	return pfcpConn, smfIP
 }
 
@@ -292,4 +294,97 @@ func TestSdfFilterStoreInvalid(t *testing.T) {
 	if pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[2].PdrInfo.SdfFilter != nil {
 		t.Errorf("Bad SDF shouldn't be stored")
 	}
+}
+
+func TestFTUPInAssociationSetupResponse(t *testing.T) {
+	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+
+	// Creating an Association Setup Request
+	asReq := message.NewAssociationSetupRequest(1,
+		ie.NewNodeID("", "", "test"),
+	)
+
+	// Processing Association Setup Request
+	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling Association Setup Request: %s", err)
+	}
+
+	//Checking if FTUP is enabled in UP Function Features in response
+	asRes, ok := response.(*message.AssociationSetupResponse)
+	if !ok {
+		t.Error("Unexpected response type")
+	}
+
+	ftupEnabled := asRes.UPFunctionFeatures.HasFTUP()
+	if !ftupEnabled {
+		t.Error("FTUP is not enabled in Association Setup Response")
+	}
+}
+
+func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
+	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+
+	fteid1 := ie.NewFTEID(0x04, 0, net.ParseIP("127.0.0.1"), nil, 1) // 0x04 - CH true
+	createPDR1 := ie.NewCreatePDR(
+		ie.NewPDRID(1),
+		ie.NewPDI(
+			ie.NewSourceInterface(ie.SrcInterfaceCore),
+			fteid1,
+		),
+	)
+
+	fteid2 := ie.NewFTEID(0x04, 0, net.ParseIP("127.0.0.2"), nil, 1)
+	createPDR2 := ie.NewCreatePDR(
+		ie.NewPDRID(2),
+		ie.NewPDI(
+			ie.NewSourceInterface(ie.SrcInterfaceCore),
+			fteid2,
+		),
+	)
+
+	// Creating a Session Establishment Request
+	seReq := message.NewSessionEstablishmentRequest(0, 0,
+		2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		createPDR1,
+		createPDR2,
+	)
+
+	// Processing Session Establishment Request
+	response, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling Session Establishment Request: %s", err)
+	}
+
+	// Checking if expected TEIDs are allocated in Session Establishment Response
+	seRes, ok := response.(*message.SessionEstablishmentResponse)
+	if !ok {
+		t.Error("Unexpected response type")
+	}
+
+	// Checking TEID for each PDR
+	log.Info().Msgf("seRes.CreatedPDR len: %d", len(seRes.CreatedPDR))
+	for _, pdr := range seRes.CreatedPDR {
+
+		pdi, err := pdr.PDI()
+		if err != nil {
+			log.Info().Msgf("[ERROR] PDI IE is missing err: %v", err)
+		}
+
+		if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
+			if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+				if fteid.TEID != 1 && fteid.TEID != 2 {
+					t.Errorf("Unexpected TEID for PDR ID 2: got %d, expected %d or %d", fteid.TEID, 1, 2)
+				}
+			} else {
+				t.Errorf("err: %v", err)
+			}
+		} else {
+			t.Errorf("teidPdiId = -1")
+		}
+
+	}
+
 }
