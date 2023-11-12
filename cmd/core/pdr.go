@@ -55,38 +55,44 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 	//if fteid, err := pdr.FTEID(); err == nil {
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-			if fteid.HasCh() {
-				pdrID, err := pdr.PDRID()
-				if err != nil {
-					log.Info().Msgf("parse PDRID err: %v", err)
-				}
+			if ipam != nil {
 
-				if fteid.HasChID() {
-					//try to find teid previously allocated
-					// if err, teid := teidCache.GetTEID(fteid.ChooseID); err == nil {
-					// 	spdrInfo.Teid = teid
-					// 	return nil
-					// }
-					teid, ok := ipam.GetTEID(seid, pdrID, fteid.ChooseID)
-					if !ok {
-						teid, err = ipam.AllocateTEID(seid, pdrID, fteid.ChooseID)
-						if err != nil {
-							log.Info().Msgf("[ERROR] AllocateTEID err: %v", err)
-							return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
-						}
+				if fteid.HasCh() {
+					pdrID, err := pdr.PDRID()
+					if err != nil {
+						log.Info().Msgf("parse PDRID err: %v", err)
 					}
+
+					if fteid.HasChID() {
+						//try to find teid previously allocated
+						// if err, teid := teidCache.GetTEID(fteid.ChooseID); err == nil {
+						// 	spdrInfo.Teid = teid
+						// 	return nil
+						// }
+						teid, ok := ipam.GetTEID(seid, pdrID, fteid.ChooseID)
+						if !ok {
+							teid, err = ipam.AllocateTEID(seid, pdrID, fteid.ChooseID)
+							if err != nil {
+								log.Info().Msgf("[ERROR] AllocateTEID err: %v", err)
+								return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
+							}
+						}
+						spdrInfo.Teid = teid
+						return nil
+					}
+
+					teid, err := ipam.AllocateTEID(seid, pdrID, fteid.ChooseID)
+					if err != nil {
+						log.Error().Msgf("AllocateTEID error: %v", err)
+						return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
+					}
+
 					spdrInfo.Teid = teid
 					return nil
+				} else {
+					spdrInfo.Teid = fteid.TEID
+					return nil
 				}
-
-				teid, err := ipam.AllocateTEID(seid, pdrID, fteid.ChooseID)
-				if err != nil {
-					log.Error().Msgf("AllocateTEID error: %v", err)
-					return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
-				}
-
-				spdrInfo.Teid = teid
-				return nil
 			} else {
 				spdrInfo.Teid = fteid.TEID
 				return nil

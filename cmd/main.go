@@ -76,13 +76,13 @@ func main() {
 
 	var err error
 	var ipam *service.IPAM
-	if config.Conf.IPPool != "" {
-		ipam, err = service.NewIPAM(config.Conf.IPPool)
-		//ipam, err = service.NewIPAM("10.61.0.0/16")
-		if err != nil {
-			log.Info().Msgf("[ERROR] Failed to create IPAM. err: %s", err.Error())
-		}
+	//if config.Conf.IPPool != "" {
+	//ipam, err = service.NewIPAM(config.Conf.IPPool)
+	ipam, err = service.NewIPAM("10.61.0.0/16")
+	if err != nil {
+		log.Info().Msgf("[ERROR] Failed to create IPAM. err: %s", err.Error())
 	}
+	//}
 
 	// Create PFCP connection
 	var pfcpHandlers = core.PfcpHandlerMap{
