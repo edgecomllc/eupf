@@ -110,11 +110,8 @@ func (ipam *IPAM) GetTEID(seID uint64, pdrID uint16, chooseID uint8) (uint32, bo
 	if chooseID != 0 {
 		key += ":" + strconv.Itoa(int(chooseID))
 	}
-	if teid, ok := ipam.busyTEIDs[key]; ok {
-		return teid, ok
-	} else {
-		return 0, ok
-	}
+	teid, ok := ipam.busyTEIDs[key]
+	return teid, ok
 }
 
 func nextIP(ip net.IP) net.IP {
