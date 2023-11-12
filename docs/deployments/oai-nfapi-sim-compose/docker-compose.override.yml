@@ -19,15 +19,19 @@ services:
 
   oai-spgwu:
     command: echo 'stop'
+    networks: !reset
+        traffic_net:
+            ipv4_address: 192.168.72.134
 
   oai-smf:
     environment:
-      - UPF_FQDN_0=edgecom-nat  
-    depends_on:
+      - UPF_FQDN_0=edgecom-upf  
+      - USE_FQDN_DNS=no
+   depends_on:
       - edgecom-upf
 
   oai-gnb:
-    depends_on:
+    depends_on: !reset
       - edgecom-nat
       - oai-amf
 
