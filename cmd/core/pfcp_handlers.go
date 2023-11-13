@@ -92,9 +92,14 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	log.Info().Msgf("Saving new association: %+v", remoteNode)
 
 	featuresOctets := []uint8{}
-	featuresOctets = append(featuresOctets, setBit(0, 4)) //FTUP
+	if conn.ResourceManager.FTUP {
+		featuresOctets = append(featuresOctets, setBit(0, 4)) //FTUP
+	}
+	if conn.ResourceManager.UEIP {
+		//featuresOctets = append(featuresOctets, setBit(0, 2)) //UEIP
+	}
 	//featuresOctets = append(featuresOctets, 0)
-	//featuresOctets = append(featuresOctets, setBit(0, 2)) //UEIP
+
 	upFunctionFeaturesIE := ie.NewUPFunctionFeatures(featuresOctets...)
 
 	// shall send a PFCP Association Setup Response including:

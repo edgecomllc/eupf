@@ -9,6 +9,8 @@ import (
 type ResourceManager struct {
 	IPAM   *IPAM
 	FTEIDM *FTEIDM
+	UEIP   bool
+	FTUP   bool
 }
 
 type FTEIDM struct {
@@ -69,6 +71,8 @@ func NewResourceManager(ueip, ftup bool, ipRange string, teidRange uint32) (*Res
 	return &ResourceManager{
 		IPAM:   &ipam,
 		FTEIDM: &fteidm,
+		UEIP:   ueip,
+		FTUP:   ftup,
 	}, nil
 }
 
