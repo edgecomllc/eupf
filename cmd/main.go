@@ -78,7 +78,7 @@ func main() {
 	//resourceManager, err = service.NewResourceManager(config.Conf.UEIP, config.Conf.FTUP, "10.61.0.0/16")
 	resourceManager, err := service.NewResourceManager(false, true, "10.61.0.0/16")
 	if err != nil {
-		log.Info().Msgf("[ERROR] Failed to create IPAM. err: %s", err.Error())
+		log.Info().Msgf("[ERROR] Failed to create ResourceManager - err: %s", err.Error())
 	}
 
 	// Create PFCP connection
