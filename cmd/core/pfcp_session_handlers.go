@@ -172,8 +172,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	log.Info().Msgf("Deleting session: %d", req.SEID())
 	delete(association.Sessions, req.SEID())
 
-	conn.ResourceManager.IPAM.ReleaseIP(req.SEID())
-	conn.ResourceManager.FTEIDM.ReleaseTEID(req.SEID())
+	conn.ResourceManager.ReleaseResources(req.SEID())
 
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted)), nil

@@ -110,26 +110,23 @@ func (ipam *FTEIDM) AllocateTEID(seID uint64, pdrID uint16) (uint32, error) {
 	}
 }
 
-func (ipam *IPAM) ReleaseIP(key uint64) {
-	ipam.Lock()
-	defer ipam.Unlock()
+func (rm *ResourceManager) ReleaseResources(seID uint64) {
 
-	if ip, ok := ipam.busyIPs[key]; ok {
-		ipam.freeIPs = append(ipam.freeIPs, ip)
-		delete(ipam.busyIPs, key)
+	rm.IPAM.Lock()
+	if ip, ok := rm.IPAM.busyIPs[seID]; ok {
+		rm.IPAM.freeIPs = append(rm.IPAM.freeIPs, ip)
+		delete(rm.IPAM.busyIPs, seID)
 	}
-}
+	rm.IPAM.Unlock()
 
-func (ipam *FTEIDM) ReleaseTEID(seID uint64) {
-	ipam.Lock()
-	defer ipam.Unlock()
-
-	if teid, ok := ipam.busyTEIDs[seID]; ok {
+	rm.FTEIDM.Lock()
+	if teid, ok := rm.FTEIDM.busyTEIDs[seID]; ok {
 		for _, t := range teid {
-			ipam.freeTEIDs = append(ipam.freeTEIDs, t)
+			rm.FTEIDM.freeTEIDs = append(rm.FTEIDM.freeTEIDs, t)
 		}
-		delete(ipam.busyTEIDs, seID)
+		delete(rm.FTEIDM.busyTEIDs, seID)
 	}
+	rm.FTEIDM.Unlock()
 }
 
 func nextIP(ip net.IP) net.IP {
