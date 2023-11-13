@@ -86,8 +86,9 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				continue
 			}
 
+			teidCache := make(map[string]uint32)
 			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
-			if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
+			if err := extractPDR(pdr, session, &spdrInfo, conn.ResourceManager, req.SEID(), teidCache); err == nil {
 				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 				createdPDRs = append(createdPDRs, spdrInfo)
@@ -171,7 +172,8 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	log.Info().Msgf("Deleting session: %d", req.SEID())
 	delete(association.Sessions, req.SEID())
 
-	conn.ipam.ReleaseIP(req.SEID())
+	conn.ResourceManager.IPAM.ReleaseIP(req.SEID())
+	conn.ResourceManager.FTEIDM.ReleaseTEID(req.SEID())
 
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted)), nil
@@ -303,6 +305,8 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 		}
 
+		teidCache := make(map[string]uint32)
+
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
@@ -313,7 +317,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
 			//if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
-			if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
+			if err := extractPDR(pdr, session, &spdrInfo, conn.ResourceManager, req.SEID(), teidCache); err == nil {
 				//if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
@@ -330,7 +334,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 			spdrInfo := session.GetPDR(pdrId)
 			//if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
-			if err := extractPDR(pdr, session, &spdrInfo, conn.ipam, req.SEID()); err == nil {
+			if err := extractPDR(pdr, session, &spdrInfo, conn.ResourceManager, req.SEID(), teidCache); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {

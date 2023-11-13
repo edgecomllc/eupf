@@ -6,6 +6,7 @@ import (
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
+	"strconv"
 )
 
 func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
@@ -25,8 +26,7 @@ func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) 
 	return nil
 }
 
-func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.IPAM, seid uint64) error {
-
+func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, resourceManager *service.ResourceManager, seid uint64, teidCache map[string]uint32) error {
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}
@@ -55,7 +55,7 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 	//if fteid, err := pdr.FTEID(); err == nil {
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-			if ipam != nil {
+			if resourceManager.FTEIDM != nil {
 
 				if fteid.HasCh() {
 					pdrID, err := pdr.PDRID()
@@ -63,25 +63,26 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, ipam *service.
 						log.Info().Msgf("parse PDRID err: %v", err)
 					}
 
+					key := strconv.Itoa(int(seid)) + ":" + strconv.Itoa(int(pdrID))
+
 					if fteid.HasChID() {
-						//try to find teid previously allocated
-						// if err, teid := teidCache.GetTEID(fteid.ChooseID); err == nil {
-						// 	spdrInfo.Teid = teid
-						// 	return nil
-						// }
-						teid, ok := ipam.GetTEID(seid, pdrID, fteid.ChooseID)
-						if !ok {
-							teid, err = ipam.AllocateTEID(seid, pdrID, fteid.ChooseID)
+						var teid uint32
+						key += ":" + strconv.Itoa(int(fteid.ChooseID))
+						if _, ok := teidCache[key]; ok {
+							teid = teidCache[key]
+						} else {
+							teid, err = resourceManager.FTEIDM.AllocateTEID(seid, pdrID)
 							if err != nil {
 								log.Info().Msgf("[ERROR] AllocateTEID err: %v", err)
 								return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 							}
+							teidCache[key] = teid
 						}
 						spdrInfo.Teid = teid
 						return nil
 					}
 
-					teid, err := ipam.AllocateTEID(seid, pdrID, fteid.ChooseID)
+					teid, err := resourceManager.FTEIDM.AllocateTEID(seid, pdrID)
 					if err != nil {
 						log.Error().Msgf("AllocateTEID error: %v", err)
 						return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))

@@ -43,6 +43,8 @@ qer_map_size: 1024
 far_map_size: 1024
 pdr_map_size: 1024
 ip_pool: 10.61.0.0/16
+ueip: true
+ftip: true
 ```
 
 ### Environment variables
