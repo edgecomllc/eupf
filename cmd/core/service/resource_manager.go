@@ -93,7 +93,13 @@ func (ipam *FTEIDM) AllocateTEID(seID uint64, pdrID uint16) (uint32, error) {
 	if len(ipam.freeTEIDs) > 0 {
 		teid := ipam.freeTEIDs[0]
 		ipam.freeTEIDs = ipam.freeTEIDs[1:]
-		ipam.busyTEIDs[seID][pdrID] = teid
+		if _, ok := ipam.busyTEIDs[seID]; !ok {
+			pdr := make(map[uint16]uint32)
+			pdr[pdrID] = teid
+			ipam.busyTEIDs[seID] = pdr
+		} else {
+			ipam.busyTEIDs[seID][pdrID] = teid
+		}
 		return teid, nil
 	} else {
 		return 0, errors.New("no free TEID available")

@@ -7,58 +7,64 @@ import (
 )
 
 func TestAllocateIP(t *testing.T) {
-	ipam, err := NewIPAM("10.61.0.0/16")
+	resourceManager, err := NewResourceManager(true, true, "10.61.0.0/16")
 	if err != nil {
 		log.Err(err)
 	}
 
 	//IP TESTS
-	result1, err := ipam.AllocateIP(12)
+	result1, err := resourceManager.IPAM.AllocateIP(12)
 	expected1 := net.ParseIP("10.61.0.0")
 	if result1.String() != expected1.String() {
 		t.Errorf("Expected: %v, but got: %v", expected1, result1)
 	}
 
-	result2, err := ipam.AllocateIP(16)
+	result2, err := resourceManager.IPAM.AllocateIP(16)
 	expected2 := net.ParseIP("10.61.0.1")
 	if result2.String() != expected2.String() {
 		t.Errorf("Expected: %v, but got: %v", expected2, result2)
 	}
 
-	ipam.ReleaseIP(12)
+	resourceManager.IPAM.ReleaseIP(12)
 	expecctedLen1 := 65535
-	if expecctedLen1 != len(ipam.freeIPs) {
-		t.Errorf("Expected: %d, but got: %d", expecctedLen1, len(ipam.freeIPs))
+	if expecctedLen1 != len(resourceManager.IPAM.freeIPs) {
+		t.Errorf("Expected: %d, but got: %d", expecctedLen1, len(resourceManager.IPAM.freeIPs))
 	}
 
-	ipam.ReleaseIP(16)
+	resourceManager.IPAM.ReleaseIP(16)
 	expecctedLen2 := 65536
-	if expecctedLen2 != len(ipam.freeIPs) {
-		t.Errorf("Expected: %d, but got: %d", expecctedLen2, len(ipam.freeIPs))
+	if expecctedLen2 != len(resourceManager.IPAM.freeIPs) {
+		t.Errorf("Expected: %d, but got: %d", expecctedLen2, len(resourceManager.IPAM.freeIPs))
 	}
 
 	//TEID TEST
-	resultTEID1, err := ipam.AllocateTEID(12)
+	resultTEID1, err := resourceManager.FTEIDM.AllocateTEID(12, 1)
 	expectedTEID1 := 1
 	if result1.String() != expected1.String() {
 		t.Errorf("Expected: %v, but got: %v", expectedTEID1, resultTEID1)
 	}
 
-	resultTEID2, err := ipam.AllocateTEID(16)
+	resultTEID2, err := resourceManager.FTEIDM.AllocateTEID(12, 2)
 	expectedTEID2 := 2
 	if result2.String() != expected2.String() {
 		t.Errorf("Expected: %v, but got: %v", expectedTEID2, resultTEID2)
 	}
 
-	ipam.ReleaseTEID(12)
-	expecctedTEIDLen1 := 65535
-	if expecctedTEIDLen1 != len(ipam.freeTEIDs) {
-		t.Errorf("Expected: %d, but got: %d", expecctedTEIDLen1, len(ipam.freeTEIDs))
+	resultTEID3, err := resourceManager.FTEIDM.AllocateTEID(16, 2)
+	expectedTEID3 := 2
+	if result2.String() != expected2.String() {
+		t.Errorf("Expected: %v, but got: %v", expectedTEID3, resultTEID3)
 	}
 
-	ipam.ReleaseTEID(16)
+	resourceManager.FTEIDM.ReleaseTEID(12)
+	expecctedTEIDLen1 := 65535
+	if expecctedTEIDLen1 != len(resourceManager.FTEIDM.freeTEIDs) {
+		t.Errorf("Expected: %d, but got: %d", expecctedTEIDLen1, len(resourceManager.FTEIDM.freeTEIDs))
+	}
+
+	resourceManager.FTEIDM.ReleaseTEID(16)
 	expecctedTEIDLen2 := 65536
-	if expecctedTEIDLen2 != len(ipam.freeTEIDs) {
-		t.Errorf("Expected: %d, but got: %d", expecctedTEIDLen2, len(ipam.freeTEIDs))
+	if expecctedTEIDLen2 != len(resourceManager.FTEIDM.freeTEIDs) {
+		t.Errorf("Expected: %d, but got: %d", expecctedTEIDLen2, len(resourceManager.FTEIDM.freeTEIDs))
 	}
 }
