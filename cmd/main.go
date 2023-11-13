@@ -75,8 +75,8 @@ func main() {
 	}
 
 	var err error
-	//resourceManager, err = service.NewResourceManager(config.Conf.UEIP, config.Conf.FTUP, "10.61.0.0/16")
-	resourceManager, err := service.NewResourceManager(false, true, "10.61.0.0/16")
+	//resourceManager, err = service.NewResourceManager(config.Conf.UEIP, config.Conf.FTUP, config.Conf.IPPool, config.Conf.FTEIDPool)
+	resourceManager, err := service.NewResourceManager(false, true, "10.61.0.0/16", 65536)
 	if err != nil {
 		log.Info().Msgf("[ERROR] Failed to create ResourceManager - err: %s", err.Error())
 	}
