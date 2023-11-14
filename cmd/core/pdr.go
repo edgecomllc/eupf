@@ -57,25 +57,22 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, resourceManage
 			var teid = fteid.TEID
 			if resourceManager.FTEIDM != nil {
 				if fteid.HasCh() {
+					var allocate = true
 					if fteid.HasChID() {
 						if teidFromCache, ok := teidCache[fteid.ChooseID]; ok {
+							allocate = false
 							teid = teidFromCache
-						} else {
-							allocatedTeid, err := resourceManager.FTEIDM.AllocateTEID(session.RemoteSEID, spdrInfo.PdrID)
-							if err != nil {
-								log.Info().Msgf("[ERROR] AllocateTEID err: %v", err)
-								return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
-							}
-							teid = allocatedTeid
-							teidCache[fteid.ChooseID] = teid
+							spdrInfo.Allocated = true
 						}
-					} else {
+					}
+					if allocate {
 						allocatedTeid, err := resourceManager.FTEIDM.AllocateTEID(session.RemoteSEID, spdrInfo.PdrID)
 						if err != nil {
-							log.Error().Msgf("AllocateTEID error: %v", err)
+							log.Info().Msgf("[ERROR] AllocateTEID err: %v", err)
 							return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 						}
 						teid = allocatedTeid
+						spdrInfo.Allocated = true
 					}
 				}
 			}

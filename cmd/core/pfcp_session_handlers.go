@@ -76,8 +76,6 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 		}
 
-		// TODO: create local_teid_map
-
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
@@ -115,14 +113,15 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		ie.NewFSEID(localSEID, conn.nodeAddrV4, nil),
 	}
 
-	//FIXME: process PDR with allocated UE/TEID only
 	for _, pdr := range createdPDRs {
-		if pdr.Ipv4 != nil {
-			additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)))
-		} else if pdr.Ipv6 != nil {
+		if pdr.Allocated {
+			if pdr.Ipv4 != nil {
+				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)))
+			} else if pdr.Ipv6 != nil {
 
-		} else {
-			additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0, pdr.Teid, conn.n3Address, nil, 0)))
+			} else {
+				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0, pdr.Teid, conn.n3Address, nil, 0)))
+			}
 		}
 	}
 
@@ -213,6 +212,8 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	printSessionModificationRequest(req)
 
 	// #TODO: Implement rollback on error
+	createdPDRs := []SPDRInfo{}
+
 	err := func() error {
 		mapOperations := conn.mapOperations
 
@@ -320,6 +321,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				//if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
+				createdPDRs = append(createdPDRs, spdrInfo)
 			} else {
 				log.Info().Msgf("Error extracting PDR info: %s", err.Error())
 			}
@@ -363,14 +365,25 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 	association.Sessions[req.SEID()] = session
 
-	// Send SessionEstablishmentResponse
-	modResp := message.NewSessionModificationResponse(
-		0, 0,
-		session.RemoteSEID,
-		req.Sequence(),
-		0,
+	additionalIEs := []*ie.IE{
 		ie.NewCause(ie.CauseRequestAccepted),
-	)
+		newIeNodeID(conn.nodeId),
+	}
+
+	for _, pdr := range createdPDRs {
+		if pdr.Allocated {
+			if pdr.Ipv4 != nil {
+				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)))
+			} else if pdr.Ipv6 != nil {
+
+			} else {
+				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0, pdr.Teid, conn.n3Address, nil, 0)))
+			}
+		}
+	}
+
+	// Send SessionEstablishmentResponse
+	modResp := message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, additionalIEs...)
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return modResp, nil
 }

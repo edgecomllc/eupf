@@ -113,8 +113,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		newIeNodeID(conn.nodeId),             // its Node ID;
 		upFunctionFeaturesIE,
 	)
-
-	//a := message.
+	
 	// Send AssociationSetupResponse
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return asres, nil
