@@ -73,6 +73,9 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, resourceManage
 						}
 						teid = allocatedTeid
 						spdrInfo.Allocated = true
+						if fteid.HasChID() {
+							teidCache[fteid.ChooseID] = teid
+						}
 					}
 				}
 			}
