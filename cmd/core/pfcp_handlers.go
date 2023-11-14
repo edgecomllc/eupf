@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/edgecomllc/eupf/cmd/config"
 	"net"
 	"time"
 
@@ -92,12 +93,12 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	log.Info().Msgf("Saving new association: %+v", remoteNode)
 
 	featuresOctets := []uint8{}
-	if conn.ResourceManager.FTUP {
+	if config.Conf.FTUP {
 		featuresOctets = append(featuresOctets, setBit(0, 4)) //FTUP
 	} else {
 		featuresOctets = append(featuresOctets, 0)
 	}
-	if conn.ResourceManager.UEIP {
+	if config.Conf.UEIP {
 		featuresOctets = append(featuresOctets, setBit(0, 2)) //UEIP
 	} else {
 		featuresOctets = append(featuresOctets, 0)
