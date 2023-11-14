@@ -1,0 +1,247 @@
+# Copyright 2020-present Open Networking Foundation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+images:
+  repository: "" #default docker hub
+  tags:
+    init: omecproject/pod-init:1.0.0
+    gnbsim: omecproject/5gc-gnbsim:main-1caccfc
+  pullPolicy: IfNotPresent
+
+nodeSelectors:
+  enabled: false
+  gnbsim:
+    label: omec-cp
+    value: enabled
+
+resources:
+  enabled: true
+  gnbsim:
+    requests:
+      cpu: 2
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 1Gi
+
+config:
+  useExistingConfigMap: false
+  clusterDomain: cluster.local
+  coreDump:
+    enabled: false
+    path: /tmp/coredump
+  gnbsim:
+    deploy: true
+    waitForAmf: true
+    serviceType: ClusterIP
+    # serviceAnnotations:
+    #   external-dns.alpha.kubernetes.io/hostname: "gnbsim.tenant-site.company.com"
+    networkTopo:
+      - upfAddr: "192.168.252.3/32"
+        upfGw: "192.168.251.1"
+    sriov:
+      enabled: false
+      resourceName: "intel.com/intel_sriov_vfio"
+    ipam: static
+    cniPlugin: macvlan # supported CNIs: sriov, macvlan, host-device
+    iface: data # master in macvlan or device in host-device
+    gnb:
+      ips:
+      - '"192.168.251.5/24"' #user plane IP at gnb if 2 separate interface provided
+      - '"192.168.251.6/32"' #user plane IP at gnb if 2 separate interface provided
+    httpServer:
+      enable: false
+      ipAddr: "POD_IP"
+      port: 6000
+      nodePort:
+        enabled: false
+        port: 30091
+    goProfile:
+      enable: true
+      port: 5000
+    ngapp:
+      port: 38412
+      nodePort:
+        enabled: false
+        port: 30071
+    yamlCfgFiles:
+      gnb.conf:
+        info:
+          version: 1.0.0
+          description: gNodeB sim initial configuration
+        logger:
+          logLevel: info # how detailed the log will be, values: trace, debug, info, warn, error, fatal, panic
+        configuration:
+          runConfigProfilesAtStart: true
+          singleInterface: #this will be added thorugh configmap script
+          execInParallel: false #run all profiles in parallel
+          gnbs: # pool of gNodeBs
+            gnb1:
+              n2IpAddr: # gNB N2 interface IP address used to connect to AMF
+              n2Port: 9487 # gNB N2 Port used to connect to AMF
+              n3IpAddr: 192.168.251.5 # gNB N3 interface IP address used to connect to UPF
+              n3Port: 2152 # gNB N3 Port used to connect to UPF
+              name: gnb1 # gNB name that uniquely identify a gNB within application
+              globalRanId:
+                plmnId:
+                  mcc: 208 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 93 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                gNbId:
+                  bitLength: 24
+                  gNBValue: "000102" # gNB identifier (3 bytes hex string, range: 000000~FFFFFF)
+              supportedTaList:
+              - tac: "000001" # Tracking Area Code (3 bytes hex string, range: 000000~FFFFFF)
+                broadcastPlmnList:
+                  - plmnId:
+                      mcc: 208
+                      mnc: 93
+                    taiSliceSupportList:
+                        - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                          sd: "010203" # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+              defaultAmf:
+                hostName: amf # Host name of AMF
+                ipAddr: # AMF IP address
+                port: 38412 # AMF port
+            gnb2:
+              n2IpAddr: # gNB N2 interface IP address used to connect to AMF 
+              n2Port: 9488 # gNB N2 Port used to connect to AMF
+              n3IpAddr: 192.168.251.6 # gNB N3 interface IP address used to connect to UPF
+              n3Port: 2152 # gNB N3 Port used to connect to UPF
+              name: gnb2 # gNB name that uniquely identify a gNB within application
+              globalRanId:
+                plmnId:
+                  mcc: 208 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 93 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                gNbId: 
+                  bitLength: 24
+                  gNBValue: "000112" # gNB identifier (3 bytes hex string, range: 000000~FFFFFF)
+              supportedTaList:
+              - tac: "000001" # Tracking Area Code (3 bytes hex string, range: 000000~FFFFFF)
+                broadcastPlmnList:
+                  - plmnId:
+                      mcc: 208
+                      mnc: 93
+                    taiSliceSupportList:
+                        - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                          sd: "010203" # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+              defaultAmf:
+                hostName: amf # Host name of AMF
+                ipAddr: # AMF IP address
+                port: 38412 # AMF port
+          profiles: # profile information
+            - profileType: register # profile type
+              profileName: profile1 # uniqely identifies a profile within application
+              enable: false # Set true to execute the profile, false otherwise.
+              gnbName: gnb1 # gNB to be used for this profile
+              execInParallel: false #run all subscribers in this profile parallel
+              stepTrigger: false #wait for trigger to move to next step
+              startImsi: 208930100007487 #First IMSI. Subsequent values will be used if ueCount is mo    re than 1
+              ueCount: 5 # Number of UEs for for which the profile will be executed
+              defaultAs: "192.168.250.1" #default icmp pkt destination
+              opc: "981d464c7c52eb6e5036234984ad0bcf"
+              key: "5122250214c33e723a5dd523fc145fc0"
+              plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                mcc: 208 # Mobile Country Code (3 digits string, digit: 0~9)
+                mnc: 93 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+            - profileType: pdusessest
+              profileName: profile2
+              enable: true
+              gnbName: gnb1
+              execInParallel: false #run all subscribers in this profile parallel
+              stepTrigger: false #wait for trigger to move to next step
+              startImsi: 208930100007492
+              ueCount: 5
+              opc: "981d464c7c52eb6e5036234984ad0bcf"
+              key: "5122250214c33e723a5dd523fc145fc0"
+              plmnId:
+                mcc: 208
+                mnc: 93
+              dataPktCount: 5 # Number of UL user data packets to be transmitted. Common for all UEs
+              defaultAs: "192.168.250.1" #default icmp pkt destination
+            - profileType: anrelease
+              profileName: profile3
+              enable: false
+              gnbName: gnb1
+              execInParallel: false #run all subscribers in this profile parallel
+              stepTrigger: false #wait for trigger to move to next step
+              startImsi: 208930100007497
+              ueCount: 5
+              opc: "981d464c7c52eb6e5036234984ad0bcf"
+              key: "5122250214c33e723a5dd523fc145fc0"
+              plmnId:
+                mcc: 208
+                mnc: 93
+              defaultAs: "192.168.250.1" #default icmp pkt destination
+            - profileType: uetriggservicereq
+              profileName: profile4
+              enable: false
+              gnbName: gnb1
+              execInParallel: false #run all subscribers in this profile parallel
+              stepTrigger: false #wait for trigger to move to next step
+              startImsi: 208930100007497
+              ueCount: 5
+              opc: "981d464c7c52eb6e5036234984ad0bcf"
+              key: "5122250214c33e723a5dd523fc145fc0"
+              plmnId:
+                mcc: 208
+                mnc: 93
+              defaultAs: "192.168.250.1" #default icmp pkt destination
+            - profileType: deregister
+              profileName: profile5
+              enable: false
+              gnbName: gnb1
+              execInParallel: false #run all subscribers in this profile parallel
+              stepTrigger: false #wait for trigger to move to next step
+              startImsi: 208930100007497
+              ueCount: 5
+              opc: "981d464c7c52eb6e5036234984ad0bcf"
+              key: "5122250214c33e723a5dd523fc145fc0"
+              plmnId:
+                mcc: 208
+                mnc: 93
+              defaultAs: "192.168.250.1" #default icmp pkt destination
+            - profileType: nwtriggeruedereg # profile type
+              profileName: profile6 # uniqely identifies a profile within application
+              enable: false # Set true to execute the profile, false otherwise.
+              gnbName: gnb1 # gNB to be used for this profile
+              execInParallel: false #run all subscribers in this profile parallel
+              stepTrigger: false #wait for trigger to move to next step
+              startImsi: 208930100007497 # First IMSI. Subsequent values will be used if ueCount is more than 1
+              ueCount: 5 # Number of UEs for for which the profile will be executed
+              defaultAs: "192.168.250.1" #default icmp pkt destination
+              perUserTimeout: 100 #if no expected event received in this time then treat it as failure
+              opc: "981d464c7c52eb6e5036234984ad0bcf"
+              key: "5122250214c33e723a5dd523fc145fc0"
+              plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>. Should match startImsi
+                mcc: 208 # Mobile Country Code (3 digits string, digit: 0~9)
+                mnc: 93 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+            - profileType: uereqpdusessrelease # profile type
+              profileName: profile7 # uniqely identifies a profile within application
+              enable: false # Set true to execute the profile, false otherwise.
+              gnbName: gnb1 # gNB to be used for this profile
+              execInParallel: false #run all subscribers in this profile parallel
+              stepTrigger: false #wait for trigger to move to next step
+              startImsi: 208930100007497 # First IMSI. Subsequent values will be used if ueCount is more than 1
+              ueCount: 5 # Number of UEs for for which the profile will be executed
+              opc: "981d464c7c52eb6e5036234984ad0bcf"
+              key: "5122250214c33e723a5dd523fc145fc0"
+              plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>. Should match startImsi
+                mcc: 208 # Mobile Country Code (3 digits string, digit: 0~9)
+                mnc: 93 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+              defaultAs: "192.168.250.1" #default icmp pkt destination
+            - profileType: pdusessest
+              profileName: profile8
+              enable: true
+              gnbName: gnb2
+              execInParallel: false #run all subscribers in this profile parallel
+              stepTrigger: false #wait for trigger to move to next step
+              startImsi: 208930100007501
+              ueCount: 5
+              opc: "981d464c7c52eb6e5036234984ad0bcf"
+              key: "5122250214c33e723a5dd523fc145fc0"
+              plmnId:
+                mcc: 208
+                mnc: 93
+              dataPktCount: 5 # Number of UL user data packets to be transmitted. Common for all UEs
+              defaultAs: "192.168.250.1" #default icmp pkt destination
