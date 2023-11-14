@@ -94,9 +94,13 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	featuresOctets := []uint8{}
 	if conn.ResourceManager.FTUP {
 		featuresOctets = append(featuresOctets, setBit(0, 4)) //FTUP
+	} else {
+		featuresOctets = append(featuresOctets, 0)
 	}
 	if conn.ResourceManager.UEIP {
-		//featuresOctets = append(featuresOctets, setBit(0, 2)) //UEIP
+		featuresOctets = append(featuresOctets, setBit(0, 2)) //UEIP
+	} else {
+		featuresOctets = append(featuresOctets, 0)
 	}
 	//featuresOctets = append(featuresOctets, 0)
 

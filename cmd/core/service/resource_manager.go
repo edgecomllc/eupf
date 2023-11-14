@@ -15,7 +15,7 @@ type ResourceManager struct {
 
 type FTEIDM struct {
 	freeTEIDs []uint32
-	busyTEIDs map[uint64]map[uint16]uint32 // map[seID]map[pdrID]teid
+	busyTEIDs map[uint64]map[uint32]uint32 // map[seID]map[pdrID]teid
 	sync.RWMutex
 }
 
@@ -54,7 +54,7 @@ func NewResourceManager(ueip, ftup bool, ipRange string, teidRange uint32) (*Res
 
 	if ftup {
 		freeTEIDs := make([]uint32, 0, 10000)
-		busyTEIDs := make(map[uint64]map[uint16]uint32)
+		busyTEIDs := make(map[uint64]map[uint32]uint32)
 
 		var teid uint32
 
@@ -90,7 +90,7 @@ func (ipam *IPAM) AllocateIP(key uint64) (net.IP, error) {
 	}
 }
 
-func (ipam *FTEIDM) AllocateTEID(seID uint64, pdrID uint16) (uint32, error) {
+func (ipam *FTEIDM) AllocateTEID(seID uint64, pdrID uint32) (uint32, error) {
 	ipam.Lock()
 	defer ipam.Unlock()
 
@@ -98,7 +98,7 @@ func (ipam *FTEIDM) AllocateTEID(seID uint64, pdrID uint16) (uint32, error) {
 		teid := ipam.freeTEIDs[0]
 		ipam.freeTEIDs = ipam.freeTEIDs[1:]
 		if _, ok := ipam.busyTEIDs[seID]; !ok {
-			pdr := make(map[uint16]uint32)
+			pdr := make(map[uint32]uint32)
 			pdr[pdrID] = teid
 			ipam.busyTEIDs[seID] = pdr
 		} else {
@@ -110,23 +110,30 @@ func (ipam *FTEIDM) AllocateTEID(seID uint64, pdrID uint16) (uint32, error) {
 	}
 }
 
-func (rm *ResourceManager) ReleaseResources(seID uint64) {
-
-	rm.IPAM.Lock()
-	if ip, ok := rm.IPAM.busyIPs[seID]; ok {
-		rm.IPAM.freeIPs = append(rm.IPAM.freeIPs, ip)
-		delete(rm.IPAM.busyIPs, seID)
+func (ipam *IPAM) ReleaseIP(seID uint64) {
+	ipam.Lock()
+	defer ipam.Unlock()
+	if ip, ok := ipam.busyIPs[seID]; ok {
+		ipam.freeIPs = append(ipam.freeIPs, ip)
+		delete(ipam.busyIPs, seID)
 	}
-	rm.IPAM.Unlock()
+}
 
-	rm.FTEIDM.Lock()
-	if teid, ok := rm.FTEIDM.busyTEIDs[seID]; ok {
+func (fteidm *FTEIDM) ReleaseTEID(seID uint64) {
+	fteidm.Lock()
+	defer fteidm.Unlock()
+
+	if teid, ok := fteidm.busyTEIDs[seID]; ok {
 		for _, t := range teid {
-			rm.FTEIDM.freeTEIDs = append(rm.FTEIDM.freeTEIDs, t)
+			fteidm.freeTEIDs = append(fteidm.freeTEIDs, t)
 		}
-		delete(rm.FTEIDM.busyTEIDs, seID)
+		delete(fteidm.busyTEIDs, seID)
 	}
-	rm.FTEIDM.Unlock()
+}
+
+func (rm *ResourceManager) ReleaseResources(seID uint64) {
+	rm.IPAM.ReleaseIP(seID)
+	rm.FTEIDM.ReleaseTEID(seID)
 }
 
 func nextIP(ip net.IP) net.IP {

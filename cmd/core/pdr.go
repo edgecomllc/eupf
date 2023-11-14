@@ -6,7 +6,6 @@ import (
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
-	"strconv"
 )
 
 func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
@@ -26,7 +25,7 @@ func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) 
 	return nil
 }
 
-func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, resourceManager *service.ResourceManager, seid uint64, teidCache map[string]uint32) error {
+func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, resourceManager *service.ResourceManager, teidCache map[uint8]uint32) error {
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}
@@ -55,49 +54,33 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, resourceManage
 	//if fteid, err := pdr.FTEID(); err == nil {
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
+			var teid = fteid.TEID
 			if resourceManager.FTEIDM != nil {
-
 				if fteid.HasCh() {
-					pdrID, err := pdr.PDRID()
-					if err != nil {
-						log.Info().Msgf("parse PDRID err: %v", err)
-					}
-
-					key := strconv.Itoa(int(seid)) + ":" + strconv.Itoa(int(pdrID))
-
 					if fteid.HasChID() {
-						var teid uint32
-						key += ":" + strconv.Itoa(int(fteid.ChooseID))
-						if _, ok := teidCache[key]; ok {
-							teid = teidCache[key]
+						if teidFromCache, ok := teidCache[fteid.ChooseID]; ok {
+							teid = teidFromCache
 						} else {
-							teid, err = resourceManager.FTEIDM.AllocateTEID(seid, pdrID)
+							allocatedTeid, err := resourceManager.FTEIDM.AllocateTEID(session.RemoteSEID, spdrInfo.PdrID)
 							if err != nil {
 								log.Info().Msgf("[ERROR] AllocateTEID err: %v", err)
 								return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 							}
-							teidCache[key] = teid
+							teid = allocatedTeid
+							teidCache[fteid.ChooseID] = teid
 						}
-						spdrInfo.Teid = teid
-						return nil
+					} else {
+						allocatedTeid, err := resourceManager.FTEIDM.AllocateTEID(session.RemoteSEID, spdrInfo.PdrID)
+						if err != nil {
+							log.Error().Msgf("AllocateTEID error: %v", err)
+							return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
+						}
+						teid = allocatedTeid
 					}
-
-					teid, err := resourceManager.FTEIDM.AllocateTEID(seid, pdrID)
-					if err != nil {
-						log.Error().Msgf("AllocateTEID error: %v", err)
-						return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
-					}
-
-					spdrInfo.Teid = teid
-					return nil
-				} else {
-					spdrInfo.Teid = fteid.TEID
-					return nil
 				}
-			} else {
-				spdrInfo.Teid = fteid.TEID
-				return nil
 			}
+			spdrInfo.Teid = teid
+			return nil
 		}
 		return fmt.Errorf("F-TEID IE is missing")
 	} else if ueIP, err := pdr.UEIPAddress(); err == nil {

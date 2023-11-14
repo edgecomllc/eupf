@@ -42,8 +42,8 @@ n3_address: 127.0.0.1
 qer_map_size: 1024
 far_map_size: 1024
 pdr_map_size: 1024
-ueip: true
-ftip: true
+feature_ueip: true
+feature_ftup: true
 ip_pool: 10.61.0.0/16
 teid_pool: 65536
 ```
