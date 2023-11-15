@@ -28,8 +28,8 @@ type UpfConfig struct {
 	LoggingLevel      string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
 	IPPool            string   `mapstructure:"ip_pool" json:"ip_pool"`
 	FTEIDPool         uint32   `mapstructure:"teid_pool" json:"teid_pool"`
-	UEIP              bool     `mapstructure:"ueip" json:"uei"`
-	FTUP              bool     `mapstructure:"ftup" json:"ftup"`
+	FeatureUEIP       bool     `mapstructure:"feature_ueip" json:"feature_ueip"`
+	FeatureFTUP       bool     `mapstructure:"feature_ftup" json:"feature_ftup"`
 }
 
 func init() {
