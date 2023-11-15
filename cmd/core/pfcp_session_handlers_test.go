@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/rs/zerolog/log"
 	"net"
@@ -305,6 +306,12 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 		ie.NewNodeID("", "", "test"),
 	)
 
+	config.Conf = config.UpfConfig{
+		IPPool:      "10.61.0.0/16",
+		FTEIDPool:   65536,
+		FeatureUEIP: true,
+		FeatureFTUP: true,
+	}
 	// Processing Association Setup Request
 	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
 	if err != nil {
@@ -350,6 +357,15 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 		),
 	)
 
+	fteid3 := ie.NewFTEID(0, 0, net.ParseIP("127.0.0.2"), nil, 1)
+	createPDR3 := ie.NewCreatePDR(
+		ie.NewPDRID(2),
+		ie.NewPDI(
+			ie.NewSourceInterface(ie.SrcInterfaceCore),
+			fteid3,
+		),
+	)
+
 	// Creating a Session Establishment Request
 	seReq := message.NewSessionEstablishmentRequest(0, 0,
 		2, 1, 0,
@@ -357,6 +373,7 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
 		createPDR1,
 		createPDR2,
+		createPDR3,
 	)
 
 	// Processing Session Establishment Request

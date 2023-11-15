@@ -50,6 +50,10 @@ func init() {
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
 	pflag.String("loglvl", "", "Logging level")
+	pflag.Bool("feature_ueip", false, "Enable or disable feature_ueip")
+	pflag.Bool("feature_ftup", true, "Enable or disable feature_ftup")
+	pflag.String("ip_pool", "10.61.0.0/16", "IP Pool")
+	pflag.Uint32("teid_pool", 65536, "TEID Pool")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -68,6 +72,10 @@ func init() {
 	_ = v.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
 	_ = v.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
 	_ = v.BindPFlag("logging_level", pflag.Lookup("loglvl"))
+	_ = v.BindPFlag("feature_ueip", pflag.Lookup("feature_ueip"))
+	_ = v.BindPFlag("feature_ftup", pflag.Lookup("feature_ftup"))
+	_ = v.BindPFlag("ip_pool", pflag.Lookup("ip_pool"))
+	_ = v.BindPFlag("teid_pool", pflag.Lookup("teid_pool"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -84,6 +92,10 @@ func init() {
 	v.SetDefault("heartbeat_interval", 5)
 	v.SetDefault("heartbeat_timeout", 5)
 	v.SetDefault("logging_level", "info")
+	v.SetDefault("feature_ueip", false)
+	v.SetDefault("feature_ftup", false)
+	v.SetDefault("ip_pool", "")
+	v.SetDefault("teid_pool", 0)
 
 	v.SetConfigFile(*configPath)
 

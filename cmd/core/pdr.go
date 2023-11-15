@@ -6,9 +6,10 @@ import (
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
+	"net"
 )
 
-func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
+func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager, seID uint64) error {
 	if spdrInfo.Ipv4 != nil {
 		if err := mapOperations.DeletePdrDownLink(spdrInfo.Ipv4); err != nil {
 			return fmt.Errorf("Can't delete IPv4 PDR: %s", err.Error())
@@ -22,18 +23,24 @@ func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) 
 			return fmt.Errorf("Can't delete GTP PDR: %s", err.Error())
 		}
 	}
+	if spdrInfo.Teid != 0 {
+		if resourceManager.FTEIDM != nil {
+			resourceManager.FTEIDM.AllocateTEID(seID, spdrInfo.PdrID)
+		}
+	}
 	return nil
 }
 
-func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, resourceManager *service.ResourceManager, teidCache map[uint8]uint32) error {
+// func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, resourceManager *service.ResourceManager, teidCache map[uint8]uint32) error {
+func extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo, pdrContext *PDRCreationContext) error {
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}
 	if farid, err := pdr.FARID(); err == nil {
-		spdrInfo.PdrInfo.FarId = session.GetFar(farid).GlobalId
+		spdrInfo.PdrInfo.FarId = pdrContext.getFARID(farid)
 	}
 	if qerid, err := pdr.QERID(); err == nil {
-		spdrInfo.PdrInfo.QerId = session.GetQer(qerid).GlobalId
+		spdrInfo.PdrInfo.QerId = pdrContext.getQERID(qerid)
 	}
 
 	pdi, err := pdr.PDI()
@@ -55,26 +62,29 @@ func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, resourceManage
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 			var teid = fteid.TEID
-			if resourceManager.FTEIDM != nil {
+			if pdrContext.ResourceManager.FTEIDM != nil {
 				if fteid.HasCh() {
 					var allocate = true
 					if fteid.HasChID() {
-						if teidFromCache, ok := teidCache[fteid.ChooseID]; ok {
+						if teidFromCache, ok := pdrContext.TEIDCache[fteid.ChooseID]; ok {
 							allocate = false
 							teid = teidFromCache
 							spdrInfo.Allocated = true
+							log.Info().Msgf("TEID ALLOCATED | teid: %d, pdrID: %d, sessionID: %d, CHID: %d", teid, spdrInfo.PdrID, pdrContext.Session.RemoteSEID, fteid.ChooseID)
 						}
 					}
 					if allocate {
-						allocatedTeid, err := resourceManager.FTEIDM.AllocateTEID(session.RemoteSEID, spdrInfo.PdrID)
+						//allocatedTeid, err := resourceManager.FTEIDM.AllocateTEID(session.RemoteSEID, spdrInfo.PdrID)
+						allocatedTeid, err := pdrContext.getFTEID(pdrContext.Session.RemoteSEID, spdrInfo.PdrID)
 						if err != nil {
 							log.Info().Msgf("[ERROR] AllocateTEID err: %v", err)
 							return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 						}
 						teid = allocatedTeid
 						spdrInfo.Allocated = true
+						log.Info().Msgf("TEID ALLOCATED | teid: %d, pdrID: %d, sessionID: %d, CHID: %d", teid, spdrInfo.PdrID, pdrContext.Session.RemoteSEID, fteid.ChooseID)
 						if fteid.HasChID() {
-							teidCache[fteid.ChooseID] = teid
+							pdrContext.TEIDCache[fteid.ChooseID] = teid
 						}
 					}
 				}
@@ -113,4 +123,19 @@ func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 			log.Info().Msgf("Can't apply GTP PDR: %s", err.Error())
 		}
 	}
+}
+
+func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) (additionalIEs []*ie.IE) {
+	for _, pdr := range createdPDRs {
+		if pdr.Allocated {
+			if pdr.Ipv4 != nil {
+				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)))
+			} else if pdr.Ipv6 != nil {
+
+			} else {
+				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0, pdr.Teid, n3Address, nil, 0)))
+			}
+		}
+	}
+	return
 }

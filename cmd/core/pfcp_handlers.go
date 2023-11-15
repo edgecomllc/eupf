@@ -93,12 +93,12 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	log.Info().Msgf("Saving new association: %+v", remoteNode)
 
 	featuresOctets := []uint8{}
-	if config.Conf.FTUP {
+	if config.Conf.FeatureFTUP {
 		featuresOctets = append(featuresOctets, setBit(0, 4)) //FTUP
 	} else {
 		featuresOctets = append(featuresOctets, 0)
 	}
-	if config.Conf.UEIP {
+	if config.Conf.FeatureUEIP {
 		featuresOctets = append(featuresOctets, setBit(0, 2)) //UEIP
 	} else {
 		featuresOctets = append(featuresOctets, 0)
@@ -113,7 +113,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		newIeNodeID(conn.nodeId),             // its Node ID;
 		upFunctionFeaturesIE,
 	)
-	
+
 	// Send AssociationSetupResponse
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return asres, nil

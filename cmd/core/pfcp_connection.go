@@ -150,7 +150,7 @@ func (connection *PfcpConnection) DeleteSession(session *Session) {
 		_ = connection.mapOperations.DeleteQer(qer.GlobalId)
 	}
 	for _, PDR := range session.PDRs {
-		_ = deletePDR(PDR, connection.mapOperations)
+		_ = deletePDR(PDR, connection.mapOperations, connection.ResourceManager, session.RemoteSEID)
 	}
 }
 

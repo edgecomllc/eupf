@@ -74,6 +74,10 @@ func main() {
 		log.Info().Msgf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	}
 
+	config.Conf.FeatureFTUP = true
+	config.Conf.FeatureUEIP = false
+	config.Conf.IPPool = "10.61.0.0/16"
+	config.Conf.FTEIDPool = 65536
 	var err error
 	//resourceManager, err = service.NewResourceManager(config.Conf.UEIP, config.Conf.FTUP, config.Conf.IPPool, config.Conf.FTEIDPool)
 	resourceManager, err := service.NewResourceManager(false, true, "10.61.0.0/16", 65536)
