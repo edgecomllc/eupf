@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"net"
 	"net/http"
 	"strconv"
@@ -10,7 +11,6 @@ import (
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
-	//eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -30,7 +30,7 @@ func CreateApiServer(bpfObjects *ebpf.BpfObjects, pfcpSrv *PfcpConnection, forwa
 	config.AllowAllOrigins = true
 	router.Use(cors.New(config))
 
-	//eupfDocs.SwaggerInfo.BasePath = "/api/v1"
+	eupfDocs.SwaggerInfo.BasePath = "/api/v1"
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("upf_pipeline", ListUpfPipeline(bpfObjects))
