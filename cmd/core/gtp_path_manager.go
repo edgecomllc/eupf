@@ -40,7 +40,7 @@ func (gtpPathManager *GtpPathManager) Run() {
 				return
 			case <-ticker.C:
 				for peer, sequenceNumber := range gtpPathManager.peers {
-					log.Info().Msgf("Send GTP Echo to %s, seq %d", peer, sequenceNumber)
+					log.Trace().Msgf("Send GTP Echo to %s, seq %d", peer, sequenceNumber)
 					if err := gtpPathManager.sendEcho(peer, sequenceNumber); err != nil {
 						log.Warn().Msgf("%v", err)
 					} else {
@@ -88,6 +88,7 @@ func (gtpPathManager *GtpPathManager) sendEcho(gtpPeerAddress string, seq uint16
 	}
 
 	buf := make([]byte, 1500)
+	conn.SetReadDeadline(time.Now().Add(time.Second * 3))
 	n, err := conn.Read(buf)
 	if err != nil {
 		return fmt.Errorf("can't read echo response: %v", err)
