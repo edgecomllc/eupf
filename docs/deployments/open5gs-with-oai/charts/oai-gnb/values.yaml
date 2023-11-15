@@ -1,0 +1,130 @@
+# Default values for oai-gnb.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: oaisoftwarealliance/oai-gnb
+  # repository: openverso/oai
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  # tag: ""
+  # tag: 2023.w34
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# command: []
+command:
+  - tail
+  - -f
+  - /dev/null
+  # - /opt/oai-gnb/bin/nr-softmodem
+  # - --sa
+  # - --rfsim
+  # - -O
+  # - /cfg/files/gnb.conf
+
+args: []
+  # - /opt/oai/bin/nr-softmodem.Rel15
+  # - -O
+  # - /oai.conf
+  # - --sa
+  # - -E
+  # - --continuous-tx
+
+# gnb.sa.band78.106prb.l2sim.conf
+env:
+  # - name: CONFIG_TEMPLATE_PATH
+  #   value: /opt/oai/etc/gnb.sa.tdd.conf
+  # - name: GNB_NGA_IF_NAME
+  #   value: eth0
+  # - name: GNB_NGU_IF_NAME
+  #   value: eth0
+  # - name: AMF_HOSTNAME
+  #   value: open5gs-amf-ngap
+  - name: TAC
+    value: !!str 0001
+  - name: MCC
+    value: !!str 999
+  - name: MNC
+    value: !!str 70
+  - name: MNC_LENGTH
+    value: !!str 2
+  - name: SST
+    value: !!str 1
+  - name: SD
+    value: !!str 0x111111
+  - name: AMF_IP_ADDRESS
+    value: 10.233.33.162
+  - name: GNB_NGA_IF_NAME
+    value: eth0
+  - name: GNB_NGA_IP_ADDRESS
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+  - name: GNB_NGU_IF_NAME
+    value: eth0
+  - name: GNB_NGU_IP_ADDRESS
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+
+# config:
+#   gnbName: gnb-l2sim-vnf
+#   mcc: '999'
+#   mnc: '70'
+#   mncLength: '2'
+#   tac: '0001'
+#   sst: '1'
+#   sd: !!str '0x111111'
+#   # sd1: '0'
+#   # -- hostname of the amf core service.
+#   # amf: "amf"
+#   # -- data plane interface
+#   # dev:
+#   #   ctrl: "eth0"
+#   #   data: "eth0"
+
+service:
+  type: ClusterIP
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+# securityContext: {}
+securityContext:
+  privileged: true
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources: {}
+  # limits:
+  #   cpu: 1000m
+  #   memory: 1024Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

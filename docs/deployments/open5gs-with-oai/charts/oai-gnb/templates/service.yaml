@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "oai-gnb.fullname" . }}
+  labels:
+    {{- include "oai-gnb.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: 2152
+      protocol: UDP
+      name: gtp-u
+  selector:
+    {{- include "oai-gnb.selectorLabels" . | nindent 4 }}

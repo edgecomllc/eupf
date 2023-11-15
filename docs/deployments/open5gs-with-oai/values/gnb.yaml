@@ -1,0 +1,34 @@
+---
+
+# image:
+#   registry: docker.io
+#   repository: openverso/oai
+#   tag: 2023.w34
+#   # repository: oaisoftwarealliance/oai-gnb
+#   # tag: develop
+#   debug: true
+
+# gnb:
+#   gnbName: Gradiant
+#   mcc: '999'
+#   mnc: '70'
+#   mncLength: '2'
+#   tac: '001'
+#   sst: '1'
+#   sd0: '111111'
+#   sd1: '0'
+#   amf: "open5gs-amf-ngap"
+#   dev:
+#     ctrl: "eth0"
+#     data: "eth0"
+
+# resources:
+#   limits:
+#     cpu: 1000m
+#     memory: 1024Mi
+#     ettus.com/usrp: 0
+#   requests:
+#     cpu: 1000m
+#     memory: 1024Mi
+
+# tolerations: []
