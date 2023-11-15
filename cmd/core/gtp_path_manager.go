@@ -64,10 +64,11 @@ func (gtpPathManager *GtpPathManager) sendEcho(gtpPeerAddress string, seq uint16
 	gtpEchoRequest := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(gtpEchoRequest, gopacket.SerializeOptions{},
 		&layers.GTPv1U{
-			Version:        1,
-			MessageType:    1, // GTPU_ECHO_REQUEST
-			TEID:           0,
-			SequenceNumber: seq,
+			Version:     1,
+			MessageType: 1, // GTPU_ECHO_REQUEST
+			TEID:        0,
+			//SequenceNumberFlag: true,
+			//SequenceNumber:     seq,
 		},
 	); err != nil {
 		return 0, fmt.Errorf("serializing input packet failed: %v", err)
@@ -108,9 +109,9 @@ func (gtpPathManager *GtpPathManager) sendEcho(gtpPeerAddress string, seq uint16
 		if gtp.MessageType != 2 { //GTPU_ECHO_RESPONSE
 			return 0, fmt.Errorf("unexpected gtp echo response: %d", gtp.MessageType)
 		}
-		if gtp.SequenceNumber != seq {
-			return 0, fmt.Errorf("unexpected gtp echo response sequence: %d", gtp.SequenceNumber)
-		}
+		//if gtp.SequenceNumberFlag && gtp.SequenceNumber != seq {
+		//	return 0, fmt.Errorf("unexpected gtp echo response sequence: %d", gtp.SequenceNumber)
+		//}
 		if gtp.TEID != 0 {
 			return 0, fmt.Errorf("unexpected gtp echo response TEID: %d", gtp.TEID)
 		}
