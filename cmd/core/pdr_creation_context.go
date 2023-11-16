@@ -39,3 +39,12 @@ func (pcc *PDRCreationContext) getUEIP(seID uint64) (net.IP, error) {
 	}
 	return ip, nil
 }
+
+func (pcc *PDRCreationContext) hasTEIDCache(chooseID uint8) (uint32, bool) {
+	teid, ok := pcc.TEIDCache[chooseID]
+	return teid, ok
+}
+
+func (pcc *PDRCreationContext) setTEIDCache(chooseID uint8, teid uint32) {
+	pcc.TEIDCache[chooseID] = teid
+}

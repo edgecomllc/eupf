@@ -25,7 +25,7 @@ func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, 
 	}
 	if spdrInfo.Teid != 0 {
 		if resourceManager.FTEIDM != nil {
-			resourceManager.FTEIDM.AllocateTEID(seID, spdrInfo.PdrID)
+			resourceManager.FTEIDM.ReleaseTEID(seID)
 		}
 	}
 	return nil
@@ -66,15 +66,13 @@ func extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo, pdrContext *PDRCreationContext) 
 				if fteid.HasCh() {
 					var allocate = true
 					if fteid.HasChID() {
-						if teidFromCache, ok := pdrContext.TEIDCache[fteid.ChooseID]; ok {
+						if teidFromCache, ok := pdrContext.hasTEIDCache(fteid.ChooseID); ok {
 							allocate = false
 							teid = teidFromCache
 							spdrInfo.Allocated = true
-							log.Info().Msgf("TEID ALLOCATED | teid: %d, pdrID: %d, sessionID: %d, CHID: %d", teid, spdrInfo.PdrID, pdrContext.Session.RemoteSEID, fteid.ChooseID)
 						}
 					}
 					if allocate {
-						//allocatedTeid, err := resourceManager.FTEIDM.AllocateTEID(session.RemoteSEID, spdrInfo.PdrID)
 						allocatedTeid, err := pdrContext.getFTEID(pdrContext.Session.RemoteSEID, spdrInfo.PdrID)
 						if err != nil {
 							log.Info().Msgf("[ERROR] AllocateTEID err: %v", err)
@@ -82,9 +80,8 @@ func extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo, pdrContext *PDRCreationContext) 
 						}
 						teid = allocatedTeid
 						spdrInfo.Allocated = true
-						log.Info().Msgf("TEID ALLOCATED | teid: %d, pdrID: %d, sessionID: %d, CHID: %d", teid, spdrInfo.PdrID, pdrContext.Session.RemoteSEID, fteid.ChooseID)
 						if fteid.HasChID() {
-							pdrContext.TEIDCache[fteid.ChooseID] = teid
+							pdrContext.setTEIDCache(fteid.ChooseID, teid)
 						}
 					}
 				}
@@ -125,9 +122,14 @@ func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 	}
 }
 
-func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) (additionalIEs []*ie.IE) {
+func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) []*ie.IE {
+
+	var additionalIEs []*ie.IE
+
+	allocatedPDRs := []uint32{}
 	for _, pdr := range createdPDRs {
 		if pdr.Allocated {
+			allocatedPDRs = append(allocatedPDRs, pdr.PdrID)
 			if pdr.Ipv4 != nil {
 				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)))
 			} else if pdr.Ipv6 != nil {
@@ -137,5 +139,6 @@ func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) (additionalIEs
 			}
 		}
 	}
-	return
+	log.Info().Msgf("*********************ALLOCATED PDRS COUNT: %d, PDRIDS: %v", len(allocatedPDRs), allocatedPDRs)
+	return additionalIEs
 }

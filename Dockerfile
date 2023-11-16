@@ -1,5 +1,7 @@
 FROM golang:1.20-bullseye as builder
 
+#LABEL image_name="eupf-local:latest"
+
 WORKDIR /app
 
 # Install dependencies for ebpf compilation
