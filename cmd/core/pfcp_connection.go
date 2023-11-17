@@ -33,12 +33,12 @@ func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociat
 func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
-		log.Panic().Msgf("Can't resolve UDP address: %s", err.Error())
+		log.Warn().Msgf("Can't resolve UDP address: %s", err.Error())
 		return nil, err
 	}
 	udpConn, err := net.ListenUDP("udp", udpAddr)
 	if err != nil {
-		log.Info().Msgf("Can't listen UDP address: %s", err.Error())
+		log.Warn().Msgf("Can't listen UDP address: %s", err.Error())
 		return nil, err
 	}
 
@@ -71,11 +71,11 @@ func (connection *PfcpConnection) Run() {
 	for {
 		n, addr, err := connection.Receive(buf)
 		if err != nil {
-			log.Info().Msgf("Error reading from UDP socket: %s", err.Error())
+			log.Warn().Msgf("Error reading from UDP socket: %s", err.Error())
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		log.Info().Msgf("Received %d bytes from %s", n, addr)
+		log.Debug().Msgf("Received %d bytes from %s", n, addr)
 		connection.Handle(buf[:n], addr)
 	}
 }
@@ -91,7 +91,7 @@ func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, e
 func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
 	err := connection.pfcpHandlerMap.Handle(connection, b, addr)
 	if err != nil {
-		log.Info().Msgf("Error handling PFCP message: %s", err.Error())
+		log.Warn().Msgf("Error handling PFCP message: %s", err.Error())
 	}
 }
 
@@ -102,11 +102,11 @@ func (connection *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error)
 func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDPAddr) error {
 	responseBytes := make([]byte, msg.MarshalLen())
 	if err := msg.MarshalTo(responseBytes); err != nil {
-		log.Info().Msg(err.Error())
+		log.Warn().Msg(err.Error())
 		return err
 	}
 	if _, err := connection.Send(responseBytes, addr); err != nil {
-		log.Info().Msg(err.Error())
+		log.Warn().Msg(err.Error())
 		return err
 	}
 	return nil
