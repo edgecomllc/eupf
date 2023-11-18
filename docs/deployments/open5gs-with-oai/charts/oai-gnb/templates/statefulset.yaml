@@ -30,22 +30,10 @@ spec:
       serviceAccountName: {{ include "oai-gnb.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.initContainers }}
       initContainers:
-        - name: configure
-          image: jwilder/dockerize:0.6.1
-          command:
-            - dockerize
-            - -template
-            - /cfg/tmpl/gnb.conf.tmpl:/cfg/files/gnb.conf
-          {{- with .Values.env }}
-          env:
-            {{- toYaml . | nindent 10 }}
-          {{- end }}
-          volumeMounts:
-            - name: config-template
-              mountPath: /cfg/tmpl
-            - name: config-rendered
-              mountPath: /cfg/files
+        {{- include "oai-gnb.pod.initContainers" . | nindent 8 }}
+      {{- end }}
       containers:
         - name: oai-gnb
           securityContext:
@@ -58,16 +46,22 @@ spec:
           {{- with .Values.args }}
           args: {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.env }}
           env:
-            {{- toYaml . | nindent 10 }}
-          {{- end }}
+          {{- include "oai-gnb.pod.envs" . | nindent 12 }}
           ports:
             - name: gtp-u
               containerPort: 2152
               protocol: UDP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: config-rendered
               mountPath: /cfg/files

@@ -1,4 +1,4 @@
-Active_gNBs = ( "gnb-rfsim");
+Active_gNBs = ( "gnb-l2sim-vnf");
 # Asn1_verbosity, choice in: none, info, annoying
 Asn1_verbosity = "none";
 
@@ -6,25 +6,18 @@ gNBs =
 (
  {
     ////////// Identification parameters:
-    gNB_ID = 0xe00;
-
-#     cell_type =  "CELL_MACRO_GNB";
-
-    gNB_name  =  "gnb-rfsim";
+    gNB_ID    =  0xe00;
+    gNB_name  =  "gnb-l2sim-vnf";
 
     // Tracking area code, 0x0000 and 0xfffe are reserved values
     tracking_area_code  =  {{ .Env.TAC }};
-
     plmn_list = ({
-        mcc = {{ .Env.MCC }};
-        mnc = {{ .Env.MNC }};
-        mnc_length = {{ .Env.MNC_LENGTH }};
-        snssaiList = ({ sst = {{ .Env.SST }}, sd = {{ .Env.SD }} })
-    });
+      mcc = {{ .Env.MCC }};
+      mnc = {{ .Env.MNC }};
+      mnc_length = {{ .Env.MNC_LENGTH }};
+      snssaiList = ({ sst = {{ .Env.SST }}, sd = {{ .Env.SD }} }) });
 
-    nr_cellid = 12345678L
-
-#     tr_s_preference     = "local_mac"
+    nr_cellid = 12345678L;
 
     ////////// Physical parameters:
 
@@ -38,10 +31,11 @@ gNBs =
 
 #  downlinkConfigCommon
     #frequencyInfoDL
-      # this is 3300.60 MHz + 53*12*30e-3 MHz = 3319.68
-      absoluteFrequencySSB                                          = 621312;
-      # this is 3300.60 MHz
-      dl_absoluteFrequencyPointA                                       = 620040;
+      # this is 3600 MHz + 43 PRBs@30kHz SCS (same as initial BWP)
+      absoluteFrequencySSB                                             = 641280;
+      dl_frequencyBand                                                 = 78;
+      # this is 3600 MHz
+      dl_absoluteFrequencyPointA                                       = 640008;
       #scs-SpecificCarrierList
         dl_offstToCarrier                                              = 0;
 # subcarrierSpacing
@@ -50,33 +44,31 @@ gNBs =
         dl_carrierBandwidth                                            = 106;
      #initialDownlinkBWP
       #genericParameters
-        # this is RBstart=0,L=106 (275*(L-1))+RBstart
-        initialDLBWPlocationAndBandwidth                                        = 28875;
+        # this is RBstart=27,L=48 (275*(L-1))+RBstart
+        initialDLBWPlocationAndBandwidth                               = 12952; # 6366 12925 12956 28875 12952
 # subcarrierSpacing
 # 0=kHz15, 1=kHz30, 2=kHz60, 3=kHz120
-        initialDLBWPsubcarrierSpacing                                           = 1;
+        initialDLBWPsubcarrierSpacing                                   = 1;
       #pdcch-ConfigCommon
-        initialDLBWPcontrolResourceSetZero                                      = 11;
-        initialDLBWPsearchSpaceZero                                             = 0;
-
-
+        initialDLBWPcontrolResourceSetZero                              = 12;
+        initialDLBWPsearchSpaceZero                                     = 0;
 
   #uplinkConfigCommon
      #frequencyInfoUL
-      ul_frequencyBand                                                 = 78;
+      ul_frequencyBand                                              = 78;
       #scs-SpecificCarrierList
-      ul_offstToCarrier                                              = 0;
+      ul_offstToCarrier                                             = 0;
 # subcarrierSpacing
 # 0=kHz15, 1=kHz30, 2=kHz60, 3=kHz120
-      ul_subcarrierSpacing                                           = 1;
-      ul_carrierBandwidth                                            = 106;
+      ul_subcarrierSpacing                                          = 1;
+      ul_carrierBandwidth                                           = 106;
       pMax                                                          = 20;
      #initialUplinkBWP
       #genericParameters
-        initialULBWPlocationAndBandwidth                                        = 28875;
+        initialULBWPlocationAndBandwidth                            = 12952;
 # subcarrierSpacing
 # 0=kHz15, 1=kHz30, 2=kHz60, 3=kHz120
-        initialULBWPsubcarrierSpacing                                           = 1;
+        initialULBWPsubcarrierSpacing                               = 1;
       #rach-ConfigCommon
         #rach-ConfigGeneric
           prach_ConfigurationIndex                                  = 98;
@@ -84,8 +76,8 @@ gNBs =
 #0 = one, 1=two, 2=four, 3=eight
           prach_msg1_FDM                                            = 0;
           prach_msg1_FrequencyStart                                 = 0;
-          zeroCorrelationZoneConfig                                 = 12;
-          preambleReceivedTargetPower                               = -104;
+          zeroCorrelationZoneConfig                                 = 13;
+          preambleReceivedTargetPower                               = -96;
 #preamblTransMax (0...10) = (3,4,5,6,7,8,10,20,50,100,200)
           preambleTransMax                                          = 6;
 #powerRampingStep
@@ -96,9 +88,9 @@ gNBs =
         ra_ResponseWindow                                           = 4;
 #ssb_perRACH_OccasionAndCB_PreamblesPerSSB_PR
 #1=oneeighth,2=onefourth,3=half,4=one,5=two,6=four,7=eight,8=sixteen
-        ssb_perRACH_OccasionAndCB_PreamblesPerSSB_PR                = 3;
+        ssb_perRACH_OccasionAndCB_PreamblesPerSSB_PR                = 4;
 #oneHalf (0..15) 4,8,12,16,...60,64
-        ssb_perRACH_OccasionAndCB_PreamblesPerSSB                   = 15;
+        ssb_perRACH_OccasionAndCB_PreamblesPerSSB                   = 14;
 #ra_ContentionResolutionTimer
 #(0..7) 8,16,24,32,40,48,56,64
         ra_ContentionResolutionTimer                                = 7;
@@ -154,7 +146,7 @@ gNBs =
       nrofUplinkSlots                                               = 2;
       nrofUplinkSymbols                                             = 4;
 
-  ssPBCH_BlockPower                                             = -25;
+      ssPBCH_BlockPower                                             = -25;
   }
 
   );
@@ -168,82 +160,42 @@ gNBs =
         SCTP_OUTSTREAMS = 2;
     };
 
+
     ////////// AMF parameters:
-        amf_ip_address      = ( { ipv4       = "{{ .Env.AMF_IP_ADDRESS }}";
-                                  ipv6       = "192:168:30::17";
-                                  active     = "yes";
-                                  preference = "ipv4";
-                                                                                                                              }
-                                                                                                                                          );
+    amf_ip_address      = ( { ipv4       = "{{ .Env.AMF_IP_ADDRESS }}";
+                              ipv6       = "192:168:30::17";
+                              active     = "yes";
+                              preference = "ipv4";
+                            }
+                          );
 
-        NETWORK_INTERFACES :
-        {
 
-           GNB_INTERFACE_NAME_FOR_NG_AMF            = "{{ .Env.GNB_NGA_IF_NAME }}";
-           GNB_IPV4_ADDRESS_FOR_NG_AMF              = "{{ .Env.GNB_NGA_IP_ADDRESS }}";
-           GNB_INTERFACE_NAME_FOR_NGU               = "{{ .Env.GNB_NGU_IF_NAME }}";
-           GNB_IPV4_ADDRESS_FOR_NGU                 = "{{ .Env.GNB_NGU_IP_ADDRESS }}";
-           GNB_PORT_FOR_S1U                         = 2152; # Spec 2152
-        };
+    NETWORK_INTERFACES :
+    {
+        GNB_INTERFACE_NAME_FOR_NG_AMF            = "{{ .Env.GNB_NGA_IF_NAME }}";
+        GNB_IPV4_ADDRESS_FOR_NG_AMF              = "{{ .Env.GNB_NGA_IP_ADDRESS }}";
+        GNB_INTERFACE_NAME_FOR_NGU               = "{{ .Env.GNB_NGU_IF_NAME }}";
+        GNB_IPV4_ADDRESS_FOR_NGU                 = "{{ .Env.GNB_NGU_IP_ADDRESS }}";
+        GNB_PORT_FOR_NGU                         = 2152; # Spec 2152
+    };
 
   }
 );
 
 MACRLCs = (
-  {
-    num_cc           = 1;
-    tr_s_preference  = "local_L1";
-    tr_n_preference  = "local_RRC";
-    pusch_TargetSNRx10 = 200;
-    pucch_TargetSNRx10 = 200;
-  }
+        {
+        num_cc = 1;
+        local_s_if_name  = "lo:";
+        remote_s_address = "127.0.0.1"; // pnf addr [!]
+        local_s_address  = "127.0.0.2"; // vnf addr
+        local_s_portc    = 50601; // vnf p5 port
+        remote_s_portc   = 50600; // pnf p5 port [!]
+        local_s_portd    = 50611; // vnf p7 port [!]
+        remote_s_portd   = 50610; // pnf p7 port [!]
+        tr_s_preference = "nfapi";
+        tr_n_preference = "local_RRC";
+        }
 );
-
-L1s = (
-{
-  num_cc = 1;
-  tr_n_preference = "local_mac";
-  prach_dtx_threshold = 200;
-#  pucch0_dtx_threshold = 150;
-}
-);
-
-RUs = (
-    {
-       local_rf       = "yes"
-         nb_tx          = 1
-         nb_rx          = 1
-         att_tx         = 0
-         att_rx         = 0;
-         bands          = [78];
-         max_pdschReferenceSignalPower = -27;
-         max_rxgain                    = 75;
-         eNB_instances  = [0];
-         ##beamforming 1x2 matrix: 1 layer x 2 antennas
-         bf_weights = [0x00007fff, 0x0000];
-         ##beamforming 1x4 matrix: 1 layer x 4 antennas
-         #bf_weights = [0x00007fff, 0x0000,0x0000, 0x0000];
-         ## beamforming 2x2 matrix:
-         # bf_weights = [0x00007fff, 0x00000000, 0x00000000, 0x00007fff];
-         ## beamforming 4x4 matrix:
-         #bf_weights = [0x00007fff, 0x0000, 0x0000, 0x0000, 0x00000000, 0x00007fff, 0x0000, 0x0000, 0x0000, 0x0000, 0x00007fff, 0x0000, 0x0000, 0x0000, 0x0000, 0x00007fff];
-         sf_extension = 0
-         sdr_addrs = "serial=XXXXXXX"
-    }
-);
-
-THREAD_STRUCT = (
-  {
-    #three config for level of parallelism "PARALLEL_SINGLE_THREAD", "PARALLEL_RU_L1_SPLIT", or "PARALLEL_RU_L1_TRX_SPLIT"
-    parallel_config    = "PARALLEL_SINGLE_THREAD";
-    #two option for worker "WORKER_DISABLE" or "WORKER_ENABLE"
-    worker_config      = "WORKER_ENABLE";
-  }
-);
-
-rfsimulator: {
-    serveraddr = "server";
-};
 
 security = {
   # preferred ciphering algorithms
@@ -271,5 +223,5 @@ security = {
        rlc_log_level                         ="info";
        pdcp_log_level                        ="info";
        rrc_log_level                         ="info";
-       f1ap_log_level                         ="debug";
+       ngap_log_level                         ="debug";
     };

@@ -60,3 +60,29 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{- define "oai-gnb.pod.envs" -}}
+{{- with .Values.env }}
+{{- toYaml . }}
+{{- end }}
+{{- end }}
+
+{{- define "oai-gnb.pod.initContainers" -}}
+
+{{- $all := . -}}
+{{- range $k, $v := .Values.initContainers }}
+- name: {{ $k }}
+  image: {{ $v.image }}
+  env:
+    {{- include "oai-gnb.pod.envs" $all | nindent 4 }}
+  {{- with $v.command }}
+  command: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  volumeMounts:
+    - name: config-template
+      mountPath: /cfg/tmpl
+    - name: config-rendered
+      mountPath: /cfg/files
+{{- end }}
+
+{{- end }}

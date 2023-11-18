@@ -1,34 +1,33 @@
 ---
 
-# image:
-#   registry: docker.io
-#   repository: openverso/oai
-#   tag: 2023.w34
-#   # repository: oaisoftwarealliance/oai-gnb
-#   # tag: develop
-#   debug: true
+image:
+  repository: oaisoftwarealliance/oai-gnb
+  tag: 2023.w43
 
-# gnb:
-#   gnbName: Gradiant
-#   mcc: '999'
-#   mnc: '70'
-#   mncLength: '2'
-#   tac: '001'
-#   sst: '1'
-#   sd0: '111111'
-#   sd1: '0'
-#   amf: "open5gs-amf-ngap"
-#   dev:
-#     ctrl: "eth0"
-#     data: "eth0"
-
-# resources:
-#   limits:
-#     cpu: 1000m
-#     memory: 1024Mi
-#     ettus.com/usrp: 0
-#   requests:
-#     cpu: 1000m
-#     memory: 1024Mi
-
-# tolerations: []
+env:
+  - name: TAC
+    value: !!str 0001
+  - name: MCC
+    value: !!str 999
+  - name: MNC
+    value: !!str 70
+  - name: MNC_LENGTH
+    value: !!str 2
+  - name: SST
+    value: !!str 1
+  - name: SD
+    value: !!str 0x111111
+  - name: AMF_HOSTNAME
+    value: open5gs-amf-ngap
+  - name: GNB_NGA_IF_NAME
+    value: eth0
+  - name: GNB_NGA_IP_ADDRESS
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+  - name: GNB_NGU_IF_NAME
+    value: eth0
+  - name: GNB_NGU_IP_ADDRESS
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
