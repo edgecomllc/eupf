@@ -1,58 +1,36 @@
 # How to install and run eUPF
 The easyest way to install eUPF is to use helm charts for one of the supported opensource 5G core projects in your own kubernetes cluster.
-Alternatively, eUPF could be deployed in docker-compose (only with free5gc config is ready at the moment).
+Alternatively, eUPF could be deployed with docker-compose (only with free5gc config is ready at the moment).
 
-## Node requirements
+We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose.
+
+[UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity
+
+Deployment options:
+- Baremetal/VM
+- [Docker-compose environment](install.md/#deploy-with-docker-compose)
+- [Kubernetes environment](install.md/#deploy-with-kubernetes)
+
+## General node requirements
 
 **eUPF need Linux kernel > 5.14 version (we used Ubuntu 22.04 LTS)**
 
-## Kubenetes environment
-
-- Kubernetes cluster with Calico and Multus CNI
-  - with [Enabled Unsafe Sysctls](https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/#enabling-unsafe-sysctls) net.ipv4.ip_forward:
-
-    `kubelet --allowed-unsafe-sysctls 'net.ipv4.ip_forward,net.ipv6.conf.all.forwarding'`
-- [helm](https://helm.sh/docs/intro/install/) installed
-- [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) installed, or <br>
-  create CustomResource ServiceMonitor as a minimum: <br>
-  ```kubectl apply -f https://github.com/prometheus-community/helm-charts/raw/main/charts/kube-prometheus-stack/crds/crd-servicemonitors.yaml```
-<!-- - deployed 5g core (open5gs or free5gc) -->
-
-In our environments, we use one node K8s cluster deployed by means of [kubespray](https://github.com/kubernetes-sigs/kubespray). <!-- You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible) -private -->
-<details><summary>With additional file inventory/mycluster/group_vars/kube_node.yaml</summary>
-<p>
-
-```yaml
----
-
-kubelet_node_config_extra_args:
-  allowedUnsafeSysctls:
-    - "net.ipv4.ip_forward"
-``` 
-</p>
-</details> 
-
-## Possible use cases
-We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose.
-
-[UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity.
-
-
-### Go [Here](./deployments/README.md) for more information about deployment options in Kubernetes for eUPF with **open5gs** and **free5gc**.
+# Deploy with docker-compose
 
 Or deploy eUPF with free5gc core as docker-compose:
 
 <details><summary>Instruction to deploy as docker-compose</summary>
 <p>
 
-### Deploy as docker-compose
-Prerequisites
+## Prerequisites
 
 As metioned in free5gc::docker-compose repo:
 - Prepared [GTP5G kernel module](https://github.com/free5gc/gtp5g): needed to run the UPF
   - It is optional and only required for standard UPF from free5gc  
 - [Docker Engine](https://docs.docker.com/engine/install): needed to run the Free5GC containers
 - [Docker Compose v2](https://docs.docker.com/compose/install): needed to bootstrap the free5GC stack
+
+## How to deploy
 
 Actually we use vanilla free5gc::docker-compose with some overrides(see docker-compose.override.yml):
 - free5gc-upf service is disabled
@@ -97,15 +75,42 @@ So you can clone free5gc docker-compose and test free5gc upf, then add edgecom o
     ```
     ping -I uesimtun0 1.1.1.1
     ```
-### To undeploy everything
+## To undeploy everything
    ```
    docker compose rm
    ```
 </p>
 </details>
 
+# Deploy with Kubenetes
 
-## Test scenarios
+- Kubernetes cluster with Calico and Multus CNI
+  - with [Enabled Unsafe Sysctls](https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/#enabling-unsafe-sysctls) net.ipv4.ip_forward:
+
+    `kubelet --allowed-unsafe-sysctls 'net.ipv4.ip_forward,net.ipv6.conf.all.forwarding'`
+- [helm](https://helm.sh/docs/intro/install/) installed
+- [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) installed, or <br>
+  create CustomResource ServiceMonitor as a minimum: <br>
+  ```kubectl apply -f https://github.com/prometheus-community/helm-charts/raw/main/charts/kube-prometheus-stack/crds/crd-servicemonitors.yaml```
+<!-- - deployed 5g core (open5gs or free5gc) -->
+
+In our environments, we use one node K8s cluster deployed by means of [kubespray](https://github.com/kubernetes-sigs/kubespray). <!-- You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible) -private -->
+<details><summary>With additional file inventory/mycluster/group_vars/kube_node.yaml</summary>
+<p>
+
+```yaml
+---
+
+kubelet_node_config_extra_args:
+  allowedUnsafeSysctls:
+    - "net.ipv4.ip_forward"
+``` 
+</p>
+</details> 
+
+See kubernetes deployment examples with **open5gs** and **free5gc** [here](./deployments/README.md).
+
+# Test scenarios
 
 ## case 0
 
