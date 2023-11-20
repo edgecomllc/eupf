@@ -5,6 +5,10 @@ eUPF outbound connections is pure routed at the node. There is no embedded NAT, 
 
 ## Docker-compose deployments
 
+- [Free5gc + UERANSIM](./to-be-done/README.md)
+- [Free5gc ULCL + UERANSIM](./to-be-done/README.md)
+- [Open5gs + UERANSIM](./to-be-done/README.md)
+
 ## K8s deployments
 
 In K8s BGP is used to announce the subscriber's subnet to the route table of Kubernetes cluster.
