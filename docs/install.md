@@ -121,6 +121,26 @@ kubelet_node_config_extra_args:
 </p>
 </details> 
 
+## UE subnets routing
+
+In order to route downlink traffic back to UE options below are proposed:
+
+1. Use BGP
+2. Use static routes. For every UE
+
+### Use BGP
+
+BGP daemon(BIRD) is running as a sidecar in eUPF pod. UE subnet is announced to K8s nodes. K8s CNI should be configured to use BGP.
+
+This solution is suitable for single instance eUPF deployment.
+
+### Use static routes
+
+To use scalable eUPF deployment (more the one eUPF replica) downlink route to specific UE have to pass the UPF with corresponding PDU-session. 
+
+As a proof-of-concept, simple route utility is provided. The utility reads active PDU-sessions for every UPF via API and updates node's routing table. For each UE's PDU-session there is a static route via corresponding UPF.  
+
+
 ## Examples
 
 See kubernetes deployment examples with **open5gs** and **free5gc** [here](./deployments/README.md).
