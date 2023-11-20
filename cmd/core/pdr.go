@@ -2,11 +2,12 @@ package core
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
-	"net"
 )
 
 func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager, seID uint64) error {
@@ -135,7 +136,7 @@ func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) []*ie.IE {
 			} else if pdr.Ipv6 != nil {
 
 			} else {
-				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0, pdr.Teid, n3Address, nil, 0)))
+				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(1, pdr.Teid, n3Address, nil, 0)))
 			}
 		}
 	}
