@@ -5,16 +5,23 @@ eUPF outbound connections is pure routed at the node. There is no embedded NAT, 
 
 ## Docker-compose deployments
 
-- [Free5gc + UERANSIM](./to-be-done/README.md)
-- [Free5gc ULCL + UERANSIM](./to-be-done/README.md)
-- [Open5gs + UERANSIM](./to-be-done/README.md)
+| 5G Core | RAN | Options | Deployment description |
+| ------- | --- | ------- | ---------------------- |
+| Open5GS | UERANSIM | - | [Open5GS](./to-be-done/README.md) |
+| Open5GS | OpenAirInterface | - | Comming soon... |
+| Free5GC | UERANSIM | - | [Free5GC](./to-be-done/README.md) |
+| Free5GC | UERANSIM | ULCL | [Free5GC & ULCL](./to-be-done/README.md) |
+
 
 ## K8s deployments
 
 In K8s BGP is used to announce the subscriber's subnet to the route table of Kubernetes cluster.
 
-- [Open5GS + Calico BGP](./open5gs-with-bgp/README.md)
-- [Open5GS + Calico BGP with Slices](./open5gs-with-bgp-and-slices/README.md)
-- [Open5GS + Load Balanced eUPF](./open5gs-with-scaling-eupf/README.md)
-- [Free5GC + Calico BGP](./free5gc-with-bgp/README.md)
-- [Free5GC UpLink CLassifiers (ULCL) architecture](./free5gc-ulcl/README.md)
+| 5G Core | RAN | Options | Deployment description |
+| ------- | --- | ------- | ---------------------- |
+| Open5GS | UERANSIM | Calico BGP | [Open5GS & Calico BGP](./open5gs-with-bgp/README.md) |
+| Open5GS | UERANSIM | Calico BGP with Slices | [Open5GS & Calico BGP with Slices](./open5gs-with-bgp-and-slices/README.md) |
+| Open5GS | UERANSIM | Load Balanced eUPF | [Open5GS & Load Balanced eUPF](./open5gs-with-scaling-eupf/README.md) |
+| Open5GS | srsRAN | Calico BGP | [Open5GS & srsRAN & Calico BGP](./srsran-gnb/README.md) |
+| Free5GC | UERANSIM | Calico BGP | [Free5GC & Calico BGP](./free5gc-with-bgp/README.md) |
+| Free5GC | UERANSIM | ULCL | [Free5GC & ULCL](./free5gc-ulcl/README.md) |
