@@ -30,17 +30,17 @@ strategy:
 command:
   - /opt/oai-nr-ue/bin/nr-uesoftmodem
   - -O
-  - - /cfg/files/ue.conf
+  - /cfg/files/ue.conf
   - --nfapi
   - STANDALONE_PNF
   - --node-number
-  - 2
+  - "2"
   - --sa
   - --emulate-l1
 
 args: []
 
-env: {}
+env: []
   # - name: MCC
   #   value: !!str 999
   # - name: MNC

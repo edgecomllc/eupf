@@ -17,7 +17,14 @@ pcrf:
   enabled: false
 
 smf:
-  enabled: false
+  enabled: true
+  config:
+    upf:
+      pfcp:
+        hostname: open5gs-upf-pfcp
+        port: 8805
+    pcrf:
+      enabled: false
 
 sgwc:
   enabled: false

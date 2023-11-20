@@ -4,11 +4,11 @@
 
 ## Requirements
 
-- Kubernetes cluster with Calico
+<!-- - Kubernetes cluster with Calico -->
 - [helm](https://helm.sh/docs/intro/install/) installed
-- calico backend configured as BIRD
+<!-- - calico backend configured as BIRD
 
-    change `calico_backend` parameter to `bird` in configmap with name `calico-config` and then restart all pods with name `calico-node-*`
+    change `calico_backend` parameter to `bird` in configmap with name `calico-config` and then restart all pods with name `calico-node-*` -->
 
 - configure helm repos
 
@@ -23,17 +23,17 @@
 
     `make upf`
 
-2. configure calico BGP settings. Here, we configure Calico BGP peer, create Calico IP Pool (for NAT) and configure Felix for save external routes (recevied by BGP from eUPF BIRD)
+<!-- 2. configure calico BGP settings. Here, we configure Calico BGP peer, create Calico IP Pool (for NAT) and configure Felix for save external routes (recevied by BGP from eUPF BIRD)
 
-    `make calico`
+    `make calico` -->
 
 3. install open5gs
 
     `make open5gs`
 
-4. configure SMF
+<!-- 4. configure SMF
 
-    `make smf`
+    `make smf` -->
 
 5. install gNB
 
@@ -41,13 +41,13 @@
 
 6. install UERANSim
 
-    `make ue1`
+    `make ue`
 
 ## Check steps
 
-1. exec shell in UE pod
+<!-- 1. exec shell in UE pod
 
-    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
+    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash` -->
 
 2. run ICMP test
 
