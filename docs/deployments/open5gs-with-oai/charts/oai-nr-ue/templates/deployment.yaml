@@ -29,6 +29,10 @@ spec:
       serviceAccountName: {{ include "oai-nr-ue.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.initContainers }}
+      initContainers:
+        {{- include "oai-nr-ue.pod.initContainers" . | nindent 8 }}
+      {{- end }}
       containers:
         - name: oai-nr-ue
           securityContext:
@@ -41,25 +45,29 @@ spec:
           {{- with .Values.args }}
           args: {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.env }}
+          {{- if .Values.env }}
           env:
-            {{- toYaml . | nindent 10 }}
+          {{- include "oai-nr-ue.pod.envs" . | nindent 12 }}
           {{- end }}
-          # ports:
-          #   - name: gtp-u
-          #     containerPort: 2152
-          #     protocol: UDP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          # volumeMounts:
-          #   - name: config-rendered
-          #     mountPath: /cfg/files
-      # volumes:
-      #   - name: config-template
-      #     configMap:
-      #       name: {{ include "oai-nr-ue.fullname" . }}
-      #   - name: config-rendered
-      #     emptyDir: {}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config-rendered
+              mountPath: /cfg/files
+      volumes:
+        - name: config-template
+          configMap:
+            name: {{ include "oai-nr-ue.fullname" . }}
+        - name: config-rendered
+          emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

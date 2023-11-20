@@ -107,18 +107,18 @@ tolerations: []
 
 affinity: {}
 
-livenessProbe:
-  exec:
-    command:
-      - pidof
-      - nr-softmodem
-  initialDelaySeconds: 5
-  periodSeconds: 10
+livenessProbe: {}
+  # exec:
+  #   command:
+  #     - pidof
+  #     - nr-softmodem
+  # initialDelaySeconds: 5
+  # periodSeconds: 10
 
-readinessProbe:
-  exec:
-    command:
-      - pidof
-      - nr-softmodem
-  initialDelaySeconds: 5
-  periodSeconds: 10
+readinessProbe: {}
+  # exec:
+  #   command:
+  #     - pidof
+  #     - nr-softmodem
+  # initialDelaySeconds: 5
+  # periodSeconds: 10

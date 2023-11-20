@@ -4,6 +4,11 @@ image:
   repository: oaisoftwarealliance/oai-gnb
   tag: 2023.w43
 
+# command:
+#   - tail
+#   - -f
+#   - /dev/null
+
 env:
   - name: TAC
     value: !!str 0001
@@ -31,3 +36,6 @@ env:
     valueFrom:
       fieldRef:
         fieldPath: status.podIP
+
+livenessProbe: {}
+readinessProbe: {}

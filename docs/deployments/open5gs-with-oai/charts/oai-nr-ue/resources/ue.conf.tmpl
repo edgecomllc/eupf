@@ -1,0 +1,32 @@
+log_config = {
+  global_log_level                      ="info";
+  hw_log_level                          ="info";
+  phy_log_level                         ="info";
+  mac_log_level                         ="info";
+  rlc_log_level                         ="info";
+  pdcp_log_level                        ="info";
+  rrc_log_level                         ="info";
+};
+
+uicc0 = {
+  imsi = "{{ .Env.MCC }}{{ .Env.MNC }}{{ .Env.MSISDN }}";
+  key = "{{ .Env.KEY }}";
+  opc= "{{ .Env.OP }}";
+  dnn= "{{ .Env.APN }}";
+  nssai_sst={{ .Env.SST }};
+  nssai_sd={{ .Env.SD }};
+}
+
+MACRLCs = (
+        {
+        num_cc = 1;
+        tr_n_preference = "nfapi";
+        local_n_if_name  = "eth0";
+        remote_n_address = "127.0.0.1"; //Proxy IP
+        local_n_address  = "127.0.0.1";
+        local_n_portc    = 50600;
+        remote_n_portc   = 50601;
+        local_n_portd    = 50610;
+        remote_n_portd   = 50611;
+        }
+);

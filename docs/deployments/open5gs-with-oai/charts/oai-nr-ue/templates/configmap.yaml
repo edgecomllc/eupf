@@ -9,5 +9,5 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 data:
-  gnb.conf.tmpl: |
-    aaa
+  ue.conf.tmpl: |
+{{ (.Files.Get "resources/ue.conf.tmpl") | indent 4 }}
