@@ -146,13 +146,32 @@ static __always_inline void fill_udp_header(struct udphdr *udp, int port, int le
 
 static __always_inline void fill_gtp_header(struct gtpuhdr *gtp, int teid, int len) {
     *(__u8 *)gtp = GTP_FLAGS;
+    gtp->e = 1;
     gtp->message_type = GTPU_G_PDU;
     gtp->message_length = bpf_htons(len);
     gtp->teid = bpf_htonl(teid);
 }
 
-static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx, int saddr, int daddr, __u8 tos, int teid) {
-    static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr);
+static __always_inline void fill_gtp_ext_header(struct gtp_hdr_ext *gtp_ext) {
+    gtp_ext->sqn = 0;
+    gtp_ext->npdu = 0;
+    gtp_ext->next_ext = GTPU_EXT_TYPE_PDU_SESSION_CONTAINER;
+}
+
+static __always_inline void fill_gtp_ext_header_psc(struct gtp_hdr_ext_pdu_session_container *gtp_ext, int qfi, int pdu_type) {
+    gtp_ext->length = 1;
+    gtp_ext->pdu_type = pdu_type;
+    gtp_ext->spare1 = 0;
+    gtp_ext->spare2 = 0;
+    gtp_ext->rqi = 0;
+    gtp_ext->qfi = qfi;
+    gtp_ext->next_ext = 0;
+}
+
+static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx, int saddr, int daddr, __u8 tos, __u8 qfi, int teid) {
+    static const size_t gtp_ext_hdr_size = sizeof(struct gtp_hdr_ext) + sizeof(struct gtp_hdr_ext_pdu_session_container);
+    static const size_t gtp_full_hdr_size = sizeof(struct gtpuhdr) + gtp_ext_hdr_size;
+    static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_size;
 
     // int ip_packet_len = (ctx->xdp_ctx->data_end - ctx->xdp_ctx->data) - sizeof(*eth);
     int ip_packet_len = 0;
@@ -190,14 +209,28 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
     if ((const char *)(udp + 1) > data_end)
         return -1;
 
-    fill_udp_header(udp, GTP_UDP_PORT, ip_packet_len + sizeof(*udp) + sizeof(struct gtpuhdr));
+    fill_udp_header(udp, GTP_UDP_PORT, ip_packet_len + sizeof(*udp) + gtp_full_hdr_size);
 
     /* Add the GTP header */
     struct gtpuhdr *gtp = (struct gtpuhdr *)(udp + 1);
     if ((const char *)(gtp + 1) > data_end)
         return -1;
 
-    fill_gtp_header(gtp, teid, ip_packet_len);
+    fill_gtp_header(gtp, teid, gtp_ext_hdr_size + ip_packet_len);
+
+    /* Add the GTP ext header */
+    struct gtp_hdr_ext *gtp_ext = (struct gtp_hdr_ext *)(gtp + 1);
+    if ((const char *)(gtp_ext + 1) > data_end)
+        return -1;
+
+    fill_gtp_ext_header(gtp_ext);
+
+    /* Add the GTP PDU session container header */
+    struct gtp_hdr_ext_pdu_session_container *gtp_psc = (struct gtp_hdr_ext_pdu_session_container *)(gtp_ext + 1);
+    if ((const char *)(gtp_psc + 1) > data_end)
+        return -1;
+
+    fill_gtp_ext_header_psc(gtp_psc, qfi, PDU_SESSION_CONTAINER_PDU_TYPE_DL_PSU);
 
     ip->check = ipv4_csum(ip, sizeof(*ip));
 

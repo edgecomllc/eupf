@@ -45,8 +45,8 @@
 #define DEFAULT_XDP_ACTION XDP_PASS
 
 
-static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, int teid) {
-    if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, teid))
+static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, __u8 qfi, int teid) {
+    if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, qfi, teid))
         return XDP_ABORTED;
     upf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
     increment_counter(ctx->n3_n6_counter, tx_n3);
@@ -112,7 +112,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     __u8 tos = far->transport_level_marking >> 8;
 
     upf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
-    return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, far->teid);
+    return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
 }
 
 static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_context *ctx) {
@@ -172,7 +172,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     __u8 tos = far->transport_level_marking >> 8;
 
     upf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
-    return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, far->teid);
+    return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
 }
 
 static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx) {
