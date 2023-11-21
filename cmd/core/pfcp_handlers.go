@@ -90,7 +90,8 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
 		newIeNodeID(conn.nodeId),             // its Node ID;
-		ie.NewUPFunctionFeatures(),           // information of all supported optional features in the UP function; We don't support any optional features at the moment
+		ie.NewRecoveryTimeStamp(time.Now()),
+		ie.NewUPFunctionFeatures(), // information of all supported optional features in the UP function; We don't support any optional features at the moment
 		// ... other IEs
 		//	optionally one or more UE IP address Pool Information IE which contains a list of UE IP Address Pool Identities per Network Instance, S-NSSAI and IP version;
 		//	optionally the NF Instance ID of the UPF if available
