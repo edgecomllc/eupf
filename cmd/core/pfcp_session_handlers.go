@@ -40,6 +40,12 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
 	createdPDRs := []SPDRInfo{}
+	teidCache := make(map[uint8]uint32)
+	pdrContext := &PDRCreationContext{
+		Session:         session,
+		ResourceManager: conn.ResourceManager,
+		TEIDCache:       teidCache,
+	}
 
 	err = func() error {
 		mapOperations := conn.mapOperations
@@ -75,30 +81,29 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				return err
 			}
 		}
+		pdrCount := 0
+		log.Info().Msgf("********count CreatePDR: %d", len(req.CreatePDR))
 
 		for _, pdr := range req.CreatePDR {
+			pdrCount++
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
 			if err != nil {
-				log.Info().Msgf("PDR ID missing")
+				log.Info().Msgf("========PDR ID missing")
 				continue
 			}
+			log.Info().Msgf("---range %d PDRID: %d", pdrCount, pdrId)
 
-			teidCache := make(map[uint8]uint32)
 			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
 
-			pdrContext := &PDRCreationContext{
-				Session:         session,
-				ResourceManager: conn.ResourceManager,
-				TEIDCache:       teidCache,
-			}
-
 			if err := extractPDR(pdr, &spdrInfo, pdrContext); err == nil {
-				session.PutPDR(spdrInfo.PdrID, spdrInfo)
+				//if err := extractPDR(pdr, &spdrInfo, session, teidCache, conn.ResourceManager); err == nil {
+				pdrContext.Session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 				createdPDRs = append(createdPDRs, spdrInfo)
 			} else {
 				log.Printf("Error extracting PDR info: %s", err.Error())
+				log.Info().Msgf("[ERROR]]]]]]]]] Error extracting PDR info: %s", err.Error())
 			}
 		}
 		return nil
@@ -111,16 +116,16 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	}
 
 	// Reassigning is the best I can think of for now
-	association.Sessions[localSEID] = session
+	association.Sessions[localSEID] = pdrContext.Session
 	conn.NodeAssociations[addr] = association
 
 	additionalIEs := []*ie.IE{
 		ie.NewCause(ie.CauseRequestAccepted),
 		newIeNodeID(conn.nodeId),
-		ie.NewFSEID(localSEID, conn.nodeAddrV4, nil),
+		ie.NewFSEID(localSEID, cloneIP(conn.nodeAddrV4), nil),
 	}
 
-	pdrIEs := processCreatedPDRs(createdPDRs, conn.n3Address)
+	pdrIEs := processCreatedPDRs(createdPDRs, cloneIP(conn.n3Address))
 	if len(pdrIEs) != 0 {
 		additionalIEs = append(additionalIEs, pdrIEs...)
 	}
@@ -324,6 +329,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			if err := extractPDR(pdr, &spdrInfo, pdrContext); err == nil {
+				//if err := extractPDR(pdr, &spdrInfo, session, teidCache, conn.ResourceManager); err == nil {
 				//if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
@@ -348,6 +354,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			if err := extractPDR(pdr, &spdrInfo, pdrContext); err == nil {
+				//if err := extractPDR(pdr, &spdrInfo, session, teidCache, conn.ResourceManager); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {

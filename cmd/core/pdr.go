@@ -31,7 +31,6 @@ func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, 
 	return nil
 }
 
-// func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo, resourceManager *service.ResourceManager, teidCache map[uint8]uint32) error {
 func extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo, pdrContext *PDRCreationContext) error {
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
@@ -51,8 +50,8 @@ func extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo, pdrContext *PDRCreationContext) 
 	if sdfFilter, err := pdr.SDFFilter(); err == nil {
 		if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
 			spdrInfo.PdrInfo.SdfFilter = &sdfFilterParsed
-			// log.Printf("Sdf Filter Parsed: %+v", sdfFilterParsed)
 		} else {
+			log.Info().Msgf("[ERROR] SDFFilter err: %v", err)
 			return err
 		}
 	}
@@ -123,22 +122,18 @@ func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 }
 
 func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) []*ie.IE {
-
 	var additionalIEs []*ie.IE
-
-	allocatedPDRs := []uint32{}
 	for _, pdr := range createdPDRs {
 		if pdr.Allocated {
-			allocatedPDRs = append(allocatedPDRs, pdr.PdrID)
 			if pdr.Ipv4 != nil {
 				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)))
 			} else if pdr.Ipv6 != nil {
 
 			} else {
-				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0, pdr.Teid, n3Address, nil, 0)))
+				ip := cloneIP(n3Address)
+				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0x01, pdr.Teid, ip, nil, 0)))
 			}
 		}
 	}
-	log.Info().Msgf("*********************ALLOCATED PDRS COUNT: %d, PDRIDS: %v", len(allocatedPDRs), allocatedPDRs)
 	return additionalIEs
 }

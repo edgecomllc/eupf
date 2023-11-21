@@ -299,6 +299,14 @@ func TestSdfFilterStoreInvalid(t *testing.T) {
 }
 
 func TestFTUPInAssociationSetupResponse(t *testing.T) {
+
+	config.Conf = config.UpfConfig{
+		IPPool:      "10.61.0.0/16",
+		FTEIDPool:   65536,
+		FeatureUEIP: false,
+		FeatureFTUP: true,
+	}
+
 	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
 
 	// Creating an Association Setup Request
@@ -306,12 +314,6 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 		ie.NewNodeID("", "", "test"),
 	)
 
-	config.Conf = config.UpfConfig{
-		IPPool:      "10.61.0.0/16",
-		FTEIDPool:   65536,
-		FeatureUEIP: true,
-		FeatureFTUP: true,
-	}
 	// Processing Association Setup Request
 	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
 	if err != nil {
@@ -390,25 +392,59 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 
 	// Checking TEID for each PDR
 	log.Info().Msgf("seRes.CreatedPDR len: %d", len(seRes.CreatedPDR))
-	for _, pdr := range seRes.CreatedPDR {
-
-		pdi, err := pdr.PDI()
-		if err != nil {
-			log.Info().Msgf("[ERROR] PDI IE is missing err: %v", err)
-		}
-
-		if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
-			if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-				if fteid.TEID != 1 && fteid.TEID != 2 {
-					t.Errorf("Unexpected TEID for PDR ID 2: got %d, expected %d or %d", fteid.TEID, 1, 2)
-				}
-			} else {
-				//t.Errorf("err: %v", err)
-			}
-		} else {
-			//t.Errorf("teidPdiId = -1")
-		}
-
+	if len(seRes.CreatedPDR) != 2 {
+		t.Errorf("Unexpected count TEIDs: got %d, expected %d", len(seRes.CreatedPDR), 2)
 	}
 
+	for _, pdr := range seRes.CreatedPDR {
+		fteid, err := pdr.FindByType(ie.FTEID)
+		if err != nil {
+			log.Fatal().Err(err)
+		}
+
+		teid, err := fteid.FTEID()
+		if err != nil {
+			log.Fatal().Err(err)
+		}
+
+		if teid.TEID != 1 && teid.TEID != 2 {
+			t.Errorf("Unexpected TEID for PDR ID 2: got %d, expected %d or %d", teid.TEID, 1, 2)
+		}
+	}
+
+}
+
+func TestUEIPInAssociationSetupResponse(t *testing.T) {
+
+	config.Conf = config.UpfConfig{
+		IPPool:      "10.61.0.0/16",
+		FTEIDPool:   65536,
+		FeatureUEIP: true,
+		FeatureFTUP: false,
+	}
+
+	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+
+	// Creating an Association Setup Request
+	asReq := message.NewAssociationSetupRequest(1,
+		ie.NewNodeID("", "", "test"),
+	)
+
+	// Processing Association Setup Request
+	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling Association Setup Request: %s", err)
+	}
+
+	// Checking if UEIP is enabled in UP Function Features in response
+	asRes, ok := response.(*message.AssociationSetupResponse)
+	if !ok {
+		t.Error("Unexpected response type")
+	}
+
+	// Verify if UEIP is enabled in UP Function Features in response
+	ueipEnabled := asRes.UPFunctionFeatures.HasUEIP()
+	if !ueipEnabled {
+		t.Error("UEIP is not enabled in Association Setup Response")
+	}
 }

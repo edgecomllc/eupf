@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"regexp"
 	"strconv"
@@ -11,49 +12,95 @@ import (
 
 func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
 	re := regexp.MustCompile(`^permit out (icmp|ip|tcp|udp) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to ([\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
-	match := re.FindStringSubmatch(flowDescription)
-	if len(match) == 0 {
-		return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: bad formatting. Should be compatible with regexp: %s", re.String())
-	}
-	var err error
+	re1 := regexp.MustCompile(`^permit out (\d+) from ([\da-fA-F:]+(?:/\d+)?) to (assigned)$`)
+
 	sdfInfo := ebpf.SdfFilter{}
-	if sdfInfo.Protocol, err = ParseProtocol(match[1]); err != nil {
-		return ebpf.SdfFilter{}, err
-	}
-	if match[2] == "any" {
-		if match[3] != "" {
-			return ebpf.SdfFilter{}, fmt.Errorf("<any> keyword should not be used with </mask>")
+	var err error
+
+	if re.MatchString(flowDescription) {
+		match := re.FindStringSubmatch(flowDescription)
+		log.Printf("Matched groups: %v\n", match)
+		if len(match) == 0 {
+			return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: bad formatting. Should be compatible with regexp: %s", re.String())
 		}
-		sdfInfo.SrcAddress = ebpf.IpWMask{Type: 0}
-	} else {
-		if sdfInfo.SrcAddress, err = ParseCidrIp(match[2], match[3]); err != nil {
+
+		if sdfInfo.Protocol, err = ParseProtocol(match[1]); err != nil {
+			log.Fatal("1", err)
 			return ebpf.SdfFilter{}, err
 		}
-	}
-	sdfInfo.SrcPortRange = ebpf.PortRange{LowerBound: 0, UpperBound: 65535}
-	if match[4] != "" {
-		if sdfInfo.SrcPortRange, err = ParsePortRange(match[4]); err != nil {
+		if match[2] == "any" {
+			if match[3] != "" {
+				log.Fatal("<any> keyword should not be used with </mask>")
+				return ebpf.SdfFilter{}, fmt.Errorf("<any> keyword should not be used with </mask>")
+			}
+			sdfInfo.SrcAddress = ebpf.IpWMask{Type: 0}
+		} else {
+			if sdfInfo.SrcAddress, err = ParseCidrIp(match[2], match[3]); err != nil {
+				log.Fatal("2", err)
+				return ebpf.SdfFilter{}, err
+			}
+		}
+		sdfInfo.SrcPortRange = ebpf.PortRange{LowerBound: 0, UpperBound: 65535}
+		if match[4] != "" {
+			if sdfInfo.SrcPortRange, err = ParsePortRange(match[4]); err != nil {
+				log.Fatal("3", err)
+				return ebpf.SdfFilter{}, err
+			}
+		}
+		if sdfInfo.DstAddress, err = ParseCidrIp(match[5], match[6]); err != nil {
+			log.Fatal("4", err)
 			return ebpf.SdfFilter{}, err
 		}
-	}
-	if sdfInfo.DstAddress, err = ParseCidrIp(match[5], match[6]); err != nil {
-		return ebpf.SdfFilter{}, err
-	}
-	sdfInfo.DstPortRange = ebpf.PortRange{LowerBound: 0, UpperBound: 65535}
-	if match[7] != "" {
-		if sdfInfo.DstPortRange, err = ParsePortRange(match[7]); err != nil {
+		sdfInfo.DstPortRange = ebpf.PortRange{LowerBound: 0, UpperBound: 65535}
+		if match[7] != "" {
+			if sdfInfo.DstPortRange, err = ParsePortRange(match[7]); err != nil {
+				log.Fatal("5", err)
+				return ebpf.SdfFilter{}, err
+			}
+		}
+	} else if re1.MatchString(flowDescription) {
+		match := re1.FindStringSubmatch(flowDescription)
+		log.Printf("Matched groups: %v\n", match)
+		if len(match) == 0 {
+			return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: bad formatting. Should be compatible with regexp: %s", re.String())
+		}
+
+		if sdfInfo.Protocol, err = ParseProtocol(match[1]); err != nil {
+			log.Fatal("1", err)
 			return ebpf.SdfFilter{}, err
 		}
+		if match[2] == "any" {
+			if match[3] != "" {
+				log.Fatal("<any> keyword should not be used with </mask>")
+				return ebpf.SdfFilter{}, fmt.Errorf("<any> keyword should not be used with </mask>")
+			}
+			sdfInfo.SrcAddress = ebpf.IpWMask{Type: 0}
+		} else {
+			if sdfInfo.SrcAddress, err = ParseCidr(match[2]); err != nil {
+				log.Fatal("2", err)
+				return ebpf.SdfFilter{}, err
+			}
+		}
+		if match[3] == "assigned" {
+			portRange := ebpf.PortRange{LowerBound: 1, UpperBound: 65535}
+			sdfInfo.SrcPortRange = portRange
+			sdfInfo.DstPortRange = portRange
+		}
 	}
+
 	return sdfInfo, nil
 }
 
 func ParseProtocol(protocol string) (uint8, error) {
+	if protocol == "58" {
+		protocol = "icmp6"
+	}
 	protocolMap := map[string]uint8{
-		"icmp": 0,
-		"ip":   1,
-		"tcp":  2,
-		"udp":  3,
+		"icmp":  0,
+		"ip":    1,
+		"tcp":   2,
+		"udp":   3,
+		"icmp6": 4,
 	}
 	number, ok := protocolMap[protocol]
 	if ok {
@@ -88,6 +135,33 @@ func ParseCidrIp(ipStr, maskStr string) (ebpf.IpWMask, error) {
 		}, nil
 	} else {
 		return ebpf.IpWMask{}, fmt.Errorf("Bad IP formatting.")
+	}
+}
+
+func ParseCidr(ipStr string) (ebpf.IpWMask, error) {
+	if ip, ipNet, err := net.ParseCIDR(ipStr); ip != nil {
+
+		if err != nil {
+			return ebpf.IpWMask{}, fmt.Errorf("failed to parse CIDR: %v", err)
+		}
+
+		var ipType uint8
+		if ip.To4() != nil {
+			ipType = 1
+			ip = ip.To4()
+		} else {
+			ipType = 2
+		}
+
+		mask := ipNet.Mask
+
+		return ebpf.IpWMask{
+			Type: ipType,
+			Ip:   ip,
+			Mask: mask,
+		}, nil
+	} else {
+		return ebpf.IpWMask{}, fmt.Errorf("bad IP formatting")
 	}
 }
 
