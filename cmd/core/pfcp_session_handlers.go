@@ -40,12 +40,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
 	createdPDRs := []SPDRInfo{}
-	teidCache := make(map[uint8]uint32)
-	pdrContext := &PDRCreationContext{
-		Session:         session,
-		ResourceManager: conn.ResourceManager,
-		TEIDCache:       teidCache,
-	}
+	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
 
 	err = func() error {
 		mapOperations := conn.mapOperations
@@ -82,17 +77,14 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 		}
 		pdrCount := 0
-		log.Info().Msgf("********count CreatePDR: %d", len(req.CreatePDR))
 
 		for _, pdr := range req.CreatePDR {
 			pdrCount++
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
 			if err != nil {
-				log.Info().Msgf("========PDR ID missing")
 				continue
 			}
-			log.Info().Msgf("---range %d PDRID: %d", pdrCount, pdrId)
 
 			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
 
@@ -102,8 +94,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				applyPDR(spdrInfo, mapOperations)
 				createdPDRs = append(createdPDRs, spdrInfo)
 			} else {
-				log.Printf("Error extracting PDR info: %s", err.Error())
-				log.Info().Msgf("[ERROR]]]]]]]]] Error extracting PDR info: %s", err.Error())
+				log.Error().Msgf("error extracting PDR info: %s", err.Error())
 			}
 		}
 		return nil

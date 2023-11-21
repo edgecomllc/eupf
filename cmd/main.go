@@ -77,7 +77,7 @@ func main() {
 	var err error
 	resourceManager, err := service.NewResourceManager(config.Conf.FeatureUEIP, config.Conf.FeatureFTUP, config.Conf.IPPool, config.Conf.FTEIDPool)
 	if err != nil {
-		log.Info().Msgf("[ERROR] Failed to create ResourceManager - err: %v", err)
+		log.Error().Msgf("failed to create ResourceManager - err: %v", err)
 	}
 
 	// Create PFCP connection

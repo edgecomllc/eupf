@@ -337,7 +337,7 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 
 	resourceManager, err := service.NewResourceManager(false, true, "10.61.0.0/16", 65536)
 	if err != nil {
-		log.Info().Msgf("[ERROR] Failed to create ResourceManager. err: %v", err)
+		log.Error().Msgf("failed to create ResourceManager. err: %v", err)
 	}
 	pfcpConn.ResourceManager = resourceManager
 

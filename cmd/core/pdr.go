@@ -52,7 +52,7 @@ func extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo, pdrContext *PDRCreationContext) 
 		if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
 			spdrInfo.PdrInfo.SdfFilter = &sdfFilterParsed
 		} else {
-			log.Info().Msgf("[ERROR] SDFFilter err: %v", err)
+			log.Error().Msgf("SDFFilter err: %v", err)
 			return err
 		}
 	}
@@ -75,7 +75,7 @@ func extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo, pdrContext *PDRCreationContext) 
 					if allocate {
 						allocatedTeid, err := pdrContext.getFTEID(pdrContext.Session.RemoteSEID, spdrInfo.PdrID)
 						if err != nil {
-							log.Info().Msgf("[ERROR] AllocateTEID err: %v", err)
+							log.Error().Msgf("AllocateTEID err: %v", err)
 							return fmt.Errorf("can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 						}
 						teid = allocatedTeid
