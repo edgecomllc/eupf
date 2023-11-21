@@ -12,7 +12,7 @@ import (
 
 func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager, seID uint64) error {
 	if spdrInfo.Ipv4 != nil {
-		if err := mapOperations.DeletePdrDownLink(spdrInfo.Ipv4); err != nil {
+		if err := mapOperations.DeletePdrDownlink(spdrInfo.Ipv4); err != nil {
 			return fmt.Errorf("Can't delete IPv4 PDR: %s", err.Error())
 		}
 	} else if spdrInfo.Ipv6 != nil {
@@ -20,7 +20,7 @@ func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, 
 			return fmt.Errorf("Can't delete IPv6 PDR: %s", err.Error())
 		}
 	} else {
-		if err := mapOperations.DeletePdrUpLink(spdrInfo.Teid); err != nil {
+		if err := mapOperations.DeletePdrUplink(spdrInfo.Teid); err != nil {
 			return fmt.Errorf("Can't delete GTP PDR: %s", err.Error())
 		}
 	}
@@ -108,7 +108,7 @@ func extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo, pdrContext *PDRCreationContext) 
 
 func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 	if spdrInfo.Ipv4 != nil {
-		if err := mapOperations.PutPdrDownLink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+		if err := mapOperations.PutPdrDownlink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
 			log.Info().Msgf("Can't apply IPv4 PDR: %s", err.Error())
 		}
 	} else if spdrInfo.Ipv6 != nil {
@@ -116,7 +116,7 @@ func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 			log.Info().Msgf("Can't apply IPv6 PDR: %s", err.Error())
 		}
 	} else {
-		if err := mapOperations.PutPdrUpLink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
+		if err := mapOperations.PutPdrUplink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
 			log.Info().Msgf("Can't apply GTP PDR: %s", err.Error())
 		}
 	}

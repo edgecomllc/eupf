@@ -76,10 +76,8 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				return err
 			}
 		}
-		pdrCount := 0
 
 		for _, pdr := range req.CreatePDR {
-			pdrCount++
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
 			if err != nil {
