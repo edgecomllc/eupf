@@ -2,11 +2,12 @@ package core
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
-	"net"
 )
 
 func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager, seID uint64) error {
@@ -75,7 +76,7 @@ func extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo, pdrContext *PDRCreationContext) 
 						allocatedTeid, err := pdrContext.getFTEID(pdrContext.Session.RemoteSEID, spdrInfo.PdrID)
 						if err != nil {
 							log.Info().Msgf("[ERROR] AllocateTEID err: %v", err)
-							return fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
+							return fmt.Errorf("can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 						}
 						teid = allocatedTeid
 						spdrInfo.Allocated = true
