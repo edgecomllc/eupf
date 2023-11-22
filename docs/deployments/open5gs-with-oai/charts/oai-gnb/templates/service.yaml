@@ -7,8 +7,14 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: 2152
+    - name: gtp-u
+      port: 2152
       protocol: UDP
-      name: gtp-u
+    - name: n2
+      port: 36412
+      protocol: SCTP
+    - name: rfsim
+      port: 4043
+      protocol: TCP
   selector:
     {{- include "oai-gnb.selectorLabels" . | nindent 4 }}

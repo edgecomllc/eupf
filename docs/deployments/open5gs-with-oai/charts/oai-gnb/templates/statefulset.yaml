@@ -54,6 +54,12 @@ spec:
             - name: gtp-u
               containerPort: 2152
               protocol: UDP
+            - name: n2
+              containerPort: 36412
+              protocol: SCTP
+            - name: rfsim
+              containerPort: 4043
+              protocol: TCP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.livenessProbe }}

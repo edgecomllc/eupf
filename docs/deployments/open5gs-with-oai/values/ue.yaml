@@ -4,10 +4,10 @@ image:
   repository: oaisoftwarealliance/oai-nr-ue
   tag: 2023.w43
 
-# command:
-#   - tail
-#   - -f
-#   - /dev/null
+command:
+  - tail
+  - -f
+  - /dev/null
 
 env:
   - name: MCC
