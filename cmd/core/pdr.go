@@ -24,9 +24,7 @@ func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, 
 		}
 	}
 	if spdrInfo.Teid != 0 {
-		if pdrCtx.ResourceManager.FTEIDM != nil {
-			pdrCtx.ResourceManager.FTEIDM.ReleaseTEID(pdrCtx.Session.RemoteSEID)
-		}
+		pdrCtx.ResourceManager.FTEIDM.ReleaseTEID(pdrCtx.Session.RemoteSEID)
 	}
 	return nil
 }
