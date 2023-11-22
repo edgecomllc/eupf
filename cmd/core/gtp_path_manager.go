@@ -89,7 +89,7 @@ func (gtpPathManager *GtpPathManager) sendEcho(gtpPeerAddress string, seq uint16
 	defer conn.Close()
 
 	receiveBuffer := make([]byte, 1500)
-	conn.SetReadDeadline(time.Now().Add(time.Second * 3))
+	_ = conn.SetReadDeadline(time.Now().Add(time.Second * 3))
 
 	sendTime := time.Now()
 	if _, err := conn.Write(gtpEchoRequest.Bytes()); err != nil {
