@@ -35,7 +35,7 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 - 📝 *Linux Kernel **5.15.0-25-generic** is the minimum release version it has been tested on. Previous versions are not supported.*
 - ℹ In order to perform low-level operations like loading ebpf objects some additional privileges are required(NET_ADMIN & SYS_ADMIN)
 
-<blockquote><details><summary><i>Startup parameters you might want to change: </i></summary>
+<details><summary><i>See startup parameters you might want to change</i></summary>
 <p>
 
    - UPF_INTERFACE_NAME=lo    *Network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
@@ -47,7 +47,7 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
    - UPF_METRICS_ADDRESS=:9090   *Local host:port for serving Prometheus mertrics endpoint*
 
 </p>
-</details> </blockquote>
+</details>
 </p>
 
 In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
@@ -64,14 +64,14 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
   ghcr.io/edgecomllc/eupf:main
 ```
 
-### More info
-To go further, see the **[eUPF installation guide with Open5GS or Free5GC core](./docs/install.md)** to check how it works from end-to-end, deploying in three simple steps for you to choose: in Kubernetes cluster or as a docker-compose.
+## What's next?
+Read **[eUPF configuration guide](./docs/Configuration.md)** for more info about how to configure eUPF.
 
-More about parameters read in the **[eUPF configuration guide](./docs/Configuration.md)**.
+To go further, see the **[eUPF installation guide](./docs/install.md)** to learn how to run eUPF in different environments with different 5G core implementations using docker-compose or Kubernetes cluster.
 
 For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**.
 
-## Implementation details
+## Implementation notes
 
 eUPF as a part of 5G mobile core network implements data network gateway function. It communicates with SMF via PFCP protocol (N4 interface) and forwards packets between core and data networks(N3 and N6 interfaces correspondingly). These two main UPF parts are implemented in two separate components: control plane and forwarding plane.
 
@@ -80,6 +80,24 @@ The eUPF control plane is an userspace application which receives packet process
 The eUPF forwarding plane is based on eBPF packet processing. When started eUPF adds eBPF XDP hook program in order to process network packets as close to NIC as possible. eBPF program consists of several pipeline steps: determine PDR, apply gating, qos and forwarding rules.
 
 eUPF relies on kernel routing when making routing decision for incoming network packets. When it is not possible to determine packet route via kernel FIB lookup, eUPF passes such packet to kernel as a fallback path. This approach obviously affects performance but allows maintaining correct kernel routing process (ex., filling arp tables).
+
+### Brief functional description
+
+#### FAR support
+
+eUPF supports FAR rules in PDR. Only one FAR rule per PDR is supported.
+
+#### QER support
+
+eUPF supports QER rules in PDR. Currently only one QER rule per PDR is supported.
+
+#### SDF filters support
+
+eUPF is able to apply SDF filters in PDR. Currently only one SDF filter per GTP tunnel is supported.
+
+#### GTP path management
+
+eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neighbour GTP node should be explicitly configured. [See](docs/Configuration.md) `gtp_peer` configuration parameter.
 
 ### Architecture
 
@@ -91,12 +109,6 @@ eUPF relies on kernel routing when making routing decision for incoming network 
 
 #### Detailed architecture
 ![image](docs/pictures/eupf-arch.png)
-
-#### Current limitation
-
-- Only one PDR in PFCP session per direction
-- Only single FAR supported
-- Only XDP generic mode
 
 </details>
 
@@ -160,7 +172,7 @@ sudo apt install git golang clang llvm gcc-multilib libbpf-dev
 sudo dnf install git golang clang llvm gcc libbpf libbpf-devel libxdp libxdp-devel xdp-tools bpftool kernel-headers
 ```
 
-### Build & run manual
+### Manual build
 
 #### Step 1: Install the Swag command line tool for Golang
 This is used to automatically generate RESTful API documentation.
@@ -189,7 +201,7 @@ go build -v -o bin/eupf ./cmd/
 ```
 #### Step 5: Run the application
 
-   Run binary with privileges allowing to increase [memory-ulimits](https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits)
+Run binary with privileges allowing to increase [memory-ulimits](https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits)
 
 ```bash
 sudo ./bin/eupf
@@ -199,14 +211,9 @@ This should start application with the default configuration. Please adjust the 
 
 ### Build docker image
 
-default command for build docker image:
+Use this command to build eupf's docker image: `docker build -t local/eupf:latest .`
 
-`docker build -t local/eupf:latest .`
-
-you can define build arguments for command `go generate` like this:
-
-`docker build -t local/eupf:latest --build-arg BPF_ENABLE_LOG=1 --build-arg BPF_ENABLE_ROUTE_CACHE=1 .`
-
+You can also define several build arguments to configure eUPF image: `docker build -t local/eupf:latest --build-arg BPF_ENABLE_LOG=1 --build-arg BPF_ENABLE_ROUTE_CACHE=1 .`
 
 ## Contribution
 
