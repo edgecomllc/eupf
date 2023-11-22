@@ -81,6 +81,24 @@ The eUPF forwarding plane is based on eBPF packet processing. When started eUPF 
 
 eUPF relies on kernel routing when making routing decision for incoming network packets. When it is not possible to determine packet route via kernel FIB lookup, eUPF passes such packet to kernel as a fallback path. This approach obviously affects performance but allows maintaining correct kernel routing process (ex., filling arp tables).
 
+### Brief functional description
+
+#### FAR support
+
+eUPF supports FAR rules in PDR. Only one FAR rule per PDR is supported.
+
+#### QER support
+
+eUPF supports QER rules in PDR. Currently only one QER rule per PDR is supported.
+
+#### SDF filters support
+
+eUPF is able to apply SDF filters in PDR. Currently only one SDF filter per GTP tunnel is supported.
+
+#### GTP path management
+
+eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neighbour GTP node should be explicitly configured. [See](docs/Configuration.md) `gtp_peer` configuration parameter.
+
 ### Architecture
 
 <details><summary>Show me</summary>
@@ -91,12 +109,6 @@ eUPF relies on kernel routing when making routing decision for incoming network 
 
 #### Detailed architecture
 ![image](docs/pictures/eupf-arch.png)
-
-#### Current limitation
-
-- Only one PDR in PFCP session per direction
-- Only single FAR supported
-- Only XDP generic mode
 
 </details>
 

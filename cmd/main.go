@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/edgecomllc/eupf/cmd/api/rest"
-	"github.com/edgecomllc/eupf/cmd/server"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/api/rest"
+	"github.com/edgecomllc/eupf/cmd/server"
 
 	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
@@ -115,6 +116,13 @@ func main() {
 			log.Fatal().Msgf("Could not start metrics server: %s", err.Error())
 		}
 	}()
+
+	gtpPathManager := core.NewGtpPathManager(config.Conf.N3Address+":2152", time.Duration(config.Conf.EchoInterval)*time.Second)
+	for _, peer := range config.Conf.GtpPeer {
+		gtpPathManager.AddGtpPath(peer)
+	}
+	gtpPathManager.Run()
+	defer gtpPathManager.Stop()
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
