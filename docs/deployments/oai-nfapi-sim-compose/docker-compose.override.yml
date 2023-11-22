@@ -25,6 +25,7 @@ services:
 
   oai-smf:
     environment:
+      - DISCOVER_UPF=no
       - UPF_FQDN_0=edgecom-upf  
       - USE_FQDN_DNS=no
    depends_on:
