@@ -332,7 +332,7 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 	}
 }
 
-func TestTEIDInAssociationSetupResponse(t *testing.T) {
+func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 	pfcpConn, smfIP := PreparePfcpConnection(t)
 
 	resourceManager, err := service.NewResourceManager(false, true, "10.61.0.0/16", 65536)
