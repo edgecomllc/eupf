@@ -310,7 +310,7 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 		return fmt.Errorf("can't set QER: %v", err)
 	}
 
-	if err := bpfObjects.PutPdrUpLink(teid, pdr); err != nil {
+	if err := bpfObjects.PutPdrUplink(teid, pdr); err != nil {
 		return fmt.Errorf("can't set uplink PDR: %v", err)
 	}
 
@@ -323,7 +323,7 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 	}
 	pdr.SdfFilter = &sdf
 	pdr.FarId = 2
-	if err := bpfObjects.PutPdrUpLink(teid, pdr); err != nil {
+	if err := bpfObjects.PutPdrUplink(teid, pdr); err != nil {
 		return fmt.Errorf("can't set uplink PDR: %v", err)
 	}
 
@@ -383,7 +383,7 @@ func testGtpExtHeader(bpfObjects *BpfObjects) error {
 		return fmt.Errorf("can't set QER: %v", err)
 	}
 
-	if err := bpfObjects.PutPdrDownLink(net.IP{10, 60, 0, 1}, pdr); err != nil {
+	if err := bpfObjects.PutPdrDownlink(net.IP{10, 60, 0, 1}, pdr); err != nil {
 		return fmt.Errorf("can't set downlink PDR: %v", err)
 	}
 
