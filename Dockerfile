@@ -24,9 +24,9 @@ FROM alpine:3.18 AS runtime
 LABEL org.opencontainers.image.source="https://github.com/edgecomllc/eupf"
 
 RUN apk update \
-    # fix CVE-2023-5363, CVE-2023-5678
-    && apk add libssl3=3.1.4-r1 \
-    && apk add libcrypto3=3.1.4-r1 \
+    # workaround to fix CVE-2023-5363, CVE-2023-5678. Use alpine 3.18.5 when these CVEs will be fixed there
+    && apk add --no-cache libssl3=3.1.4-r1 \
+    && apk add --no-cache libcrypto3=3.1.4-r1 \
     && rm -rf /var/cache/apk/*
 
 COPY --from=builder /app/bin/ /app/bin/
