@@ -150,7 +150,7 @@ func (connection *PfcpConnection) DeleteSession(session *Session) {
 		_ = connection.mapOperations.DeleteQer(qer.GlobalId)
 	}
 	for _, PDR := range session.PDRs {
-		_ = deletePDR(PDR, connection.mapOperations, connection.ResourceManager, session.RemoteSEID)
+		_ = deletePDR(PDR, connection.mapOperations, NewPDRCreationContext(session, connection.ResourceManager))
 	}
 }
 
@@ -164,4 +164,9 @@ func (connection *PfcpConnection) GetSessionCount() int {
 
 func (connection *PfcpConnection) GetAssiciationCount() int {
 	return len(connection.NodeAssociations)
+}
+
+func (connection *PfcpConnection) ReleaseResources(seID uint64) {
+	connection.ResourceManager.IPAM.ReleaseIP(seID)
+	connection.ResourceManager.FTEIDM.ReleaseTEID(seID)
 }

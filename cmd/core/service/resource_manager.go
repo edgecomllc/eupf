@@ -127,11 +127,6 @@ func (fteidm *FTEIDM) ReleaseTEID(seID uint64) {
 	}
 }
 
-func (rm *ResourceManager) ReleaseResources(seID uint64) {
-	rm.IPAM.ReleaseIP(seID)
-	rm.FTEIDM.ReleaseTEID(seID)
-}
-
 func nextIP(ip net.IP) net.IP {
 	nextIP := make(net.IP, len(ip))
 	copy(nextIP, ip)

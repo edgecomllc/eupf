@@ -88,7 +88,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 			if err := extractPDR(pdr, &spdrInfo, pdrContext); err == nil {
 				//if err := extractPDR(pdr, &spdrInfo, session, teidCache, conn.ResourceManager); err == nil {
-				pdrContext.Session.PutPDR(spdrInfo.PdrID, spdrInfo)
+				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 				createdPDRs = append(createdPDRs, spdrInfo)
 			} else {
@@ -115,9 +115,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	}
 
 	pdrIEs := processCreatedPDRs(createdPDRs, cloneIP(conn.n3Address))
-	if len(pdrIEs) != 0 {
-		additionalIEs = append(additionalIEs, pdrIEs...)
-	}
+	additionalIEs = append(additionalIEs, pdrIEs...)
 
 	// Send SessionEstablishmentResponse
 	estResp := message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, additionalIEs...)
@@ -145,7 +143,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	}
 	mapOperations := conn.mapOperations
 	for _, pdrInfo := range session.PDRs {
-		if err := deletePDR(pdrInfo, mapOperations, conn.ResourceManager, session.RemoteSEID); err != nil {
+		if err := deletePDR(pdrInfo, mapOperations, NewPDRCreationContext(session, conn.ResourceManager)); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
@@ -165,7 +163,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	log.Info().Msgf("Deleting session: %d", req.SEID())
 	delete(association.Sessions, req.SEID())
 
-	conn.ResourceManager.ReleaseResources(req.SEID())
+	conn.ReleaseResources(req.SEID())
 
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted)), nil
@@ -207,6 +205,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 	// #TODO: Implement rollback on error
 	createdPDRs := []SPDRInfo{}
+	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
 
 	err := func() error {
 		mapOperations := conn.mapOperations
@@ -299,8 +298,6 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 		}
 
-		teidCache := make(map[uint8]uint32)
-
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
@@ -310,12 +307,6 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
-
-			pdrContext := &PDRCreationContext{
-				Session:         session,
-				ResourceManager: conn.ResourceManager,
-				TEIDCache:       teidCache,
-			}
 
 			if err := extractPDR(pdr, &spdrInfo, pdrContext); err == nil {
 				//if err := extractPDR(pdr, &spdrInfo, session, teidCache, conn.ResourceManager); err == nil {
@@ -335,13 +326,6 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			spdrInfo := session.GetPDR(pdrId)
-
-			pdrContext := &PDRCreationContext{
-				Session:         session,
-				ResourceManager: conn.ResourceManager,
-				TEIDCache:       teidCache,
-			}
-
 			if err := extractPDR(pdr, &spdrInfo, pdrContext); err == nil {
 				//if err := extractPDR(pdr, &spdrInfo, session, teidCache, conn.ResourceManager); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
@@ -357,7 +341,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				log.Info().Msgf("Removing uplink PDR: %d", pdrId)
 				sPDRInfo := session.RemovePDR(uint32(pdrId))
 
-				if err := deletePDR(sPDRInfo, mapOperations, conn.ResourceManager, session.RemoteSEID); err != nil {
+				if err := deletePDR(sPDRInfo, mapOperations, pdrContext); err != nil {
 					log.Info().Msgf("Failed to remove uplink PDR: %v", err)
 				}
 			}
@@ -379,9 +363,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	}
 
 	pdrIEs := processCreatedPDRs(createdPDRs, conn.n3Address)
-	if len(pdrIEs) != 0 {
-		additionalIEs = append(additionalIEs, pdrIEs...)
-	}
+	additionalIEs = append(additionalIEs, pdrIEs...)
 
 	// Send SessionEstablishmentResponse
 	modResp := message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, additionalIEs...)

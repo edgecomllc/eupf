@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
 )
 
-func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager, seID uint64) error {
+func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, pdrCtx *PDRCreationContext) error {
 	if spdrInfo.Ipv4 != nil {
 		if err := mapOperations.DeletePdrDownlink(spdrInfo.Ipv4); err != nil {
 			return fmt.Errorf("Can't delete IPv4 PDR: %s", err.Error())
@@ -25,8 +24,8 @@ func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, 
 		}
 	}
 	if spdrInfo.Teid != 0 {
-		if resourceManager.FTEIDM != nil {
-			resourceManager.FTEIDM.ReleaseTEID(seID)
+		if pdrCtx.ResourceManager.FTEIDM != nil {
+			pdrCtx.ResourceManager.FTEIDM.ReleaseTEID(pdrCtx.Session.RemoteSEID)
 		}
 	}
 	return nil
@@ -131,8 +130,7 @@ func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) []*ie.IE {
 			} else if pdr.Ipv6 != nil {
 
 			} else {
-				ip := cloneIP(n3Address)
-				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0x01, pdr.Teid, ip, nil, 0)))
+				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0x01, pdr.Teid, cloneIP(n3Address), nil, 0)))
 			}
 		}
 	}

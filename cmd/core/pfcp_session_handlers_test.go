@@ -68,7 +68,7 @@ func TestAssociationSetup(t *testing.T) {
 	}
 }
 
-func SdfFilterStorePreSetup(t *testing.T) (PfcpConnection, string) {
+func PreparePfcpConnection(t *testing.T) (PfcpConnection, string) {
 	mapOps := MapOperationsMock{}
 
 	var pfcpHandlers = PfcpHandlerMap{
@@ -172,7 +172,7 @@ func SendDefaulMappingPdrs(t *testing.T, pfcpConn *PfcpConnection, smfIP string)
 
 func TestSdfFilterStoreValid(t *testing.T) {
 
-	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+	pfcpConn, smfIP := PreparePfcpConnection(t)
 	SendDefaulMappingPdrs(t, &pfcpConn, smfIP)
 
 	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 1 {
@@ -262,7 +262,7 @@ func TestSdfFilterStoreValid(t *testing.T) {
 
 func TestSdfFilterStoreInvalid(t *testing.T) {
 
-	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+	pfcpConn, smfIP := PreparePfcpConnection(t)
 	SendDefaulMappingPdrs(t, &pfcpConn, smfIP)
 
 	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 1 {
@@ -307,7 +307,7 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 		FeatureFTUP: true,
 	}
 
-	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+	pfcpConn, smfIP := PreparePfcpConnection(t)
 
 	// Creating an Association Setup Request
 	asReq := message.NewAssociationSetupRequest(1,
@@ -332,8 +332,8 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 	}
 }
 
-func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
-	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+func TestTEIDInAssociationSetupResponse(t *testing.T) {
+	pfcpConn, smfIP := PreparePfcpConnection(t)
 
 	resourceManager, err := service.NewResourceManager(false, true, "10.61.0.0/16", 65536)
 	if err != nil {
@@ -410,6 +410,15 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 		if teid.TEID != 1 && teid.TEID != 2 {
 			t.Errorf("Unexpected TEID for PDR ID 2: got %d, expected %d or %d", teid.TEID, 1, 2)
 		}
+
+		if !teid.HasIPv4() {
+			t.Error("HasIPv4 flag is not enabled in TEID")
+		}
+
+		if teid.IPv4Address == nil {
+			t.Error("TEID has no ip")
+		}
+
 	}
 
 }
@@ -423,7 +432,7 @@ func TestUEIPInAssociationSetupResponse(t *testing.T) {
 		FeatureFTUP: false,
 	}
 
-	pfcpConn, smfIP := SdfFilterStorePreSetup(t)
+	pfcpConn, smfIP := PreparePfcpConnection(t)
 
 	// Creating an Association Setup Request
 	asReq := message.NewAssociationSetupRequest(1,
