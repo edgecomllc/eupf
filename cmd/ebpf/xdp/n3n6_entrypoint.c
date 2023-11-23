@@ -366,6 +366,7 @@ static __always_inline enum xdp_action handle_gtpu(struct packet_context *ctx) {
             upf_printk("upf: gtp echo request [ %pI4 -> %pI4 ]", &ctx->ip4->saddr, &ctx->ip4->daddr);
             return handle_echo_request(ctx);
         case GTPU_ECHO_RESPONSE:
+            return XDP_PASS; //Pass echo response to userspace program
         case GTPU_ERROR_INDICATION:
         case GTPU_SUPPORTED_EXTENSION_HEADERS_NOTIFICATION:
         case GTPU_END_MARKER:

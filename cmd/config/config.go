@@ -18,6 +18,8 @@ type UpfConfig struct {
 	PfcpNodeId        string   `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
 	MetricsAddress    string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
 	N3Address         string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
+	GtpPeer           []string `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
+	EchoInterval      uint32   `mapstructure:"echo_interval" validate:"min=1" json:"echo_interval"`
 	QerMapSize        uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
 	FarMapSize        uint32   `mapstructure:"far_map_size" validate:"min=1" json:"far_map_size"`
 	PdrMapSize        uint32   `mapstructure:"pdr_map_size" validate:"min=1" json:"pdr_map_size"`
@@ -42,6 +44,8 @@ func init() {
 	pflag.String("nodeid", "", "PFCP Server Node ID")
 	pflag.String("maddr", "", "Address to bind metrics server to")
 	pflag.String("n3addr", "", "Address for communication over N3 interface")
+	pflag.StringArray("peer", []string{}, "Address of GTP peer")
+	pflag.String("echo", "", "Interval of sending echo requests")
 	pflag.String("qersize", "", "Size of the QER ebpf map")
 	pflag.String("farsize", "", "Size of the FAR ebpf map")
 	pflag.String("pdrsize", "", "Size of the PDR ebpf map")
@@ -50,9 +54,7 @@ func init() {
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
 	pflag.String("loglvl", "", "Logging level")
-	pflag.Bool("feature_ueip", false, "Enable or disable feature_ueip")
 	pflag.Bool("feature_ftup", true, "Enable or disable feature_ftup")
-	pflag.String("ip_pool", "10.61.0.0/16", "IP Pool")
 	pflag.Uint32("teid_pool", 65536, "TEID Pool")
 	pflag.Parse()
 
@@ -64,6 +66,8 @@ func init() {
 	_ = v.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
 	_ = v.BindPFlag("metrics_address", pflag.Lookup("maddr"))
 	_ = v.BindPFlag("n3_address", pflag.Lookup("n3addr"))
+	_ = v.BindPFlag("gtp_peer", pflag.Lookup("peer"))
+	_ = v.BindPFlag("echo_interval", pflag.Lookup("echo"))
 	_ = v.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
 	_ = v.BindPFlag("far_map_size", pflag.Lookup("farsize"))
 	_ = v.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
@@ -72,9 +76,7 @@ func init() {
 	_ = v.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
 	_ = v.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
 	_ = v.BindPFlag("logging_level", pflag.Lookup("loglvl"))
-	_ = v.BindPFlag("feature_ueip", pflag.Lookup("feature_ueip"))
 	_ = v.BindPFlag("feature_ftup", pflag.Lookup("feature_ftup"))
-	_ = v.BindPFlag("ip_pool", pflag.Lookup("ip_pool"))
 	_ = v.BindPFlag("teid_pool", pflag.Lookup("teid_pool"))
 
 	v.SetDefault("interface_name", "lo")
@@ -84,6 +86,7 @@ func init() {
 	v.SetDefault("pfcp_node_id", "127.0.0.1")
 	v.SetDefault("metrics_address", ":9090")
 	v.SetDefault("n3_address", "127.0.0.1")
+	v.SetDefault("echo_interval", 10)
 	v.SetDefault("qer_map_size", "1024")
 	v.SetDefault("far_map_size", "1024")
 	v.SetDefault("pdr_map_size", "1024")
@@ -92,9 +95,7 @@ func init() {
 	v.SetDefault("heartbeat_interval", 5)
 	v.SetDefault("heartbeat_timeout", 5)
 	v.SetDefault("logging_level", "info")
-	v.SetDefault("feature_ueip", false)
 	v.SetDefault("feature_ftup", false)
-	v.SetDefault("ip_pool", "")
 	v.SetDefault("teid_pool", 0)
 
 	v.SetConfigFile(*configPath)

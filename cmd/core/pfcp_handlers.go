@@ -50,12 +50,6 @@ func setBit(n uint8, pos uint) uint8 {
 	return n
 }
 
-func setBitUP(up []uint8, pos uint) {
-	if int(pos) < 8*len(up) {
-		up[pos/8] |= 1 << (pos % 8)
-	}
-}
-
 // https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/16.04.00_60/ts_129244v160400p.pdf page 95
 func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	asreq := msg.(*message.AssociationSetupRequest)
@@ -98,14 +92,10 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	conn.NodeAssociations[addr] = remoteNode
 	log.Info().Msgf("Saving new association: %+v", remoteNode)
 
-	featuresOctets := [41]uint8{}
+	featuresOctets := []uint8{}
 	if config.Conf.FeatureFTUP {
-		setBitUP(featuresOctets[:], 4) // FTUP
+		featuresOctets = append(featuresOctets, setBit(0, 4))
 	}
-	if config.Conf.FeatureUEIP {
-		setBitUP(featuresOctets[:], 18) // UEIP
-	}
-
 	upFunctionFeaturesIE := ie.NewUPFunctionFeatures(featuresOctets[:]...)
 
 	// shall send a PFCP Association Setup Response including:

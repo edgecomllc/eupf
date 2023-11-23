@@ -422,38 +422,3 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 	}
 
 }
-
-func TestUEIPInAssociationSetupResponse(t *testing.T) {
-
-	config.Conf = config.UpfConfig{
-		IPPool:      "10.61.0.0/16",
-		FTEIDPool:   65536,
-		FeatureUEIP: true,
-		FeatureFTUP: false,
-	}
-
-	pfcpConn, smfIP := PreparePfcpConnection(t)
-
-	// Creating an Association Setup Request
-	asReq := message.NewAssociationSetupRequest(1,
-		ie.NewNodeID("", "", "test"),
-	)
-
-	// Processing Association Setup Request
-	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
-	if err != nil {
-		t.Errorf("Error handling Association Setup Request: %s", err)
-	}
-
-	// Checking if UEIP is enabled in UP Function Features in response
-	asRes, ok := response.(*message.AssociationSetupResponse)
-	if !ok {
-		t.Error("Unexpected response type")
-	}
-
-	// Verify if UEIP is enabled in UP Function Features in response
-	ueipEnabled := asRes.UPFunctionFeatures.HasUEIP()
-	if !ueipEnabled {
-		t.Error("UEIP is not enabled in Association Setup Response")
-	}
-}

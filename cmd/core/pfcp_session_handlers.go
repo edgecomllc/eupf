@@ -87,7 +87,6 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
 
 			if err := extractPDR(pdr, &spdrInfo, pdrContext); err == nil {
-				//if err := extractPDR(pdr, &spdrInfo, session, teidCache, conn.ResourceManager); err == nil {
 				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 				createdPDRs = append(createdPDRs, spdrInfo)
@@ -309,8 +308,6 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
 
 			if err := extractPDR(pdr, &spdrInfo, pdrContext); err == nil {
-				//if err := extractPDR(pdr, &spdrInfo, session, teidCache, conn.ResourceManager); err == nil {
-				//if err := extractPDR(pdr, session, &spdrInfo); err == nil {
 				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 				createdPDRs = append(createdPDRs, spdrInfo)
