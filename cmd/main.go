@@ -76,7 +76,7 @@ func main() {
 	}
 
 	var err error
-	resourceManager, err := service.NewResourceManager(config.Conf.FeatureUEIP, config.Conf.FeatureFTUP, config.Conf.IPPool, config.Conf.FTEIDPool)
+	resourceManager, err := service.NewResourceManager(config.Conf.FeatureFTUP, config.Conf.FTEIDPool)
 	if err != nil {
 		log.Error().Msgf("failed to create ResourceManager - err: %v", err)
 	}

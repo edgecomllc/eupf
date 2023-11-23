@@ -23,32 +23,9 @@ type IPAM struct {
 	sync.RWMutex
 }
 
-func NewResourceManager(ueip, ftup bool, ipRange string, teidRange uint32) (*ResourceManager, error) {
+func NewResourceManager(ftup bool, teidRange uint32) (*ResourceManager, error) {
 
-	var ipam IPAM
 	var fteidm FTEIDM
-
-	if ueip {
-		_, ipNet, err := net.ParseCIDR(ipRange)
-		if err != nil {
-			return nil, err
-		}
-
-		freeIPs := make([]net.IP, 0, 10000)
-		busyIPs := make(map[uint64]net.IP)
-
-		ip := ipNet.IP
-
-		for ipNet.Contains(ip) {
-			freeIPs = append(freeIPs, net.IP(ip))
-			ip = nextIP(ip)
-		}
-
-		ipam = IPAM{
-			freeIPs: freeIPs,
-			busyIPs: busyIPs,
-		}
-	}
 
 	if ftup {
 		freeTEIDs := make([]uint32, 0, 10000)
@@ -67,7 +44,6 @@ func NewResourceManager(ueip, ftup bool, ipRange string, teidRange uint32) (*Res
 	}
 
 	return &ResourceManager{
-		IPAM:   &ipam,
 		FTEIDM: &fteidm,
 	}, nil
 }
