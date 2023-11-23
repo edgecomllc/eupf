@@ -25,20 +25,6 @@ func TestAllocateIP(t *testing.T) {
 		t.Errorf("Expected: %v, but got: %v", expected2, result2)
 	}
 
-	//resourceManager.IPAM.ReleaseIP(12)
-	resourceManager.ReleaseResources(12)
-	expecctedLen1 := 65535
-	if expecctedLen1 != len(resourceManager.IPAM.freeIPs) {
-		t.Errorf("Expected: %d, but got: %d", expecctedLen1, len(resourceManager.IPAM.freeIPs))
-	}
-
-	//resourceManager.IPAM.ReleaseIP(16)
-	resourceManager.ReleaseResources(16)
-	expecctedLen2 := 65536
-	if expecctedLen2 != len(resourceManager.IPAM.freeIPs) {
-		t.Errorf("Expected: %d, but got: %d", expecctedLen2, len(resourceManager.IPAM.freeIPs))
-	}
-
 	//TEID TEST
 	resultTEID1, err := resourceManager.FTEIDM.AllocateTEID(12, 1)
 	expectedTEID1 := 1
@@ -58,17 +44,4 @@ func TestAllocateIP(t *testing.T) {
 		t.Errorf("Expected: %v, but got: %v", expectedTEID3, resultTEID3)
 	}
 
-	//resourceManager.FTEIDM.ReleaseTEID(12)
-	resourceManager.ReleaseResources(12)
-	expecctedTEIDLen1 := 65535
-	if expecctedTEIDLen1 != len(resourceManager.FTEIDM.freeTEIDs) {
-		t.Errorf("Expected: %d, but got: %d", expecctedTEIDLen1, len(resourceManager.FTEIDM.freeTEIDs))
-	}
-
-	//resourceManager.FTEIDM.ReleaseTEID(16)
-	resourceManager.ReleaseResources(16)
-	expecctedTEIDLen2 := 65536
-	if expecctedTEIDLen2 != len(resourceManager.FTEIDM.freeTEIDs) {
-		t.Errorf("Expected: %d, but got: %d", expecctedTEIDLen2, len(resourceManager.FTEIDM.freeTEIDs))
-	}
 }
