@@ -1,4 +1,4 @@
-### Intro
+## eUPF 3GPP compatibility
 
 eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Release 16.
 
