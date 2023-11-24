@@ -38,15 +38,6 @@ func (pcc *PDRCreationContext) getFTEID(seID uint64, pdrID uint32) (uint32, erro
 	return allocatedTeid, nil
 }
 
-//func (pcc *PDRCreationContext) getUEIP(seID uint64) (net.IP, error) {
-//	ip, err := pcc.ResourceManager.IPAM.AllocateIP(seID)
-//	if err != nil {
-//		log.Error().Msgf("AllocateIP err: %v", err)
-//		return nil, fmt.Errorf("Can't allocate IP: %s", causeToString(ie.CauseNoResourcesAvailable))
-//	}
-//	return ip, nil
-//}
-
 func (pcc *PDRCreationContext) hasTEIDCache(chooseID uint8) (uint32, bool) {
 	teid, ok := pcc.TEIDCache[chooseID]
 	return teid, ok
