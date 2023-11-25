@@ -46,3 +46,13 @@ func (pcc *PDRCreationContext) hasTEIDCache(chooseID uint8) (uint32, bool) {
 func (pcc *PDRCreationContext) setTEIDCache(chooseID uint8, teid uint32) {
 	pcc.TEIDCache[chooseID] = teid
 }
+
+func (pcc *PDRCreationContext) CanAllocateTEID() bool {
+	f := false
+	if pcc.ResourceManager != nil {
+		if pcc.ResourceManager.FTEIDM != nil {
+			f = true
+		}
+	}
+	return f
+}
