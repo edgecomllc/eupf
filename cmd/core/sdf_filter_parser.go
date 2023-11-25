@@ -11,7 +11,7 @@ import (
 )
 
 func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
-	re := regexp.MustCompile(`^permit out (icmp|ip|tcp|udp|\d+) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to (assigned|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
+	re := regexp.MustCompile(`^permit out (icmp|ip|tcp|udp|\d+) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to (assigned|any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
 
 	sdfInfo := ebpf.SdfFilter{}
 	var err error
@@ -41,7 +41,7 @@ func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
 			return ebpf.SdfFilter{}, err
 		}
 	}
-	if match[5] == "assigned" {
+	if match[5] == "assigned" || match[5] == "any" {
 		sdfInfo.DstAddress = ebpf.IpWMask{Type: 0}
 	} else {
 		if sdfInfo.DstAddress, err = ParseCidrIp(match[5], match[6]); err != nil {
