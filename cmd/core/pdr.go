@@ -59,7 +59,7 @@ func extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo, pdrContext *PDRCreationContext) 
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
 			var teid = fteid.TEID
-			if pdrContext.ResourceManager.FTEIDM != nil {
+			if pdrContext.ResourceManager != nil && pdrContext.ResourceManager.FTEIDM != nil {
 				if fteid.HasCh() {
 					var allocate = true
 					if fteid.HasChID() {
