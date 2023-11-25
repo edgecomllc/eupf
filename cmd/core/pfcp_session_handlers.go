@@ -324,7 +324,6 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 			spdrInfo := session.GetPDR(pdrId)
 			if err := extractPDR(pdr, &spdrInfo, pdrContext); err == nil {
-				//if err := extractPDR(pdr, &spdrInfo, session, teidCache, conn.ResourceManager); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {
