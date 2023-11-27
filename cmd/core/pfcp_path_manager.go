@@ -22,11 +22,17 @@ type PfcpPathManager struct {
 
 func NewPfcpPathManager(localAddress string, interval time.Duration) *PfcpPathManager {
 	ctx, cancelCtx := context.WithCancel(context.Background())
-	return &PfcpPathManager{localAddress: localAddress, peers: map[string]uint32{}, checkInterval: interval, ctx: ctx, cancelCtx: cancelCtx}
+	return &PfcpPathManager{localAddress: localAddress, peers: map[string]uint32{},
+		checkInterval: interval, ctx: ctx, cancelCtx: cancelCtx, cancelAssociationSetup: map[string]context.CancelFunc{}}
 }
 
-func (pfcpPathManager *PfcpPathManager) AddPfcpPath(gtpPeerAddress string) {
-	pfcpPathManager.peers[gtpPeerAddress] = 0
+func (pfcpPathManager *PfcpPathManager) AddPfcpPath(pfcpPeerAddress string) {
+	updAddr, err := net.ResolveUDPAddr("udp", pfcpPeerAddress+":8805")
+	if err != nil {
+		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", pfcpPeerAddress, err.Error())
+		return
+	}
+	pfcpPathManager.peers[updAddr.IP.String()] = 0
 }
 
 func (pfcpPathManager *PfcpPathManager) Run(conn *PfcpConnection) {
@@ -44,7 +50,7 @@ func (pfcpPathManager *PfcpPathManager) Run(conn *PfcpConnection) {
 				return
 			case <-ticker.C:
 				for peer, _ := range pfcpPathManager.peers {
-					if !IsAssociationSetupEnded(peer, conn) {
+					if IsAssociationSetupEnded(peer, conn) {
 						pfcpPathManager.cancelAssociationSetup[peer]()
 					}
 				}
@@ -81,7 +87,12 @@ func SendAssociationSetupRequest(conn *PfcpConnection, sequenceID uint32, associ
 		newIeNodeID(conn.nodeId),
 		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
 		ie.NewUPFunctionFeatures(),
-		// ie.NewUserPlaneIPResourceInformation(0, 0, "0", "0", "0", 0),
+		// 0x41 = Spare (0) | Assoc Src Inst (0) | Assoc Net Inst (0) | Teid Range (000) | IPV6 (0) | IPV4 (1)
+		//      = 00000001
+		// If both the ASSONI and ASSOSI flags are set to "0", this shall indicate that the User Plane IP Resource Information
+		// provided can be used by CP function for any Network Instance and any Source Interface of GTP-U user plane in the UP
+		// function.
+		ie.NewUserPlaneIPResourceInformation(0x1, 0, config.Conf.PfcpNodeId, "", "", 0),
 	)
 	log.Debug().Msgf("Sent Association Setup Request to: %s", associationAddr)
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")

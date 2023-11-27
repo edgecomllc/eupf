@@ -28,7 +28,7 @@ type UpfConfig struct {
 	HeartbeatInterval       uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
 	HeartbeatTimeout        uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
 	LoggingLevel            string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
-	PfcpPeer                []string `mapstructure:"pfcp_node" validate:"omitempty,dive,hostname_port" json:"pfcp_node"`
+	PfcpPeer                []string `mapstructure:"pfcp_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
 	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
 }
 
