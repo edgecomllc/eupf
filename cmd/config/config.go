@@ -11,23 +11,25 @@ import (
 var v = viper.GetViper()
 
 type UpfConfig struct {
-	InterfaceName     []string `mapstructure:"interface_name" json:"interface_name"`
-	XDPAttachMode     string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload" json:"xdp_attach_mode"`
-	ApiAddress        string   `mapstructure:"api_address" validate:"hostname_port" json:"api_address"`
-	PfcpAddress       string   `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
-	PfcpNodeId        string   `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
-	MetricsAddress    string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
-	N3Address         string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
-	GtpPeer           []string `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
-	EchoInterval      uint32   `mapstructure:"echo_interval" validate:"min=1" json:"echo_interval"`
-	QerMapSize        uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
-	FarMapSize        uint32   `mapstructure:"far_map_size" validate:"min=1" json:"far_map_size"`
-	PdrMapSize        uint32   `mapstructure:"pdr_map_size" validate:"min=1" json:"pdr_map_size"`
-	EbpfMapResize     bool     `mapstructure:"resize_ebpf_maps" json:"resize_ebpf_maps"`
-	HeartbeatRetries  uint32   `mapstructure:"heartbeat_retries" json:"heartbeat_retries"`
-	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
-	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
-	LoggingLevel      string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
+	InterfaceName           []string `mapstructure:"interface_name" json:"interface_name"`
+	XDPAttachMode           string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload" json:"xdp_attach_mode"`
+	ApiAddress              string   `mapstructure:"api_address" validate:"hostname_port" json:"api_address"`
+	PfcpAddress             string   `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
+	PfcpNodeId              string   `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
+	MetricsAddress          string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
+	N3Address               string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
+	GtpPeer                 []string `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
+	EchoInterval            uint32   `mapstructure:"echo_interval" validate:"min=1" json:"echo_interval"`
+	QerMapSize              uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
+	FarMapSize              uint32   `mapstructure:"far_map_size" validate:"min=1" json:"far_map_size"`
+	PdrMapSize              uint32   `mapstructure:"pdr_map_size" validate:"min=1" json:"pdr_map_size"`
+	EbpfMapResize           bool     `mapstructure:"resize_ebpf_maps" json:"resize_ebpf_maps"`
+	HeartbeatRetries        uint32   `mapstructure:"heartbeat_retries" json:"heartbeat_retries"`
+	HeartbeatInterval       uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
+	HeartbeatTimeout        uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
+	LoggingLevel            string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
+	PfcpPeer                []string `mapstructure:"pfcp_node" validate:"omitempty,dive,hostname_port" json:"pfcp_node"`
+	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
 }
 
 func init() {
@@ -50,6 +52,8 @@ func init() {
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
 	pflag.String("loglvl", "", "Logging level")
+	pflag.StringArray("pfcpnode", []string{}, "Address of PFCP node")
+	pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -70,6 +74,8 @@ func init() {
 	_ = v.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
 	_ = v.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
 	_ = v.BindPFlag("logging_level", pflag.Lookup("loglvl"))
+	_ = v.BindPFlag("pfcp_node", pflag.Lookup("pfcpnode"))
+	_ = v.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -87,6 +93,7 @@ func init() {
 	v.SetDefault("heartbeat_interval", 5)
 	v.SetDefault("heartbeat_timeout", 5)
 	v.SetDefault("logging_level", "info")
+	v.SetDefault("association_setup_timeout", 5)
 
 	v.SetConfigFile(*configPath)
 

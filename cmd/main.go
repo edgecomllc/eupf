@@ -79,6 +79,7 @@ func main() {
 		message.MsgTypeHeartbeatRequest:            core.HandlePfcpHeartbeatRequest,
 		message.MsgTypeHeartbeatResponse:           core.HandlePfcpHeartbeatResponse,
 		message.MsgTypeAssociationSetupRequest:     core.HandlePfcpAssociationSetupRequest,
+		message.MsgTypeAssociationSetupResponse:    core.HandlePfcpAssociationSetupResponse,
 		message.MsgTypeSessionEstablishmentRequest: core.HandlePfcpSessionEstablishmentRequest,
 		message.MsgTypeSessionDeletionRequest:      core.HandlePfcpSessionDeletionRequest,
 		message.MsgTypeSessionModificationRequest:  core.HandlePfcpSessionModificationRequest,
@@ -123,6 +124,13 @@ func main() {
 	}
 	gtpPathManager.Run()
 	defer gtpPathManager.Stop()
+
+	pfcpPathManager := core.NewPfcpPathManager(config.Conf.PfcpAddress, time.Duration(config.Conf.HeartbeatInterval)*time.Second)
+	for _, peer := range config.Conf.PfcpPeer {
+		pfcpPathManager.AddPfcpPath(peer)
+	}
+	pfcpPathManager.Run(pfcpConn)
+	defer pfcpPathManager.Stop()
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
