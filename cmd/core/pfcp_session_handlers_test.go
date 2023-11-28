@@ -416,7 +416,5 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 		if teid.IPv4Address == nil {
 			t.Error("TEID has no ip")
 		}
-
 	}
-
 }
