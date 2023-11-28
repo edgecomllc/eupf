@@ -46,81 +46,81 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 
 // https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/16.04.00_60/ts_129244v160400p.pdf page 95
 func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
+	asreq := msg.(*message.AssociationSetupRequest)
 	log.Info().Msgf("Got Association Setup Request from: %s", addr)
-	return nil, nil
-	// asreq := msg.(*message.AssociationSetupRequest)
-	// log.Info().Msgf("Got Association Setup Request from: %s", addr)
-	// if asreq.NodeID == nil {
-	// 	log.Warn().Msgf("Got Association Setup Request without NodeID from: %s", addr)
-	// 	// Reject with cause
+	if asreq.NodeID == nil {
+		log.Warn().Msgf("Got Association Setup Request without NodeID from: %s", addr)
+		// Reject with cause
 
-	// 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
-	// 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
-	// 		ie.NewCause(ie.CauseMandatoryIEMissing),
-	// 	)
-	// 	return asres, nil
-	// }
-	// printAssociationSetupRequest(asreq)
-	// // Get NodeID
-	// remoteNodeID, err := asreq.NodeID.NodeID()
-	// if err != nil {
-	// 	log.Warn().Msgf("Got Association Setup Request with invalid NodeID from: %s", addr)
-	// 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEIncorrect)).Inc()
-	// 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
-	// 		ie.NewCause(ie.CauseMandatoryIEIncorrect),
-	// 	)
-	// 	return asres, nil
-	// }
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
+		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
+			ie.NewCause(ie.CauseMandatoryIEMissing),
+		)
+		return asres, nil
+	}
+	printAssociationSetupRequest(asreq)
+	// Get NodeID
+	remoteNodeID, err := asreq.NodeID.NodeID()
+	if err != nil {
+		log.Warn().Msgf("Got Association Setup Request with invalid NodeID from: %s", addr)
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEIncorrect)).Inc()
+		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
+			ie.NewCause(ie.CauseMandatoryIEIncorrect),
+		)
+		return asres, nil
+	}
 
-	// // Recovery Time Stamp
-	// if asres.RecoveryTimeStamp == nil {
-	// 	log.Warn().Msgf("Got Association Setup Request without RecoveryTimeStamp from: %s", addr)
-	// 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
-	// 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
-	// 		ie.NewCause(ie.CauseMandatoryIEMissing),
-	// 	)
-	// 	return asres, nil
-	// }
-	// _, err = asres.RecoveryTimeStamp.RecoveryTimeStamp()
-	// if err != nil {
-	// 	log.Warn().Msgf("Got Association Setup Request with invalid RecoveryTimeStamp from: %s", addr)
-	// 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEIncorrect)).Inc()
-	// 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
-	// 		ie.NewCause(ie.CauseMandatoryIEIncorrect),
-	// 	)
-	// 	return asres, nil
-	// }
+	// Recovery Time Stamp
+	if asreq.RecoveryTimeStamp == nil {
+		log.Warn().Msgf("Got Association Setup Request without RecoveryTimeStamp from: %s", addr)
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
+		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
+			ie.NewCause(ie.CauseMandatoryIEMissing),
+		)
+		return asres, nil
+	}
+	_, err = asreq.RecoveryTimeStamp.RecoveryTimeStamp()
+	if err != nil {
+		log.Warn().Msgf("Got Association Setup Request with invalid RecoveryTimeStamp from: %s", addr)
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEIncorrect)).Inc()
+		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
+			ie.NewCause(ie.CauseMandatoryIEIncorrect),
+		)
+		return asres, nil
+	}
 
-	// // Check if the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
-	// if _, ok := conn.NodeAssociations[remoteNodeID]; ok {
-	// 	log.Warn().Msgf("Association with NodeID: %s and address: %s already exists", remoteNodeID, addr)
-	// 	// retain the PFCP sessions that were established with the existing PFCP association and that are requested to be retained, if the PFCP Session Retention Information IE was received in the request; otherwise, delete the PFCP sessions that were established with the existing PFCP association;
-	// 	log.Warn().Msg("Session retention is not yet implemented")
-	// }
+	// Check if the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
+	conn.muAssoc.Lock()
+	if _, ok := conn.NodeAssociations[addr]; ok {
+		log.Warn().Msgf("Association with NodeID: %s and address: %s already exists", remoteNodeID, addr)
+		// retain the PFCP sessions that were established with the existing PFCP association and that are requested to be retained, if the PFCP Session Retention Information IE was received in the request; otherwise, delete the PFCP sessions that were established with the existing PFCP association;
+		log.Warn().Msg("Session retention is not yet implemented")
+	}
 
-	// // If the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
-	// // proceed with establishing the new PFCP association (regardless of the Recovery AssociationStart received in the request), overwriting the existing association;
-	// // if the request is accepted:
-	// // shall store the Node ID of the CP function as the identifier of the PFCP association;
-	// // Create RemoteNode from AssociationSetupRequest
-	// remoteNode := NewNodeAssociation(remoteNodeID, addr)
-	// // Add or replace RemoteNode to NodeAssociationMap
-	// conn.NodeAssociations[addr] = remoteNode
-	// log.Info().Msgf("Saving new association: %+v", remoteNode)
+	// If the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
+	// proceed with establishing the new PFCP association (regardless of the Recovery AssociationStart received in the request), overwriting the existing association;
+	// if the request is accepted:
+	// shall store the Node ID of the CP function as the identifier of the PFCP association;
+	// Create RemoteNode from AssociationSetupRequest
+	remoteNode := NewNodeAssociation(remoteNodeID, addr)
+	// Add or replace RemoteNode to NodeAssociationMap
+	conn.NodeAssociations[addr] = remoteNode
+	log.Info().Msgf("Saving new association: %+v", remoteNode)
 
-	// // shall send a PFCP Association Setup Response including:
-	// asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
-	// 	ie.NewCause(ie.CauseRequestAccepted), // a successful cause
-	// 	newIeNodeID(conn.nodeId),             // its Node ID;
-	// 	ie.NewUPFunctionFeatures(),           // information of all supported optional features in the UP function; We don't support any optional features at the moment
-	// 	// ... other IEs
-	// 	//	optionally one or more UE IP address Pool Information IE which contains a list of UE IP Address Pool Identities per Network Instance, S-NSSAI and IP version;
-	// 	//	optionally the NF Instance ID of the UPF if available
-	// )
+	// shall send a PFCP Association Setup Response including:
+	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
+		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
+		newIeNodeID(conn.nodeId),             // its Node ID;
+		ie.NewUPFunctionFeatures(),           // information of all supported optional features in the UP function; We don't support any optional features at the moment
+		// ... other IEs
+		//	optionally one or more UE IP address Pool Information IE which contains a list of UE IP Address Pool Identities per Network Instance, S-NSSAI and IP version;
+		//	optionally the NF Instance ID of the UPF if available
+	)
+	conn.muAssoc.Unlock()
 
-	// // Send AssociationSetupResponse
-	// PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
-	// return asres, nil
+	// Send AssociationSetupResponse
+	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
+	return asres, nil
 }
 
 func newIeNodeID(nodeID string) *ie.IE {
@@ -192,7 +192,8 @@ func HandlePfcpAssociationSetupResponse(conn *PfcpConnection, msg message.Messag
 	// UPF Instance ID
 
 	// Check if the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
-	if _, ok := conn.NodeAssociations[remoteNodeID]; ok {
+	conn.muAssoc.Lock()
+	if _, ok := conn.NodeAssociations[addr]; ok {
 		log.Warn().Msgf("Association with NodeID: %s and address: %s already exists", remoteNodeID, addr)
 		// retain the PFCP sessions that were established with the existing PFCP association and that are requested to be retained, if the PFCP Session Retention Information IE was received in the request; otherwise, delete the PFCP sessions that were established with the existing PFCP association;
 		log.Warn().Msg("Session retention is not yet implemented")
@@ -203,6 +204,7 @@ func HandlePfcpAssociationSetupResponse(conn *PfcpConnection, msg message.Messag
 	// Add or replace RemoteNode to NodeAssociationMap
 	conn.NodeAssociations[addr] = remoteNode
 	log.Info().Msgf("Saving new association: %+v", remoteNode)
+	conn.muAssoc.Unlock()
 
 	return nil, nil
 }

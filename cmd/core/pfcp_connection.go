@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/edgecomllc/eupf/cmd/config"
@@ -15,6 +16,7 @@ import (
 type PfcpConnection struct {
 	udpConn           *net.UDPConn
 	pfcpHandlerMap    PfcpHandlerMap
+	muAssoc           sync.Mutex
 	NodeAssociations  map[string]*NodeAssociation
 	nodeId            string
 	nodeAddrV4        net.IP
