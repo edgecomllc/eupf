@@ -38,7 +38,7 @@ func (pfcpPathManager *PfcpPathManager) AddPfcpPath(pfcpPeerAddress string) {
 func (pfcpPathManager *PfcpPathManager) Run(conn *PfcpConnection) {
 	for peer, sequenceNumber := range pfcpPathManager.peers {
 		pfcpPathManager.cancelAssociationSetup[peer] =
-			ScheduleAssociationSetupRequest(time.Duration(config.Conf.HeartbeatTimeout)*time.Second, conn, peer, sequenceNumber)
+			ScheduleAssociationSetupRequest(time.Duration(config.Conf.AssociationSetupTimeout)*time.Second, conn, peer, sequenceNumber)
 	}
 	go func() {
 		ticker := time.NewTicker(pfcpPathManager.checkInterval)
@@ -46,12 +46,13 @@ func (pfcpPathManager *PfcpPathManager) Run(conn *PfcpConnection) {
 		for {
 			select {
 			case <-pfcpPathManager.ctx.Done():
-				// The context is over, stop processing results
 				return
 			case <-ticker.C:
 				for peer, _ := range pfcpPathManager.peers {
-					if IsAssociationSetupEnded(peer, conn) {
+					if IsAssociationSetupEnded(peer, conn) && pfcpPathManager.cancelAssociationSetup[peer] != nil {
+						log.Debug().Msgf("Stop sending Association Setup Request to %s", peer)
 						pfcpPathManager.cancelAssociationSetup[peer]()
+						pfcpPathManager.cancelAssociationSetup[peer] = nil
 					}
 				}
 			}
@@ -72,11 +73,13 @@ func ScheduleAssociationSetupRequest(duration time.Duration, conn *PfcpConnectio
 	ctx, cancel := context.WithCancel(context.Background())
 	go func(ctx context.Context, duration time.Duration) {
 		ticker := time.NewTicker(duration)
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			SendAssociationSetupRequest(conn, seq, associationAddr)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				SendAssociationSetupRequest(conn, seq, associationAddr)
+			}
 		}
 	}(ctx, duration)
 	return cancel
@@ -86,7 +89,7 @@ func SendAssociationSetupRequest(conn *PfcpConnection, sequenceID uint32, associ
 	asreq := message.NewAssociationSetupRequest(sequenceID,
 		newIeNodeID(conn.nodeId),
 		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
-		ie.NewUPFunctionFeatures(),
+		ie.NewUPFunctionFeatures(), // information of all supported optional features in the UP function; We don't support any optional features at the moment
 		// 0x41 = Spare (0) | Assoc Src Inst (0) | Assoc Net Inst (0) | Teid Range (000) | IPV6 (0) | IPV4 (1)
 		//      = 00000001
 		// If both the ASSONI and ASSOSI flags are set to "0", this shall indicate that the User Plane IP Resource Information
@@ -94,7 +97,7 @@ func SendAssociationSetupRequest(conn *PfcpConnection, sequenceID uint32, associ
 		// function.
 		ie.NewUserPlaneIPResourceInformation(0x1, 0, config.Conf.PfcpNodeId, "", "", 0),
 	)
-	log.Debug().Msgf("Sent Association Setup Request to: %s", associationAddr)
+	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err == nil {
 		if err := conn.SendMessage(asreq, udpAddr); err != nil {
