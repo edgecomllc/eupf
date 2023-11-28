@@ -36,9 +36,9 @@ func (pfcpPathManager *PfcpPathManager) AddPfcpPath(pfcpPeerAddress string) {
 }
 
 func (pfcpPathManager *PfcpPathManager) Run(conn *PfcpConnection) {
-	for peer, sequenceNumber := range pfcpPathManager.peers {
+	for peer, _ := range pfcpPathManager.peers {
 		pfcpPathManager.cancelAssociationSetup[peer] =
-			ScheduleAssociationSetupRequest(time.Duration(config.Conf.AssociationSetupTimeout)*time.Second, conn, peer, sequenceNumber)
+			pfcpPathManager.ScheduleAssociationSetupRequest(time.Duration(config.Conf.AssociationSetupTimeout)*time.Second, conn, peer)
 	}
 	go func() {
 		ticker := time.NewTicker(pfcpPathManager.checkInterval)
@@ -69,7 +69,7 @@ func IsAssociationSetupEnded(addr string, conn *PfcpConnection) bool {
 	return ok
 }
 
-func ScheduleAssociationSetupRequest(duration time.Duration, conn *PfcpConnection, associationAddr string, seq uint32) context.CancelFunc {
+func (pfcpPathManager *PfcpPathManager) ScheduleAssociationSetupRequest(duration time.Duration, conn *PfcpConnection, associationAddr string) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func(ctx context.Context, duration time.Duration) {
 		ticker := time.NewTicker(duration)
@@ -78,7 +78,9 @@ func ScheduleAssociationSetupRequest(duration time.Duration, conn *PfcpConnectio
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				SendAssociationSetupRequest(conn, seq, associationAddr)
+				pfcpPathManager.peers[associationAddr] += 1
+				log.Debug().Msgf("Sequence ID: %d", pfcpPathManager.peers[associationAddr])
+				SendAssociationSetupRequest(conn, pfcpPathManager.peers[associationAddr], associationAddr)
 			}
 		}
 	}(ctx, duration)
