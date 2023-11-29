@@ -90,10 +90,16 @@ target = IP(dst="127.0.0.1") / UDP(sport=33100, dport=8805)
 
 # TODO: Add state checks via eUPF web API
 
+# def test_create_association():
+#     ans = sr1(target / association_request, iface='lo')
+#     assert ans.haslayer(PFCPAssociationSetupResponse)
+#     assert ans[PFCPAssociationSetupResponse][IE_Cause].cause == 1
 def test_create_association():
     ans = sr1(target / association_request, iface='lo')
+    print(ans.show())  # Добавим отладочный вывод
     assert ans.haslayer(PFCPAssociationSetupResponse)
-    assert ans[PFCPAssociationSetupResponse][IE_Cause].cause == 1
+    assert ans.haslayer(IE_Cause)
+    assert ans[IE_Cause].cause == 1
 
 
 def test_create_session():

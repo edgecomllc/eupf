@@ -6,6 +6,7 @@ import (
 	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
+	"net"
 )
 
 type PDRCreationContext struct {
@@ -77,6 +78,15 @@ func (pcc *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error 
 		}
 		return fmt.Errorf("F-TEID IE is missing")
 	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
+		if ueIP.Flags&(1<<2) != 0 {
+			ip, err := pcc.getIP(pcc.Session.RemoteSEID)
+			if err != nil {
+				log.Error().Err(err)
+			}
+			ueIP.IPv4Address = cloneIP(ip)
+			spdrInfo.Allocated = true
+		}
+
 		if ueIP.IPv4Address != nil {
 			spdrInfo.Ipv4 = cloneIP(ueIP.IPv4Address)
 		} else if ueIP.IPv6Address != nil {
@@ -114,6 +124,22 @@ func (pcc *PDRCreationContext) getFTEID(seID uint64, pdrID uint32) (uint32, erro
 		return 0, fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 	}
 	return allocatedTeid, nil
+}
+
+func (pcc PDRCreationContext) getIP(seID uint64) (net.IP, error) {
+	if pcc.ResourceManager == nil {
+		return nil, errors.New("resource manager is nil")
+	} else {
+		if pcc.ResourceManager.IPAM == nil {
+			return nil, errors.New("IPAM manager is nil")
+		}
+	}
+	allocatedIP, err := pcc.ResourceManager.IPAM.AllocateIP(seID)
+	if err != nil {
+		log.Error().Msgf("AllocateIP err: %v", err)
+		return nil, fmt.Errorf("can't allocate IP: %s", causeToString(ie.CauseNoResourcesAvailable))
+	}
+	return allocatedIP, nil
 }
 
 func (pcc *PDRCreationContext) hasTEIDCache(chooseID uint8) (uint32, bool) {
