@@ -97,7 +97,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		featuresOctets[0] = setBit(featuresOctets[0], 4)
 	}
 
-	upFunctionFeaturesIE := ie.NewUPFunctionFeatures(featuresOctets[:]...)
+	upFunctionFeaturesIE := ie.NewUPFunctionFeatures(featuresOctets...)
 
 	// shall send a PFCP Association Setup Response including:
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
