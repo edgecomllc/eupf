@@ -104,7 +104,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	}
 
 	// Reassigning is the best I can think of for now
-	association.Sessions[localSEID] = pdrContext.Session
+	association.Sessions[localSEID] = session
 	conn.NodeAssociations[addr] = association
 
 	additionalIEs := []*ie.IE{
