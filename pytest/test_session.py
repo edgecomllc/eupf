@@ -96,7 +96,6 @@ def test_create_association():
     assert ans[PFCPAssociationSetupResponse][IE_Cause].cause == 1
 
 
-
 def test_create_session():
     ans = sr1(target / session_establish, iface='lo')
     assert ans.haslayer(PFCPSessionEstablishmentResponse)
