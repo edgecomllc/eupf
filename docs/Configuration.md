@@ -17,7 +17,9 @@ Currently UPF have several config parameters shown below.<br>Parameters can be c
 | FAR map size <br>`Optional`    | Size of the eBPF map for FAR parameters                                                                                                                                                                                                                                                                                                         | `far_map_size`    | `UPF_FAR_MAP_SIZE`    | `--farsize` | `1024  `    |
 | PDR map size <br>`Optional`    | Size of the eBPF map for PDR parameters                                                                                                                                                                                                                                                                                                         | `pdr_map_size`    | `UPF_PDR_MAP_SIZE`    | `--pdrsize` | `1024  `    |
 | Logging level <br>`Optional`   | Logs having level <= selected level will be written to stdout                                                                                                                                                                                                                                                                                   | `logging_level`   | `UPF_LOGGING_LEVEL`   | `--loglvl`  | `info`         |
+| UEIP Feature <br>`Optional`    | Support for IP allocation option                                                                                                                                                                                                                                                                                                                | `feature_ueip`    | `UPF_FEATURE_UEIP`    | ``          | `false`        |
 | FTUP Feature <br>`Optional`    | Support for TEID allocation option                                                                                                                                                                                                                                                                                                              | `feature_ftup`    | `UPF_FEATURE_FTUP`    | ``          | `false`        |
+| IP Pool <br>`Optional`         | Pool of IP addresses, needed to allocate ip when the UEIP option is enabled                                                                                                                                                                                                                                                                     | `ip_pool`         | `UPF_IP_POOL`         | ``          | `10.61.0.0/16` |
 | TEID Pool <br>`Optional`       | Pool of TEIDs, needed to allocate TEID when the FTUP option is enabled                                                                                                                                                                                                                                                                          | `teid_pool`       | `UPF_TEID_POOL`       | ``          | `65536`        |
 
 We are using [Viper](https://github.com/spf13/viper) for configuration handling, [Viper](https://github.com/spf13/viper) uses the following precedence order. Each item takes precedence over the item below it:
@@ -44,7 +46,9 @@ n3_address: 127.0.0.1
 qer_map_size: 1024
 far_map_size: 1024
 pdr_map_size: 1024
+feature_ueip: true
 feature_ftup: true
+ip_pool: 10.61.0.0/16
 teid_pool: 65536
 ```
 

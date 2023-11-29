@@ -333,7 +333,7 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 	pfcpConn, smfIP := PreparePfcpConnection(t)
 
-	resourceManager, err := service.NewResourceManager(true, 65536)
+	resourceManager, err := service.NewResourceManager(false, true, "10.61.0.0/16", 65536)
 	if err != nil {
 		log.Error().Msgf("failed to create ResourceManager. err: %v", err)
 	}
@@ -416,5 +416,79 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 		if teid.IPv4Address == nil {
 			t.Error("TEID has no ip")
 		}
+	}
+}
+
+func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
+	pfcpConn, smfIP := PreparePfcpConnection(t)
+
+	resourceManager, err := service.NewResourceManager(true, false, "10.61.0.0/16", 65536)
+	if err != nil {
+		log.Error().Msgf("failed to create ResourceManager. err: %v", err)
+	}
+	pfcpConn.ResourceManager = resourceManager
+
+	//fteid1 := ie.NewFTEID(0x04, 0, net.ParseIP("127.0.0.1"), nil, 1) // 0x04 - CH true
+	ueip1 := ie.NewUEIPAddress(4, "", "", 0, 0)
+	createPDR1 := ie.NewCreatePDR(
+		ie.NewPDRID(1),
+		ie.NewPDI(
+			ie.NewSourceInterface(ie.SrcInterfaceCore),
+			ueip1,
+		),
+	)
+
+	ueip2 := ie.NewUEIPAddress(4, "", "", 0, 0)
+	createPDR2 := ie.NewCreatePDR(
+		ie.NewPDRID(2),
+		ie.NewPDI(
+			ie.NewSourceInterface(ie.SrcInterfaceCore),
+			ueip2,
+		),
+	)
+
+	// Creating a Session Establishment Request
+	seReq := message.NewSessionEstablishmentRequest(0, 0,
+		2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		createPDR1,
+		createPDR2,
+	)
+
+	// Processing Session Establishment Request
+	response, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling Session Establishment Request: %s", err)
+	}
+
+	// Checking if expected IPs are allocated in Session Establishment Response
+	seRes, ok := response.(*message.SessionEstablishmentResponse)
+	if !ok {
+		t.Error("Unexpected response type")
+	}
+
+	// Checking UEIP for each PDR
+	log.Info().Msgf("seRes.CreatedPDR len: %d", len(seRes.CreatedPDR))
+	if len(seRes.CreatedPDR) != 2 {
+		t.Errorf("Unexpected count PRD's: got %d, expected %d", len(seRes.CreatedPDR), 2)
+	}
+
+	for _, pdr := range seRes.CreatedPDR {
+
+		ueipType, err := pdr.FindByType(ie.UEIPAddress)
+		if err != nil {
+			log.Fatal().Err(err)
+		}
+
+		ueip, err := ueipType.UEIPAddress()
+		if err != nil {
+			log.Fatal().Err(err)
+		}
+
+		if ueip.IPv4Address != nil {
+			log.Info().Msgf("IP ADDRESS: %s", ueip.IPv4Address.String())
+		}
+
 	}
 }

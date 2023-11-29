@@ -28,7 +28,9 @@ type UpfConfig struct {
 	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
 	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
 	LoggingLevel      string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
+	IPPool            string   `mapstructure:"ip_pool" json:"ip_pool"`
 	FTEIDPool         uint32   `mapstructure:"teid_pool" json:"teid_pool"`
+	FeatureUEIP       bool     `mapstructure:"feature_ueip" json:"feature_ueip"`
 	FeatureFTUP       bool     `mapstructure:"feature_ftup" json:"feature_ftup"`
 }
 
@@ -52,7 +54,9 @@ func init() {
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
 	pflag.String("loglvl", "", "Logging level")
+	pflag.Bool("feature_ueip", false, "Enable or disable feature_ueip")
 	pflag.Bool("feature_ftup", true, "Enable or disable feature_ftup")
+	pflag.String("ip_pool", "10.61.0.0/16", "IP Pool")
 	pflag.Uint32("teid_pool", 65536, "TEID Pool")
 	pflag.Parse()
 
@@ -74,7 +78,9 @@ func init() {
 	_ = v.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
 	_ = v.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
 	_ = v.BindPFlag("logging_level", pflag.Lookup("loglvl"))
+	_ = v.BindPFlag("feature_ueip", pflag.Lookup("feature_ueip"))
 	_ = v.BindPFlag("feature_ftup", pflag.Lookup("feature_ftup"))
+	_ = v.BindPFlag("ip_pool", pflag.Lookup("ip_pool"))
 	_ = v.BindPFlag("teid_pool", pflag.Lookup("teid_pool"))
 
 	v.SetDefault("interface_name", "lo")
@@ -93,7 +99,9 @@ func init() {
 	v.SetDefault("heartbeat_interval", 5)
 	v.SetDefault("heartbeat_timeout", 5)
 	v.SetDefault("logging_level", "info")
+	v.SetDefault("feature_ueip", false)
 	v.SetDefault("feature_ftup", false)
+	v.SetDefault("ip_pool", "")
 	v.SetDefault("teid_pool", 0)
 
 	v.SetConfigFile(*configPath)
