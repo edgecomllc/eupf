@@ -92,9 +92,9 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	conn.NodeAssociations[addr] = remoteNode
 	log.Info().Msgf("Saving new association: %+v", remoteNode)
 
-	featuresOctets := []uint8{}
+	featuresOctets := []uint8{0, 0, 0}
 	if config.Conf.FeatureFTUP {
-		featuresOctets = append(featuresOctets, setBit(0, 4))
+		featuresOctets[0] = setBit(featuresOctets[0], 4)
 	}
 	upFunctionFeaturesIE := ie.NewUPFunctionFeatures(featuresOctets[:]...)
 
