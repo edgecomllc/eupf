@@ -96,9 +96,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	if config.Conf.FeatureFTUP {
 		featuresOctets[0] = setBit(featuresOctets[0], 4)
 	}
-	if config.Conf.FeatureUEIP {
-		featuresOctets[2] = setBit(featuresOctets[2], 2)
-	}
+
 	upFunctionFeaturesIE := ie.NewUPFunctionFeatures(featuresOctets[:]...)
 
 	// shall send a PFCP Association Setup Response including:
