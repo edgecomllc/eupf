@@ -1,33 +1,12 @@
 package core
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
 )
-
-func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController, pdrCtx *PDRCreationContext) error {
-	if spdrInfo.Ipv4 != nil {
-		if err := mapOperations.DeletePdrDownlink(spdrInfo.Ipv4); err != nil {
-			return fmt.Errorf("Can't delete IPv4 PDR: %s", err.Error())
-		}
-	} else if spdrInfo.Ipv6 != nil {
-		if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
-			return fmt.Errorf("Can't delete IPv6 PDR: %s", err.Error())
-		}
-	} else {
-		if err := mapOperations.DeletePdrUplink(spdrInfo.Teid); err != nil {
-			return fmt.Errorf("Can't delete GTP PDR: %s", err.Error())
-		}
-	}
-	if spdrInfo.Teid != 0 {
-		pdrCtx.ResourceManager.FTEIDM.ReleaseTEID(pdrCtx.Session.RemoteSEID)
-	}
-	return nil
-}
 
 func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 	if spdrInfo.Ipv4 != nil {

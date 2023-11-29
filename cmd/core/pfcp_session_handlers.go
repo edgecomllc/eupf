@@ -141,8 +141,9 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 	mapOperations := conn.mapOperations
+	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
 	for _, pdrInfo := range session.PDRs {
-		if err := deletePDR(pdrInfo, mapOperations, NewPDRCreationContext(session, conn.ResourceManager)); err != nil {
+		if err := pdrContext.deletePDR(pdrInfo, mapOperations); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
@@ -337,7 +338,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				log.Info().Msgf("Removing uplink PDR: %d", pdrId)
 				sPDRInfo := session.RemovePDR(uint32(pdrId))
 
-				if err := deletePDR(sPDRInfo, mapOperations, pdrContext); err != nil {
+				if err := pdrContext.deletePDR(sPDRInfo, mapOperations); err != nil {
 					log.Info().Msgf("Failed to remove uplink PDR: %v", err)
 				}
 			}

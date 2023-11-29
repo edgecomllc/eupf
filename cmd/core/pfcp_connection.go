@@ -149,8 +149,9 @@ func (connection *PfcpConnection) DeleteSession(session *Session) {
 	for _, qer := range session.QERs {
 		_ = connection.mapOperations.DeleteQer(qer.GlobalId)
 	}
+	pdrContext := NewPDRCreationContext(session, connection.ResourceManager)
 	for _, PDR := range session.PDRs {
-		_ = deletePDR(PDR, connection.mapOperations, NewPDRCreationContext(session, connection.ResourceManager))
+		_ = pdrContext.deletePDR(PDR, connection.mapOperations)
 	}
 }
 
