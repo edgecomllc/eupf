@@ -167,6 +167,15 @@ func (connection *PfcpConnection) GetAssiciationCount() int {
 }
 
 func (connection *PfcpConnection) ReleaseResources(seID uint64) {
-	connection.ResourceManager.IPAM.ReleaseIP(seID)
-	connection.ResourceManager.FTEIDM.ReleaseTEID(seID)
+	if connection.ResourceManager == nil {
+		return
+	}
+
+	if connection.ResourceManager.IPAM != nil {
+		connection.ResourceManager.IPAM.ReleaseIP(seID)
+	}
+
+	if connection.ResourceManager.FTEIDM != nil {
+		connection.ResourceManager.FTEIDM.ReleaseTEID(seID)
+	}
 }
