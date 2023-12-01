@@ -478,16 +478,16 @@ func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
 
 		ueipType, err := pdr.FindByType(ie.UEIPAddress)
 		if err != nil {
-			log.Fatal().Err(err)
+			t.Errorf("FindByType err: %v", err)
 		}
 
 		ueip, err := ueipType.UEIPAddress()
 		if err != nil {
-			log.Fatal().Err(err)
+			t.Errorf("UEIPAddress err: %v", err)
 		}
 
-		if ueip.IPv4Address != nil {
-			log.Info().Msgf("IP ADDRESS: %s", ueip.IPv4Address.String())
+		if ueip.IPv4Address == nil {
+			//t.Error("IPv4Address is nil")
 		}
 
 	}
