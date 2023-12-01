@@ -149,8 +149,9 @@ func (connection *PfcpConnection) DeleteSession(session *Session) {
 	for _, qer := range session.QERs {
 		_ = connection.mapOperations.DeleteQer(qer.GlobalId)
 	}
+	pdrContext := NewPDRCreationContext(session, connection.ResourceManager)
 	for _, PDR := range session.PDRs {
-		_ = deletePDR(PDR, connection.mapOperations, NewPDRCreationContext(session, connection.ResourceManager))
+		_ = pdrContext.deletePDR(PDR, connection.mapOperations)
 	}
 }
 
@@ -167,6 +168,15 @@ func (connection *PfcpConnection) GetAssiciationCount() int {
 }
 
 func (connection *PfcpConnection) ReleaseResources(seID uint64) {
-	connection.ResourceManager.IPAM.ReleaseIP(seID)
-	connection.ResourceManager.FTEIDM.ReleaseTEID(seID)
+	if connection.ResourceManager == nil {
+		return
+	}
+
+	if connection.ResourceManager.IPAM != nil {
+		connection.ResourceManager.IPAM.ReleaseIP(seID)
+	}
+
+	if connection.ResourceManager.FTEIDM != nil {
+		connection.ResourceManager.FTEIDM.ReleaseTEID(seID)
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/edgecomllc/eupf/cmd/core/service"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
 )
@@ -90,6 +91,26 @@ func (pcc *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error 
 		log.Info().Msg("Both F-TEID IE and UE IP Address IE are missing")
 		return err
 	}
+}
+
+func (pcc *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
+	if spdrInfo.Ipv4 != nil {
+		if err := mapOperations.DeletePdrDownlink(spdrInfo.Ipv4); err != nil {
+			return fmt.Errorf("Can't delete IPv4 PDR: %s", err.Error())
+		}
+	} else if spdrInfo.Ipv6 != nil {
+		if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
+			return fmt.Errorf("Can't delete IPv6 PDR: %s", err.Error())
+		}
+	} else {
+		if err := mapOperations.DeletePdrUplink(spdrInfo.Teid); err != nil {
+			return fmt.Errorf("Can't delete GTP PDR: %s", err.Error())
+		}
+	}
+	if spdrInfo.Teid != 0 {
+		pcc.ResourceManager.FTEIDM.ReleaseTEID(pcc.Session.RemoteSEID)
+	}
+	return nil
 }
 
 func (pcc *PDRCreationContext) getFARID(farid uint32) uint32 {
