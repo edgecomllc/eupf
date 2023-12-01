@@ -80,12 +80,10 @@ func (pcc *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error 
 		return fmt.Errorf("F-TEID IE is missing")
 	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
 		if ueIP.Flags&(1<<2) != 0 {
-			ip, err := pcc.getIP(pcc.Session.RemoteSEID)
-			if err != nil {
-				log.Error().Err(err)
+			if ip, err := pcc.getIP(pcc.Session.RemoteSEID); err == nil {
+				ueIP.IPv4Address = cloneIP(ip)
+				spdrInfo.Allocated = true
 			}
-			ueIP.IPv4Address = cloneIP(ip)
-			spdrInfo.Allocated = true
 		}
 
 		if ueIP.IPv4Address != nil {
