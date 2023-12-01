@@ -19,6 +19,12 @@
 
 #include "xdp/program_array.h"
 
+ #define max_of(a,b) \
+   ({   __typeof__ (a) _a = (a); \
+        __typeof__ (b) _b = (b); \
+        _a > _b ? _a : _b;  \
+    })
+
 struct bucket {
     volatile __u64 t_next;
     __u64 upper_limit_bps;
@@ -36,7 +42,7 @@ static __always_inline int limit_rate_ok(struct xdp_md *ctx, struct bucket *buck
     __u64 t_next = bucket->t_next;
     __u64 upper_limit_bps = bucket->upper_limit_bps;
     // skb->tstamp = max(now - BURST, t_next);
-    __u64 ts = max(now - BURST, t_next);
+    __u64 ts = max_of(now - BURST, t_next);
 
     if (t_next - now > DROP_HORIZON)
         return XDP_DROP;
