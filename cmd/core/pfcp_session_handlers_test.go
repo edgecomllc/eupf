@@ -488,6 +488,7 @@ func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
 
 		if ueip.IPv4Address == nil {
 			//t.Error("IPv4Address is nil")
+			log.Info().Msg("IPv4Address is nil")
 		}
 
 	}
