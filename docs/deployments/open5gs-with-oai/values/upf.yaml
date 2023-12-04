@@ -1,7 +1,0 @@
----
-
-config:
-  logLevel: info
-  smf:
-    pfcp:
-      hostname: open5gs-smf-pfcp

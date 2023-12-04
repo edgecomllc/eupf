@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: {{ include "oai-gnb.fullname" . }}
   labels:
@@ -9,10 +9,12 @@ spec:
   selector:
     matchLabels:
       {{- include "oai-gnb.selectorLabels" . | nindent 6 }}
-  serviceName: {{ template "oai-gnb.fullname" . }}
-  {{- if .Values.updateStrategy }}
-  updateStrategy: {{- toYaml .Values.updateStrategy | nindent 4 }}
-  {{- end }}
+  # serviceName: {{ template "oai-gnb.fullname" . }}
+  # {{- if .Values.updateStrategy }}
+  # updateStrategy: {{- toYaml .Values.updateStrategy | nindent 4 }}
+  # {{- end }}
+  strategy:
+    type: Recreate
   template:
     metadata:
       annotations:

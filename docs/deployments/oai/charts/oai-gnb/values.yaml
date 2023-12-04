@@ -1,15 +1,12 @@
-# Default values for oai-gnb.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+---
 
 replicaCount: 1
 
 image:
-  repository: oaisoftwarealliance/oai-nr-ue
-  # repository: openverso/oai
+  repository: oaisoftwarealliance/oai-gnb
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: 2023.w19
 
 imagePullSecrets: []
 nameOverride: ""
@@ -22,41 +19,49 @@ initContainers:
       - /bin/sh
       - -c
       - |
-        dockerize -template-strict -template /cfg/tmpl/ue.conf.tmpl:/cfg/files/ue.conf
+        AMF_IP_ADDRESS=${AMF_IP_ADDRESS:-"$(getent hosts $AMF_HOSTNAME | awk '{print $1}')"}
+        export AMF_IP_ADDRESS
+        echo "AMF_IP: $AMF_IP_ADDRESS"
 
-strategy:
-  type: Recreate
+        dockerize -template-strict -template /cfg/tmpl/gnb.conf.tmpl:/cfg/files/gnb.conf
 
 command:
-  - /opt/oai-nr-ue/bin/nr-uesoftmodem
+  - /opt/oai-gnb/bin/nr-softmodem
   - -O
-  - /cfg/files/ue.conf
-  - --nfapi
-  - STANDALONE_PNF
-  - --node-number
-  - "2"
+  - /cfg/files/gnb.conf
   - --sa
-  - --emulate-l1
+  - -E
+  - --rfsim
 
 args: []
 
-env: []
+env: {}
+  # - name: TAC
+  #   value: !!str 0001
   # - name: MCC
   #   value: !!str 999
   # - name: MNC
   #   value: !!str 70
-  # - name: MSISDN
-  #   value: !!str 0000000001
-  # - name: KEY
-  #   value: 465B5CE8B199B49FAA5F0A2EE238A6BC
-  # - name: OP
-  #   value: E8ED289DEBA952E4283B54E88E6183CA
-  # - name: APN
-  #   value: internet
+  # - name: MNC_LENGTH
+  #   value: !!str 2
   # - name: SST
   #   value: !!str 1
   # - name: SD
   #   value: !!str 0x111111
+  # - name: AMF_HOSTNAME
+  #   value: open5gs-amf-ngap
+  # - name: GNB_NGA_IF_NAME
+  #   value: eth0
+  # - name: GNB_NGA_IP_ADDRESS
+  #   valueFrom:
+  #     fieldRef:
+  #       fieldPath: status.podIP
+  # - name: GNB_NGU_IF_NAME
+  #   value: eth0
+  # - name: GNB_NGU_IP_ADDRESS
+  #   valueFrom:
+  #     fieldRef:
+  #       fieldPath: status.podIP
 
 service:
   type: ClusterIP
@@ -103,7 +108,7 @@ livenessProbe: {}
   # exec:
   #   command:
   #     - pidof
-  #     - nr-uesoftmodem
+  #     - nr-softmodem
   # initialDelaySeconds: 5
   # periodSeconds: 10
 
@@ -111,6 +116,6 @@ readinessProbe: {}
   # exec:
   #   command:
   #     - pidof
-  #     - nr-uesoftmodem
+  #     - nr-softmodem
   # initialDelaySeconds: 5
   # periodSeconds: 10

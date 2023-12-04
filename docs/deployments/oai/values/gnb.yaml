@@ -1,29 +1,20 @@
 ---
 
-image:
-  repository: oaisoftwarealliance/oai-gnb
-  tag: 2023.w43
-
-command:
-  - tail
-  - -f
-  - /dev/null
-
 env:
   - name: TAC
-    value: !!str 0001
+    value: !!str 1
   - name: MCC
-    value: !!str 999
+    value: !!str 001
   - name: MNC
-    value: !!str 70
+    value: !!str 01
   - name: MNC_LENGTH
     value: !!str 2
   - name: SST
     value: !!str 1
   - name: SD
-    value: !!str 0x111111
+    value: !!str 0xffffff
   - name: AMF_HOSTNAME
-    value: open5gs-amf-ngap
+    value: oai-amf-svc
   - name: GNB_NGA_IF_NAME
     value: eth0
   - name: GNB_NGA_IP_ADDRESS
@@ -36,6 +27,11 @@ env:
     valueFrom:
       fieldRef:
         fieldPath: status.podIP
-
-livenessProbe: {}
-readinessProbe: {}
+  - name: RFSIMULATOR
+    value: server
+  - name: THREAD_PARALLEL_CONFIG
+    value: PARALLEL_SINGLE_THREAD
+  - name: SDR_ADDRS
+    value: serial=XXXXXXX
+  - name: USE_SA_TDD_MONO
+    value: "yes"
