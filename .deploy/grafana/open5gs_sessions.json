@@ -296,7 +296,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "ues_active and on(job) fivegs_smffunction_sm_sessionnbr{snssai=\"$snssai\"}",
+          "expr": "fivegs_pcffunction_pa_sessionnbr{snssai=\"$snssai\"}",
           "legendFormat": "{{__name__}}:: {{job}}",
           "range": true,
           "refId": "A"
