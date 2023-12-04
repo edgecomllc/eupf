@@ -20,7 +20,6 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 		message.MsgTypeSessionDeletionRequest:      HandlePfcpSessionDeletionRequest,
 		message.MsgTypeSessionModificationRequest:  HandlePfcpSessionModificationRequest,
 	}
-
 	smfIP := "127.0.0.1"
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),

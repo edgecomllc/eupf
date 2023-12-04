@@ -1,16 +1,105 @@
 # How to install and run eUPF
 The easyest way to install eUPF is to use helm charts for one of the supported opensource 5G core projects in your own kubernetes cluster.
-Alternatively, eUPF could be deployed in docker-compose (only with free5gc config is ready at the moment).
+Alternatively, eUPF could be deployed with docker-compose (only with free5gc config is ready at the moment).
 
-## Node requirements
+We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose.
+
+[UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity
+
+Deployment options:
+- Baremetal/VM
+- [Docker-compose environment](install.md/#deploy-with-docker-compose)
+- [Kubernetes environment](install.md/#deploy-with-kubernetes)
+
+## General node requirements
 
 **eUPF need Linux kernel > 5.14 version (we used Ubuntu 22.04 LTS)**
 
-## Kubenetes environment
+# Deploy with docker-compose
 
+## Prerequisites
+
+- [Docker Engine](https://docs.docker.com/engine/install): needed to run the eUPF container
+- [Docker Compose v2](https://docs.docker.com/compose/install): needed to bootstrap the eUPF container
+
+## Configure & run
+
+### Create docker-compose.yaml
+<details><summary>docker-compose.yaml template</summary>
+
+```yaml
+version: '2.4'
+
+services:
+  eupf:
+    image: ghcr.io/edgecomllc/eupf:main
+    privileged: true
+    volumes:
+      - /sys/fs/bpf:/sys/fs/bpf
+    environment:
+      - GIN_MODE=release
+      - UPF_INTERFACE_NAME=eth0
+      - UPF_XDP_ATTACH_MODE=generic
+      - UPF_API_ADDRESS=:8081
+      - UPF_PFCP_ADDRESS=:8805
+      - UPF_METRICS_ADDRESS=:9091
+      - UPF_PFCP_NODE_ID=172.21.0.100
+      - UPF_N3_ADDRESS=172.21.0.100
+    ulimits:
+      memlock: -1
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    ports:
+      - 2152:2152/udp
+      - 8805:8805/udp
+      - 8080:8080
+      - 9090:9090
+    restart: unless-stopped
+    networks:
+      local-dc:
+        ipv4_address: 172.21.0.100
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+
+  net-tools:
+    image: praqma/network-multitool:alpine-extra@sha256:47b259d4463950f5c10d9c0bf63d9e71ec456618f5549a414afa0c04392e0ac1
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -c
+      - |
+        ip ro add 10.33.0.0/16 via 172.21.0.100
+        echo "done"
+        tail -f /dev/null
+
+networks:
+  local-dc:
+    external: true
+```
+</details>
+
+### Set eUPF configuration parameters
+
+[See](Configuration.md) configuration guide
+
+### Run eUPF
+
+```
+docker-compose up -d
+```
+
+## Examples
+
+See docker-compose deployment examples with **open5gs** and **free5gc** [here](./deployments/README.md).
+
+# Deploy with Kubernetes
+
+## Prerequisites
 - Kubernetes cluster with Calico and Multus CNI
   - with [Enabled Unsafe Sysctls](https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/#enabling-unsafe-sysctls) net.ipv4.ip_forward:
-
     `kubelet --allowed-unsafe-sysctls 'net.ipv4.ip_forward,net.ipv6.conf.all.forwarding'`
 - [helm](https://helm.sh/docs/intro/install/) installed
 - [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) installed, or <br>
@@ -32,80 +121,31 @@ kubelet_node_config_extra_args:
 </p>
 </details> 
 
-## Possible use cases
-We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose.
+## UE subnets routing
 
-[UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity.
+In order to route downlink traffic back to UE options below are proposed:
 
+1. Use BGP
+2. Use static routes. For every UE
 
-### Go [Here](./deployments/README.md) for more information about deployment options in Kubernetes for eUPF with **open5gs** and **free5gc**.
+### Use BGP
 
-Or deploy eUPF with free5gc core as docker-compose:
+BGP daemon(BIRD) is running as a sidecar in eUPF pod. UE subnet is announced to K8s nodes. K8s CNI should be configured to use BGP.
 
-<details><summary>Instruction to deploy as docker-compose</summary>
-<p>
+This solution is suitable for single instance eUPF deployment.
 
-### Deploy as docker-compose
-Prerequisites
+### Use static routes
 
-As metioned in free5gc::docker-compose repo:
-- Prepared [GTP5G kernel module](https://github.com/free5gc/gtp5g): needed to run the UPF
-  - It is optional and only required for standard UPF from free5gc  
-- [Docker Engine](https://docs.docker.com/engine/install): needed to run the Free5GC containers
-- [Docker Compose v2](https://docs.docker.com/compose/install): needed to bootstrap the free5GC stack
+To use scalable eUPF deployment (more the one eUPF replica) downlink route to specific UE have to pass the UPF with corresponding PDU-session. 
 
-Actually we use vanilla free5gc::docker-compose with some overrides(see docker-compose.override.yml):
-- free5gc-upf service is disabled
-- edgecom-upf service is added
-- edgecom-nat service is added
-- grafana & prometheus services are added
-
-So you can clone free5gc docker-compose and test free5gc upf, then add edgecom override files and feel the differences.
-
-0. Pull repository: `git clone https://github.com/edgecomllc/free5gc-compose.git`
-0. Run containers based on docker hub images:
-   ```bash
-   cd free5gc-compose
-   docker compose pull
-   docker compose up -d
-   ```
-0. Check if UPF and SMF containers are running correctly:
-   ```bash
-   sudo docker compose logs edgecom-upf
-   ```
-   ```bash
-   sudo docker compose logs free5gc-smf
-   ```
-   - Successful association setup should be stated in both logs.
-0. Before running UE emulator you have to register UE in 5G core network using web console:
-   - Type `localhost:5000/#/` in the address bar of your browser. 
-    - Username: admin Password: free5gc
-    - In the console click on "Subscribers" section. In that section click on "New Subcriber" button.
-   - IMSI have to be the same as in UE config (`config/uecfg.yaml`).
-   - Click "Submit" button.
-0. The command that launches UE emulator has to be executed inside of ueransim container:
-   ```bash
-   sudo docker compose exec ueransim bash
-   ```
-0. Now UE emulator can be launched
-   ```bash
-   ./nr-ue -c config/uecfg.yaml
-   ```
-   - During execution of this command UE should get IP address. This can be verified in UE output.
-0. Open another console and execute the command from step 4 to enter the ueransim container.
-0. Now traffic flow must be verified:
-    ```
-    ping -I uesimtun0 1.1.1.1
-    ```
-### To undeploy everything
-   ```
-   docker compose rm
-   ```
-</p>
-</details>
+As a proof-of-concept, simple route utility is provided. The utility reads active PDU-sessions for every UPF via API and updates node's routing table. For each UE's PDU-session there is a static route via corresponding UPF.  
 
 
-## Test scenarios
+## Examples
+
+See kubernetes deployment examples with **open5gs** and **free5gc** [here](./deployments/README.md).
+
+# Test scenarios
 
 ## case 0
 

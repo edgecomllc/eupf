@@ -16,7 +16,9 @@ Currently UPF have several config parameters shown below.<br>Parameters can be c
 | QER map size <br>`Optional`    | Size of the eBPF map for QER parameters                                                                                                                                                                                                                                                                                                         | `qer_map_size`    | `UPF_QER_MAP_SIZE`    | `--qersize` | `1024  `    |
 | FAR map size <br>`Optional`    | Size of the eBPF map for FAR parameters                                                                                                                                                                                                                                                                                                         | `far_map_size`    | `UPF_FAR_MAP_SIZE`    | `--farsize` | `1024  `    |
 | PDR map size <br>`Optional`    | Size of the eBPF map for PDR parameters                                                                                                                                                                                                                                                                                                         | `pdr_map_size`    | `UPF_PDR_MAP_SIZE`    | `--pdrsize` | `1024  `    |
-| Logging level <br>`Optional`    | Logs having level <= selected level will be written to stdout                                                                                                                                                                                                                                                                                                         | `logging_level`    | `UPF_LOGGING_LEVEL`    | `--loglvl` | `info`    |
+| Logging level <br>`Optional`   | Logs having level <= selected level will be written to stdout                                                                                                                                                                                                                                                                                   | `logging_level`   | `UPF_LOGGING_LEVEL`   | `--loglvl`  | `info`         |
+| FTUP Feature <br>`Optional`    | Support for TEID allocation option                                                                                                                                                                                                                                                                                                              | `feature_ftup`    | `UPF_FEATURE_FTUP`    | ``          | `false`        |
+| TEID Pool <br>`Optional`       | Pool of TEIDs, needed to allocate TEID when the FTUP option is enabled                                                                                                                                                                                                                                                                          | `teid_pool`       | `UPF_TEID_POOL`       | ``          | `65536`        |
 
 We are using [Viper](https://github.com/spf13/viper) for configuration handling, [Viper](https://github.com/spf13/viper) uses the following precedence order. Each item takes precedence over the item below it:
 
@@ -42,6 +44,8 @@ n3_address: 127.0.0.1
 qer_map_size: 1024
 far_map_size: 1024
 pdr_map_size: 1024
+feature_ftup: true
+teid_pool: 65536
 ```
 
 ### Environment variables

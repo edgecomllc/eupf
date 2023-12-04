@@ -25,10 +25,12 @@ func NewSession(localSEID uint64, remoteSEID uint64) *Session {
 }
 
 type SPDRInfo struct {
-	PdrInfo ebpf.PdrInfo
-	Teid    uint32
-	Ipv4    net.IP
-	Ipv6    net.IP
+	PdrID     uint32
+	PdrInfo   ebpf.PdrInfo
+	Teid      uint32
+	Ipv4      net.IP
+	Ipv6      net.IP
+	Allocated bool
 }
 
 type SFarInfo struct {
