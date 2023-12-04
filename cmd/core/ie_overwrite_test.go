@@ -61,7 +61,6 @@ func (mapOps *MapOperationsMock) DeleteQer(internalId uint32) error {
 func TestSessionOverwrite(t *testing.T) {
 
 	mapOps := MapOperationsMock{}
-
 	// Create pfcp connection struct
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),

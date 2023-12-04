@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"time"
 
@@ -21,6 +22,7 @@ type PfcpConnection struct {
 	n3Address         net.IP
 	mapOperations     ebpf.ForwardingPlaneController
 	RecoveryTimestamp time.Time
+	ResourceManager   *service.ResourceManager
 }
 
 func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
@@ -30,7 +32,7 @@ func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociat
 	return nil
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController) (*PfcpConnection, error) {
+func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Warn().Msgf("Can't resolve UDP address: %s", err.Error())
@@ -57,6 +59,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 		n3Address:         n3Addr,
 		mapOperations:     mapOperations,
 		RecoveryTimestamp: time.Now(),
+		ResourceManager:   resourceManager,
 	}, nil
 }
 
@@ -146,8 +149,9 @@ func (connection *PfcpConnection) DeleteSession(session *Session) {
 	for _, qer := range session.QERs {
 		_ = connection.mapOperations.DeleteQer(qer.GlobalId)
 	}
+	pdrContext := NewPDRCreationContext(session, connection.ResourceManager)
 	for _, PDR := range session.PDRs {
-		_ = deletePDR(PDR, connection.mapOperations)
+		_ = pdrContext.deletePDR(PDR, connection.mapOperations)
 	}
 }
 
@@ -161,4 +165,18 @@ func (connection *PfcpConnection) GetSessionCount() int {
 
 func (connection *PfcpConnection) GetAssiciationCount() int {
 	return len(connection.NodeAssociations)
+}
+
+func (connection *PfcpConnection) ReleaseResources(seID uint64) {
+	if connection.ResourceManager == nil {
+		return
+	}
+
+	if connection.ResourceManager.IPAM != nil {
+		connection.ResourceManager.IPAM.ReleaseIP(seID)
+	}
+
+	if connection.ResourceManager.FTEIDM != nil {
+		connection.ResourceManager.FTEIDM.ReleaseTEID(seID)
+	}
 }

@@ -21,6 +21,12 @@ func TestSdfFilterParseValid(t *testing.T) {
 		{FlowDescription: "permit out icmp from any 4-5 to ::1234:5678/2 2", Protocol: 0,
 			SrcType: 0, SrcAddress: "<nil>", SrcMask: "<nil>", SrcPortLower: 4, SrcPortUpper: 5,
 			DstType: 2, DstAddress: "::", DstMask: "c0000000000000000000000000000000", DstPortLower: 2, DstPortUpper: 2},
+		{FlowDescription: "permit out 58 from ff02::2/128 to assigned", Protocol: 4,
+			SrcType: 2, SrcAddress: "ff02::2", SrcMask: "ffffffffffffffffffffffffffffffff", SrcPortLower: 0, SrcPortUpper: 65535,
+			DstType: 0, DstAddress: "<nil>", DstMask: "<nil>", DstPortLower: 0, DstPortUpper: 65535},
+		{FlowDescription: "permit out ip from 10.60.0.0/16 to any", Protocol: 1,
+			SrcType: 1, SrcAddress: "10.60.0.0", SrcMask: "ffff0000", SrcPortLower: 0, SrcPortUpper: 65535,
+			DstType: 0, DstAddress: "<nil>", DstMask: "<nil>", DstPortLower: 0, DstPortUpper: 65535},
 	}
 
 	for i := 0; i < len(fds); i++ {

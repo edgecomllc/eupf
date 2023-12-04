@@ -28,6 +28,8 @@ type UpfConfig struct {
 	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
 	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
 	LoggingLevel      string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
+	FTEIDPool         uint32   `mapstructure:"teid_pool" json:"teid_pool"`
+	FeatureFTUP       bool     `mapstructure:"feature_ftup" json:"feature_ftup"`
 }
 
 func init() {
@@ -50,6 +52,8 @@ func init() {
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
 	pflag.String("loglvl", "", "Logging level")
+	pflag.Bool("feature_ftup", true, "Enable or disable feature_ftup")
+	pflag.Uint32("teid_pool", 65536, "TEID Pool")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -70,6 +74,8 @@ func init() {
 	_ = v.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
 	_ = v.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
 	_ = v.BindPFlag("logging_level", pflag.Lookup("loglvl"))
+	_ = v.BindPFlag("feature_ftup", pflag.Lookup("feature_ftup"))
+	_ = v.BindPFlag("teid_pool", pflag.Lookup("teid_pool"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -87,6 +93,8 @@ func init() {
 	v.SetDefault("heartbeat_interval", 5)
 	v.SetDefault("heartbeat_timeout", 5)
 	v.SetDefault("logging_level", "info")
+	v.SetDefault("feature_ftup", false)
+	v.SetDefault("teid_pool", 0)
 
 	v.SetConfigFile(*configPath)
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"os"
 	"os/signal"
@@ -74,6 +75,12 @@ func main() {
 		log.Info().Msgf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	}
 
+	var err error
+	resourceManager, err := service.NewResourceManager(config.Conf.FeatureFTUP, config.Conf.FTEIDPool)
+	if err != nil {
+		log.Error().Msgf("failed to create ResourceManager - err: %v", err)
+	}
+
 	// Create PFCP connection
 	var pfcpHandlers = core.PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            core.HandlePfcpHeartbeatRequest,
@@ -84,7 +91,7 @@ func main() {
 		message.MsgTypeSessionModificationRequest:  core.HandlePfcpSessionModificationRequest,
 	}
 
-	pfcpConn, err := core.CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects)
+	pfcpConn, err := core.CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects, resourceManager)
 	if err != nil {
 		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}
