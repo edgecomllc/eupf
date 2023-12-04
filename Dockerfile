@@ -20,14 +20,8 @@ RUN BPF_CFLAGS="" \
     && BPF_CFLAGS=$BPF_CFLAGS go generate -v ./cmd/...
 RUN CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/
 
-FROM alpine:3.18 AS runtime
+FROM alpine:3.18.5 AS runtime
 LABEL org.opencontainers.image.source="https://github.com/edgecomllc/eupf"
-
-RUN apk update \
-    # workaround to fix CVE-2023-5363, CVE-2023-5678. Use alpine 3.18.5 when these CVEs will be fixed there
-    && apk add --no-cache libssl3=3.1.4-r1 \
-    && apk add --no-cache libcrypto3=3.1.4-r1 \
-    && rm -rf /var/cache/apk/*
 
 COPY --from=builder /app/bin/ /app/bin/
 COPY --from=builder /app/cmd/docs/swagger.* /app/
