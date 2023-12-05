@@ -25,3 +25,4 @@ In K8s BGP is used to announce the subscriber's subnet to the route table of Kub
 | Open5GS | srsRAN | Calico BGP | [Open5GS & srsRAN & Calico BGP](./srsran-gnb/README.md) |
 | Free5GC | UERANSIM | Calico BGP | [Free5GC & Calico BGP](./free5gc-with-bgp/README.md) |
 | Free5GC | UERANSIM | ULCL | [Free5GC & ULCL](./free5gc-ulcl/README.md) |
+| OpenAirInterface 5G Core | OpenAirInterface 5G Core | - | [OAI](./oai/README.md) |
