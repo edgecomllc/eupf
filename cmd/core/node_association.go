@@ -72,6 +72,7 @@ func (association *NodeAssociation) ScheduleHeartbeatRequest(duration time.Durat
 			}
 			seq := association.NewSequenceID()
 			SendHeartbeatRequest(conn, seq, association.Addr)
+			//log.Info().Msgf("=======================>heartbeat sended count: %v", association.HeartbeatRetries)
 		}
 	}(ctx, duration)
 	return cancel

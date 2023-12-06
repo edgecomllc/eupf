@@ -103,8 +103,11 @@ func (pcc *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.F
 			return fmt.Errorf("Can't delete IPv6 PDR: %s", err.Error())
 		}
 	} else {
-		if err := mapOperations.DeletePdrUplink(spdrInfo.Teid); err != nil {
-			return fmt.Errorf("Can't delete GTP PDR: %s", err.Error())
+		if _, ok := pcc.TEIDCache[uint8(spdrInfo.Teid)]; !ok {
+			if err := mapOperations.DeletePdrUplink(spdrInfo.Teid); err != nil {
+				return fmt.Errorf("Can't delete GTP PDR: %s", err.Error())
+			}
+			pcc.TEIDCache[uint8(spdrInfo.Teid)] = 0
 		}
 	}
 	if spdrInfo.Teid != 0 {
