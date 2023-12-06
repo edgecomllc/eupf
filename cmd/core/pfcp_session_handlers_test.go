@@ -333,7 +333,7 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 	pfcpConn, smfIP := PreparePfcpConnection(t)
 
-	resourceManager, err := service.NewResourceManager(false, true, "10.61.0.0/16", 65536)
+	resourceManager, err := service.NewResourceManager("10.61.0.0/16", 65536)
 	if err != nil {
 		log.Error().Msgf("failed to create ResourceManager. err: %v", err)
 	}
@@ -422,7 +422,7 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
 	pfcpConn, smfIP := PreparePfcpConnection(t)
 
-	resourceManager, err := service.NewResourceManager(true, false, "10.61.0.0/16", 65536)
+	resourceManager, err := service.NewResourceManager("10.61.0.0/16", 65536)
 	if err != nil {
 		log.Error().Msgf("failed to create ResourceManager. err: %v", err)
 	}

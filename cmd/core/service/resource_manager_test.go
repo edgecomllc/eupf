@@ -7,7 +7,7 @@ import (
 )
 
 func TestAllocateIP(t *testing.T) {
-	resourceManager, err := NewResourceManager(true, true, "10.61.0.0/16", 65536)
+	resourceManager, err := NewResourceManager("10.61.0.0/16", 65536)
 	if err != nil {
 		log.Err(err)
 	}
