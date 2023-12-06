@@ -24,15 +24,15 @@ func NewPDRCreationContext(session *Session, resourceManager *service.ResourceMa
 	}
 }
 
-func (pcc *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error {
+func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error {
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}
 	if farid, err := pdr.FARID(); err == nil {
-		spdrInfo.PdrInfo.FarId = pcc.getFARID(farid)
+		spdrInfo.PdrInfo.FarId = pdrContext.getFARID(farid)
 	}
 	if qerid, err := pdr.QERID(); err == nil {
-		spdrInfo.PdrInfo.QerId = pcc.getQERID(qerid)
+		spdrInfo.PdrInfo.QerId = pdrContext.getQERID(qerid)
 	}
 
 	pdi, err := pdr.PDI()
@@ -55,14 +55,14 @@ func (pcc *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error 
 			if fteid.HasCh() {
 				var allocate = true
 				if fteid.HasChID() {
-					if teidFromCache, ok := pcc.hasTEIDCache(fteid.ChooseID); ok {
+					if teidFromCache, ok := pdrContext.hasTEIDCache(fteid.ChooseID); ok {
 						allocate = false
 						teid = teidFromCache
 						spdrInfo.Allocated = true
 					}
 				}
 				if allocate {
-					allocatedTeid, err := pcc.getFTEID(pcc.Session.RemoteSEID, spdrInfo.PdrID)
+					allocatedTeid, err := pdrContext.getFTEID(pdrContext.Session.RemoteSEID, spdrInfo.PdrID)
 					if err != nil {
 						log.Error().Msgf("AllocateTEID err: %v", err)
 						return fmt.Errorf("can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
@@ -70,7 +70,7 @@ func (pcc *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error 
 					teid = allocatedTeid
 					spdrInfo.Allocated = true
 					if fteid.HasChID() {
-						pcc.setTEIDCache(fteid.ChooseID, teid)
+						pdrContext.setTEIDCache(fteid.ChooseID, teid)
 					}
 				}
 			}
@@ -79,10 +79,12 @@ func (pcc *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error 
 		}
 		return fmt.Errorf("F-TEID IE is missing")
 	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
-		if ueIP.Flags&(1<<2) != 0 {
-			if ip, err := pcc.getIP(pcc.Session.RemoteSEID); err == nil {
+		if hasCHV4(ueIP) {
+			if ip, err := pdrContext.getIP(); err == nil {
 				ueIP.IPv4Address = cloneIP(ip)
 				spdrInfo.Allocated = true
+			} else {
+				log.Error().Msg(err.Error())
 			}
 		}
 
@@ -101,7 +103,7 @@ func (pcc *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error 
 	}
 }
 
-func (pcc *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
+func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
 	if spdrInfo.Ipv4 != nil {
 		if err := mapOperations.DeletePdrDownlink(spdrInfo.Ipv4); err != nil {
 			return fmt.Errorf("Can't delete IPv4 PDR: %s", err.Error())
@@ -116,28 +118,25 @@ func (pcc *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.F
 		}
 	}
 	if spdrInfo.Teid != 0 {
-		pcc.ResourceManager.FTEIDM.ReleaseTEID(pcc.Session.RemoteSEID)
+		pdrContext.ResourceManager.FTEIDM.ReleaseTEID(pdrContext.Session.RemoteSEID)
 	}
 	return nil
 }
 
-func (pcc *PDRCreationContext) getFARID(farid uint32) uint32 {
-	return pcc.Session.GetFar(farid).GlobalId
+func (pdrContext *PDRCreationContext) getFARID(farid uint32) uint32 {
+	return pdrContext.Session.GetFar(farid).GlobalId
 }
 
-func (pcc *PDRCreationContext) getQERID(qerid uint32) uint32 {
-	return pcc.Session.GetQer(qerid).GlobalId
+func (pdrContext *PDRCreationContext) getQERID(qerid uint32) uint32 {
+	return pdrContext.Session.GetQer(qerid).GlobalId
 }
 
-func (pcc *PDRCreationContext) getFTEID(seID uint64, pdrID uint32) (uint32, error) {
-	if pcc.ResourceManager == nil {
-		return 0, errors.New("resource manager is nil")
-	} else {
-		if pcc.ResourceManager.FTEIDM == nil {
-			return 0, errors.New("FTEID manager is nil")
-		}
+func (pdrContext *PDRCreationContext) getFTEID(seID uint64, pdrID uint32) (uint32, error) {
+	if pdrContext.ResourceManager == nil || pdrContext.ResourceManager.FTEIDM == nil {
+		return 0, errors.New("FTEID manager is nil")
 	}
-	allocatedTeid, err := pcc.ResourceManager.FTEIDM.AllocateTEID(seID, pdrID)
+
+	allocatedTeid, err := pdrContext.ResourceManager.FTEIDM.AllocateTEID(seID, pdrID)
 	if err != nil {
 		log.Error().Msgf("AllocateTEID err: %v", err)
 		return 0, fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
@@ -145,27 +144,26 @@ func (pcc *PDRCreationContext) getFTEID(seID uint64, pdrID uint32) (uint32, erro
 	return allocatedTeid, nil
 }
 
-func (pcc PDRCreationContext) getIP(seID uint64) (net.IP, error) {
-	if pcc.ResourceManager == nil {
-		return nil, errors.New("resource manager is nil")
-	} else {
-		if pcc.ResourceManager.IPAM == nil {
-			return nil, errors.New("IPAM manager is nil")
-		}
+func (pdrContext PDRCreationContext) getIP() (net.IP, error) {
+	if pdrContext.ResourceManager == nil || pdrContext.ResourceManager.IPAM == nil {
+		return nil, errors.New("IP address manager is nil")
 	}
-	allocatedIP, err := pcc.ResourceManager.IPAM.AllocateIP(seID)
+	allocatedIP, err := pdrContext.ResourceManager.IPAM.AllocateIP(pdrContext.Session.RemoteSEID)
 	if err != nil {
-		log.Error().Msgf("AllocateIP err: %v", err)
 		return nil, fmt.Errorf("can't allocate IP: %s", causeToString(ie.CauseNoResourcesAvailable))
 	}
 	return allocatedIP, nil
 }
 
-func (pcc *PDRCreationContext) hasTEIDCache(chooseID uint8) (uint32, bool) {
-	teid, ok := pcc.TEIDCache[chooseID]
+func (pdrContext *PDRCreationContext) hasTEIDCache(chooseID uint8) (uint32, bool) {
+	teid, ok := pdrContext.TEIDCache[chooseID]
 	return teid, ok
 }
 
-func (pcc *PDRCreationContext) setTEIDCache(chooseID uint8, teid uint32) {
-	pcc.TEIDCache[chooseID] = teid
+func (pdrContext *PDRCreationContext) setTEIDCache(chooseID uint8, teid uint32) {
+	pdrContext.TEIDCache[chooseID] = teid
+}
+
+func hasCHV4(ueIP *ie.UEIPAddressFields) bool {
+	return ueIP.Flags&(1<<2) != 0
 }

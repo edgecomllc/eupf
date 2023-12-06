@@ -31,7 +31,6 @@ func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) []*ie.IE {
 			if pdr.Ipv4 != nil {
 				uePDR := ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)
 				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), uePDR))
-				//additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewUEIPAddress(0, pdr.Ipv4.String(), "", 0, 0)))
 			} else if pdr.Ipv6 != nil {
 
 			} else {

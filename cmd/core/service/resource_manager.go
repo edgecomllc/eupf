@@ -23,12 +23,12 @@ type IPAM struct {
 	sync.RWMutex
 }
 
-func NewResourceManager(ueip, ftup bool, ipRange string, teidRange uint32) (*ResourceManager, error) {
+func NewResourceManager(ipRange string, teidRange uint32) (*ResourceManager, error) {
 
 	var ipam IPAM
 	var fteidm FTEIDM
 
-	if ueip {
+	if ipRange != "" {
 		_, ipNet, err := net.ParseCIDR(ipRange)
 		if err != nil {
 			return nil, err
@@ -50,7 +50,7 @@ func NewResourceManager(ueip, ftup bool, ipRange string, teidRange uint32) (*Res
 		}
 	}
 
-	if ftup {
+	if teidRange != 0 {
 		freeTEIDs := make([]uint32, 0, 10000)
 		busyTEIDs := make(map[uint64]map[uint32]uint32)
 
