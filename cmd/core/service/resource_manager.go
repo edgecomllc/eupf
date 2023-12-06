@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"math/big"
 	"net"
 	"sync"
 )
@@ -34,7 +35,7 @@ func NewResourceManager(ipRange string, teidRange uint32) (*ResourceManager, err
 			return nil, err
 		}
 
-		freeIPs := make([]net.IP, 0, 10000)
+		freeIPs := make([]net.IP, 0, countIPs(ipNet))
 		busyIPs := make(map[uint64]net.IP)
 
 		ip := ipNet.IP
@@ -137,4 +138,16 @@ func nextIP(ip net.IP) net.IP {
 		}
 	}
 	return nextIP
+}
+
+func countIPs(ipNet *net.IPNet) int {
+	start := big.NewInt(0)
+	start.SetBytes(ipNet.IP)
+	end := big.NewInt(0)
+	end.SetBytes(ipNet.IP.Mask(ipNet.Mask))
+
+	ips := new(big.Int)
+	ips.Sub(end, start)
+
+	return int(ips.Int64()) + 1
 }
