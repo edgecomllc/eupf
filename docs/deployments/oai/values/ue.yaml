@@ -1,0 +1,21 @@
+---
+
+env:
+  - name: MCC
+    value: !!str 001
+  - name: MNC
+    value: !!str 01
+  - name: MSISDN
+    value: !!str 0000000100
+  - name: KEY
+    value: fec86ba6eb707ed08905757b1bb44b8f
+  - name: OP
+    value: C42449363BBAD02B66D16BC975D77CC1
+  - name: APN
+    value: oai
+  - name: SST
+    value: !!str 1
+  - name: SD
+    value: !!str 0xffffff
+  - name: RFSIMULATOR_HOSTNAME
+    value: gnb-oai-gnb

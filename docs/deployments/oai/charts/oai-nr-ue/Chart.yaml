@@ -1,0 +1,6 @@
+apiVersion: v2
+type: application
+name: oai-nr-ue
+description: https://gitlab.eurecom.fr/oai/openairinterface5g
+version: 0.0.1
+appVersion: 2023.w43
