@@ -27,12 +27,7 @@ func NewPfcpPathManager(localAddress string, interval time.Duration) *PfcpPathMa
 }
 
 func (pfcpPathManager *PfcpPathManager) AddPfcpPath(pfcpPeerAddress string) {
-	updAddr, err := net.ResolveUDPAddr("udp", pfcpPeerAddress+":8805")
-	if err != nil {
-		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", pfcpPeerAddress, err.Error())
-		return
-	}
-	pfcpPathManager.peers[updAddr.IP.String()] = 0
+	pfcpPathManager.peers[pfcpPeerAddress] = 0
 }
 
 func (pfcpPathManager *PfcpPathManager) Run(conn *PfcpConnection) {
@@ -65,7 +60,12 @@ func (pfcpPathManager *PfcpPathManager) Stop() {
 }
 
 func IsAssociationSetupEnded(addr string, conn *PfcpConnection) bool {
-	_, ok := conn.NodeAssociations[addr]
+	udpAddr, err := net.ResolveUDPAddr("udp", addr+":8805")
+	if err != nil {
+		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", addr, err.Error())
+		return true
+	}
+	_, ok := conn.NodeAssociations[udpAddr.IP.String()]
 	return ok
 }
 
@@ -101,11 +101,11 @@ func SendAssociationSetupRequest(conn *PfcpConnection, sequenceID uint32, associ
 	)
 	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
-	if err == nil {
-		if err := conn.SendMessage(asreq, udpAddr); err != nil {
-			log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
-		}
-	} else {
+	if err != nil {
+		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", associationAddr, err.Error())
+		return
+	}
+	if err := conn.SendMessage(asreq, udpAddr); err != nil {
 		log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
 	}
 }
