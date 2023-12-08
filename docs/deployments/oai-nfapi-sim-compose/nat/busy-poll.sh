@@ -17,8 +17,8 @@ iptables -A FORWARD -j ACCEPT
 #ip route add default via upf.free5gc.org dev eth0 table n6if
 
 #ip route add 10.60.0.0/16 via `nslookup upf.free5gc.org | awk '/^Address: / { print $2 }'` dev eth0
-ip route add 10.60.0.0/16 via `nslookup upfn6.free5gc.org | awk '/^Address: / { print $2 }'` dev eth1
-ip route add 12.1.1.0/24 via `nslookup upfn6.free5gc.org | awk '/^Address: / { print $2 }'` dev eth1
+ip route add 10.60.0.0/16 via `nslookup upfn6.free5gc.org | awk '/^Address: / { print $2 }'`
+ip route add 12.1.1.0/24 via `nslookup upfn6.free5gc.org | awk '/^Address: / { print $2 }'`
 
 
 while [ $terminate -ne 1 ]
