@@ -115,22 +115,14 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 		log.Warn().Msg(err.Error())
 		return err
 	}
-	//log.Info().Msgf("============SendMessage==========> sequence: %v", msg.Sequence())
 	return nil
 }
 
-// RefreshAssociations checks for expired associations and schedules heartbeats for those that are not expired.
 func (connection *PfcpConnection) RefreshAssociations() {
-	for assocAddr, assoc := range connection.NodeAssociations {
-		if assoc.IsExpired() {
-			log.Info().Msgf("Pruning expired node association: %s", assocAddr)
-			connection.DeleteAssociation(assocAddr)
-		}
-	}
 	for _, assoc := range connection.NodeAssociations {
-		if !assoc.IsHeartbeatScheduled() {
-			assoc.ScheduleHeartbeatRequest(time.Duration(config.Conf.HeartbeatTimeout)*time.Second, connection)
-			//connection.NodeAssociations[i].HeartbeatRetries++
+		if !assoc.HeartbeatsActive {
+			assoc.HeartbeatsActive = true
+			go assoc.HeartbeatScheduler(connection)
 		}
 	}
 }
