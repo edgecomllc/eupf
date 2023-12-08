@@ -28,4 +28,5 @@ COPY --from=builder /app/cmd/docs/swagger.* /app/
 COPY --from=builder /app/cmd/ebpf/zeroentrypoint_bpf.o /app/
 COPY ./entrypoint.sh /app/bin/entrypoint.sh
 
+# CMD is overridden if arguments are passed.
 ENTRYPOINT [ "sh", "/app/bin/entrypoint.sh" ]

@@ -23,7 +23,6 @@ type PfcpConnection struct {
 	mapOperations     ebpf.ForwardingPlaneController
 	RecoveryTimestamp time.Time
 	ResourceManager   *service.ResourceManager
-	heartbeatCache    map[string]struct{}
 }
 
 func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
@@ -51,7 +50,6 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 	}
 	log.Info().Msgf("Starting PFCP connection: %v with Node ID: %v and N3 address: %v", udpAddr, nodeId, n3Addr)
 
-	heartbeatCache := make(map[string]struct{})
 	return &PfcpConnection{
 		udpConn:           udpConn,
 		pfcpHandlerMap:    pfcpHandlerMap,
@@ -62,7 +60,6 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 		mapOperations:     mapOperations,
 		RecoveryTimestamp: time.Now(),
 		ResourceManager:   resourceManager,
-		heartbeatCache:    heartbeatCache,
 	}, nil
 }
 
