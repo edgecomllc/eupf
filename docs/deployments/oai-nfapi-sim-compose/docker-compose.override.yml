@@ -10,9 +10,6 @@ services:
     cap_add:
       - NET_ADMIN
     networks:
-      privnet:
-        aliases:
-          - nat.free5gc.org
       privnet_n6:
         aliases:
           - natn6.free5gc.org
@@ -23,24 +20,23 @@ services:
         traffic_net:
             ipv4_address: 192.168.72.134
 
+
   oai-smf:
+    image: oaisoftwarealliance/oai-smf:v1.5.1
     environment:
       - DISCOVER_UPF=no
-      - UPF_FQDN_0=edgecom-upf  
       - USE_FQDN_DNS=no
-   depends_on:
-      - edgecom-upf
 
   oai-gnb:
     depends_on: !reset
-      - edgecom-nat
+      - edgecom-upf
       - oai-amf
 
   edgecom-upf:
     container_name: eupf
-    image: ghcr.io/edgecomllc/eupf:main
+    image: ghcr.io/edgecomllc/eupf:7086b71cb1dbc254db84c30e14fa4a68d3beb132
     privileged: true
-    command: --iface eth0 --iface eth1 --n3addr 192.168.71.134 --nodeid 192.168.71.134 --paddr 192.168.71.134:8805 --attach generic
+    command: --iface eth0 --iface eth1 --n3addr 192.168.71.134 --nodeid 192.168.71.134 --paddr 192.168.71.134:8805 --attach generic --loglvl trace --feature_ftup true --teid_pool 65535
     volumes:
       - /sys/fs/bpf:/sys/fs/bpf
       - ./eupf/entrypoint.sh:/app/bin/entrypoint.sh
@@ -57,18 +53,18 @@ services:
       - SYS_ADMIN
       - SYS_RESOURCE # setrlimit
     ports:
-      - "8080:8080"
+      - "8880:8080"
       - "9090:9090"
     sysctls:
       - net.ipv4.conf.all.forwarding=1
     networks:
-      privnet_n6:
-        aliases:
-          - upfn6.free5gc.org
       public_net:
         ipv4_address: 192.168.71.134
         aliases:
           - upf.free5gc.org
+      privnet_n6:
+        aliases:
+          - upfn6.free5gc.org
 
   prometheus:
     image: prom/prometheus
@@ -120,14 +116,3 @@ networks:
         - subnet: 10.100.250.0/24
     driver_opts:
       com.docker.network.bridge.name: br-oainfapi-n6
-  privnet:
-    ipam:
-      driver: default
-      config:
-        - subnet: 10.100.200.0/24
-    driver_opts:
-      com.docker.network.bridge.name: br-oaipriv
-
-
-volumes:
-  prom_data:
