@@ -53,6 +53,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 	return &PfcpConnection{
 		udpConn:           udpConn,
 		pfcpHandlerMap:    pfcpHandlerMap,
+		muAssoc:           &sync.Mutex{},
 		NodeAssociations:  map[string]*NodeAssociation{},
 		nodeId:            nodeId,
 		nodeAddrV4:        udpAddr.IP,
