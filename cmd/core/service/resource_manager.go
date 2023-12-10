@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"math/big"
 	"net"
 	"sync"
 )
@@ -141,13 +140,7 @@ func nextIP(ip net.IP) net.IP {
 }
 
 func countIPs(ipNet *net.IPNet) int {
-	start := big.NewInt(0)
-	start.SetBytes(ipNet.IP)
-	end := big.NewInt(0)
-	end.SetBytes(ipNet.IP.Mask(ipNet.Mask))
-
-	ips := new(big.Int)
-	ips.Sub(end, start)
-
-	return int(ips.Int64()) + 1
+	ones, bits := ipNet.Mask.Size()
+	ips := 1 << uint(bits-ones)
+	return ips
 }
