@@ -1,9 +1,10 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/config"
 	"net"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/config"
 
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
@@ -103,6 +104,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
 		newIeNodeID(conn.nodeId),             // its Node ID;
+		ie.NewRecoveryTimeStamp(time.Now()),
 		upFunctionFeaturesIE,
 	)
 
