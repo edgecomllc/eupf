@@ -1,0 +1,114 @@
+# Default values for oai-gnb.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: oaisoftwarealliance/oai-nr-ue
+  # repository: openverso/oai
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: 2023.w19
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+initContainers:
+  configure:
+    image: powerman/dockerize:0.19.0
+    command:
+      - /bin/sh
+      - -c
+      - |
+        dockerize -template-strict -template /cfg/tmpl/ue.conf.tmpl:/cfg/files/ue.conf
+
+strategy:
+  type: Recreate
+
+command:
+  - /bin/sh
+  - -c
+  - |
+    RFSIMULATOR=${RFSIMULATOR:-"$(getent hosts $RFSIMULATOR_HOSTNAME | awk '{print $1}')"}
+    export RFSIMULATOR
+    echo "RFSIMULATOR: $RFSIMULATOR"
+    /opt/oai-nr-ue/bin/nr-uesoftmodem -O /cfg/files/ue.conf --sa -E --rfsim -r 106 --numerology 1 -C 3319680000 --nokrnmod
+
+args: []
+
+env: []
+  # - name: MCC
+  #   value: !!str 999
+  # - name: MNC
+  #   value: !!str 70
+  # - name: MSISDN
+  #   value: !!str 0000000001
+  # - name: KEY
+  #   value: 465B5CE8B199B49FAA5F0A2EE238A6BC
+  # - name: OP
+  #   value: E8ED289DEBA952E4283B54E88E6183CA
+  # - name: APN
+  #   value: internet
+  # - name: SST
+  #   value: !!str 1
+  # - name: SD
+  #   value: !!str 0x111111
+
+service:
+  type: ClusterIP
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+# securityContext: {}
+securityContext:
+  privileged: true
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources: {}
+  # limits:
+  #   cpu: 1000m
+  #   memory: 1024Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe: {}
+  # exec:
+  #   command:
+  #     - pidof
+  #     - nr-uesoftmodem
+  # initialDelaySeconds: 5
+  # periodSeconds: 10
+
+readinessProbe: {}
+  # exec:
+  #   command:
+  #     - pidof
+  #     - nr-uesoftmodem
+  # initialDelaySeconds: 5
+  # periodSeconds: 10
