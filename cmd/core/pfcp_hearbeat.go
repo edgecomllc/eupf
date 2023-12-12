@@ -10,7 +10,7 @@ import (
 func HandlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	hbreq := msg.(*message.HeartbeatRequest)
 	if association := conn.GetAssociation(addr); association != nil {
-		conn.NodeAssociations[addr].FailedHeartbeats = 0
+		association.ResetFailedHeartbeats()
 	}
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
@@ -36,11 +36,7 @@ func HandlePfcpHeartbeatResponse(conn *PfcpConnection, msg message.Message, addr
 	}
 
 	if association := conn.GetAssociation(addr); association != nil {
-		association.Lock()
-		if association.HeartbeatChannel != nil {
-			association.HeartbeatChannel <- msg.Sequence()
-		}
-		association.Unlock()
+		association.Heartbeat(msg.Sequence())
 	}
 	return nil, err
 }

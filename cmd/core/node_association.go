@@ -102,3 +102,16 @@ func (association *NodeAssociation) HeartbeatScheduler(conn *PfcpConnection) {
 		time.Sleep(2 * time.Second)
 	}
 }
+func (association *NodeAssociation) ResetFailedHeartbeats() {
+	association.Lock()
+	association.FailedHeartbeats = 0
+	association.Unlock()
+}
+
+func (association *NodeAssociation) Heartbeat(sequence uint32) {
+	association.Lock()
+	if association.HeartbeatChannel != nil {
+		association.HeartbeatChannel <- sequence
+	}
+	association.Unlock()
+}
