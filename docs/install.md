@@ -15,6 +15,30 @@ Deployment options:
 
 **eUPF need Linux kernel > 5.14 version (we used Ubuntu 22.04 LTS)**
 
+### Driver support
+
+#### Drivers supporting generic XDP
+
+Starting from kernel 4.12 you can run XDP(and eUPF) in generic mode anywhere. But it should be used for testing or debugging purpose only (no performance prospective)
+
+#### Drivers supporting native XDP
+
+In order to run eUPF in native mode you need compatible driver. List of supported driver could be found in Cilium or IOVisor docs:
+
+- See Drivers supporting native XDP chapter in [cilium](https://docs.cilium.io/en/latest/bpf/progtypes/#xdp)
+- See [bcc project docs](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md#xdp)
+
+Native mode is suppored in most modern clouds and VM NICs:
+- Amazon `ena`
+- Microsoft `hv_netvsc`
+- VirtIO `virtio_net`
+- VMWare `vmxnet3`
+- SR-IOV `ixgbevf`
+
+#### Drivers supporting offloaded XDP
+
+Only Netronome NICs at the moment 
+
 # Deploy with docker-compose
 
 ## Prerequisites
