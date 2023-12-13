@@ -1,6 +1,6 @@
 # How to install and run eUPF
 The easyest way to install eUPF is to use helm charts for one of the supported opensource 5G core projects in your own kubernetes cluster.
-Alternatively, eUPF could be deployed with docker-compose (only with free5gc config is ready at the moment).
+Alternatively, eUPF could be deployed with docker-compose (with free5gc or OpenAirInterface configs is ready at the moment).
 
 We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose.
 
@@ -107,7 +107,7 @@ networks:
 
 ### Set eUPF configuration parameters
 
-[See](Configuration.md) configuration guide
+See [configuration guide](Configuration.md)
 
 ### Run eUPF
 
@@ -115,9 +115,9 @@ networks:
 docker-compose up -d
 ```
 
-## Examples
+## Examples in docker-compose
 
-See docker-compose deployment examples with **open5gs** and **free5gc** [here](./deployments/README.md).
+See docker-compose deployment examples with **open5gs**, **free5gc** and **OpenAirInterface** in [the Deployment examples table](./deployments/README.md#docker-compose-deployments).
 
 # Deploy with Kubernetes
 
@@ -207,6 +207,9 @@ UE can send packet to internet and get response
 
 # Information for troubleshooting
 
+<details><summary>For builds with trace enabled, not production one: See details under the spoiler.</summary>
+<p>
+
 To see debug log from eBPF programs, at the **node** console start command:
 `sudo cat /sys/kernel/debug/tracing/trace_pipe`
 
@@ -228,6 +231,9 @@ sergo@edgecom:~$ sudo cat /sys/kernel/debug/tracing/trace_pipe
           <idle>-0       [007] dNs.1 266111.396996: bpf_trace_printk: upf: bpf_fib_lookup 10.100.50.233 -> 10.100.50.236: nexthop: 10.100.50.236
           <idle>-0       [007] dNs.1 266111.396998: bpf_trace_printk: upf: bpf_redirect: if=4 18446669071771765924 -> 18446669071771765930
 ```
+
+</p>
+</details> 
 
 ## Components logs then successfully connected:
 <details><summary>eUPF successfull connections log output (stdout)</summary>
