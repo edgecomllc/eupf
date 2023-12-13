@@ -1,13 +1,15 @@
 package main
 
 import (
-	"github.com/edgecomllc/eupf/cmd/api/rest"
-	"github.com/edgecomllc/eupf/cmd/server"
+	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/api/rest"
+	"github.com/edgecomllc/eupf/cmd/server"
 
 	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
@@ -73,6 +75,12 @@ func main() {
 		log.Info().Msgf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	}
 
+	var err error
+	resourceManager, err := service.NewResourceManager(config.Conf.FeatureFTUP, config.Conf.FTEIDPool)
+	if err != nil {
+		log.Error().Msgf("failed to create ResourceManager - err: %v", err)
+	}
+
 	// Create PFCP connection
 	var pfcpHandlers = core.PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            core.HandlePfcpHeartbeatRequest,
@@ -83,7 +91,7 @@ func main() {
 		message.MsgTypeSessionModificationRequest:  core.HandlePfcpSessionModificationRequest,
 	}
 
-	pfcpConn, err := core.CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects)
+	pfcpConn, err := core.CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects, resourceManager)
 	if err != nil {
 		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}
@@ -115,6 +123,13 @@ func main() {
 			log.Fatal().Msgf("Could not start metrics server: %s", err.Error())
 		}
 	}()
+
+	gtpPathManager := core.NewGtpPathManager(config.Conf.N3Address+":2152", time.Duration(config.Conf.EchoInterval)*time.Second)
+	for _, peer := range config.Conf.GtpPeer {
+		gtpPathManager.AddGtpPath(peer)
+	}
+	gtpPathManager.Run()
+	defer gtpPathManager.Stop()
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)

@@ -1,16 +1,28 @@
 # Deployment examples
 The eUPF can be integrated with different 5G Core implementations in different scenarios.
 
-eUPF pod outbound connection is pure routed at the node. There is no address translation inside pod, so we avoid such lack of throughtput.
+eUPF outbound connections is pure routed at the node. There is no embedded NAT, so external NAT should be used if address translation is needed.
 
-BGP is used to announce the subscriber's subnet to the route table of Kubernetes cluster.
+## Docker-compose deployments
 
-## [Open5GS + Calico BGP](./open5gs-with-bgp/README.md)
+| 5G Core | RAN | Options | Deployment description |
+| ------- | --- | ------- | ---------------------- |
+| Open5GS | UERANSIM | - | [Open5GS](./to-be-done/README.md) |
+| Open5GS | OpenAirInterface | - | Comming soon... |
+| Free5GC | UERANSIM | - | [Free5GC](./to-be-done/README.md) |
+| Free5GC | UERANSIM | ULCL | [Free5GC & ULCL](./to-be-done/README.md) |
 
-## [Open5GS + Calico BGP with Slices](./open5gs-with-bgp-and-slices/README.md)
 
-## [Open5GS + Load Balanced eUPF](./open5gs-with-scaling-eupf/README.md)
+## K8s deployments
 
-## [Free5GC + Calico BGP](./free5gc-with-bgp/README.md)
+In K8s BGP is used to announce the subscriber's subnet to the route table of Kubernetes cluster.
 
-## [Free5GC UpLink CLassifier (ULCL) architecture](./free5gc-ulcl/README.md)
+| 5G Core | RAN | Options | Deployment description |
+| ------- | --- | ------- | ---------------------- |
+| Open5GS | UERANSIM | Calico BGP | [Open5GS & Calico BGP](./open5gs-with-bgp/README.md) |
+| Open5GS | UERANSIM | Calico BGP with Slices | [Open5GS & Calico BGP with Slices](./open5gs-with-bgp-and-slices/README.md) |
+| Open5GS | UERANSIM | Load Balanced eUPF | [Open5GS & Load Balanced eUPF](./open5gs-with-scaling-eupf/README.md) |
+| Open5GS | srsRAN | Calico BGP | [Open5GS & srsRAN & Calico BGP](./srsran-gnb/README.md) |
+| Free5GC | UERANSIM | Calico BGP | [Free5GC & Calico BGP](./free5gc-with-bgp/README.md) |
+| Free5GC | UERANSIM | ULCL | [Free5GC & ULCL](./free5gc-ulcl/README.md) |
+| OpenAirInterface 5G Core | OpenAirInterface 5G RAN | - | [OAI](./oai/README.md) |

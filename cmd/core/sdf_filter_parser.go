@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"regexp"
 	"strconv"
@@ -10,13 +11,17 @@ import (
 )
 
 func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
-	re := regexp.MustCompile(`^permit out (icmp|ip|tcp|udp) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to ([\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
+	re := regexp.MustCompile(`^permit out (icmp|ip|tcp|udp|\d+) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to (assigned|any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
+
+	sdfInfo := ebpf.SdfFilter{}
+	var err error
+
 	match := re.FindStringSubmatch(flowDescription)
+	log.Printf("Matched groups: %v\n", match)
 	if len(match) == 0 {
 		return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: bad formatting. Should be compatible with regexp: %s", re.String())
 	}
-	var err error
-	sdfInfo := ebpf.SdfFilter{}
+
 	if sdfInfo.Protocol, err = ParseProtocol(match[1]); err != nil {
 		return ebpf.SdfFilter{}, err
 	}
@@ -36,8 +41,12 @@ func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
 			return ebpf.SdfFilter{}, err
 		}
 	}
-	if sdfInfo.DstAddress, err = ParseCidrIp(match[5], match[6]); err != nil {
-		return ebpf.SdfFilter{}, err
+	if match[5] == "assigned" || match[5] == "any" {
+		sdfInfo.DstAddress = ebpf.IpWMask{Type: 0}
+	} else {
+		if sdfInfo.DstAddress, err = ParseCidrIp(match[5], match[6]); err != nil {
+			return ebpf.SdfFilter{}, err
+		}
 	}
 	sdfInfo.DstPortRange = ebpf.PortRange{LowerBound: 0, UpperBound: 65535}
 	if match[7] != "" {
@@ -45,15 +54,20 @@ func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
 			return ebpf.SdfFilter{}, err
 		}
 	}
+
 	return sdfInfo, nil
 }
 
 func ParseProtocol(protocol string) (uint8, error) {
+	if protocol == "58" {
+		protocol = "icmp6"
+	}
 	protocolMap := map[string]uint8{
-		"icmp": 0,
-		"ip":   1,
-		"tcp":  2,
-		"udp":  3,
+		"icmp":  0,
+		"ip":    1,
+		"tcp":   2,
+		"udp":   3,
+		"icmp6": 4,
 	}
 	number, ok := protocolMap[protocol]
 	if ok {

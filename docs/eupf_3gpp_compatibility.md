@@ -1,4 +1,4 @@
-### Intro
+## eUPF 3GPP compatibility
 
 eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Release 16.
 
@@ -25,7 +25,7 @@ eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Rel
 
 | Message      | Status | 3GPP reference |
 |:-------------|:------------:|:---------------|
-| Heartbeat Request           | `Y` | TS 129 244: 7.4.2 Heartbeat Messages |
+| Heartbeat Request              | `Y` | TS 129 244: 7.4.2 Heartbeat Messages |
 | Heartbeat Response             | `Y` | TS 129 244: 7.4.2.2 Heartbeat Response |
 | PFD Management Request         | `N` | TS 129 244: 7.4.3.1 PFCP PFD Management Request |
 | PFD Management Response        | `N` | TS 129 244: 7.4.3.2 PFCP PFD Management Response |
@@ -72,7 +72,7 @@ eUPF implements N3 interface according to 3GPP TS 29.281 version 16.1.0 Release 
 | `DDND`      | `N`        | The buffering parameter 'Downlink Data Notification Delay' is supported by the UP function.                           |
 | `DLBD`      | `N`        | The buffering parameter 'DL Buffering Duration' is supported by the UP function.                                      |
 | `TRST`      | `N`        | Traffic Steering is supported by the UP function.                                                                     |
-| `FTUP`      | `N`        | F-TEID allocation / release in the UP function is supported by the UP function.                                       |
+| `FTUP`      | `Y`        | F-TEID allocation / release in the UP function is supported by the UP function.                                       |
 | `PFDM`      | `N`        | The PFD Management procedure is supported by the UP function.                                                         |
 | `HEEU`      | `N`        | Header Enrichment of Uplink traffic is supported by the UP function.                                                  |
 | `TREU`      | `N`        | Traffic Redirection Enforcement in the UP function is supported by the UP function.                                   |
@@ -86,7 +86,7 @@ eUPF implements N3 interface according to 3GPP TS 29.281 version 16.1.0 Release 
 | `EPFAR`     | `N`        | The UP function supports the Enhanced PFCP Association Release feature.                                               |
 | `DPDRA`     | `N`        | The UP function supports Deferred PDR Activation or Deactivation.                                                     |
 | `ADPDP`     | `N`        | The UP function supports the Activation and Deactivation of Pre-defined PDRs.                                         |
-| `UEIP`      | `N`        | The UPF supports allocating UE IP addresses or prefixes.                                                              |
+| `UEIP`      | `Y`        | The UPF supports allocating UE IP addresses or prefixes.                                                              |
 | `SSET`      | `N`        | UPF support of PFCP sessions successively controlled by different SMFs of a same SMF Set.                             |
 | `MNOP`      | `N`        | Measurement of number of packets which is instructed with the flag 'Measurement of Number of Packets' in a URR.       |
 | `MTE`       | `N`        | UPF supports multiple instances of Traffic Endpoint IDs in a PDI.                                                     |

@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"net"
 	"net/http"
 	"strconv"
@@ -10,7 +11,6 @@ import (
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
-	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"

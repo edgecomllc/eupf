@@ -12,22 +12,22 @@ import (
 type MapOperationsMock struct {
 }
 
-func (mapOps *MapOperationsMock) PutPdrUpLink(teid uint32, pdrInfo ebpf.PdrInfo) error {
+func (mapOps *MapOperationsMock) PutPdrUplink(teid uint32, pdrInfo ebpf.PdrInfo) error {
 	return nil
 }
-func (mapOps *MapOperationsMock) PutPdrDownLink(ipv4 net.IP, pdrInfo ebpf.PdrInfo) error {
+func (mapOps *MapOperationsMock) PutPdrDownlink(ipv4 net.IP, pdrInfo ebpf.PdrInfo) error {
 	return nil
 }
-func (mapOps *MapOperationsMock) UpdatePdrUpLink(teid uint32, pdrInfo ebpf.PdrInfo) error {
+func (mapOps *MapOperationsMock) UpdatePdrUplink(teid uint32, pdrInfo ebpf.PdrInfo) error {
 	return nil
 }
-func (mapOps *MapOperationsMock) UpdatePdrDownLink(ipv4 net.IP, pdrInfo ebpf.PdrInfo) error {
+func (mapOps *MapOperationsMock) UpdatePdrDownlink(ipv4 net.IP, pdrInfo ebpf.PdrInfo) error {
 	return nil
 }
-func (mapOps *MapOperationsMock) DeletePdrUpLink(teid uint32) error {
+func (mapOps *MapOperationsMock) DeletePdrUplink(teid uint32) error {
 	return nil
 }
-func (mapOps *MapOperationsMock) DeletePdrDownLink(ipv4 net.IP) error {
+func (mapOps *MapOperationsMock) DeletePdrDownlink(ipv4 net.IP) error {
 	return nil
 }
 func (mapOps *MapOperationsMock) PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo ebpf.PdrInfo) error {
@@ -61,7 +61,6 @@ func (mapOps *MapOperationsMock) DeleteQer(internalId uint32) error {
 func TestSessionOverwrite(t *testing.T) {
 
 	mapOps := MapOperationsMock{}
-
 	// Create pfcp connection struct
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),
