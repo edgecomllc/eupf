@@ -12,7 +12,7 @@
 
 eUPF is the opensource User Plane Function (UPF) project for using inside or "outside" of any 3GPP 5G core. The goal of the project is to provide high-observability and easily-deployed software for a various cases like multi-access edge computing (MEC) and local traffic breakout. eUPF is built with eBPF to provide high observability and performance.
 
- eUPF is tested with the Free5GC and Open5GS 5G cores.
+ The eUPF has been tested with three different 5G cores: Free5GC, Open5GS and OpenAirInterface. The OpenAirInterface gNB was also used during testing.
 
 ## What is 5G core and CUPS
 
