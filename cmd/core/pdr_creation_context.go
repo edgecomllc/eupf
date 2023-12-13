@@ -79,13 +79,17 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 		}
 		return fmt.Errorf("F-TEID IE is missing")
 	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
-		if hasCHV4(ueIP) {
+		log.Info().Msgf("UE IP FLAGS: %+v", ueIP.Flags)
+		if hasCHV4(ueIP.Flags) {
+			log.Info().Msgf("has CHV4 +++")
 			if ip, err := pdrContext.getIP(); err == nil {
 				ueIP.IPv4Address = cloneIP(ip)
 				spdrInfo.Allocated = true
 			} else {
 				log.Error().Msg(err.Error())
 			}
+		} else {
+			log.Info().Msgf("CHV4 не определился ---")
 		}
 
 		if ueIP.IPv4Address != nil {
@@ -164,6 +168,6 @@ func (pdrContext *PDRCreationContext) setTEIDCache(chooseID uint8, teid uint32) 
 	pdrContext.TEIDCache[chooseID] = teid
 }
 
-func hasCHV4(ueIP *ie.UEIPAddressFields) bool {
-	return ueIP.Flags&(1<<2) != 0
+func hasCHV4(flags uint8) bool {
+	return flags&(1<<1) != 0
 }

@@ -356,11 +356,15 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 
 		if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 { // IE Type UE IP Address
 			ueIp, _ := pdi[ueipPdiId].UEIPAddress()
-			if ueIp.IPv4Address != nil {
-				writeLineTabbed(sb, fmt.Sprintf("UE IPv4 Address: %s ", ueIp.IPv4Address), 2)
-			}
-			if ueIp.IPv6Address != nil {
-				writeLineTabbed(sb, fmt.Sprintf("UE IPv6 Address: %s ", ueIp.IPv6Address), 2)
+			if ueIp != nil {
+				if ueIp.IPv4Address != nil {
+					writeLineTabbed(sb, fmt.Sprintf("UE IPv4 Address: %s ", ueIp.IPv4Address), 2)
+				}
+				if ueIp.IPv6Address != nil {
+					writeLineTabbed(sb, fmt.Sprintf("UE IPv6 Address: %s ", ueIp.IPv6Address), 2)
+				}
+			} else {
+				log.Info().Msgf("ueIp is nil. ueipPdiId: %d", ueipPdiId)
 			}
 		}
 
