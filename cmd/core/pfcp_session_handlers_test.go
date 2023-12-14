@@ -428,22 +428,12 @@ func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
 	}
 	pfcpConn.ResourceManager = resourceManager
 
-	//fteid1 := ie.NewFTEID(0x04, 0, net.ParseIP("127.0.0.1"), nil, 1) // 0x04 - CH true
-	ueip1 := ie.NewUEIPAddress(4, "", "", 0, 0)
+	ueip1 := ie.NewUEIPAddress(16, "", "", 0, 0)
 	createPDR1 := ie.NewCreatePDR(
 		ie.NewPDRID(1),
 		ie.NewPDI(
 			ie.NewSourceInterface(ie.SrcInterfaceCore),
 			ueip1,
-		),
-	)
-
-	ueip2 := ie.NewUEIPAddress(4, "", "", 0, 0)
-	createPDR2 := ie.NewCreatePDR(
-		ie.NewPDRID(2),
-		ie.NewPDI(
-			ie.NewSourceInterface(ie.SrcInterfaceCore),
-			ueip2,
 		),
 	)
 
@@ -453,7 +443,6 @@ func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
 		ie.NewNodeID("", "", "test"),
 		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
 		createPDR1,
-		createPDR2,
 	)
 
 	// Processing Session Establishment Request
@@ -470,8 +459,8 @@ func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
 
 	// Checking UEIP for each PDR
 	log.Info().Msgf("seRes.CreatedPDR len: %d", len(seRes.CreatedPDR))
-	if len(seRes.CreatedPDR) != 2 {
-		t.Errorf("Unexpected count PRD's: got %d, expected %d", len(seRes.CreatedPDR), 2)
+	if len(seRes.CreatedPDR) != 1 {
+		t.Errorf("Unexpected count PRD's: got %d, expected %d", len(seRes.CreatedPDR), 1)
 	}
 
 	for _, pdr := range seRes.CreatedPDR {
@@ -487,8 +476,13 @@ func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
 		}
 
 		if ueip.IPv4Address == nil {
-			//t.Error("IPv4Address is nil")
 			log.Info().Msg("IPv4Address is nil")
+		} else {
+			if ueip.IPv4Address.String() == "10.61.0.0" {
+				log.Info().Msgf("PASSED. IPv4: %s", ueip.IPv4Address.String())
+			} else {
+				t.Errorf("Unexpected IPv4, got %s, expected %s", ueip.IPv4Address.String(), "10.61.0.0")
+			}
 		}
 
 	}
