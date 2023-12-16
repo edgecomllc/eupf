@@ -67,6 +67,9 @@ func (association *NodeAssociation) ScheduleHeartbeatRequest(duration time.Durat
 }
 
 func (association *NodeAssociation) HeartbeatScheduler(conn *PfcpConnection) {
+
+	association.HeartbeatsActive = true
+
 	ctx := context.Background()
 	//timeout := config.Conf.HeartbeatInterval
 
@@ -96,12 +99,14 @@ func (association *NodeAssociation) HeartbeatScheduler(conn *PfcpConnection) {
 		case seq := <-association.HeartbeatChannel:
 			if sequence == seq {
 				sequence = association.NewSequenceID()
+				<-time.After(time.Duration(config.Conf.HeartbeatInterval))
 				SendHeartbeatRequest(conn, sequence, association.Addr)
 			}
 		}
 		time.Sleep(2 * time.Second)
 	}
 }
+
 func (association *NodeAssociation) ResetFailedHeartbeats() {
 	association.Lock()
 	association.FailedHeartbeats = 0

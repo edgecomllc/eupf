@@ -118,7 +118,6 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 func (connection *PfcpConnection) RefreshAssociations() {
 	for _, assoc := range connection.NodeAssociations {
 		if !assoc.HeartbeatsActive {
-			assoc.HeartbeatsActive = true
 			go assoc.HeartbeatScheduler(connection)
 		}
 	}
