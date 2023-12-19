@@ -21,10 +21,11 @@ import (
 //
 
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cflags "$BPF_CFLAGS" -target bpf IpEntrypoint 	xdp/n3n6_entrypoint.c -- -I. -O2 -Wall -g
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf UpfXdp 			xdp/upf_program.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf ZeroEntrypoint 	xdp/zero_entrypoint.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N3Entrypoint 	xdp/n3_entrypoint.c -- -I. -O2 -Wall
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N6Entrypoint 	xdp/n6_entrypoint.c -- -I. -O2 -Wall
 
 type BpfObjects struct {
-	UpfXdpObjects
 	IpEntrypointObjects
 
 	FarIdTracker *IdTracker
@@ -56,24 +57,13 @@ func (bpfObjects *BpfObjects) Load() error {
 	}
 
 	return LoadAllObjects(&collectionOptions,
-		Loader{LoadUpfXdpObjects, &bpfObjects.UpfXdpObjects},
 		Loader{LoadIpEntrypointObjects, &bpfObjects.IpEntrypointObjects})
 }
 
 func (bpfObjects *BpfObjects) Close() error {
 	return CloseAllObjects(
-		&bpfObjects.UpfXdpObjects,
 		&bpfObjects.IpEntrypointObjects,
 	)
-}
-
-func (bpfObjects *BpfObjects) BuildPipeline() {
-	upfPipeline := bpfObjects.UpfXdpObjects.UpfPipeline
-	upfMainProgram := bpfObjects.UpfFunc
-
-	if err := upfPipeline.Put(uint32(0), upfMainProgram); err != nil {
-		panic(err)
-	}
 }
 
 type LoaderFunc func(obj interface{}, opts *ebpf.CollectionOptions) error
@@ -150,7 +140,7 @@ func ResizeEbpfMap(eMap **ebpf.Map, eProg *ebpf.Program, newSize uint32) error {
 	return nil
 }
 
-func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32, pdrMapSize uint32) error {
+func (bpfObjects *BpfObjects) ResizeAllMaps(pdrMapSize uint32) error {
 	// PDR
 	if err := ResizeEbpfMap(&bpfObjects.PdrMapDownlinkIp4, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
 		log.Info().Msgf("Failed to resize qer map: %s", err)

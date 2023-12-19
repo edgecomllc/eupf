@@ -3,9 +3,7 @@ package rest
 import (
 	"net/http"
 
-	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 )
 
 type XdpStats struct {
@@ -29,22 +27,6 @@ type PacketStats struct {
 	RxGtpPdu   uint64 `json:"rx_gtp_pdu"`
 	RxGtpOther uint64 `json:"rx_gtp_other"`
 	RxGtpUnexp uint64 `json:"rx_gtp_unexp"`
-}
-
-// ListUpfPipeline godoc
-// @Summary List UPF pipeline
-// @Description List UPF pipeline
-// @Tags UPF
-// @Produce  json
-// @Success 200 {object} []ebpf.BpfMapProgArrayMember
-// @Router /upf_pipeline [get]
-func (h *ApiHandler) listUpfPipeline(c *gin.Context) {
-	if elements, err := ebpf.ListMapProgArrayContents(h.BpfObjects.UpfXdpObjects.UpfPipeline); err != nil {
-		log.Info().Msgf("Error reading map: %s", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	} else {
-		c.IndentedJSON(http.StatusOK, elements)
-	}
 }
 
 // DisplayXdpStatistics godoc

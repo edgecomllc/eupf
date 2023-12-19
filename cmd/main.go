@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/core/service"
 
 	"github.com/edgecomllc/eupf/cmd/api/rest"
 	"github.com/edgecomllc/eupf/cmd/server"
@@ -46,14 +47,12 @@ func main() {
 	}
 
 	if config.Conf.EbpfMapResize {
-		if err := bpfObjects.ResizeAllMaps(config.Conf.QerMapSize, config.Conf.FarMapSize, config.Conf.PdrMapSize); err != nil {
+		if err := bpfObjects.ResizeAllMaps(config.Conf.PdrMapSize); err != nil {
 			log.Fatal().Msgf("Failed to set ebpf map sizes: %s", err)
 		}
 	}
 
 	defer bpfObjects.Close()
-
-	bpfObjects.BuildPipeline()
 
 	for _, ifaceName := range config.Conf.InterfaceName {
 		iface, err := net.InterfaceByName(ifaceName)
