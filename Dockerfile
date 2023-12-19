@@ -25,7 +25,6 @@ LABEL org.opencontainers.image.source="https://github.com/edgecomllc/eupf"
 
 COPY --from=builder /app/bin/ /app/bin/
 COPY --from=builder /app/cmd/docs/swagger.* /app/
-COPY --from=builder /app/cmd/ebpf/zeroentrypoint_bpf.o /app/
 COPY ./entrypoint.sh /app/bin/entrypoint.sh
 
 # CMD is overridden if arguments are passed.

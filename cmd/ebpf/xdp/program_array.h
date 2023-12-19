@@ -21,12 +21,6 @@
 
 #include <stdint.h>
 
-enum upf_program_type {
-    UPF_PROG_TYPE_MAIN = 0,
-    UPF_PROG_TYPE_FAR = 1,
-    UPF_PROG_TYPE_QER = 2,
-};
-
 struct
 {
     __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
