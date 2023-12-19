@@ -9,9 +9,9 @@ eUPF outbound connections is pure routed at the node. There is no embedded NAT, 
 | ------- | --- | ------- | ---------------------- |
 | Open5GS | UERANSIM | - | [Open5GS](./to-be-done/README.md) |
 | Open5GS | OpenAirInterface | - | Comming soon... |
-| Free5GC | UERANSIM | - | [Free5GC](./to-be-done/README.md) |
+| Free5GC | UERANSIM | - | [Free5GC](https://github.com/edgecomllc/free5gc-compose/blob/master/README.md) |
 | Free5GC | UERANSIM | ULCL | [Free5GC & ULCL](./to-be-done/README.md) |
-
+| OpenAirInterface 5G Core | OpenAirInterface 5G RAN	 | - | [OAI 5G SA mode with L2 nFAPI simulator](./oai-nfapi-sim-compose/README.md) |
 
 ## K8s deployments
 
@@ -25,3 +25,4 @@ In K8s BGP is used to announce the subscriber's subnet to the route table of Kub
 | Open5GS | srsRAN | Calico BGP | [Open5GS & srsRAN & Calico BGP](./srsran-gnb/README.md) |
 | Free5GC | UERANSIM | Calico BGP | [Free5GC & Calico BGP](./free5gc-with-bgp/README.md) |
 | Free5GC | UERANSIM | ULCL | [Free5GC & ULCL](./free5gc-ulcl/README.md) |
+| OpenAirInterface 5G Core | OpenAirInterface 5G RAN | - | [OAI](./oai/README.md) |

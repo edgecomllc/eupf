@@ -1,0 +1,121 @@
+---
+
+replicaCount: 1
+
+image:
+  repository: oaisoftwarealliance/oai-gnb
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: 2023.w19
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+initContainers:
+  configure:
+    image: powerman/dockerize:0.19.0
+    command:
+      - /bin/sh
+      - -c
+      - |
+        AMF_IP_ADDRESS=${AMF_IP_ADDRESS:-"$(getent hosts $AMF_HOSTNAME | awk '{print $1}')"}
+        export AMF_IP_ADDRESS
+        echo "AMF_IP: $AMF_IP_ADDRESS"
+
+        dockerize -template-strict -template /cfg/tmpl/gnb.conf.tmpl:/cfg/files/gnb.conf
+
+command:
+  - /opt/oai-gnb/bin/nr-softmodem
+  - -O
+  - /cfg/files/gnb.conf
+  - --sa
+  - -E
+  - --rfsim
+
+args: []
+
+env: {}
+  # - name: TAC
+  #   value: !!str 0001
+  # - name: MCC
+  #   value: !!str 999
+  # - name: MNC
+  #   value: !!str 70
+  # - name: MNC_LENGTH
+  #   value: !!str 2
+  # - name: SST
+  #   value: !!str 1
+  # - name: SD
+  #   value: !!str 0x111111
+  # - name: AMF_HOSTNAME
+  #   value: open5gs-amf-ngap
+  # - name: GNB_NGA_IF_NAME
+  #   value: eth0
+  # - name: GNB_NGA_IP_ADDRESS
+  #   valueFrom:
+  #     fieldRef:
+  #       fieldPath: status.podIP
+  # - name: GNB_NGU_IF_NAME
+  #   value: eth0
+  # - name: GNB_NGU_IP_ADDRESS
+  #   valueFrom:
+  #     fieldRef:
+  #       fieldPath: status.podIP
+
+service:
+  type: ClusterIP
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+# securityContext: {}
+securityContext:
+  privileged: true
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources: {}
+  # limits:
+  #   cpu: 1000m
+  #   memory: 1024Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe: {}
+  # exec:
+  #   command:
+  #     - pidof
+  #     - nr-softmodem
+  # initialDelaySeconds: 5
+  # periodSeconds: 10
+
+readinessProbe: {}
+  # exec:
+  #   command:
+  #     - pidof
+  #     - nr-softmodem
+  # initialDelaySeconds: 5
+  # periodSeconds: 10

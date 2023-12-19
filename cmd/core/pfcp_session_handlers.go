@@ -39,6 +39,9 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
+	createdPDRs := []SPDRInfo{}
+	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
+
 	err = func() error {
 		mapOperations := conn.mapOperations
 		for _, far := range req.CreateFAR {
@@ -78,16 +81,17 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
 			if err != nil {
-				log.Info().Msgf("PDR ID missing")
 				continue
 			}
 
-			spdrInfo := SPDRInfo{}
-			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
-				session.PutPDR(uint32(pdrId), spdrInfo)
+			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
+
+			if err := pdrContext.extractPDR(pdr, &spdrInfo); err == nil {
+				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
+				createdPDRs = append(createdPDRs, spdrInfo)
 			} else {
-				log.Printf("Error extracting PDR info: %s", err.Error())
+				log.Error().Msgf("error extracting PDR info: %s", err.Error())
 			}
 		}
 		return nil
@@ -103,100 +107,20 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	association.Sessions[localSEID] = session
 	conn.NodeAssociations[addr] = association
 
-	// Send SessionEstablishmentResponse
-	estResp := message.NewSessionEstablishmentResponse(
-		0, 0,
-		remoteSEID.SEID,
-		req.Sequence(),
-		0,
+	additionalIEs := []*ie.IE{
 		ie.NewCause(ie.CauseRequestAccepted),
 		newIeNodeID(conn.nodeId),
-		ie.NewFSEID(localSEID, conn.nodeAddrV4, nil),
-	)
-	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
+		ie.NewFSEID(localSEID, cloneIP(conn.nodeAddrV4), nil),
+	}
 
+	pdrIEs := processCreatedPDRs(createdPDRs, cloneIP(conn.n3Address))
+	additionalIEs = append(additionalIEs, pdrIEs...)
+
+	// Send SessionEstablishmentResponse
+	estResp := message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, additionalIEs...)
+	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	log.Info().Msgf("Session Establishment Request from %s accepted.", addr)
 	return estResp, nil
-}
-
-func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
-	if spdrInfo.Ipv4 != nil {
-		if err := mapOperations.PutPdrDownlink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-			log.Info().Msgf("Can't apply IPv4 PDR: %s", err.Error())
-		}
-	} else if spdrInfo.Ipv6 != nil {
-		if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
-			log.Info().Msgf("Can't apply IPv6 PDR: %s", err.Error())
-		}
-	} else {
-		if err := mapOperations.PutPdrUplink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
-			log.Info().Msgf("Can't apply GTP PDR: %s", err.Error())
-		}
-	}
-}
-
-func deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
-	if spdrInfo.Ipv4 != nil {
-		if err := mapOperations.DeletePdrDownlink(spdrInfo.Ipv4); err != nil {
-			return fmt.Errorf("Can't delete IPv4 PDR: %s", err.Error())
-		}
-	} else if spdrInfo.Ipv6 != nil {
-		if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
-			return fmt.Errorf("Can't delete IPv6 PDR: %s", err.Error())
-		}
-	} else {
-		if err := mapOperations.DeletePdrUplink(spdrInfo.Teid); err != nil {
-			return fmt.Errorf("Can't delete GTP PDR: %s", err.Error())
-		}
-	}
-	return nil
-}
-
-func extractPDR(pdr *ie.IE, session *Session, spdrInfo *SPDRInfo) error {
-
-	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
-		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
-	}
-	if farid, err := pdr.FARID(); err == nil {
-		spdrInfo.PdrInfo.FarId = session.GetFar(farid).GlobalId
-	}
-	if qerid, err := pdr.QERID(); err == nil {
-		spdrInfo.PdrInfo.QerId = session.GetQer(qerid).GlobalId
-	}
-
-	pdi, err := pdr.PDI()
-	if err != nil {
-		return fmt.Errorf("PDI IE is missing")
-	}
-
-	if sdfFilter, err := pdr.SDFFilter(); err == nil {
-		if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
-			spdrInfo.PdrInfo.SdfFilter = &sdfFilterParsed
-			// log.Printf("Sdf Filter Parsed: %+v", sdfFilterParsed)
-		} else {
-			return err
-		}
-	}
-
-	//Bug in go-pfcp:
-	//if fteid, err := pdr.FTEID(); err == nil {
-	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
-		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-			spdrInfo.Teid = fteid.TEID
-		}
-	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
-		if ueIP.IPv4Address != nil {
-			spdrInfo.Ipv4 = cloneIP(ueIP.IPv4Address)
-		} else if ueIP.IPv6Address != nil {
-			spdrInfo.Ipv6 = cloneIP(ueIP.IPv6Address)
-		} else {
-			return fmt.Errorf("UE IP Address IE is missing")
-		}
-	} else {
-		log.Info().Msg("Both F-TEID IE and UE IP Address IE are missing")
-		return err
-	}
-	return nil
 }
 
 func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
@@ -217,8 +141,9 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
 	mapOperations := conn.mapOperations
+	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
 	for _, pdrInfo := range session.PDRs {
-		if err := deletePDR(pdrInfo, mapOperations); err != nil {
+		if err := pdrContext.deletePDR(pdrInfo, mapOperations); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
@@ -237,6 +162,8 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	}
 	log.Info().Msgf("Deleting session: %d", req.SEID())
 	delete(association.Sessions, req.SEID())
+
+	conn.ReleaseResources(req.SEID())
 
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted)), nil
@@ -277,6 +204,9 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	printSessionModificationRequest(req)
 
 	// #TODO: Implement rollback on error
+	createdPDRs := []SPDRInfo{}
+	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
+
 	err := func() error {
 		mapOperations := conn.mapOperations
 
@@ -376,10 +306,12 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				continue
 			}
 
-			spdrInfo := SPDRInfo{}
-			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
-				session.PutPDR(uint32(pdrId), spdrInfo)
+			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
+
+			if err := pdrContext.extractPDR(pdr, &spdrInfo); err == nil {
+				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
+				createdPDRs = append(createdPDRs, spdrInfo)
 			} else {
 				log.Info().Msgf("Error extracting PDR info: %s", err.Error())
 			}
@@ -392,7 +324,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			spdrInfo := session.GetPDR(pdrId)
-			if err := extractPDR(pdr, session, &spdrInfo); err == nil {
+			if err := pdrContext.extractPDR(pdr, &spdrInfo); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {
@@ -406,7 +338,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				log.Info().Msgf("Removing uplink PDR: %d", pdrId)
 				sPDRInfo := session.RemovePDR(uint32(pdrId))
 
-				if err := deletePDR(sPDRInfo, mapOperations); err != nil {
+				if err := pdrContext.deletePDR(sPDRInfo, mapOperations); err != nil {
 					log.Info().Msgf("Failed to remove uplink PDR: %v", err)
 				}
 			}
@@ -422,14 +354,16 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 	association.Sessions[req.SEID()] = session
 
-	// Send SessionEstablishmentResponse
-	modResp := message.NewSessionModificationResponse(
-		0, 0,
-		session.RemoteSEID,
-		req.Sequence(),
-		0,
+	additionalIEs := []*ie.IE{
 		ie.NewCause(ie.CauseRequestAccepted),
-	)
+		newIeNodeID(conn.nodeId),
+	}
+
+	pdrIEs := processCreatedPDRs(createdPDRs, conn.n3Address)
+	additionalIEs = append(additionalIEs, pdrIEs...)
+
+	// Send SessionEstablishmentResponse
+	modResp := message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, additionalIEs...)
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return modResp, nil
 }

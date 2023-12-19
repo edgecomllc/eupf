@@ -30,6 +30,8 @@ type UpfConfig struct {
 	LoggingLevel            string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
 	PfcpPeer                []string `mapstructure:"pfcp_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
 	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
+	FTEIDPool               uint32   `mapstructure:"teid_pool" json:"teid_pool"`
+	FeatureFTUP             bool     `mapstructure:"feature_ftup" json:"feature_ftup"`
 }
 
 func init() {
@@ -54,6 +56,8 @@ func init() {
 	pflag.String("loglvl", "", "Logging level")
 	pflag.StringArray("pfcpnode", []string{}, "Address of PFCP node")
 	pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
+	pflag.Bool("feature_ftup", true, "Enable or disable feature_ftup")
+	pflag.Uint32("teid_pool", 65536, "TEID Pool")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -76,6 +80,8 @@ func init() {
 	_ = v.BindPFlag("logging_level", pflag.Lookup("loglvl"))
 	_ = v.BindPFlag("pfcp_node", pflag.Lookup("pfcpnode"))
 	_ = v.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
+	_ = v.BindPFlag("feature_ftup", pflag.Lookup("feature_ftup"))
+	_ = v.BindPFlag("teid_pool", pflag.Lookup("teid_pool"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -94,6 +100,8 @@ func init() {
 	v.SetDefault("heartbeat_timeout", 5)
 	v.SetDefault("logging_level", "info")
 	v.SetDefault("association_setup_timeout", 5)
+	v.SetDefault("feature_ftup", false)
+	v.SetDefault("teid_pool", 0)
 
 	v.SetConfigFile(*configPath)
 

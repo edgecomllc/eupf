@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  edgecom-nat:
+    container_name: nat
+    build:
+      context: ./nat
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+    cap_add:
+      - NET_ADMIN
+    networks:
+      privnet_n6:
+        aliases:
+          - natn6.free5gc.org
+
+  oai-spgwu:
+    command: echo 'stop'
+    networks: !reset
+        traffic_net:
+            ipv4_address: 192.168.72.134
+
+
+  oai-smf:
+    image: oaisoftwarealliance/oai-smf:v1.5.1
+    environment:
+      - DISCOVER_UPF=no
+      - USE_FQDN_DNS=no
+
+  oai-gnb:
+    depends_on: !reset
+      - edgecom-upf
+      - oai-amf
+
+  edgecom-upf:
+    container_name: eupf
+    image: ghcr.io/edgecomllc/eupf:7086b71cb1dbc254db84c30e14fa4a68d3beb132
+    privileged: true
+    command: --iface eth0 --iface eth1 --n3addr 192.168.71.134 --nodeid 192.168.71.134 --paddr 192.168.71.134:8805 --attach generic --loglvl trace --feature_ftup true --teid_pool 65535
+    volumes:
+      - /sys/fs/bpf:/sys/fs/bpf
+      - ./eupf/entrypoint.sh:/app/bin/entrypoint.sh
+    environment:
+      GIN_MODE: release
+    ulimits:
+      memlock: -1
+    cap_add:
+# Granular caps support depends on kernel version
+#      - BPF
+##      - TRACING
+#      - PERFMON
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_RESOURCE # setrlimit
+    ports:
+      - "8880:8080"
+      - "9090:9090"
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+    networks:
+      public_net:
+        ipv4_address: 192.168.71.134
+        aliases:
+          - upf.free5gc.org
+      privnet_n6:
+        aliases:
+          - upfn6.free5gc.org
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - 9091:9090
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prom_data:/prometheus
+    networks:
+      public_net:
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
+    networks:
+      public_net:
+  
+  edgecom-upf-ui:
+    container_name: ui
+    image: ghcr.io/edgecomllc/eupf-ui:74adead324e00eb83f97adfec40c7188c5f57a4a
+    command: >
+      sh -c "
+      sed -i 's#__API_PORT__#'\"$$API_PORT\"'#g' /usr/share/nginx/html/env.js
+      && nginx -g 'daemon off;'
+      "
+    ports:
+      - "8081:80"
+    environment:
+      - API_PORT=8080
+
+networks:
+  privnet_n6:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.100.250.0/24
+    driver_opts:
+      com.docker.network.bridge.name: br-oainfapi-n6

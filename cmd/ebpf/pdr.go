@@ -22,7 +22,7 @@ type PdrInfo struct {
 }
 
 type SdfFilter struct {
-	Protocol     uint8 // 0: icmp, 1: ip, 2: tcp, 3: udp
+	Protocol     uint8 // 0: icmp, 1: ip, 2: tcp, 3: udp, 4: icmp6
 	SrcAddress   IpWMask
 	SrcPortRange PortRange
 	DstAddress   IpWMask
