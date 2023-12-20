@@ -95,8 +95,8 @@ func (association *NodeAssociation) HeartbeatScheduler(conn *PfcpConnection) {
 		case seq := <-association.HeartbeatChannel:
 			if sequence == seq {
 				association.ResetFailedHeartbeats()
-				sequence = association.NewSequenceID()
 				<-time.After(time.Duration(config.Conf.HeartbeatInterval))
+				sequence = association.NewSequenceID()
 				SendHeartbeatRequest(conn, sequence, association.Addr)
 			}
 		case <-ctx.Done():
