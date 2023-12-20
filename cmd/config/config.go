@@ -98,8 +98,8 @@ func init() {
 	v.SetDefault("heartbeat_interval", 5)
 	v.SetDefault("heartbeat_timeout", 5)
 	v.SetDefault("logging_level", "info")
-	v.SetDefault("feature_ueip", true)
-	v.SetDefault("feature_ftup", true)
+	v.SetDefault("feature_ueip", false)
+	v.SetDefault("feature_ftup", false)
 	v.SetDefault("ip_pool", "10.61.0.0/16")
 	v.SetDefault("teid_pool", 65536)
 
