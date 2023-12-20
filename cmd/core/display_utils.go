@@ -355,8 +355,7 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 		}
 
 		if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 { // IE Type UE IP Address
-			ueIp, _ := pdi[ueipPdiId].UEIPAddress()
-			if ueIp != nil {
+			if ueIp, _ := pdi[ueipPdiId].UEIPAddress(); ueIp != nil {
 				if ueIp.IPv4Address != nil {
 					writeLineTabbed(sb, fmt.Sprintf("UE IPv4 Address: %s ", ueIp.IPv4Address), 2)
 				}
