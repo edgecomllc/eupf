@@ -79,7 +79,6 @@ func (pfcpPathManager *PfcpPathManager) ScheduleAssociationSetupRequest(duration
 				return
 			case <-ticker.C:
 				pfcpPathManager.peers[associationAddr] += 1
-				log.Debug().Msgf("Sequence ID: %d", pfcpPathManager.peers[associationAddr])
 				SendAssociationSetupRequest(conn, pfcpPathManager.peers[associationAddr], associationAddr)
 			}
 		}
