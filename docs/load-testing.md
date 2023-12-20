@@ -126,6 +126,25 @@ trex>start -f stl/gtp_1pkt_simple.py -p 0 -m 5mpps -d 300
 * eUPF proccesses N3 packets according to installed PDRs and sends N6 packets back
 * T-Rex receives N3 packets and count how many packets are lost 
 
+<details><summary>eUPF configuration via API</summary>
+
+1. Set FAR with ID = 0 and action = `forward`
+```bash
+curl -H 'Content-Type: application/json' -X PUT -d '{"action":2, "outer_header_creation":0,"teid":0,"remote_ip":0, "local_ip": 0,"transport_level_marking": 0}' http://localhost:8080/api/v1/far_map/0
+```
+
+2. Set QER with ID = 0 and no bitrate limitations
+```bash
+curl -H 'Content-Type: application/json' -X PUT -d '{"gate_status_ul":0,"gate_status_dl":0,"qfi":0,"max_bitrate_ul":0,"max_bitrate_dl":0}' http://localhost:8080/api/v1/qer_map/0
+```
+
+3. And, finally, set PDR for TEID = 0 and with FARID = 0, QERID = 0
+```bash
+curl -H 'Content-Type: application/json' -X PUT -d '{"outer_header_removal":0,"far_id":0,"qer_id":0}' http://localhost:8080/api/v1/uplink_pdr_map/0
+```
+
+</details>
+
 ### Results
 
 #### 10 byte payload
