@@ -16,7 +16,7 @@ type NodeAssociation struct {
 	NextSequenceID   uint32
 	Sessions         map[uint64]*Session
 	HeartbeatChannel chan uint32
-	FailedHeartbeats uint8
+	FailedHeartbeats uint32
 	HeartbeatsActive bool
 	sync.Mutex
 	// AssociationStart time.Time // Held until propper failure detection is implemented
@@ -81,7 +81,7 @@ func (association *NodeAssociation) HeartbeatScheduler(conn *PfcpConnection) {
 		case <-time.After(time.Duration(config.Conf.HeartbeatTimeout) * time.Second):
 			association.Lock()
 			association.FailedHeartbeats++
-			if association.FailedHeartbeats >= 5 {
+			if association.FailedHeartbeats >= config.Conf.HeartbeatRetries {
 				log.Info().Msgf("the number of unanswered heartbeats has reached the limit, association deleted: %s", association.Addr)
 				close(association.HeartbeatChannel)
 				conn.DeleteAssociation(association.Addr)
@@ -95,7 +95,7 @@ func (association *NodeAssociation) HeartbeatScheduler(conn *PfcpConnection) {
 		case seq := <-association.HeartbeatChannel:
 			if sequence == seq {
 				association.ResetFailedHeartbeats()
-				<-time.After(time.Duration(config.Conf.HeartbeatInterval))
+				<-time.After(time.Duration(config.Conf.HeartbeatInterval) * time.Second)
 				sequence = association.NewSequenceID()
 				SendHeartbeatRequest(conn, sequence, association.Addr)
 			}
