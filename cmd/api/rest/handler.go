@@ -1,6 +1,8 @@
 package rest
 
 import (
+	"net/http"
+
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
 	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
@@ -10,7 +12,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"net/http"
 )
 
 type ApiHandler struct {
@@ -52,7 +53,6 @@ func (h *ApiHandler) InitRoutes() *gin.Engine {
 
 func (h *ApiHandler) initDefaultRoutes(group *gin.RouterGroup) {
 
-	group.GET("upf_pipeline", h.listUpfPipeline)
 	group.GET("xdp_stats", h.displayXdpStatistics)
 	group.GET("packet_stats", h.displayPacketStats)
 
