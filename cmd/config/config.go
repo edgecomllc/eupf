@@ -53,9 +53,9 @@ func init() {
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
 	pflag.String("loglvl", "", "Logging level")
-	pflag.Bool("ueip", true, "Enable or disable feature_ueip")
+	pflag.Bool("ueip", false, "Enable or disable feature_ueip")
 	pflag.Bool("ftup", true, "Enable or disable feature_ftup")
-	pflag.String("ip_pool", "192.168.1.1/32", "IP Pool")
+	pflag.String("ip_pool", "0.0.0.0/32", "IP Pool")
 	pflag.Uint32("teid_pool", 65536, "TEID Pool")
 	pflag.Parse()
 
@@ -100,7 +100,7 @@ func init() {
 	v.SetDefault("logging_level", "info")
 	v.SetDefault("feature_ueip", false)
 	v.SetDefault("feature_ftup", false)
-	v.SetDefault("ip_pool", "192.168.1.1/32")
+	v.SetDefault("ip_pool", "0.0.0.0/32")
 	v.SetDefault("teid_pool", 65536)
 
 	v.SetConfigFile(*configPath)

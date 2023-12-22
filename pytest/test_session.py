@@ -140,4 +140,4 @@ def test_send_heartbeat():
 def test_create_session_ueip():
     ans = sr1(target / session_establish_ueip, iface='lo')
     assert ans.haslayer(PFCPSessionEstablishmentResponse)
-    assert ans[PFCPSessionEstablishmentResponse][IE_CreatedPDR][IE_UE_IP_Address].ipv4 == "192.168.1.1"
+    assert ans[PFCPSessionEstablishmentResponse][IE_CreatedPDR][IE_UE_IP_Address].ipv4 == "0.0.0.0"
