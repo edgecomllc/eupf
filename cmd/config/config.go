@@ -54,7 +54,7 @@ func init() {
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
 	pflag.String("loglvl", "", "Logging level")
 	pflag.Bool("ueip", false, "Enable or disable feature_ueip")
-	pflag.Bool("ftup", true, "Enable or disable feature_ftup")
+	pflag.Bool("ftup", false, "Enable or disable feature_ftup")
 	pflag.String("ip_pool", "0.0.0.0/32", "IP Pool")
 	pflag.Uint32("teid_pool", 65536, "TEID Pool")
 	pflag.Parse()
