@@ -1,14 +1,24 @@
 package rest
 
 import (
-	"github.com/edgecomllc/eupf/cmd/core"
-	"github.com/edgecomllc/eupf/cmd/ebpf"
-	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
 	"unsafe"
+
+	"github.com/edgecomllc/eupf/cmd/ebpf"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
+
+type FarMapElement struct {
+	Id                    uint32 `json:"id"`
+	Action                uint8  `json:"action"`
+	OuterHeaderCreation   uint8  `json:"outer_header_creation"`
+	Teid                  uint32 `json:"teid"`
+	RemoteIP              uint32 `json:"remote_ip"`
+	LocalIP               uint32 `json:"local_ip"`
+	TransportLevelMarking uint16 `json:"transport_level_marking"`
+}
 
 func (h *ApiHandler) getFarValue(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
@@ -25,7 +35,7 @@ func (h *ApiHandler) getFarValue(c *gin.Context) {
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, core.FarMapElement{
+	c.IndentedJSON(http.StatusOK, FarMapElement{
 		Id:                    uint32(id),
 		Action:                value.Action,
 		OuterHeaderCreation:   value.OuterHeaderCreation,
@@ -37,7 +47,7 @@ func (h *ApiHandler) getFarValue(c *gin.Context) {
 }
 
 func (h *ApiHandler) setFarValue(c *gin.Context) {
-	var farElement core.FarMapElement
+	var farElement FarMapElement
 	if err := c.BindJSON(&farElement); err != nil {
 		log.Printf("Parsing request body error: %s", err.Error())
 		return

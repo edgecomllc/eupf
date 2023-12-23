@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/core/service"
 
 	"github.com/edgecomllc/eupf/cmd/api/rest"
 	"github.com/edgecomllc/eupf/cmd/server"
@@ -52,8 +53,6 @@ func main() {
 	}
 
 	defer bpfObjects.Close()
-
-	bpfObjects.BuildPipeline()
 
 	for _, ifaceName := range config.Conf.InterfaceName {
 		iface, err := net.InterfaceByName(ifaceName)
