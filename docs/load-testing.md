@@ -100,8 +100,8 @@ class STLS1(object):
         # create 1 stream
         return [ self.create_stream() ]
 
-    def register():
-        return STLS1()
+def register():
+    return STLS1()
 ```
 </details>
 
