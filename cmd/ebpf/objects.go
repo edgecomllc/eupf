@@ -24,14 +24,8 @@ import (
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf ZeroEntrypoint 	xdp/zero_entrypoint.c -- -I. -O2 -Wall
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N3Entrypoint 	xdp/n3_entrypoint.c -- -I. -O2 -Wall
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N6Entrypoint 	xdp/n6_entrypoint.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf QerProgram 		xdp/qer_program.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf FarProgram 		xdp/far_program.c -- -I. -O2 -Wall
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf UpfXdp 			xdp/upf_program.c -- -I. -O2 -Wall
 
 type BpfObjects struct {
-	UpfXdpObjects
-	FarProgramObjects
-	QerProgramObjects
 	IpEntrypointObjects
 
 	FarIdTracker *IdTracker
@@ -63,39 +57,13 @@ func (bpfObjects *BpfObjects) Load() error {
 	}
 
 	return LoadAllObjects(&collectionOptions,
-		Loader{LoadUpfXdpObjects, &bpfObjects.UpfXdpObjects},
-		Loader{LoadFarProgramObjects, &bpfObjects.FarProgramObjects},
-		Loader{LoadQerProgramObjects, &bpfObjects.QerProgramObjects},
 		Loader{LoadIpEntrypointObjects, &bpfObjects.IpEntrypointObjects})
 }
 
 func (bpfObjects *BpfObjects) Close() error {
 	return CloseAllObjects(
-		&bpfObjects.UpfXdpObjects,
-		&bpfObjects.FarProgramObjects,
-		&bpfObjects.QerProgramObjects,
 		&bpfObjects.IpEntrypointObjects,
 	)
-}
-
-func (bpfObjects *BpfObjects) BuildPipeline() {
-	upfPipeline := bpfObjects.UpfXdpObjects.UpfPipeline
-	upfMainProgram := bpfObjects.UpfFunc
-	farProgram := bpfObjects.UpfFarProgramFunc
-	qerProgram := bpfObjects.UpfQerProgramFunc
-
-	if err := upfPipeline.Put(uint32(0), upfMainProgram); err != nil {
-		panic(err)
-	}
-
-	if err := upfPipeline.Put(uint32(1), farProgram); err != nil {
-		panic(err)
-	}
-
-	if err := upfPipeline.Put(uint32(2), qerProgram); err != nil {
-		panic(err)
-	}
-
 }
 
 type LoaderFunc func(obj interface{}, opts *ebpf.CollectionOptions) error
@@ -173,27 +141,29 @@ func ResizeEbpfMap(eMap **ebpf.Map, eProg *ebpf.Program, newSize uint32) error {
 }
 
 func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32, pdrMapSize uint32) error {
-	// QEQ
-	if err := ResizeEbpfMap(&bpfObjects.QerMap, bpfObjects.UpfQerProgramFunc, qerMapSize); err != nil {
-		log.Info().Msgf("Failed to resize qer map: %s", err)
+	//QER
+	if err := ResizeEbpfMap(&bpfObjects.QerMap, bpfObjects.UpfIpEntrypointFunc, qerMapSize); err != nil {
+		log.Info().Msgf("Failed to resize QER map: %s", err)
 		return err
 	}
-	// FAR
-	if err := ResizeEbpfMap(&bpfObjects.FarMap, bpfObjects.UpfFarProgramFunc, farMapSize); err != nil {
-		log.Info().Msgf("Failed to resize far map: %s", err)
+
+	//FAR
+	if err := ResizeEbpfMap(&bpfObjects.FarMap, bpfObjects.UpfIpEntrypointFunc, farMapSize); err != nil {
+		log.Info().Msgf("Failed to resize FAR map: %s", err)
 		return err
 	}
+
 	// PDR
 	if err := ResizeEbpfMap(&bpfObjects.PdrMapDownlinkIp4, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
-		log.Info().Msgf("Failed to resize qer map: %s", err)
+		log.Info().Msgf("Failed to resize PDR map: %s", err)
 		return err
 	}
 	if err := ResizeEbpfMap(&bpfObjects.PdrMapDownlinkIp6, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
-		log.Info().Msgf("Failed to resize qer map: %s", err)
+		log.Info().Msgf("Failed to resize PDR map: %s", err)
 		return err
 	}
 	if err := ResizeEbpfMap(&bpfObjects.PdrMapUplinkIp4, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
-		log.Info().Msgf("Failed to resize qer map: %s", err)
+		log.Info().Msgf("Failed to resize PDR map: %s", err)
 		return err
 	}
 
