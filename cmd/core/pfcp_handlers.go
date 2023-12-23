@@ -103,7 +103,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
 		newIeNodeID(conn.nodeId),             // its Node ID;
-		ie.NewRecoveryTimeStamp(time.Now()),
+		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
 		upFunctionFeaturesIE,
 	)
 
