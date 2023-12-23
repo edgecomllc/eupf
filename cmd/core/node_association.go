@@ -2,9 +2,10 @@ package core
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/edgecomllc/eupf/cmd/config"
 )
@@ -44,52 +45,22 @@ func (association *NodeAssociation) NewSequenceID() uint32 {
 	return association.NextSequenceID
 }
 
-// ScheduleHeartbeatRequest schedules a series of heartbeat requests to be sent to the remote node. Return a cancellation function to stop the scheduled requests.
-func (association *NodeAssociation) ScheduleHeartbeatRequest(duration time.Duration, conn *PfcpConnection) context.CancelFunc {
-	ctx, cancel := context.WithCancel(context.Background())
-	go func(ctx context.Context, duration time.Duration) {
-		i := uint32(0)
-		ticker := time.NewTicker(duration)
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if i >= config.Conf.HeartbeatRetries {
-				conn.DeleteAssociation(association.Addr)
-				ticker.Stop()
-				return
-			}
-			seq := association.NewSequenceID()
-			SendHeartbeatRequest(conn, seq, association.Addr)
-		}
-	}(ctx, duration)
-	return cancel
-}
-
-func (association *NodeAssociation) HeartbeatScheduler(conn *PfcpConnection) {
+func (association *NodeAssociation) ScheduleHeartbeat(conn *PfcpConnection) {
 	association.HeartbeatsActive = true
 	ctx := context.Background()
-	var sequence uint32
 
 	for {
-		sequence = association.NewSequenceID()
+		sequence := association.NewSequenceID()
 		SendHeartbeatRequest(conn, sequence, association.Addr)
 
 		select {
 		case <-time.After(time.Duration(config.Conf.HeartbeatTimeout) * time.Second):
-			association.Lock()
-			association.FailedHeartbeats++
-			if association.FailedHeartbeats >= config.Conf.HeartbeatRetries {
-				log.Info().Msgf("the number of unanswered heartbeats has reached the limit, association deleted: %s", association.Addr)
+			if !association.HandleHeartbeatTimeout() {
+				log.Warn().Msgf("the number of unanswered heartbeats has reached the limit, association deleted: %s", association.Addr)
 				close(association.HeartbeatChannel)
 				conn.DeleteAssociation(association.Addr)
-				association.Unlock()
 				return
-			} else {
-				sequence = association.NewSequenceID()
-				SendHeartbeatRequest(conn, sequence, association.Addr)
 			}
-			association.Unlock()
 		case seq := <-association.HeartbeatChannel:
 			if sequence == seq {
 				association.ResetFailedHeartbeats()
@@ -108,10 +79,19 @@ func (association *NodeAssociation) ResetFailedHeartbeats() {
 	association.Unlock()
 }
 
-func (association *NodeAssociation) Heartbeat(sequence uint32) {
+func (association *NodeAssociation) HandleHeartbeatTimeout() bool {
 	association.Lock()
+	defer association.Unlock()
+
+	association.FailedHeartbeats++
+	return association.FailedHeartbeats < config.Conf.HeartbeatRetries
+}
+
+func (association *NodeAssociation) HandleHeartbeat(sequence uint32) {
+	association.Lock()
+	defer association.Unlock()
+
 	if association.HeartbeatChannel != nil {
 		association.HeartbeatChannel <- sequence
 	}
-	association.Unlock()
 }

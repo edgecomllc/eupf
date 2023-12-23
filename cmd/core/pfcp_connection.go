@@ -2,9 +2,10 @@ package core
 
 import (
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/core/service"
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
@@ -118,7 +119,7 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 func (connection *PfcpConnection) RefreshAssociations() {
 	for _, assoc := range connection.NodeAssociations {
 		if !assoc.HeartbeatsActive {
-			go assoc.HeartbeatScheduler(connection)
+			go assoc.ScheduleHeartbeat(connection)
 		}
 	}
 }

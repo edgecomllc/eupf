@@ -1,10 +1,11 @@
 package core
 
 import (
+	"net"
+
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
-	"net"
 )
 
 func HandlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
@@ -14,7 +15,7 @@ func HandlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr 
 	}
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
-		log.Info().Msgf("Got Heartbeat Request with invalid TS: %s, from: %s", err, addr)
+		log.Warn().Msgf("Got Heartbeat Request with invalid TS: %s, from: %s", err, addr)
 		return nil, err
 	} else {
 		log.Debug().Msgf("Got Heartbeat Request with TS: %s, from: %s", ts, addr)
@@ -29,14 +30,14 @@ func HandlePfcpHeartbeatResponse(conn *PfcpConnection, msg message.Message, addr
 	hbresp := msg.(*message.HeartbeatResponse)
 	ts, err := hbresp.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
-		log.Info().Msgf("Got Heartbeat Response with invalid TS: %s, from: %s", err, addr)
+		log.Warn().Msgf("Got Heartbeat Response with invalid TS: %s, from: %s", err, addr)
 		return nil, err
 	} else {
 		log.Debug().Msgf("Got Heartbeat Response with TS: %s, from: %s", ts, addr)
 	}
 
 	if association := conn.GetAssociation(addr); association != nil {
-		association.Heartbeat(msg.Sequence())
+		association.HandleHeartbeat(msg.Sequence())
 	}
 	return nil, err
 }
