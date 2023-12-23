@@ -34,27 +34,6 @@ type UpfConfig struct {
 
 func init() {
 	var configPath = pflag.String("config", "./config.yml", "Path to config file")
-	// pflags defaults are ignored in this setup
-	pflag.StringArray("iface", []string{}, "Interface list to bind XDP program to")
-	pflag.String("attach", "", "XDP attach mode")
-	pflag.String("aaddr", "", "Address to bind api server to")
-	pflag.String("paddr", "", "Address to bind PFCP server to")
-	pflag.String("nodeid", "", "PFCP Server Node ID")
-	pflag.String("maddr", "", "Address to bind metrics server to")
-	pflag.String("n3addr", "", "Address for communication over N3 interface")
-	pflag.StringArray("peer", []string{}, "Address of GTP peer")
-	pflag.String("echo", "", "Interval of sending echo requests")
-	pflag.String("qersize", "", "Size of the QER ebpf map")
-	pflag.String("farsize", "", "Size of the FAR ebpf map")
-	pflag.String("pdrsize", "", "Size of the PDR ebpf map")
-	pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
-	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
-	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
-	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
-	pflag.String("loglvl", "", "Logging level")
-	pflag.Bool("feature_ftup", true, "Enable or disable feature_ftup")
-	pflag.Uint32("teid_pool", 65536, "TEID Pool")
-	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
 	_ = v.BindPFlag("interface_name", pflag.Lookup("iface"))
@@ -104,6 +83,31 @@ func init() {
 	if err := v.ReadInConfig(); err != nil {
 		log.Printf("Unable to read config file, %v", err)
 	}
+
+	// pflags defaults are ignored in this setup
+	pflag.StringArray("iface", []string{}, "Interface list to bind XDP program to")
+	pflag.String("attach", "", "XDP attach mode")
+	pflag.String("aaddr", "", "Address to bind api server to")
+	pflag.String("paddr", "", "Address to bind PFCP server to")
+	pflag.String("nodeid", "", "PFCP Server Node ID")
+	pflag.String("maddr", "", "Address to bind metrics server to")
+	pflag.String("n3addr", "", "Address for communication over N3 interface")
+	pflag.StringArray("peer", []string{}, "Address of GTP peer")
+	pflag.String("echo", "", "Interval of sending echo requests")
+	pflag.String("qersize", "", "Size of the QER ebpf map")
+	pflag.String("farsize", "", "Size of the FAR ebpf map")
+	pflag.String("pdrsize", "", "Size of the PDR ebpf map")
+	pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
+	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
+	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
+	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
+	pflag.String("loglvl", "", "Logging level")
+	pflag.Bool("feature_ftup", false, "Enable or disable feature_ftup")
+	pflag.Uint32("teid_pool", 65536, "TEID Pool")
+	if !v.GetBool("feature_ftup") {
+		pflag.Lookup("teid_pool").DefValue = "0"
+	}
+	pflag.Parse()
 
 	log.Printf("Get raw config: %+v", v.AllSettings())
 }
