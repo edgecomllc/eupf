@@ -71,6 +71,8 @@ To go further, see the **[eUPF installation guide](./docs/install.md)** to learn
 
 For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**.
 
+You can find different types of implementation in the **[Implementation expamples](./docs/implementation_examples.md)**.
+
 ## Implementation notes
 
 eUPF as a part of 5G mobile core network implements data network gateway function. It communicates with SMF via PFCP protocol (N4 interface) and forwards packets between core and data networks(N3 and N6 interfaces correspondingly). These two main UPF parts are implemented in two separate components: control plane and forwarding plane.
