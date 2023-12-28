@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
@@ -79,12 +80,14 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 		}
 		return fmt.Errorf("F-TEID IE is missing")
 	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
-		if hasCHV4(ueIP.Flags) {
-			if ip, err := pdrContext.getIP(); err == nil {
-				ueIP.IPv4Address = cloneIP(ip)
-				spdrInfo.Allocated = true
-			} else {
-				log.Error().Msg(err.Error())
+		if config.Conf.FeatureUEIP {
+			if hasCHV4(ueIP.Flags) {
+				if ip, err := pdrContext.getIP(); err == nil {
+					ueIP.IPv4Address = cloneIP(ip)
+					spdrInfo.Allocated = true
+				} else {
+					log.Error().Msg(err.Error())
+				}
 			}
 		}
 		if ueIP.IPv4Address != nil {
