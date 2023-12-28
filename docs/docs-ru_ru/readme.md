@@ -73,15 +73,15 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 
 Ссылки на различные сценарии применения указаны в **[Implementation expamples](../../docs/implementation_examples.md)**.
 
-## Implementation notes
+## Различные варианты установки
 
-eUPF as a part of 5G mobile core network implements data network gateway function. It communicates with SMF via PFCP protocol (N4 interface) and forwards packets between core and data networks(N3 and N6 interfaces correspondingly). These two main UPF parts are implemented in two separate components: control plane and forwarding plane.
+eUPF как часть базовой сети мобильной связи 5G реализует функцию шлюза сети передачи данных. Он связывается с SMF через протокол PFCP (интерфейс N4) и пересылает пакеты между ядром и сетями передачи данных (интерфейсы N3 и N6 соответственно). Эти две основные части UPF реализованы в виде двух отдельных компонентов: controlplane и dataplane.
 
-The eUPF control plane is an userspace application which receives packet processing rules from SMF and configures forwarding plane for proper forwarding.
+Controlplane eUPF — это приложение пользовательского пространства, которое получает правила обработки пакетов от SMF и настраивает плоскость пересылки для правильной пересылки.
 
-The eUPF forwarding plane is based on eBPF packet processing. When started eUPF adds eBPF XDP hook program in order to process network packets as close to NIC as possible. eBPF program consists of several pipeline steps: determine PDR, apply gating, qos and forwarding rules.
+Dataplane eUPF основана на обработке пакетов eBPF. При запуске eUPF добавляет программу перехвата eBPF XDP для обработки сетевых пакетов как можно ближе к сетевому адаптеру. Программа eBPF состоит из нескольких этапов конвейера: определение PDR, применение правил шлюзования, качества обслуживания и пересылки.
 
-eUPF relies on kernel routing when making routing decision for incoming network packets. When it is not possible to determine packet route via kernel FIB lookup, eUPF passes such packet to kernel as a fallback path. This approach obviously affects performance but allows maintaining correct kernel routing process (ex., filling arp tables).
+eUPF полагается на маршрутизацию ядра при принятии решения о маршрутизации входящих сетевых пакетов. Если невозможно определить маршрут пакета с помощью поиска FIB ядра, eUPF передает такой пакет ядру в качестве резервного пути. Этот подход, очевидно, влияет на производительность, но позволяет поддерживать правильный процесс маршрутизации ядра (например, заполнение таблиц arp).
 
 ### Brief functional description
 
