@@ -47,7 +47,6 @@ jobs:
 
       - name: Run eUPF with feature_ueip
         run: sudo ./bin/eupf --feature_ueip &
-        background: true
 
       - name: Run pytest with feature_ueip
         run: sudo pytest -v ./pytest/test_session_ueip.py
