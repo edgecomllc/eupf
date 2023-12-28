@@ -46,9 +46,9 @@ jobs:
         run: sudo killall eupf
 
       - name: Run eUPF with feature_ueip
-        run: sudo ./bin/eupf &
         env:
-          feature_ueip: true
+           UPF_FEATURE_FTUP: true
+        run: sudo ./bin/eupf &
 
       - name: Run pytest with feature_ueip
         run: sudo pytest -v ./pytest/test_session_ueip.py
