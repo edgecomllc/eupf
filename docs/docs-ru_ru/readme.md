@@ -114,7 +114,7 @@ eUPF поддерживает отправку запросов GTP Echo к со
 
 </details>
 
-### Roadmap
+### План развития проекта
 
 <details><summary>Show me</summary>
 
@@ -151,9 +151,9 @@ eUPF поддерживает отправку запросов GTP Echo к со
 
  </details>
 
-## Running from sources
+## Компиляция из исходного кода
 
-### Prerequisites
+### Предварительные требования и зависимости
 
 - Git
 - Golang
@@ -162,75 +162,75 @@ eUPF поддерживает отправку запросов GTP Echo к со
 - gcc
 - libbpf-dev
 
-**On Ubuntu 22.04**, you can install these using the following command:
+**На Ubuntu 22.04**, вы можете установить их с помощью следующей команды:
 
 ```bash
 sudo apt install git golang clang llvm gcc-multilib libbpf-dev
 ```
 
-**On Rocky Linux 9**, use the following command:
+**На Rocky Linux 9**, используйте следующую команду:
 
 ```bash
 sudo dnf install git golang clang llvm gcc libbpf libbpf-devel libxdp libxdp-devel xdp-tools bpftool kernel-headers
 ```
 
-### Manual build
+### Сборка
 
-#### Step 1: Install the Swag command line tool for Golang
-This is used to automatically generate RESTful API documentation.
+#### Шаг 1. Установите инструмент командной строки Swag для Golang.
+Это используется для автоматического создания документации RESTful API.
 
 ```bash
 go install github.com/swaggo/swag/cmd/swag@v1.8.12
 ```
 
-#### Step 2: Clone the eUPF repository and change to the directory
+#### Шаг 2. Клонируйте репозиторий eUPF и перейдите в каталог.
 
 ```bash
 git clone https://github.com/edgecomllc/eupf.git
 cd eupf
 ```
 
-#### Step 3: Run the code generators
+#### Step 3: Запустите генераторы кода
 
 ```bash
 go generate -v ./cmd/...
 ```
 
-#### Step 4: Build eUPF
+#### Step 4: Осуществите сборку проекта eUPF
 
 ```bash
 go build -v -o bin/eupf ./cmd/
 ```
-#### Step 5: Run the application
+#### Step 5: Запустите приложение
 
-Run binary with privileges allowing to increase [memory-ulimits](https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits)
+Запустить бинарный файл с привилегиями, позволяющими увеличить [memory-ulimits](https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits)
 
 ```bash
 sudo ./bin/eupf
 ```
 
-This should start application with the default configuration. Please adjust the contents of the configuration file and the command-line arguments as needed for your application and environment.
+Это должно запустить приложение с конфигурацией по умолчанию. Настройте содержимое файла конфигурации и аргументы командной строки в соответствии с вашим приложением и средой.
 
-### Build docker image
+### Создайте докер-образ
 
-Use this command to build eupf's docker image: `docker build -t local/eupf:latest .`
+Используйте эту команду для создания образа докера eupf: `docker build -t local/eupf:latest .`
 
-You can also define several build arguments to configure eUPF image: `docker build -t local/eupf:latest --build-arg BPF_ENABLE_LOG=1 --build-arg BPF_ENABLE_ROUTE_CACHE=1 .`
+Вы также можете определить несколько аргументов сборки для настройки образа eUPF.: `docker build -t local/eupf:latest --build-arg BPF_ENABLE_LOG=1 --build-arg BPF_ENABLE_ROUTE_CACHE=1 .`
 
-### Hardware requirements
+### Аппаратные требования
 
-- CPU: any popular CPU is supported, incl. x86, x86_64, x86, ppc64le, armhf, armv7, aarch64, ppc64le, s390x
-- CPU_cores: 1 core is enough to run eUPF
-- RAM: you need up to 70MB to run eUPF and up to 512MB to run Linux kernel
-- HDD: 50MB of free space is required to install eUPF. Different types of storage can be used: HDD, SSD, SD-card, USB-stick
-- NIC: Any internal or external networking interface that can be used in Linux
+- CPU: Поддерживается большиенство архитектур CPU, включая: x86, x86_64, x86, ppc64le, armhf, armv7, aarch64, ppc64le, s390x
+- CPU ядра: 1 ядра достаточно для запуска eUPF
+- RAM: вам потребуется до 70MB для запуска самого eUPF и до 512MB для запуска ядра Linux
+- HDD: 50MB свободного пространства требуется для установки eUPF. Поддерживаются различные типы носителей: HDD, SSD, SD-card, USB-stick
+- NIC: Любой внешний или внутренний сетевой интерфейс, который поддерживается Linux
 
 ## Contribution
 
-Please create an issue to report a bug or share an idea.
+Пожалуйста, создайте issue в данном проекте для того, чтобы поделиться идеями или сообщить о недоработках.
 
 ## License
-This project is licensed under the [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details
+Этот проект поддерживает лицензию [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0), детали указаны в файле [LICENSE file](../../LICENSE)
 
 ---
 
