@@ -117,22 +117,22 @@ docker-compose up -d
 
 ## Примеры запуска в docker-compose
 
-Смотрите примеры развертывания docker-compose с помощью **open5gs**, **free5gc** and **OpenAirInterface** в [the Deployment examples table](../../docs/deployments/README.md#docker-compose-deployments).
+Смотрите примеры развертывания docker-compose с помощью **open5gs**, **free5gc** и **OpenAirInterface** в [the Deployment examples table](../../docs/deployments/README.md#docker-compose-deployments).
 
-# Deploy with Kubernetes
+# Развертывание в среде Kubernetes
 
-## Prerequisites
-- Kubernetes cluster with Calico and Multus CNI
-  - with [Enabled Unsafe Sysctls](https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/#enabling-unsafe-sysctls) net.ipv4.ip_forward:
+## Предварительные требования
+- Kubernetes кластер с поддержкой Calico и Multus CNI
+  - с [Enabled Unsafe Sysctls](https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/#enabling-unsafe-sysctls) net.ipv4.ip_forward:
     `kubelet --allowed-unsafe-sysctls 'net.ipv4.ip_forward,net.ipv6.conf.all.forwarding'`
-- [helm](https://helm.sh/docs/intro/install/) installed
-- [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) installed, or <br>
-  create CustomResource ServiceMonitor as a minimum: <br>
+- установлен [helm](https://helm.sh/docs/intro/install/)
+- установлен [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack), или <br>
+  создан CustomResource ServiceMonitor: <br>
   ```kubectl apply -f https://github.com/prometheus-community/helm-charts/raw/main/charts/kube-prometheus-stack/crds/crd-servicemonitors.yaml```
-<!-- - deployed 5g core (open5gs or free5gc) -->
+<!-- - развернуто 5g core (open5gs or free5gc) -->
 
-In our environments, we use one node K8s cluster deployed by means of [kubespray](https://github.com/kubernetes-sigs/kubespray). <!-- You can see configuration examples in this [repo](https://github.com/edgecomllc/ansible) -private -->
-<details><summary>With additional file inventory/mycluster/group_vars/kube_node.yaml</summary>
+В наших K8s средах мы используем кластер K8s с одним узлом, развернутый с помощью [kubespray](https://github.com/kubernetes-sigs/kubespray). <!-- Вы можете увидеть примеры конфигурации в этом [репозитории](https://github.com/edgecomllc/ansible) -private -->
+<details><summary>С дополнительным файлом Inventory/mycluster/group_vars/kube_node.yaml</summary>
 <p>
 
 ```yaml
@@ -145,37 +145,36 @@ kubelet_node_config_extra_args:
 </p>
 </details> 
 
-## UE subnets routing
+## Маршрутизация подсетей UE
 
-In order to route downlink traffic back to UE options below are proposed:
+Для маршрутизации трафика нисходящей линии связи обратно в UE предлагаются следующие варианты:
 
-1. Use BGP
-2. Use static routes. For every UE
+1. Использовать BGP
+2. Для каждого UE использовать статические маршруты
 
-### Use BGP
+### Использование BGP
 
-BGP daemon(BIRD) is running as a sidecar in eUPF pod. UE subnet is announced to K8s nodes. K8s CNI should be configured to use BGP.
+Демон BGP (BIRD) работает как дополнительный модуль в модуле eUPF. Подсеть UE объявляется узлам K8s. K8s CNI должен быть настроен на использование BGP.
 
-This solution is suitable for single instance eUPF deployment.
+Это решение подходит для развертывания eUPF в одном экземпляре.
 
-### Use static routes
+### Использование статических маршрутов
 
-To use scalable eUPF deployment (more the one eUPF replica) downlink route to specific UE have to pass the UPF with corresponding PDU-session. 
+Чтобы использовать масштабируемое развертывание eUPF (более одной реплики eUPF), маршрут нисходящей линии связи к конкретному UE должен передать UPF с соответствующим сеансом PDU.
 
-As a proof-of-concept, simple route utility is provided. The utility reads active PDU-sessions for every UPF via API and updates node's routing table. For each UE's PDU-session there is a static route via corresponding UPF.  
+В качестве доказательства концепции предоставляется простая утилита маршрутизации. Утилита считывает активные PDU-сессии для каждого UPF через API и обновляет таблицу маршрутизации узла. Для каждого PDU-сеанса UE существует статический маршрут через соответствующий UPF.
 
+## Примеры
 
-## Examples
+См. примеры развертывания Kubernetes с помощью **open5gs** и **free5gc** [здесь](../../docs/deployments/README.md).
 
-See kubernetes deployment examples with **open5gs** and **free5gc** [here](./deployments/README.md).
+# Тестовые сценарии
 
-# Test scenarios
+## Сценарий 0
 
-## case 0
+<b>Описание:</b>
 
-<b>description:</b>
-
-UE can send packet to internet and get response
+UE может отправить пакет в Интернет и получить ответ
 
 <b>Action:</b>
 
@@ -205,7 +204,7 @@ UE can send packet to internet and get response
 
    ping command successful
 
-# Information for troubleshooting
+# Поддержка
 
 <details><summary>For builds with trace enabled, not production one: See details under the spoiler.</summary>
 <p>
