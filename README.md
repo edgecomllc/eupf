@@ -215,6 +215,14 @@ Use this command to build eupf's docker image: `docker build -t local/eupf:lates
 
 You can also define several build arguments to configure eUPF image: `docker build -t local/eupf:latest --build-arg BPF_ENABLE_LOG=1 --build-arg BPF_ENABLE_ROUTE_CACHE=1 .`
 
+### Hardware requirements
+
+- CPU: any popular CPU is supported, incl. x86, x86_64, x86, ppc64le, armhf, armv7, aarch64, ppc64le, s390x
+- CPU_cores: 1 core is enough to run eUPF
+- RAM: you need up to 70MB to run eUPF and up to 512MB to run Linux kernel
+- HDD: 50MB of free space is required to install eUPF. Different types of storage can be used: HDD, SSD, SD-card, USB-stick
+- NIC: Any internal or external networking interface that can be used in Linux
+
 ## Contribution
 
 Please create an issue to report a bug or share an idea.
