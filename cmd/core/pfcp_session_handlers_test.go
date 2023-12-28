@@ -420,71 +420,73 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 }
 
 func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
-	pfcpConn, smfIP := PreparePfcpConnection(t)
+	if config.Conf.FeatureUEIP {
+		pfcpConn, smfIP := PreparePfcpConnection(t)
 
-	resourceManager, err := service.NewResourceManager("10.61.0.0/16", 65536)
-	if err != nil {
-		log.Error().Msgf("failed to create ResourceManager. err: %v", err)
-	}
-	pfcpConn.ResourceManager = resourceManager
-
-	ueip1 := ie.NewUEIPAddress(16, "", "", 0, 0)
-	createPDR1 := ie.NewCreatePDR(
-		ie.NewPDRID(1),
-		ie.NewPDI(
-			ie.NewSourceInterface(ie.SrcInterfaceCore),
-			ueip1,
-		),
-	)
-
-	// Creating a Session Establishment Request
-	seReq := message.NewSessionEstablishmentRequest(0, 0,
-		2, 1, 0,
-		ie.NewNodeID("", "", "test"),
-		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
-		createPDR1,
-	)
-
-	// Processing Session Establishment Request
-	response, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq, smfIP)
-	if err != nil {
-		t.Errorf("Error handling Session Establishment Request: %s", err)
-	}
-
-	// Checking if expected IPs are allocated in Session Establishment Response
-	seRes, ok := response.(*message.SessionEstablishmentResponse)
-	if !ok {
-		t.Error("Unexpected response type")
-	}
-
-	// Checking UEIP for each PDR
-	log.Info().Msgf("seRes.CreatedPDR len: %d", len(seRes.CreatedPDR))
-	if len(seRes.CreatedPDR) != 1 {
-		t.Errorf("Unexpected count PRD's: got %d, expected %d", len(seRes.CreatedPDR), 1)
-	}
-
-	for _, pdr := range seRes.CreatedPDR {
-
-		ueipType, err := pdr.FindByType(ie.UEIPAddress)
+		resourceManager, err := service.NewResourceManager("10.61.0.0/16", 65536)
 		if err != nil {
-			t.Errorf("FindByType err: %v", err)
+			log.Error().Msgf("failed to create ResourceManager. err: %v", err)
+		}
+		pfcpConn.ResourceManager = resourceManager
+
+		ueip1 := ie.NewUEIPAddress(16, "", "", 0, 0)
+		createPDR1 := ie.NewCreatePDR(
+			ie.NewPDRID(1),
+			ie.NewPDI(
+				ie.NewSourceInterface(ie.SrcInterfaceCore),
+				ueip1,
+			),
+		)
+
+		// Creating a Session Establishment Request
+		seReq := message.NewSessionEstablishmentRequest(0, 0,
+			2, 1, 0,
+			ie.NewNodeID("", "", "test"),
+			ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+			createPDR1,
+		)
+
+		// Processing Session Establishment Request
+		response, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq, smfIP)
+		if err != nil {
+			t.Errorf("Error handling Session Establishment Request: %s", err)
 		}
 
-		ueip, err := ueipType.UEIPAddress()
-		if err != nil {
-			t.Errorf("UEIPAddress err: %v", err)
+		// Checking if expected IPs are allocated in Session Establishment Response
+		seRes, ok := response.(*message.SessionEstablishmentResponse)
+		if !ok {
+			t.Error("Unexpected response type")
 		}
 
-		if ueip.IPv4Address == nil {
-			log.Info().Msg("IPv4Address is nil")
-		} else {
-			if ueip.IPv4Address.String() == "10.61.0.0" {
-				log.Info().Msgf("PASSED. IPv4: %s", ueip.IPv4Address.String())
-			} else {
-				t.Errorf("Unexpected IPv4, got %s, expected %s", ueip.IPv4Address.String(), "10.61.0.0")
+		// Checking UEIP for each PDR
+		log.Info().Msgf("seRes.CreatedPDR len: %d", len(seRes.CreatedPDR))
+		if len(seRes.CreatedPDR) != 1 {
+			t.Errorf("Unexpected count PRD's: got %d, expected %d", len(seRes.CreatedPDR), 1)
+		}
+
+		for _, pdr := range seRes.CreatedPDR {
+
+			ueipType, err := pdr.FindByType(ie.UEIPAddress)
+			if err != nil {
+				t.Errorf("FindByType err: %v", err)
 			}
-		}
 
+			ueip, err := ueipType.UEIPAddress()
+			if err != nil {
+				t.Errorf("UEIPAddress err: %v", err)
+			}
+
+			if ueip.IPv4Address == nil {
+				log.Info().Msg("IPv4Address is nil")
+			} else {
+				if ueip.IPv4Address.String() == "10.61.0.0" {
+					log.Info().Msgf("PASSED. IPv4: %s", ueip.IPv4Address.String())
+				} else {
+					t.Errorf("Unexpected IPv4, got %s, expected %s", ueip.IPv4Address.String(), "10.61.0.0")
+				}
+			}
+
+		}
 	}
 }
 
