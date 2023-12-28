@@ -12,8 +12,3 @@ https://github.com/s5uishida/free5gc_ueransim_eupf_sample_config
 https://www.youtube.com/watch?v=ZGKBPVXSApQ
 
 https://www.linkedin.com/posts/vipratos_5g-end-to-end-deployment-of-ebpf-based-upf-activity-7110678346958581760-ISo_ 
-
-## Open5GS EPC & srsRAN 4G with ZeroMQ UE RAN Sample Configuration - eUPF(eBPF XDP UPF(PGW-U))
-说明：  Open5GS EPC&srsRAN 4G，带ZeroMQ UE RAN示例配置-eUPF（eBPF XDP UPF（PGW-U）
-https://www.pudn.com/Download/item/id/1698617824296346.html
-
