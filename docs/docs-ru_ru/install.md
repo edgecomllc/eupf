@@ -176,18 +176,18 @@ kubelet_node_config_extra_args:
 
 UE может отправить пакет в Интернет и получить ответ
 
-<b>Action:</b>
+<b>Действия:</b>
 
-1. run shell in pod
+1. Запустите shell в поде
 
-   for open5gs:
+   для open5gs:
    ```powershell
    export NS_NAME=open5gs
    export UE_POD_NAME=$(kubectl get pods -l "app.kubernetes.io/name=ueransim-gnb,app.kubernetes.io/component=ues" --output=jsonpath="{.items..metadata.name}" -n ${NS_NAME})
    kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
    ```
 
-   for free5gc:
+   для free5gc:
 
    ```powershell
    export NS_NAME=free5gc
@@ -195,24 +195,24 @@ UE может отправить пакет в Интернет и получи�
    kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash
    ```
 
-1. run command from UE pod's shell.
+1. запустите команду из UE pod's shell.
 
    `$ ping -I uesimtun0 google.com`
 
 
-   <b>expected result:</b>
+   <b>Ожидаемый результат:</b>
 
-   ping command successful
+   успешное выполнение команды ping 
 
 # Поддержка
 
-<details><summary>For builds with trace enabled, not production one: See details under the spoiler.</summary>
+<details><summary>Для сборок с включенной трассировкой, а не продакшн: Подробности смотрите под спойлером.</summary>
 <p>
 
-To see debug log from eBPF programs, at the **node** console start command:
+Чтобы просмотреть журнал отладки программ eBPF, введите команду запуска консоли **node**:
 `sudo cat /sys/kernel/debug/tracing/trace_pipe`
 
-Then switch to UE pod's shell. Sending a single packet `ping -I uesimtun0 -c1 1.1.1.1` with successfull responce, normally you will see such debug output:
+Далее переключитесь на UE pod's shell. Отправка одного пакета `ping -I use tun0 -c1 1.1.1.1` с успешным ответом, обычно вы увидите такой отладочный вывод:
 ```ruby
 sergo@edgecom:~$ sudo cat /sys/kernel/debug/tracing/trace_pipe
 
@@ -234,8 +234,8 @@ sergo@edgecom:~$ sudo cat /sys/kernel/debug/tracing/trace_pipe
 </p>
 </details> 
 
-## Components logs then successfully connected:
-<details><summary>eUPF successfull connections log output (stdout)</summary>
+## Подключение журналы компонентов:
+<details><summary>Успешные соединения eUPF в выводе журналов (stdout)</summary>
 <p>
 
 ```ruby
@@ -358,7 +358,7 @@ Stream closed EOF for free5gc/edgecomllc-eupf-universal-chart-d4b54d4b7-t2hr6 (a
 </p>
 </details>
 
-<details><summary>SMF free5gc successfull connection log (stdout)</summary>
+<details><summary>Журналы SMF free5gc (stdout)</summary>
 <p>
 
 ```ruby
@@ -417,7 +417,7 @@ Stream closed EOF for free5gc/edgecomllc-eupf-universal-chart-d4b54d4b7-t2hr6 (a
 </p>
 </details>
 
-<details><summary>UERANSIM UE successfully connection log output:</summary>
+<details><summary>Журналы UERANSIM UE:</summary>
 <p>
 
 ```ruby
@@ -461,14 +461,14 @@ Stream closed EOF for free5gc/ueransim-ue-7f76db59c9-c4ltw (ue)
 </p>
 </details>
 
-<details><summary>UERANSIM UE successfully connected status "<strong>cm-state: CM-CONNECTED</strong>"</summary>
+<details><summary>Статусы UERANSIM UE "<strong>cm-state: CM-CONNECTED</strong>"</summary>
 <p>
 
-Open UE pod's shell. `kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash`
+Откройте UE pod's shell. `kubectl exec -n ${NS_NAME} --stdin --tty ${UE_POD_NAME} -- /bin/bash`
 
-- Command for open5gs openverso: `nr-cli imsi-999700000000001 -e status`
+- Команда для open5gs openverso: `nr-cli imsi-999700000000001 -e status`
 
-- Command for free5gc towards5gs: `./nr-cli imsi-208930000000003 -e status`
+- Команда для free5gc towards5gs: `./nr-cli imsi-208930000000003 -e status`
 
 ```ruby
 <<K9s-Shell>> Pod: open5gs/ueransim-ueransim-gnb-ues-5b9d9c577b-zwb6d | Container: ues
@@ -512,9 +512,9 @@ traceroute to www.google.com (74.125.205.99), 30 hops max, 46 byte packets
 </p>
 </details>
 
-## Then UE disconnected
+## Отключите UE 
 
-<details><summary>UERANSIM UE disconnected:</summary>
+<details><summary>Отключение UERANSIM UE:</summary>
 <p>
 
 **cm-state: CM-IDLE**
@@ -541,33 +541,33 @@ has-emergency: false
 root@ueransim-ue-7f76db59c9-c4ltw:/ueransim/build#
 ```
 
-Then you can try to reconnect:
+Попробуйте пересоединиться:
 
-- Command for open5gs openverso: `nr-cli imsi-999700000000001 -e "deregister normal"`
+- Команды для open5gs openverso: `nr-cli imsi-999700000000001 -e "deregister normal"`
 
-- Command for free5gc towards5gs: `./nr-cli imsi-208930000000003 -e "deregister normal"`
+- Команды для free5gc towards5gs: `./nr-cli imsi-208930000000003 -e "deregister normal"`
 
-UE will send Initial Registration after 10 seconds.
+UE отправит начальную регистрацию через 10 секунд.
 
 </p>
 </details>
 
-If connection can not set up, we recommend to restart components in next sequence:
+Если соединение не удается установить, рекомендуем перезапустить компоненты в следующей последовательности:
 1. SMF
 1. AMF
 1. UERANSIM GnB
 1. UERANSIM UE
 
-## eUPF useful [API](api.md)
-- To check currently applied config use GET `/api/v1/config`
-- To check connected sessions use GET `/api/v1/pfcp_associations`
+## eUPF [API](api.md)
+- Чтобы проверить текущую примененную конфигурацию, используйте GET `/api/v1/config`
+- Чтобы проверить подключенные сеансы, используйте GET `/api/v1/pfcp_associations`
 
-You can forward api-port (8080 by default) from eUPF running container to your machine and use pretty GUI interface by opening the link http://localhost:8080/swagger/index.html in browser.
+Вы можете перенаправить API-порт (по умолчанию 8080) из работающего контейнера eUPF на свой компьютер и использовать красивый графический интерфейс, открыв ссылку http://localhost:8080/swagger/index.html в браузере.
 
-Or you can simply open shell inside the container and run commands:
+Или вы можете просто открыть оболочку внутри контейнера и запустить команды:
 `wget  -O - http://localhost:8080/api/v1/config` and `wget  -O - http://localhost:8080/api/v1/pfcp_associations`
 
-<details><summary>API json output example of successfully connected UE</summary>
+<details><summary> примеры вывода успешно подключенного UE в API json</summary>
 <p>
 
 ```json
