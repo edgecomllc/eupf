@@ -155,23 +155,15 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 
 ### Prerequisites
 
-−	Ubuntu 22.04 LTS or higher
-
-−	Git 2.34
-
-−	Golang 1.20.3
-
-−	Clang 14.0.0
-
-−	LLVM 14.0
-
-−	Gcc 11.4.0
-
-−	libbpf-dev 0.5.0
-
-−	Swag 1.8.12
-
-−	Linux Kernel 5.15.0-25
+-	Ubuntu 22.04 LTS or higher
+-	Git 2.34
+-	Golang 1.20.3
+-	Clang 14.0.0
+-	LLVM 14.0
+-	Gcc 11.4.0
+-	libbpf-dev 0.5.0
+-	Swag 1.8.12
+-	Linux Kernel 5.15.0-25
 
 **On Ubuntu 22.04**, you can install these using the following command:
 
