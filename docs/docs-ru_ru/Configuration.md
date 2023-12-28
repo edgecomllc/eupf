@@ -20,18 +20,18 @@
 | FTUP Feature <br>`Дополнительный`    | Поддержка опции распределения TEID                                                                                                                                                                                                                                                                                                              | `feature_ftup`    | `UPF_FEATURE_FTUP`    | `--feature_ftup`          | `false`        |
 | TEID Pool <br>`Дополнительный`       | Пул TEID, необходимый для выделения TEID, когда опция FTUP включена                                                                                                                                                                                                                                                                          | `teid_pool`       | `UPF_TEID_POOL`       | `--teid_pool`          | `65536`        |
 
-We are using [Viper](https://github.com/spf13/viper) for configuration handling, [Viper](https://github.com/spf13/viper) uses the following precedence order. Each item takes precedence over the item below it:
+Мы использьуем [Viper](https://github.com/spf13/viper) для работы с конфигурациями, [Viper](https://github.com/spf13/viper) использует следующий порядок приоритета. Каждый элемент имеет приоритет над элементом, находящимся под ним:
 
-- CLI argument
-- environment variable
-- configuration file value
-- default value
+- аргумент CLI
+- переменная окружения
+- значение в конфигурационных файлах
+- значение по умолчанию
 
-*NOTE:* as of [commit](https://github.com/edgecomllc/eupf/commit/ea56431df2f74cb2eabe85052d8762fe95848711) we are currently only support IPv4 NodeID.
+*ЗАМЕЧАНИЕ:* [commit](https://github.com/edgecomllc/eupf/commit/ea56431df2f74cb2eabe85052d8762fe95848711) на текущий момент мы поддерживаем только IPv4 NodeID.
 
-## Example configuration
+## Примеры конфигураций
 
-### Default values YAML
+### Значения по умолчанию  YAML
 
 ```yaml
 interface_name: [lo]
@@ -48,7 +48,7 @@ feature_ftup: true
 teid_pool: 65536
 ```
 
-### Environment variables
+### Переменные окружения
 
 ```env
 UPF_INTERFACE_NAME="[eth0, n6]"
