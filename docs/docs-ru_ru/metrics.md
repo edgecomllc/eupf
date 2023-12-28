@@ -1,48 +1,49 @@
-# eUPF metrics
+# eUPF метрики
 
-### PFCP message metrics
-This set of metrics describes how many requests of each type has been processed with outcome specified.
-All metrics except for `upf_pfcp_rx_latency` are counters and labeled with `result` indicating if message was successfuly processed or rejected.
-**Note:** `upf_pfcp_rx` and `upf_pfcp_rx_errors` have different implementation and counted at different points, we will drop one or another after evaluation, or implement a different counters altogether.
-| Metric Name         | Description                                                |
+### метрики сообщений PFCP
+Этот набор показателей описывает, сколько запросов каждого типа было обработано с указанным результатом.
+Все метрики, за исключением «upf_pfcp_rx_latency», являются счетчиками и помечены «результатом», указывающим, было ли сообщение успешно обработано или отклонено.
+**Примечание:** `upf_pfcp_rx` и `upf_pfcp_rx_errors` имеют разную реализацию и учитываются в разных точках, мы отбросим тот или иной счетчик после оценки или вообще реализуем разные счетчики.
+
+| Название метрики    | Описание                                                   |
 | ------------------- | ---------------------------------------------------------- |
-| upf_pfcp_rx         | The total number of received PFCP messages                 |
-| upf_pfcp_tx         | The total number of transmitted PFCP messages              |
-| upf_pfcp_rx_errors  | The total number of received PFCP messages with cause code |
-| upf_pfcp_rx_latency | The total number of PFCP messages processing duration      |
+| upf_pfcp_rx | Общее количество полученных сообщений PFCP |
+| upf_pfcp_tx | Общее количество переданных сообщений PFCP |
+| upf_pfcp_rx_errors | Общее количество полученных сообщений PFCP с кодом причины |
+| upf_pfcp_rx_latency | Общее количество продолжительность обработки сообщений PFCP |
 
-### XDP Action metrics
-This set of metrics are used to count the number of packets with different outcomes, such as the total number of aborted, dropped, passed, transmitted, and redirected packets.
+### Метрики XDP Action
+Этот набор показателей используется для подсчета количества пакетов с различными результатами, например общего количества прерванных, отброшенных, переданных, переданных и перенаправленных пакетов.
 
-| Metric Name      | Description                             |
+| Название метрики    | Описание                                                   |
 | ---------------- | --------------------------------------- |
-| upf_xdp_aborted  | The total number of aborted packets     |
-| upf_xdp_drop     | The total number of dropped packets     |
-| upf_xdp_pass     | The total number of passed packets      |
-| upf_xdp_tx       | The total number of transmitted packets |
-| upf_xdp_redirect | The total number of redirected packets  |
+| upf_xdp_aborted | Общее количество прерванных пакетов |
+| upf_xdp_drop | Общее количество отброшенных пакетов |
+| upf_xdp_pass | Общее количество переданных пакетов |
+| upf_xdp_tx | Общее количество переданных пакетов |
+| upf_xdp_redirect | Общее количество перенаправленных пакетов |
 
-### Packet metrics
-Various packet counters with `packet_type` label.
+### Пакетные метрики
+Различные счетчики пакетов с меткой package_type.
 
-| Metric Name        | Description                                |
+| Название метрики    | Описание                                                   |
 |--------------------|--------------------------------------------|
-| upf_rx_arp         | The total number of received ARP packets   |
-| upf_rx_icmp        | The total number of received ICMP packets  |
-| upf_rx_icmpv6      | The total number of received ICMPv6 packets|
-| upf_rx_ip4         | The total number of received IPv4 packets  |
-| upf_rx_ip6         | The total number of received IPv6 packets  |
-| upf_rx_tcp         | The total number of received TCP packets   |
-| upf_rx_udp         | The total number of received UDP packets   |
-| upf_rx_other       | The total number of received other packets |
-| upf_rx_gtp_echo    | The total number of received GTP echo packets |
-| upf_rx_gtp_pdu     | The total number of received GTP PDU packets |
-| upf_rx_gtp_other   | The total number of received GTP other packets |
-| upf_rx_gtp_error   | The total number of received GTP error packets |
+| upf_rx_arp | Общее количество полученных ARP-пакетов |
+| upf_rx_icmp | Общее количество полученных ICMP-пакетов |
+| upf_rx_icmpv6 | Общее количество полученных пакетов ICMPv6|
+| upf_rx_ip4 | Общее количество полученных пакетов IPv4 |
+| upf_rx_ip6 | Общее количество полученных пакетов IPv6 |
+| upf_rx_tcp | Общее количество полученных TCP-пакетов |
+| upf_rx_udp | Общее количество полученных UDP-пакетов |
+| upf_rx_other | Общее количество полученных остальных пакетов |
+| upf_rx_gtp_echo | Общее количество полученных эхо-пакетов GTP |
+| upf_rx_gtp_pdu | Общее количество полученных пакетов GTP PDU |
+| upf_rx_gtp_other | Общее количество полученных GTP других пакетов |
+| upf_rx_gtp_error | Общее количество полученных пакетов ошибок GTP |
 
 ### PFCP Session metrics
 
-| Metric Name               | Description                                  |
+| Название метрики    | Описание                                                   |
 |---------------------------|----------------------------------------------|
-| upf_pfcp_sessions         | Number of currently established sessions     |
-| upf_pfcp_associations     | Number of currently established associations |
+| upf_pfcp_sessions | Количество установленных на данный момент сессий |
+| upf_pfcp_associations | Количество созданных в настоящее время ассоциаций |
