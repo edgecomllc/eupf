@@ -71,6 +71,8 @@ To go further, see the **[eUPF installation guide](./docs/install.md)** to learn
 
 For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**.
 
+You can find different types of implementation in the **[Implementation expamples](./docs/implementation_examples.md)**.
+
 ## Implementation notes
 
 eUPF as a part of 5G mobile core network implements data network gateway function. It communicates with SMF via PFCP protocol (N4 interface) and forwards packets between core and data networks(N3 and N6 interfaces correspondingly). These two main UPF parts are implemented in two separate components: control plane and forwarding plane.
@@ -153,12 +155,23 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 
 ### Prerequisites
 
-- Git
-- Golang
-- Clang
-- LLVM
-- gcc
-- libbpf-dev
+−	Ubuntu 22.04 LTS or higher
+
+−	Git 2.34
+
+−	Golang 1.20.3
+
+−	Clang 14.0.0
+
+−	LLVM 14.0
+
+−	Gcc 11.4.0
+
+−	libbpf-dev 0.5.0
+
+−	Swag 1.8.12
+
+−	Linux Kernel 5.15.0-25
 
 **On Ubuntu 22.04**, you can install these using the following command:
 
@@ -215,9 +228,21 @@ Use this command to build eupf's docker image: `docker build -t local/eupf:lates
 
 You can also define several build arguments to configure eUPF image: `docker build -t local/eupf:latest --build-arg BPF_ENABLE_LOG=1 --build-arg BPF_ENABLE_ROUTE_CACHE=1 .`
 
+### Hardware requirements
+
+- CPU: any popular CPU is supported, incl. x86, x86_64, x86, ppc64le, armhf, armv7, aarch64, ppc64le, s390x
+- CPU_cores: 1 core is enough to run eUPF
+- RAM: you need up to 70MB to run eUPF and up to 512MB to run Linux kernel
+- HDD: 50MB of free space is required to install eUPF. Different types of storage can be used: HDD, SSD, SD-card, USB-stick
+- NIC: Any internal or external networking interface that can be used in Linux
+
 ## Contribution
 
 Please create an issue to report a bug or share an idea.
+
+## Translated docs
+
+Please check [this link](./docs/docs-ru_ru/readme.md) to find translated docs.
 
 ## License
 This project is licensed under the [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details
