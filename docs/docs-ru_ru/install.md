@@ -1,54 +1,54 @@
-# How to install and run eUPF
-The easyest way to install eUPF is to use helm charts for one of the supported opensource 5G core projects in your own kubernetes cluster.
-Alternatively, eUPF could be deployed with docker-compose (with free5gc or OpenAirInterface configs is ready at the moment).
+# Как установить и запустить eUPF
+Самый простой способ установить eUPF — использовать helm charts для одного из поддерживаемых основных проектов 5G с открытым исходным кодом в вашем собственном кластере Kubernetes.
+В качестве альтернативы eUPF можно развернуть с помощью docker-compose (конфигурации free5gc или OpenAirInterface).
 
-We have prepared templates to deploy with two opensource environments: **open5gs** and **free5gc**, for you to choose.
+Мы подготовили шаблоны для развертывания в двух средах с открытым исходным кодом: **open5gs** и **free5gc** на ваш выбор.
 
-[UERANSIM](https://github.com/aligungr/UERANSIM) project is used for emulating radio endpoint, so you'll be able to check end-to-end connectivity
+Проект [UERANSIM](https://github.com/aligungr/UERANSIM) используется для эмуляции конечной точки радиосвязи, поэтому вы сможете проверить сквозное соединение с виртуального пользовательского устройства до сети Интернет.
 
-Deployment options:
-- Baremetal/VM
-- [Docker-compose environment](install.md/#deploy-with-docker-compose)
-- [Kubernetes environment](install.md/#deploy-with-kubernetes)
+Варианты развертывания:
+- baremetall/ВМ
+- [Среда создания Docker](install.md/#deploy-with-docker-compose)
+- [Среда Kubernetes](install.md/#deploy-with-kubernetes)
 
-## General node requirements
+## Общие требования к узлу
 
-**eUPF need Linux kernel > 5.14 version (we used Ubuntu 22.04 LTS)**
+**eUPF необходимо ядро Linux версии > 5.14 (мы использовали Ubuntu 22.04 LTS)**
 
-### Driver support
+### Поддержка драйверов
 
-#### Drivers supporting generic XDP
+#### Драйверы, поддерживающие универсальный XDP
 
-Starting from kernel 4.12 you can run XDP(and eUPF) in generic mode anywhere. But it should be used for testing or debugging purpose only (no performance prospective)
+Начиная с ядра 4.12, вы можете запускать XDP (и eUPF) в универсальном режиме где угодно. Но его следует использовать только для целей тестирования или отладки (без производительности).
 
-#### Drivers supporting native XDP
+#### Драйверы, поддерживающие собственный XDP
 
-In order to run eUPF in native mode you need compatible driver. List of supported driver could be found in Cilium or IOVisor docs:
+Чтобы запустить eUPF в native режиме, вам понадобится совместимый драйвер. Список поддерживаемых драйверов можно найти в документации Cilium или IOVisor:
 
-- See Drivers supporting native XDP chapter in [cilium](https://docs.cilium.io/en/latest/bpf/progtypes/#xdp)
-- See [bcc project docs](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md#xdp)
+- См. главу «Драйверы, поддерживающие встроенный XDP» в [cilium](https://docs.cilium.io/en/latest/bpf/progtypes/#xdp).
+- См. [документацию проекта bcc](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md#xdp).
 
-Native mode is suppored in most modern clouds and VM NICs:
+Собственный режим поддерживается в большинстве современных облаков и сетевых адаптеров виртуальных машин:
 - Amazon `ena`
 - Microsoft `hv_netvsc`
 - VirtIO `virtio_net`
 - VMWare `vmxnet3`
 - SR-IOV `ixgbevf`
 
-#### Drivers supporting offloaded XDP
+#### Драйверы, поддерживающие offloaded XDP
 
-Only Netronome NICs at the moment 
+На данный момент только поддерживаются сетевые карты Netronome
 
-# Deploy with docker-compose
+# Развертывание с помощью docker-compose
 
-## Prerequisites
+## Предварительные требования
 
-- [Docker Engine](https://docs.docker.com/engine/install): needed to run the eUPF container
-- [Docker Compose v2](https://docs.docker.com/compose/install): needed to bootstrap the eUPF container
+- [Docker Engine](https://docs.docker.com/engine/install): необходимо для запуска the eUPF container
+- [Docker Compose v2](https://docs.docker.com/compose/install): необходимо для загрузки the eUPF container
 
-## Configure & run
+## Конфигурация и запуск
 
-### Create docker-compose.yaml
+### Созадйте docker-compose.yaml
 <details><summary>docker-compose.yaml template</summary>
 
 ```yaml
@@ -105,19 +105,19 @@ networks:
 ```
 </details>
 
-### Set eUPF configuration parameters
+### Укажите конфигурационные параметры eUPF 
 
-See [configuration guide](Configuration.md)
+Смотрите [configuration guide](Configuration.md)
 
-### Run eUPF
+### Запустите eUPF
 
 ```
 docker-compose up -d
 ```
 
-## Examples in docker-compose
+## Примеры запуска в docker-compose
 
-See docker-compose deployment examples with **open5gs**, **free5gc** and **OpenAirInterface** in [the Deployment examples table](./deployments/README.md#docker-compose-deployments).
+Смотрите примеры развертывания docker-compose с помощью **open5gs**, **free5gc** and **OpenAirInterface** в [the Deployment examples table](../../docs/deployments/README.md#docker-compose-deployments).
 
 # Deploy with Kubernetes
 
