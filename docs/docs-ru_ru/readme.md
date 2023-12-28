@@ -35,7 +35,7 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 - 📝 *Linux Kernel **5.15.0-25-generic** — это минимальная версия ядра, на которой eUPF был протестирован. Предыдущие версии не поддерживаются.*
 - ℹ Для выполнения низкоуровневых операций, таких как загрузка объектов ebpf, требуются некоторые дополнительные привилегии.(NET_ADMIN & SYS_ADMIN)
 
-<details><summary><i>See startup parameters you might want to change</i></summary>
+<details><summary><i>Параметры запуска, которые вы, возможно, захотите изменить.</i></summary>
 <p>
 
    - UPF_INTERFACE_NAME=lo    *Network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
@@ -50,7 +50,7 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 </details>
 </p>
 
-In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
+В реальных сценарих вам, скорее всего, придется заменить имена интерфейсов и IP-адреса теми, которые используются в вашей среде. Вы можете сделать это, например, с помощью опции `-e`:
 
 ```bash
 docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
@@ -64,14 +64,14 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
   ghcr.io/edgecomllc/eupf:main
 ```
 
-## What's next?
-Read **[eUPF configuration guide](./docs/Configuration.md)** for more info about how to configure eUPF.
+## Что дальше??
+Read **[eUPF configuration guide](Configuration.md)** for more info about how to configure eUPF.
 
-To go further, see the **[eUPF installation guide](./docs/install.md)** to learn how to run eUPF in different environments with different 5G core implementations using docker-compose or Kubernetes cluster.
+To go further, see the **[eUPF installation guide](install.md)** to learn how to run eUPF in different environments with different 5G core implementations using docker-compose or Kubernetes cluster.
 
-For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**.
+For statistics you can gather, see the **[eUPF metrics and monitoring guide](metrics.md)**.
 
-You can find different types of implementation in the **[Implementation expamples](./docs/implementation_examples.md)**.
+You can find different types of implementation in the **[Implementation expamples](implementation_examples.md)**.
 
 ## Implementation notes
 
