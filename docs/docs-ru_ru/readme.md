@@ -65,13 +65,13 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 ```
 
 ## Что дальше??
-Read **[eUPF configuration guide](Configuration.md)** for more info about how to configure eUPF.
+Просмотрите описание **[eUPF configuration guide](Configuration.md)**, в котором указаны основные параметры конфигурации eUPF.
 
-To go further, see the **[eUPF installation guide](install.md)** to learn how to run eUPF in different environments with different 5G core implementations using docker-compose or Kubernetes cluster.
+В **[eUPF installation guide](install.md)** можно узнать, как запускать eUPF в разных средах с различными реализациями ядра 5G с использованием docker-compose или кластера Kubernetes..
 
-For statistics you can gather, see the **[eUPF metrics and monitoring guide](metrics.md)**.
+Работа с метриками и статистикой описана **[eUPF metrics and monitoring guide](metrics.md)**.
 
-You can find different types of implementation in the **[Implementation expamples](implementation_examples.md)**.
+Ссылки на различные сценарии применения указаны в **[Implementation expamples](../../docs/implementation_examples.md)**.
 
 ## Implementation notes
 
