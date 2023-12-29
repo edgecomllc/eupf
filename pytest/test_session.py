@@ -82,6 +82,24 @@ heartbeat_response = PFCP(version=1, S=0, seq=1, seid=2, spare_oct=0) / \
                          IE_RecoveryTimeStamp(timestamp=int(time.time()))
                      ])
 
+ue_ip_address = IE_UE_IP_Address(spare=2, SD=0, V4=0)
+session_establish_ueip = PFCP(version=1, S=1, seq=2, seid=0, spare_oct=0) / \
+                         PFCPSessionEstablishmentRequest(IE_list=[
+                             IE_CreatePDR(IE_list=[
+                                 IE_FAR_Id(id=1),
+                                 IE_OuterHeaderRemoval(header="GTP-U/UDP/IPv4"),
+                                 IE_PDI(IE_list=[
+                                     ue_ip_address,
+                                     # IE_NetworkInstance(instance="access"),
+                                     IE_SourceInterface(interface="Access"),
+                                 ]),
+                                 IE_PDR_Id(id=1),
+                                 IE_Precedence(precedence=100)
+                             ]),
+                             IE_FSEID(v4=1, seid=0xffde7230bf97810a, ipv4="172.18.1.1"),
+                             IE_NodeId(id_type="FQDN", id="BIG-IMPORTANT-CP")
+                         ])
+
 # https://stackoverflow.com/questions/41166420/sending-a-packet-over-physical-loopback-in-scapy
 conf.L3socket = L3RawSocket
 
@@ -117,3 +135,9 @@ def test_delete_session():
 def test_send_heartbeat():
     # This is imaginary HearBeatResponse, this should not crash eUPF
     send(target / heartbeat_response, iface='lo')
+
+
+def test_create_session_ueip():
+    ans = sr1(target / session_establish_ueip, iface='lo')
+    assert ans.haslayer(PFCPSessionEstablishmentResponse)
+    assert ans[PFCPSessionEstablishmentResponse][IE_CreatedPDR][IE_UE_IP_Address].ipv4 == "0.0.0.0"
