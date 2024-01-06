@@ -19,8 +19,8 @@ Currently UPF have several config parameters shown below.<br>Parameters can be c
 | Logging level <br>`Optional`   | Logs having level <= selected level will be written to stdout                                                                                                                                                                                                                                                                                   | `logging_level`   | `UPF_LOGGING_LEVEL`   | `--loglvl`  | `info`          |
 | UEIP Feature <br>`Optional`    | Support for IP allocation option                                                                                                                                                                                                                                                                                                                | `feature_ueip`    | `UPF_FEATURE_UEIP`    | `--ueip`     | `false`         |
 | FTUP Feature <br>`Optional`    | Support for TEID allocation option                                                                                                                                                                                                                                                                                                              | `feature_ftup`    | `UPF_FEATURE_FTUP`    | `--ftup`     | `false`         |
-| IP Pool <br>`Optional`         | Pool of IP addresses, needed to allocate ip when the UEIP option is enabled                                                                                                                                                                                                                                                                     | `ip_pool`         | `UPF_IP_POOL`         | `--ippool`   | `10.61.0.0/16`  |
-| TEID Pool <br>`Optional`       | Pool of TEIDs, needed to allocate TEID when the FTUP option is enabled                                                                                                                                                                                                                                                                          | `teid_pool`       | `UPF_TEID_POOL`       | `--teidpool` | `65536`         |
+| UE IP Pool <br>`Optional`         | Pool of IP addresses, needed to allocate ip when the UEIP option is enabled                                                                                                                                                                                                                                                                     | `ueip_pool`         | `UPF_UEIP_POOL`         | `--ueippool`   | `10.60.0.0/16`  |
+| TEID Pool <br>`Optional`       | Pool of TEIDs, needed to allocate TEID when the FTUP option is enabled                                                                                                                                                                                                                                                                          | `teid_pool`       | `UPF_TEID_POOL`       | `--teidpool` | `65535`         |
 We are using [Viper](https://github.com/spf13/viper) for configuration handling, [Viper](https://github.com/spf13/viper) uses the following precedence order. Each item takes precedence over the item below it:
 
 - CLI argument
@@ -47,8 +47,8 @@ far_map_size: 1024
 pdr_map_size: 1024
 feature_ueip: true
 feature_ftup: true
-ip_pool: 10.61.0.0/16
-teid_pool: 65536
+ip_pool: 10.60.0.0/16
+teid_pool: 65535
 ```
 
 ### Environment variables

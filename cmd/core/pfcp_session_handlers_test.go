@@ -1,12 +1,13 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/config"
-	"github.com/edgecomllc/eupf/cmd/core/service"
-	"github.com/rs/zerolog/log"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/edgecomllc/eupf/cmd/core/service"
+	"github.com/rs/zerolog/log"
 
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
@@ -493,7 +494,7 @@ func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
 func TestUEIPInAssociationSetupResponse(t *testing.T) {
 
 	config.Conf = config.UpfConfig{
-		IPPool:      "10.61.0.0/16",
+		UEIPPool:    "10.61.0.0/16",
 		FTEIDPool:   65536,
 		FeatureUEIP: true,
 		FeatureFTUP: false,
