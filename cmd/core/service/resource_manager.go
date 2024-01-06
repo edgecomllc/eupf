@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net"
 	"sync"
+
+	"github.com/korylprince/ipnetgen"
 )
 
 type ResourceManager struct {
@@ -29,24 +31,20 @@ func NewResourceManager(ipRange string, teidRange uint32) (*ResourceManager, err
 	var fteidm FTEIDM
 
 	if ipRange != "" {
-		_, ipNet, err := net.ParseCIDR(ipRange)
+		ipGenerator, err := ipnetgen.New(ipRange)
 		if err != nil {
 			return nil, err
 		}
+		ipGenerator.Next() //Skip first 0-IP
 
-		freeIPs := make([]net.IP, 0, countIPs(ipNet))
-		busyIPs := make(map[uint64]net.IP)
-
-		ip := ipNet.IP
-
-		for ipNet.Contains(ip) {
+		freeIPs := make([]net.IP, 0, 1024)
+		for ip := ipGenerator.Next(); ip != nil; ip = ipGenerator.Next() {
 			freeIPs = append(freeIPs, net.IP(ip))
-			ip = nextIP(ip)
 		}
 
 		ipam = IPAM{
 			freeIPs: freeIPs,
-			busyIPs: busyIPs,
+			busyIPs: make(map[uint64]net.IP),
 		}
 	}
 
@@ -125,22 +123,4 @@ func (fteidm *FTEIDM) ReleaseTEID(seID uint64) {
 		}
 		delete(fteidm.busyTEIDs, seID)
 	}
-}
-
-func nextIP(ip net.IP) net.IP {
-	nextIP := make(net.IP, len(ip))
-	copy(nextIP, ip)
-	for i := len(nextIP) - 1; i >= 0; i-- {
-		nextIP[i]++
-		if nextIP[i] > 0 {
-			break
-		}
-	}
-	return nextIP
-}
-
-func countIPs(ipNet *net.IPNet) int {
-	ones, bits := ipNet.Mask.Size()
-	ips := 1 << uint(bits-ones)
-	return ips
 }
