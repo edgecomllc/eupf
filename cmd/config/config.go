@@ -56,7 +56,7 @@ func init() {
 	pflag.String("loglvl", "info", "Logging level")
 	pflag.Bool("ueip", false, "Enable or disable UEIP feature")
 	pflag.Bool("ftup", false, "Enable or disable FTUP feature")
-	pflag.String("ueippool", "10.60.0.0/24", "IP pool for UEIP feature")
+	pflag.String("ueippool", "10.60.0.1/24", "IP pool for UEIP feature")
 	pflag.Uint32("teidpool", 65535, "TEID pool for FTUP feature")
 	pflag.Parse()
 
@@ -101,7 +101,7 @@ func init() {
 	v.SetDefault("logging_level", "info")
 	v.SetDefault("feature_ueip", false)
 	v.SetDefault("feature_ftup", false)
-	v.SetDefault("ueip_pool", "10.60.0.0/24")
+	v.SetDefault("ueip_pool", "10.60.0.1/24")
 	v.SetDefault("teid_pool", 65535)
 
 	v.SetConfigFile(*configPath)
