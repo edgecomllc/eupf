@@ -17,6 +17,9 @@ runs:
       shell: bash
       run: go install github.com/swaggo/swag/cmd/swag@v1.8.12
 
+    - name: Go mod tidy
+      run: go mod tidy
+
     - name: Compile ebpf, generate go wrappers, generate swagger files.
       shell: bash
       run: go generate -v ./cmd/...
