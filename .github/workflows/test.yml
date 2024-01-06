@@ -16,6 +16,9 @@ jobs:
         uses: ./.github/actions/raw-upf-presetup
         id: raw-upf-presetup
 
+      - name: Go mod tidy
+        run: go mod tidy
+
       - name: Go vet main
         run: go vet ./cmd/...
 
