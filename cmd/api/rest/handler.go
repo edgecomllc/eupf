@@ -6,14 +6,13 @@ import (
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
 
-	//_ "github.com/edgecomllc/eupf/cmd/docs"
+	_ "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	_ "github.com/swaggo/swag"
 )
 
 //	@BasePath	/api/v1
