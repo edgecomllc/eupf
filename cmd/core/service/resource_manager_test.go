@@ -1,9 +1,10 @@
 package service
 
 import (
-	"github.com/rs/zerolog/log"
 	"net"
 	"testing"
+
+	"github.com/rs/zerolog/log"
 )
 
 func TestAllocateIP(t *testing.T) {
@@ -17,7 +18,7 @@ func TestAllocateIP(t *testing.T) {
 	if err != nil {
 		t.Errorf("result1 AllocateIP err: %v", err)
 	}
-	expected1 := net.ParseIP("10.61.0.0")
+	expected1 := net.ParseIP("10.61.0.1")
 	if result1.String() != expected1.String() {
 		t.Errorf("Expected: %v, but got: %v", expected1, result1)
 	}
@@ -26,7 +27,7 @@ func TestAllocateIP(t *testing.T) {
 	if err != nil {
 		t.Errorf("result2 AllocateIP err: %v", err)
 	}
-	expected2 := net.ParseIP("10.61.0.1")
+	expected2 := net.ParseIP("10.61.0.2")
 	if result2.String() != expected2.String() {
 		t.Errorf("Expected: %v, but got: %v", expected2, result2)
 	}
