@@ -22,7 +22,7 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-//go:generate swag init -g api/rest/handler.go --parseDependency
+//3go:generate swag init -g api/rest/handler.go --parseDependency
 
 func main() {
 	stopper := make(chan os.Signal, 1)
