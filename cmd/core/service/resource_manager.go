@@ -4,8 +4,6 @@ import (
 	"errors"
 	"net"
 	"sync"
-
-	"github.com/korylprince/ipnetgen"
 )
 
 type ResourceManager struct {
@@ -31,16 +29,16 @@ func NewResourceManager(ipRange string, teidRange uint32) (*ResourceManager, err
 	var fteidm FTEIDM
 
 	if ipRange != "" {
-		ipGenerator, err := ipnetgen.New(ipRange)
-		if err != nil {
-			return nil, err
-		}
-		ipGenerator.Next() //Skip first 0-IP
+		// ipGenerator, err := ipnetgen.New(ipRange)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// ipGenerator.Next() //Skip first 0-IP
 
 		freeIPs := make([]net.IP, 0, 1024)
-		for ip := ipGenerator.Next(); ip != nil; ip = ipGenerator.Next() {
-			freeIPs = append(freeIPs, net.IP(ip))
-		}
+		// for ip := ipGenerator.Next(); ip != nil; ip = ipGenerator.Next() {
+		// 	freeIPs = append(freeIPs, net.IP(ip))
+		// }
 
 		ipam = IPAM{
 			freeIPs: freeIPs,

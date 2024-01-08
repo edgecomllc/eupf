@@ -8,7 +8,7 @@ require (
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/gopacket v1.1.19
-	github.com/korylprince/ipnetgen v1.0.1
+	//github.com/korylprince/ipnetgen v1.0.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/pflag v1.0.5
