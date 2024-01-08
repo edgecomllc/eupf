@@ -1,6 +1,6 @@
 module github.com/edgecomllc/eupf
 
-go 1.20
+go 1.21
 
 require (
 	github.com/RoaringBitmap/roaring v1.7.0
