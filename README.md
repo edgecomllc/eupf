@@ -199,6 +199,17 @@ cd eupf
 go generate -v ./cmd/...
 ```
 
+Sometimes during this step you may see errors like:
+```
+running "swag": exec: "swag": executable file not found in $PATH
+``` 
+
+Make sure that `swag` was successfuly installed(step 1) and path to swag binary is in the PATH environment variable. 
+
+Usually GO Path is supposed to already be on the PATH environment variable. 
+Use `export PATH=$(go env GOPATH)/bin:$PATH` otherwise and repeat current step again.
+
+
 #### Step 4: Build eUPF
 
 ```bash
