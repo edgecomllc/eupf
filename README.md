@@ -123,7 +123,7 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 - [x]  PFCP Association Setup/Release and Heartbeats
 - [x]  Session Establishment/Modification with support for PFCP entities such as Packet Detection Rules (PDRs), Forwarding Action Rules (FARs), QoS Enforcement Rules (QERs).
 - [ ]  UPF-initiated PFCP association
-- [ ]  UPF-based UE IP address assignment
+- [x]  UPF-based UE IP address assignment
 
 #### Data plane
 
@@ -141,8 +141,8 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 - [ ]  Monitoring/Debugging capabilities using tcpdump and cli
 
 #### 3GPP specs compatibility
-- [ ]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
-- [ ]  `UEIP` Allocating UE IP addresses or prefixes.
+- [x]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
+- [x]  `UEIP` Allocating UE IP addresses or prefixes.
 - [ ]  `SSET` PFCP sessions successively controlled by different SMFs of a same SMF Set.
 - [ ]  `MPAS` Multiple PFCP associations to the SMFs in an SMF set.
 - [ ]  `QFQM` Per QoS flow per UE QoS monitoring.
