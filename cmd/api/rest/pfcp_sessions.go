@@ -9,13 +9,13 @@ import (
 )
 
 // ListPfcpSessionsFiltered godoc
-// @Summary If no parameters are given, list all PFCP sessions. If ip or teid is given, single session will be returned. If both ip and teid are given, it is possible to return two sessions.
-// @Tags PFCP
-// @Produce  json
-// @Param ip query string false "ip"
-// @Param teid query int false "teid"
-// @Success 200 {object} []core.Session
-// @Router /pfcp_sessions [get]
+//	@Summary	If no parameters are given, list all PFCP sessions. If ip or teid is given, single session will be returned. If both ip and teid are given, it is possible to return two sessions.
+//	@Tags		PFCP
+//	@Produce	json
+//	@Param		ip		query		string	false	"ip"
+//	@Param		teid	query		int		false	"teid"
+//	@Success	200		{object}	[]core.Session
+//	@Router		/pfcp_sessions [get]
 func (h *ApiHandler) listPfcpSessionsFiltered(c *gin.Context) {
 	var sessions []core.Session
 	sIp := c.Query("ip")

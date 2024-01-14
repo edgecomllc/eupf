@@ -1,10 +1,11 @@
 package config
 
 import (
+	"log"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"log"
 )
 
 var v = viper.GetViper()
@@ -27,7 +28,7 @@ type UpfConfig struct {
 	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
 	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
 	LoggingLevel      string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
-	IPPool            string   `mapstructure:"ip_pool" validate:"cidr" json:"ip_pool"`
+	UEIPPool          string   `mapstructure:"ueip_pool" validate:"cidr" json:"ueip_pool"`
 	FTEIDPool         uint32   `mapstructure:"teid_pool" json:"teid_pool"`
 	FeatureUEIP       bool     `mapstructure:"feature_ueip" json:"feature_ueip"`
 	FeatureFTUP       bool     `mapstructure:"feature_ftup" json:"feature_ftup"`
@@ -37,26 +38,26 @@ func init() {
 	var configPath = pflag.String("config", "./config.yml", "Path to config file")
 	// pflags defaults are ignored in this setup
 	pflag.StringArray("iface", []string{}, "Interface list to bind XDP program to")
-	pflag.String("attach", "", "XDP attach mode")
-	pflag.String("aaddr", "", "Address to bind api server to")
-	pflag.String("paddr", "", "Address to bind PFCP server to")
-	pflag.String("nodeid", "", "PFCP Server Node ID")
-	pflag.String("maddr", "", "Address to bind metrics server to")
-	pflag.String("n3addr", "", "Address for communication over N3 interface")
+	pflag.String("attach", "generic", "XDP attach mode")
+	pflag.String("aaddr", ":8080", "Address to bind api server to")
+	pflag.String("paddr", "127.0.0.1:8805", "Address to bind PFCP server to")
+	pflag.String("nodeid", "127.0.0.1", "PFCP Server Node ID")
+	pflag.String("maddr", ":9090", "Address to bind metrics server to")
+	pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
 	pflag.StringArray("peer", []string{}, "Address of GTP peer")
-	pflag.String("echo", "", "Interval of sending echo requests")
-	pflag.String("qersize", "", "Size of the QER ebpf map")
-	pflag.String("farsize", "", "Size of the FAR ebpf map")
-	pflag.String("pdrsize", "", "Size of the PDR ebpf map")
+	pflag.Uint32("echo", 10, "Interval of sending echo requests in seconds")
+	pflag.Uint32("qersize", 1024, "Size of the QER ebpf map")
+	pflag.Uint32("farsize", 1024, "Size of the FAR ebpf map")
+	pflag.Uint32("pdrsize", 1024, "Size of the PDR ebpf map")
 	pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
 	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
-	pflag.String("loglvl", "", "Logging level")
-	pflag.Bool("ueip", false, "Enable or disable feature_ueip")
-	pflag.Bool("ftup", false, "Enable or disable feature_ftup")
-	pflag.String("ip_pool", "0.0.0.0/32", "IP Pool")
-	pflag.Uint32("teid_pool", 65536, "TEID Pool")
+	pflag.String("loglvl", "info", "Logging level")
+	pflag.Bool("ueip", false, "Enable or disable UEIP feature")
+	pflag.Bool("ftup", false, "Enable or disable FTUP feature")
+	pflag.String("ueippool", "10.60.0.0/24", "IP pool for UEIP feature")
+	pflag.Uint32("teidpool", 65535, "TEID pool for FTUP feature")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -79,8 +80,8 @@ func init() {
 	_ = v.BindPFlag("logging_level", pflag.Lookup("loglvl"))
 	_ = v.BindPFlag("feature_ueip", pflag.Lookup("ueip"))
 	_ = v.BindPFlag("feature_ftup", pflag.Lookup("ftup"))
-	_ = v.BindPFlag("ip_pool", pflag.Lookup("ip_pool"))
-	_ = v.BindPFlag("teid_pool", pflag.Lookup("teid_pool"))
+	_ = v.BindPFlag("ueip_pool", pflag.Lookup("ueippool"))
+	_ = v.BindPFlag("teid_pool", pflag.Lookup("teidpool"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -90,9 +91,9 @@ func init() {
 	v.SetDefault("metrics_address", ":9090")
 	v.SetDefault("n3_address", "127.0.0.1")
 	v.SetDefault("echo_interval", 10)
-	v.SetDefault("qer_map_size", "1024")
-	v.SetDefault("far_map_size", "1024")
-	v.SetDefault("pdr_map_size", "1024")
+	v.SetDefault("qer_map_size", 1024)
+	v.SetDefault("far_map_size", 1024)
+	v.SetDefault("pdr_map_size", 1024)
 	v.SetDefault("resize_ebpf_maps", false)
 	v.SetDefault("heartbeat_retries", 3)
 	v.SetDefault("heartbeat_interval", 5)
@@ -100,8 +101,8 @@ func init() {
 	v.SetDefault("logging_level", "info")
 	v.SetDefault("feature_ueip", false)
 	v.SetDefault("feature_ftup", false)
-	v.SetDefault("ip_pool", "0.0.0.0/32")
-	v.SetDefault("teid_pool", 65536)
+	v.SetDefault("ueip_pool", "10.60.0.0/24")
+	v.SetDefault("teid_pool", 65535)
 
 	v.SetConfigFile(*configPath)
 
@@ -109,14 +110,32 @@ func init() {
 	v.AutomaticEnv()
 
 	if err := v.ReadInConfig(); err != nil {
-		log.Printf("Unable to read config file, %v", err)
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found; ignore error if desired
+			log.Print("Config file not found. Using defaults")
+		} else {
+			// Config file was found but another error was produced
+			log.Printf("Unable to read config file: %v. Using defaults", err)
+		}
 	}
 
-	log.Printf("Get raw config: %+v", v.AllSettings())
+	log.Printf("Startup config: %+v", v.AllSettings())
 }
 
 func (c *UpfConfig) Validate() error {
-	return validator.New().Struct(c)
+	if err := validator.New().Struct(c); err != nil {
+		return err
+	}
+
+	if !c.FeatureFTUP {
+		c.FTEIDPool = 0
+	}
+
+	if !c.FeatureUEIP {
+		c.UEIPPool = ""
+	}
+
+	return nil
 }
 
 // Unmarshal data from config file

@@ -30,12 +30,12 @@ type PacketStats struct {
 }
 
 // DisplayXdpStatistics godoc
-// @Summary Display XDP statistics
-// @Description Display XDP statistics
-// @Tags XDP
-// @Produce  json
-// @Success 200 {object} XdpStats
-// @Router /xdp_stats [get]
+//	@Summary		Display XDP statistics
+//	@Description	Display XDP statistics
+//	@Tags			XDP
+//	@Produce		json
+//	@Success		200	{object}	XdpStats
+//	@Router			/xdp_stats [get]
 func (h *ApiHandler) displayXdpStatistics(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, XdpStats{
 		Aborted:  h.ForwardPlaneStats.GetAborted(),
@@ -47,12 +47,12 @@ func (h *ApiHandler) displayXdpStatistics(c *gin.Context) {
 }
 
 // DisplayPacketStats godoc
-// @Summary Display packet statistics
-// @Description Display packet statistics
-// @Tags Packet
-// @Produce  json
-// @Success 200 {object} PacketStats
-// @Router /packet_stats [get]
+//	@Summary		Display packet statistics
+//	@Description	Display packet statistics
+//	@Tags			Packet
+//	@Produce		json
+//	@Success		200	{object}	PacketStats
+//	@Router			/packet_stats [get]
 func (h *ApiHandler) displayPacketStats(c *gin.Context) {
 	packets := h.ForwardPlaneStats.GetUpfExtStatField()
 	c.IndentedJSON(http.StatusOK, PacketStats{

@@ -22,7 +22,7 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-//go:generate swag init --parseDependency
+//go:generate swag init --parseDependency --parseInternal --parseDepth 1 -g api/rest/handler.go
 
 func main() {
 	stopper := make(chan os.Signal, 1)
@@ -74,8 +74,9 @@ func main() {
 		log.Info().Msgf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	}
 
+	log.Info().Msgf("Initialize resources: UEIP pool (CIDR: \"%s\"), TEID pool (size: %d)", config.Conf.UEIPPool, config.Conf.FTEIDPool)
 	var err error
-	resourceManager, err := service.NewResourceManager(config.Conf.IPPool, config.Conf.FTEIDPool)
+	resourceManager, err := service.NewResourceManager(config.Conf.UEIPPool, config.Conf.FTEIDPool)
 	if err != nil {
 		log.Error().Msgf("failed to create ResourceManager - err: %v", err)
 	}
