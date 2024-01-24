@@ -28,7 +28,7 @@ eUPF был протестирован с тремя различными ядр
 
 Быстрый и простой способ — загрузить и запустить наш докер-образ. Будет запущен автономный eUPF с конфигурацией по умолчанию.:
 ```bash
-docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
+sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
   --cap-add SYS_ADMIN --cap-add NET_ADMIN \
   -p 8080 -p 9090 --name your-eupf-def \
   -v /sys/kernel/debug:/sys/kernel/debug:ro ghcr.io/edgecomllc/eupf:main
@@ -55,7 +55,7 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 В реальных сценарих вам, скорее всего, придется заменить имена интерфейсов и IP-адреса теми, которые используются в вашей среде. Вы можете сделать это, например, с помощью опции `-e`:
 
 ```bash
-docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
+sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
   --cap-add SYS_ADMIN --cap-add NET_ADMIN \
   -p 8081 -p 9091 --name your-eupf-custom \
   -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic \
@@ -125,7 +125,7 @@ eUPF поддерживает отправку запросов GTP Echo к со
 - [x]  PFCP Association Setup/Release and Heartbeats
 - [x]  Session Establishment/Modification with support for PFCP entities such as Packet Detection Rules (PDRs), Forwarding Action Rules (FARs), QoS Enforcement Rules (QERs).
 - [ ]  UPF-initiated PFCP association
-- [ ]  UPF-based UE IP address assignment
+- [x]  UPF-based UE IP address assignment
 
 #### Data plane
 
@@ -143,8 +143,8 @@ eUPF поддерживает отправку запросов GTP Echo к со
 - [ ]  Monitoring/Debugging capabilities using tcpdump and cli
 
 #### 3GPP specs compatibility
-- [ ]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
-- [ ]  `UEIP` Allocating UE IP addresses or prefixes.
+- [x]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
+- [x]  `UEIP` Allocating UE IP addresses or prefixes.
 - [ ]  `SSET` PFCP sessions successively controlled by different SMFs of a same SMF Set.
 - [ ]  `MPAS` Multiple PFCP associations to the SMFs in an SMF set.
 - [ ]  `QFQM` Per QoS flow per UE QoS monitoring.
@@ -190,7 +190,7 @@ sudo dnf install git golang clang llvm gcc libbpf libbpf-devel libxdp libxdp-dev
 ### Сборка
 
 #### Шаг 1. Установите инструмент командной строки Swag для Golang.
-Это используется для автоматического создания документации RESTful API.
+Используется для автоматического создания документации RESTful API.
 
 ```bash
 go install github.com/swaggo/swag/cmd/swag@v1.8.12
@@ -203,18 +203,27 @@ git clone https://github.com/edgecomllc/eupf.git
 cd eupf
 ```
 
-#### Step 3: Запустите генераторы кода
+#### Шаг 3: Запустите генераторы кода
 
 ```bash
 go generate -v ./cmd/...
 ```
 
-#### Step 4: Осуществите сборку проекта eUPF
+При выполнении команды может возникнуть ошибка:
+```
+running "swag": exec: "swag": executable file not found in $PATH
+``` 
+
+В этом случае нужно убедиться, что утилита `swag` была успешно установлена на шаге 1. Кроме того, нужно убедиться, что путь к исполняемому файлу `swag`` прописан в переменной окружения PATH. 
+
+Обычно путь к исполняемым файлам Go уже прописан в PATH. Если это не так, то его можно прописать командой `export PATH=$(go env GOPATH)/bin:$PATH` и повторить текущй шаг.
+
+#### Шаг 4: Осуществите сборку проекта eUPF
 
 ```bash
 go build -v -o bin/eupf ./cmd/
 ```
-#### Step 5: Запустите приложение
+#### Шаг 5: Запустите приложение
 
 Запустить бинарный файл с привилегиями, позволяющими увеличить [memory-ulimits](https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits)
 

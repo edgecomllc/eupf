@@ -26,7 +26,7 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 Super fast & simple way is to download and run our docker image. It will start standalone eUPF with the default configuration:
 ```bash
-docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
+sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
   --cap-add SYS_ADMIN --cap-add NET_ADMIN \
   -p 8080 -p 9090 --name your-eupf-def \
   -v /sys/kernel/debug:/sys/kernel/debug:ro ghcr.io/edgecomllc/eupf:main
@@ -53,7 +53,7 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
 
 ```bash
-docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
+sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
   --cap-add SYS_ADMIN --cap-add NET_ADMIN \
   -p 8081 -p 9091 --name your-eupf-custom \
   -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic \
