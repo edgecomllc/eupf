@@ -27,13 +27,14 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 Super fast & simple way is to download and run our docker image. It will start standalone eUPF with the default configuration:
 ```bash
 sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
-  --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+  --cap-add SYS_ADMIN --cap-add NET_ADMIN --ulimit memlock=-1:-1 \
   -p 8080 -p 9090 --name your-eupf-def \
   -v /sys/kernel/debug:/sys/kernel/debug:ro ghcr.io/edgecomllc/eupf:main
 ```
 ### Notes
 - 📝 *Linux Kernel **5.15.0-25-generic** is the minimum release version it has been tested on. Previous versions are not supported.*
 - ℹ In order to perform low-level operations like loading ebpf objects some additional privileges are required(NET_ADMIN & SYS_ADMIN)
+- ℹ During startup eupf sets rlimits, so corresponding priviledges are required (ulimit)
 
 <details><summary><i>See startup parameters you might want to change</i></summary>
 <p>
@@ -45,7 +46,6 @@ sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
    - UPF_PFCP_ADDRESS=:8805   *Local host:port that PFCP server will listen to*
    - UPF_PFCP_NODE_ID=127.0.0.1  *Local NodeID for PFCP protocol. Format is IPv4 address*
    - UPF_METRICS_ADDRESS=:9090   *Local host:port for serving Prometheus mertrics endpoint*
-
 </p>
 </details>
 </p>
@@ -54,9 +54,9 @@ In a real-world scenario, you would likely need to replace the interface names a
 
 ```bash
 sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
-  --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+  --cap-add SYS_ADMIN --cap-add NET_ADMIN --ulimit memlock=-1:-1 \
   -p 8081 -p 9091 --name your-eupf-custom \
-  -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic \
+  -e UPF_INTERFACE_NAME=eth0,n6 -e UPF_XDP_ATTACH_MODE=generic \
   -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 \
   -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 \
   -e UPF_N3_ADDRESS=10.100.50.233 \
