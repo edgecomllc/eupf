@@ -29,13 +29,14 @@ eUPF был протестирован с тремя различными ядр
 Быстрый и простой способ — загрузить и запустить наш докер-образ. Будет запущен автономный eUPF с конфигурацией по умолчанию.:
 ```bash
 sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
-  --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+  --cap-add SYS_ADMIN --cap-add NET_ADMIN --ulimit memlock=-1:-1 \
   -p 8080 -p 9090 --name your-eupf-def \
   -v /sys/kernel/debug:/sys/kernel/debug:ro ghcr.io/edgecomllc/eupf:main
 ```
 ### Замечания
 - 📝 *Linux Kernel **5.15.0-25-generic** — это минимальная версия ядра, на которой eUPF был протестирован. Предыдущие версии не поддерживаются.*
 - ℹ Для выполнения низкоуровневых операций, таких как загрузка объектов ebpf, требуются некоторые дополнительные привилегии.(NET_ADMIN & SYS_ADMIN)
+- ℹ При запуске eUPF устанавливает значения rlimits memlock, поэтому требуется дополнительное разрешение(ulimit) для выполнение данной операции в контейнере
 
 <details><summary><i>Параметры запуска, которые вы, возможно, захотите изменить.</i></summary>
 <p>
@@ -56,7 +57,7 @@ sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 
 ```bash
 sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
-  --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+  --cap-add SYS_ADMIN --cap-add NET_ADMIN --ulimit memlock=-1:-1 \
   -p 8081 -p 9091 --name your-eupf-custom \
   -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic \
   -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 \
@@ -160,31 +161,29 @@ eUPF поддерживает отправку запросов GTP Echo к со
 −	Ubuntu 22.04 LTS или выше
 
 −	Git 2.34
-
 −	Golang 1.20.3
-
 −	Clang 14.0.0
-
 −	LLVM 14.0
-
 −	Gcc 11.4.0
-
 −	libbpf-dev 0.5.0
-
 −	Swag 1.8.12
-
 −	Linux Kernel 5.15.0-25
 
 **На Ubuntu 22.04**, вы можете установить их с помощью следующей команды:
 
+#### Основные зависимости
 ```bash
-sudo apt install git golang clang llvm gcc-multilib libbpf-dev
+sudo apt install wget git golang clang llvm gcc-multilib libbpf-dev
 ```
 
-**На Rocky Linux 9**, используйте следующую команду:
+#### Установка Golang 1.20.3
+ℹ Этот шаг можно пропустить, если утилита go версии 1.20.3 уже установлена в системе.
 
 ```bash
-sudo dnf install git golang clang llvm gcc libbpf libbpf-devel libxdp libxdp-devel xdp-tools bpftool kernel-headers
+sudo rm -rf /usr/local/go
+wget https://go.dev/dl/go1.20.3.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.20.3.linux-amd64.tar.gz
+export PATH="/usr/local/go/bin:${PATH}"
 ```
 
 ### Сборка

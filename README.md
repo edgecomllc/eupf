@@ -165,16 +165,20 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 -	Swag 1.8.12
 -	Linux Kernel 5.15.0-25
 
-**On Ubuntu 22.04**, you can install these using the following command:
+**On Ubuntu 22.04**, you can install these using the following commands:
 
+#### Basic dependencies
 ```bash
-sudo apt install git golang clang llvm gcc-multilib libbpf-dev
+sudo apt install wget git clang llvm gcc-multilib libbpf-dev
 ```
-
-**On Rocky Linux 9**, use the following command:
+#### Golang 1.20.3
+ℹ Please skip this step if you have golang 1.20.3 already installed.
 
 ```bash
-sudo dnf install git golang clang llvm gcc libbpf libbpf-devel libxdp libxdp-devel xdp-tools bpftool kernel-headers
+sudo rm -rf /usr/local/go
+wget https://go.dev/dl/go1.20.3.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.20.3.linux-amd64.tar.gz
+export PATH="/usr/local/go/bin:${PATH}"
 ```
 
 ### Manual build
