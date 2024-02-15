@@ -169,7 +169,7 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 
 #### Basic dependencies
 ```bash
-sudo apt update && apt install wget git clang llvm gcc-multilib libbpf-dev
+sudo apt install wget git clang llvm gcc-multilib libbpf-dev
 ```
 #### Golang 1.20.3
 ℹ Please skip this step if you have golang 1.20.3 already installed.
