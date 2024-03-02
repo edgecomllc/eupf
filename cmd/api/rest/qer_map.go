@@ -10,12 +10,12 @@ import (
 )
 
 // ListQerMapContent godoc
-// @Summary List QER map content
-// @Description List QER map content
-// @Tags QER
-// @Produce  json
-// @Success 200 {object} []ebpf.QerMapElement
-// @Router /qer_map [get]
+//	@Summary		List QER map content
+//	@Description	List QER map content
+//	@Tags			QER
+//	@Produce		json
+//	@Success		200	{object}	[]ebpf.QerMapElement
+//	@Router			/qer_map [get]
 func (h *ApiHandler) listQerMapContent(c *gin.Context) {
 	if elements, err := ebpf.ListQerMapContents(h.BpfObjects.IpEntrypointObjects.QerMap); err != nil {
 		log.Info().Msgf("Error reading map: %s", err.Error())
@@ -26,13 +26,13 @@ func (h *ApiHandler) listQerMapContent(c *gin.Context) {
 }
 
 // GetQerValue godoc
-// @Summary List QER map content
-// @Description List QER map content
-// @Tags QER
-// @Produce  json
-// @Param id path int true "Qer ID"
-// @Success 200 {object} []ebpf.QerMapElement
-// @Router /qer_map/{id} [get]
+//	@Summary		List QER map content
+//	@Description	List QER map content
+//	@Tags			QER
+//	@Produce		json
+//	@Param			id	path		int	true	"Qer ID"
+//	@Success		200	{object}	[]ebpf.QerMapElement
+//	@Router			/qer_map/{id} [get]
 func (h *ApiHandler) getQerValue(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

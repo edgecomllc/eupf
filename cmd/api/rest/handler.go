@@ -1,17 +1,28 @@
 package rest
 
 import (
+	"net/http"
+
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
-	eupfDocs "github.com/edgecomllc/eupf/cmd/docs"
+
+	_ "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"net/http"
 )
+
+//	@BasePath	/api/v1
+
+//	@contact.name	API Support
+//	@contact.url	http://www.swagger.io/support
+//	@contact.email	support@swagger.io
+
+//	@license.name	Apache 2.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 
 type ApiHandler struct {
 	BpfObjects        *ebpf.BpfObjects
@@ -35,11 +46,10 @@ func (h *ApiHandler) InitRoutes() *gin.Engine {
 	config.AllowAllOrigins = true
 	router.Use(cors.New(config))
 
-	eupfDocs.SwaggerInfo.BasePath = "/api/v1"
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("/health", func(c *gin.Context) {
-			c.IndentedJSON(http.StatusOK, nil)
+			c.IndentedJSON(http.StatusOK, "OK")
 		})
 
 		h.initDefaultRoutes(v1)
@@ -52,7 +62,6 @@ func (h *ApiHandler) InitRoutes() *gin.Engine {
 
 func (h *ApiHandler) initDefaultRoutes(group *gin.RouterGroup) {
 
-	group.GET("upf_pipeline", h.listUpfPipeline)
 	group.GET("xdp_stats", h.displayXdpStatistics)
 	group.GET("packet_stats", h.displayPacketStats)
 

@@ -26,14 +26,15 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 Super fast & simple way is to download and run our docker image. It will start standalone eUPF with the default configuration:
 ```bash
-docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
-  --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
+  --cap-add SYS_ADMIN --cap-add NET_ADMIN --ulimit memlock=-1:-1 \
   -p 8080 -p 9090 --name your-eupf-def \
   -v /sys/kernel/debug:/sys/kernel/debug:ro ghcr.io/edgecomllc/eupf:main
 ```
 ### Notes
 - 📝 *Linux Kernel **5.15.0-25-generic** is the minimum release version it has been tested on. Previous versions are not supported.*
 - ℹ In order to perform low-level operations like loading ebpf objects some additional privileges are required(NET_ADMIN & SYS_ADMIN)
+- ℹ During startup eupf sets rlimits, so corresponding priviledges are required (ulimit)
 
 <details><summary><i>See startup parameters you might want to change</i></summary>
 <p>
@@ -45,7 +46,6 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
    - UPF_PFCP_ADDRESS=:8805   *Local host:port that PFCP server will listen to*
    - UPF_PFCP_NODE_ID=127.0.0.1  *Local NodeID for PFCP protocol. Format is IPv4 address*
    - UPF_METRICS_ADDRESS=:9090   *Local host:port for serving Prometheus mertrics endpoint*
-
 </p>
 </details>
 </p>
@@ -53,10 +53,10 @@ docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
 In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
 
 ```bash
-docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
-  --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+sudo docker run -d --rm -v /sys/fs/bpf:/sys/fs/bpf \
+  --cap-add SYS_ADMIN --cap-add NET_ADMIN --ulimit memlock=-1:-1 \
   -p 8081 -p 9091 --name your-eupf-custom \
-  -e UPF_INTERFACE_NAME="[eth0, n6]" -e UPF_XDP_ATTACH_MODE=generic \
+  -e UPF_INTERFACE_NAME=eth0,n6 -e UPF_XDP_ATTACH_MODE=generic \
   -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 \
   -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 \
   -e UPF_N3_ADDRESS=10.100.50.233 \
@@ -70,6 +70,8 @@ Read **[eUPF configuration guide](./docs/Configuration.md)** for more info about
 To go further, see the **[eUPF installation guide](./docs/install.md)** to learn how to run eUPF in different environments with different 5G core implementations using docker-compose or Kubernetes cluster.
 
 For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**.
+
+You can find different types of implementation in the **[Implementation expamples](./docs/implementation_examples.md)**.
 
 ## Implementation notes
 
@@ -121,7 +123,7 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 - [x]  PFCP Association Setup/Release and Heartbeats
 - [x]  Session Establishment/Modification with support for PFCP entities such as Packet Detection Rules (PDRs), Forwarding Action Rules (FARs), QoS Enforcement Rules (QERs).
 - [ ]  UPF-initiated PFCP association
-- [ ]  UPF-based UE IP address assignment
+- [x]  UPF-based UE IP address assignment
 
 #### Data plane
 
@@ -139,8 +141,8 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 - [ ]  Monitoring/Debugging capabilities using tcpdump and cli
 
 #### 3GPP specs compatibility
-- [ ]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
-- [ ]  `UEIP` Allocating UE IP addresses or prefixes.
+- [x]  `FTUP` F-TEID allocation / release in the UP function is supported by the UP function.
+- [x]  `UEIP` Allocating UE IP addresses or prefixes.
 - [ ]  `SSET` PFCP sessions successively controlled by different SMFs of a same SMF Set.
 - [ ]  `MPAS` Multiple PFCP associations to the SMFs in an SMF set.
 - [ ]  `QFQM` Per QoS flow per UE QoS monitoring.
@@ -153,23 +155,30 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 
 ### Prerequisites
 
-- Git
-- Golang
-- Clang
-- LLVM
-- gcc
-- libbpf-dev
+-	Ubuntu 22.04 LTS or higher
+-	Git 2.34
+-	Golang 1.20.3
+-	Clang 14.0.0
+-	LLVM 14.0
+-	Gcc 11.4.0
+-	libbpf-dev 0.5.0
+-	Swag 1.8.12
+-	Linux Kernel 5.15.0-25
 
-**On Ubuntu 22.04**, you can install these using the following command:
+**On Ubuntu 22.04**, you can install these using the following commands:
 
+#### Basic dependencies
 ```bash
-sudo apt install git golang clang llvm gcc-multilib libbpf-dev
+sudo apt install wget git clang llvm gcc-multilib libbpf-dev
 ```
-
-**On Rocky Linux 9**, use the following command:
+#### Golang 1.20.3
+ℹ Please skip this step if you have golang 1.20.3 already installed.
 
 ```bash
-sudo dnf install git golang clang llvm gcc libbpf libbpf-devel libxdp libxdp-devel xdp-tools bpftool kernel-headers
+sudo rm -rf /usr/local/go
+wget https://go.dev/dl/go1.20.3.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.20.3.linux-amd64.tar.gz
+export PATH="/usr/local/go/bin:${PATH}"
 ```
 
 ### Manual build
@@ -194,6 +203,17 @@ cd eupf
 go generate -v ./cmd/...
 ```
 
+Sometimes during this step you may see errors like:
+```
+running "swag": exec: "swag": executable file not found in $PATH
+``` 
+
+Make sure that `swag` was successfuly installed(step 1) and path to swag binary is in the PATH environment variable. 
+
+Usually GO Path is supposed to already be on the PATH environment variable. 
+Use `export PATH=$(go env GOPATH)/bin:$PATH` otherwise and repeat current step again.
+
+
 #### Step 4: Build eUPF
 
 ```bash
@@ -215,9 +235,21 @@ Use this command to build eupf's docker image: `docker build -t local/eupf:lates
 
 You can also define several build arguments to configure eUPF image: `docker build -t local/eupf:latest --build-arg BPF_ENABLE_LOG=1 --build-arg BPF_ENABLE_ROUTE_CACHE=1 .`
 
+### Hardware requirements
+
+- CPU: any popular CPU is supported, incl. x86, x86_64, x86, ppc64le, armhf, armv7, aarch64, ppc64le, s390x
+- CPU_cores: 1 core is enough to run eUPF
+- RAM: you need up to 70MB to run eUPF and up to 512MB to run Linux kernel
+- HDD: 50MB of free space is required to install eUPF. Different types of storage can be used: HDD, SSD, SD-card, USB-stick
+- NIC: Any internal or external networking interface that can be used in Linux
+
 ## Contribution
 
 Please create an issue to report a bug or share an idea.
+
+## Translated docs
+
+Please check [this link](./docs/docs-ru_ru/readme.md) to find translated docs.
 
 ## License
 This project is licensed under the [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details

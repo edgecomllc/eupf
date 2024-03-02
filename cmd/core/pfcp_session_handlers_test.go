@@ -1,12 +1,13 @@
 package core
 
 import (
-	"github.com/edgecomllc/eupf/cmd/config"
-	"github.com/edgecomllc/eupf/cmd/core/service"
-	"github.com/rs/zerolog/log"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/edgecomllc/eupf/cmd/core/service"
+	"github.com/rs/zerolog/log"
 
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
@@ -333,7 +334,7 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 	pfcpConn, smfIP := PreparePfcpConnection(t)
 
-	resourceManager, err := service.NewResourceManager(true, 65536)
+	resourceManager, err := service.NewResourceManager("10.61.0.0/16", 65536)
 	if err != nil {
 		log.Error().Msgf("failed to create ResourceManager. err: %v", err)
 	}
@@ -416,5 +417,111 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 		if teid.IPv4Address == nil {
 			t.Error("TEID has no ip")
 		}
+	}
+}
+
+func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
+	if config.Conf.FeatureUEIP {
+		pfcpConn, smfIP := PreparePfcpConnection(t)
+
+		resourceManager, err := service.NewResourceManager("10.61.0.0/16", 65536)
+		if err != nil {
+			log.Error().Msgf("failed to create ResourceManager. err: %v", err)
+		}
+		pfcpConn.ResourceManager = resourceManager
+
+		ueip1 := ie.NewUEIPAddress(16, "", "", 0, 0)
+		createPDR1 := ie.NewCreatePDR(
+			ie.NewPDRID(1),
+			ie.NewPDI(
+				ie.NewSourceInterface(ie.SrcInterfaceCore),
+				ueip1,
+			),
+		)
+
+		// Creating a Session Establishment Request
+		seReq := message.NewSessionEstablishmentRequest(0, 0,
+			2, 1, 0,
+			ie.NewNodeID("", "", "test"),
+			ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+			createPDR1,
+		)
+
+		// Processing Session Establishment Request
+		response, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq, smfIP)
+		if err != nil {
+			t.Errorf("Error handling Session Establishment Request: %s", err)
+		}
+
+		// Checking if expected IPs are allocated in Session Establishment Response
+		seRes, ok := response.(*message.SessionEstablishmentResponse)
+		if !ok {
+			t.Error("Unexpected response type")
+		}
+
+		// Checking UEIP for each PDR
+		log.Info().Msgf("seRes.CreatedPDR len: %d", len(seRes.CreatedPDR))
+		if len(seRes.CreatedPDR) != 1 {
+			t.Errorf("Unexpected count PRD's: got %d, expected %d", len(seRes.CreatedPDR), 1)
+		}
+
+		for _, pdr := range seRes.CreatedPDR {
+
+			ueipType, err := pdr.FindByType(ie.UEIPAddress)
+			if err != nil {
+				t.Errorf("FindByType err: %v", err)
+			}
+
+			ueip, err := ueipType.UEIPAddress()
+			if err != nil {
+				t.Errorf("UEIPAddress err: %v", err)
+			}
+
+			if ueip.IPv4Address == nil {
+				log.Info().Msg("IPv4Address is nil")
+			} else {
+				if ueip.IPv4Address.String() == "10.61.0.0" {
+					log.Info().Msgf("PASSED. IPv4: %s", ueip.IPv4Address.String())
+				} else {
+					t.Errorf("Unexpected IPv4, got %s, expected %s", ueip.IPv4Address.String(), "10.61.0.0")
+				}
+			}
+
+		}
+	}
+}
+
+func TestUEIPInAssociationSetupResponse(t *testing.T) {
+
+	config.Conf = config.UpfConfig{
+		UEIPPool:    "10.61.0.0/16",
+		FTEIDPool:   65536,
+		FeatureUEIP: true,
+		FeatureFTUP: false,
+	}
+
+	pfcpConn, smfIP := PreparePfcpConnection(t)
+
+	// Creating an Association Setup Request
+	asReq := message.NewAssociationSetupRequest(1,
+		ie.NewNodeID("", "", "test"),
+	)
+
+	// Processing Association Setup Request
+	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling Association Setup Request: %s", err)
+	}
+
+	// Checking if UEIP is enabled in UP Function Features in response
+	asRes, ok := response.(*message.AssociationSetupResponse)
+	if !ok {
+		t.Error("Unexpected response type")
+	}
+
+	// Verify if UEIP is enabled in UP Function Features in response
+	ueipEnabled := asRes.UPFunctionFeatures.HasUEIP()
+	if !ueipEnabled {
+		t.Error("UEIP is not enabled in Association Setup Response")
 	}
 }

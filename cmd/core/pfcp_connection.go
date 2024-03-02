@@ -2,10 +2,11 @@ package core
 
 import (
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/core/service"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/core/service"
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
@@ -118,17 +119,10 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 	return nil
 }
 
-// RefreshAssociations checks for expired associations and schedules heartbeats for those that are not expired.
 func (connection *PfcpConnection) RefreshAssociations() {
-	for assocAddr, assoc := range connection.NodeAssociations {
-		if assoc.IsExpired() {
-			log.Info().Msgf("Pruning expired node association: %s", assocAddr)
-			connection.DeleteAssociation(assocAddr)
-		}
-	}
 	for _, assoc := range connection.NodeAssociations {
-		if !assoc.IsHeartbeatScheduled() {
-			assoc.ScheduleHeartbeatRequest(time.Duration(config.Conf.HeartbeatTimeout)*time.Second, connection)
+		if !assoc.HeartbeatsActive {
+			go assoc.ScheduleHeartbeat(connection)
 		}
 	}
 }

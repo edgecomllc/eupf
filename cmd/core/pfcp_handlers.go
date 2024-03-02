@@ -113,19 +113,20 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	// Add or replace RemoteNode to NodeAssociationMap
 	conn.NodeAssociations[addr] = remoteNode
 	log.Info().Msgf("Saving new association: %+v", remoteNode)
-
 	featuresOctets := []uint8{0, 0, 0}
 	if config.Conf.FeatureFTUP {
 		featuresOctets[0] = setBit(featuresOctets[0], 4)
 	}
-
-	upFunctionFeaturesIE := ie.NewUPFunctionFeatures(featuresOctets...)
+	if config.Conf.FeatureUEIP {
+		featuresOctets[2] = setBit(featuresOctets[2], 2)
+	}
+	upFunctionFeaturesIE := ie.NewUPFunctionFeatures(featuresOctets[:]...)
 
 	// shall send a PFCP Association Setup Response including:
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
 		newIeNodeID(conn.nodeId),             // its Node ID;
-		ie.NewRecoveryTimeStamp(time.Now()),
+		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
 		upFunctionFeaturesIE,
 	)
 	conn.muAssoc.Unlock()

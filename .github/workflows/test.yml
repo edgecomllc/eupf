@@ -40,7 +40,17 @@ jobs:
         run: sudo pip install pytest scapy
 
       - name: Run pytest
-        run: sudo pytest -v ./pytest/test_session.py
+        run: sudo pytest -v -k "not test_create_session_ueip" ./pytest/test_session.py
+
+      - name: Stop eUPF
+        run: sudo killall eupf
+
+      - name: Run eUPF with feature_ueip
+        run: sudo UPF_FEATURE_UEIP=true ./bin/eupf &
+
+      - name: Run pytest with feature_ueip
+        run: sudo pytest -v ./pytest/test_session.py::test_create_association 
+              ./pytest/test_session.py::test_create_session_ueip
 
       - name: Stop eUPF
         run: sudo killall eupf

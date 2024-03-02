@@ -9,12 +9,12 @@ import (
 )
 
 // DisplayConfig godoc
-// @Summary Display configuration
-// @Description Display configuration
-// @Tags Configuration
-// @Produce  json
-// @Success 200 {object} config.UpfConfig
-// @Router /config [get]
+//	@Summary		Display configuration
+//	@Description	Display configuration
+//	@Tags			Configuration
+//	@Produce		json
+//	@Success		200	{object}	config.UpfConfig
+//	@Router			/config [get]
 func (h *ApiHandler) displayConfig(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, *h.Cfg)
 }
