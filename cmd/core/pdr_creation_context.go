@@ -43,7 +43,9 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 	}
 
 	if sdfFilter, err := pdr.SDFFilter(); err == nil {
-		if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
+		if sdfFilter.FlowDescription == "" {
+			log.Warn().Msgf("SDFFilter is empty")
+		} else if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
 			spdrInfo.PdrInfo.SdfFilter = &sdfFilterParsed
 		} else {
 			log.Error().Msgf("SDFFilter err: %v", err)
