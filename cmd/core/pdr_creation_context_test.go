@@ -44,6 +44,26 @@ func TestPDRCreationContext_extractPDR(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "emptyFlowDescriptionAndFilterID",
+			fields: fields{
+				Session:         nil,
+				ResourceManager: nil,
+				//TEEIDCache: nil,
+			},
+			args: args{
+				pdr: ie.NewCreatePDR(
+					ie.NewPDRID(2),
+					ie.NewPDI(
+						ie.NewSourceInterface(ie.SrcInterfaceCore),
+						ie.NewUEIPAddress(2, "192.168.0.1", "", 0, 0),
+						ie.NewSDFFilter("", "", "", "", 4096),
+					),
+				),
+				spdrInfo: &SPDRInfo{},
+			},
+			wantErr: false,
+		},
+		{
 			name: "invalidFlowDescription",
 			fields: fields{
 				Session:         nil,
@@ -56,7 +76,7 @@ func TestPDRCreationContext_extractPDR(t *testing.T) {
 					ie.NewPDI(
 						ie.NewSourceInterface(ie.SrcInterfaceCore),
 						ie.NewUEIPAddress(2, "192.168.0.1", "", 0, 0),
-						ie.NewSDFFilter("blablabla", "", "", "", 0),
+						ie.NewSDFFilter("123", "", "", "", 4096),
 					),
 				),
 				spdrInfo: &SPDRInfo{},
