@@ -32,6 +32,8 @@ type UpfConfig struct {
 	FTEIDPool         uint32   `mapstructure:"teid_pool" json:"teid_pool"`
 	FeatureUEIP       bool     `mapstructure:"feature_ueip" json:"feature_ueip"`
 	FeatureFTUP       bool     `mapstructure:"feature_ftup" json:"feature_ftup"`
+	PfcpPeer                []string `mapstructure:"pfcp_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
+	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
 }
 
 func init() {
@@ -52,12 +54,14 @@ func init() {
 	pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
 	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
-	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
+	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout
 	pflag.String("loglvl", "info", "Logging level")
 	pflag.Bool("ueip", false, "Enable or disable UEIP feature")
 	pflag.Bool("ftup", false, "Enable or disable FTUP feature")
 	pflag.String("ueippool", "10.60.0.0/24", "IP pool for UEIP feature")
 	pflag.Uint32("teidpool", 65535, "TEID pool for FTUP feature")
+	pflag.StringArray("pfcpnode", []string{}, "Address of PFCP node")
+	pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -82,6 +86,8 @@ func init() {
 	_ = v.BindPFlag("feature_ftup", pflag.Lookup("ftup"))
 	_ = v.BindPFlag("ueip_pool", pflag.Lookup("ueippool"))
 	_ = v.BindPFlag("teid_pool", pflag.Lookup("teidpool"))
+	_ = v.BindPFlag("pfcp_node", pflag.Lookup("pfcpnode"))
+	_ = v.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
 
 	v.SetDefault("interface_name", "lo")
 	v.SetDefault("xdp_attach_mode", "generic")
@@ -103,6 +109,7 @@ func init() {
 	v.SetDefault("feature_ftup", false)
 	v.SetDefault("ueip_pool", "10.60.0.0/24")
 	v.SetDefault("teid_pool", 65535)
+  v.SetDefault("association_setup_timeout", 5)
 
 	v.SetConfigFile(*configPath)
 
