@@ -27,6 +27,9 @@ func TestSdfFilterParseValid(t *testing.T) {
 		{FlowDescription: "permit out ip from 10.60.0.0/16 to any", Protocol: 1,
 			SrcType: 1, SrcAddress: "10.60.0.0", SrcMask: "ffff0000", SrcPortLower: 0, SrcPortUpper: 65535,
 			DstType: 0, DstAddress: "<nil>", DstMask: "<nil>", DstPortLower: 0, DstPortUpper: 65535},
+		{FlowDescription: "permit out ip from any to any", Protocol: 1,
+			SrcType: 0, SrcAddress: "<nil>", SrcMask: "<nil>", SrcPortLower: 0, SrcPortUpper: 65535,
+			DstType: 0, DstAddress: "<nil>", DstMask: "<nil>", DstPortLower: 0, DstPortUpper: 65535},
 	}
 
 	for i := 0; i < len(fds); i++ {
