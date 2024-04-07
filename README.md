@@ -60,7 +60,7 @@ sudo docker run -d --rm -v --privileged \
   -v /sys/fs/bpf:/sys/fs/bpf \ 
   -v /sys/kernel/debug:/sys/kernel/debug:ro \
   -p 8081 -p 9091 --name your-eupf-custom \
-  -e UPF_INTERFACE_NAME=eth0,n6 -e UPF_XDP_ATTACH_MODE=generic \
+  -e UPF_INTERFACE_NAME=[eth0,n6] -e UPF_XDP_ATTACH_MODE=generic \
   -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 \
   -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 \
   -e UPF_N3_ADDRESS=10.100.50.233 \
