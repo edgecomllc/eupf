@@ -1,0 +1,10 @@
+---
+
+gnb:
+  n2if:
+    ipAddress: 10.100.50.250
+  n3if:
+    ipAddress: 10.100.50.236
+  amf:
+    n2if:
+      ipAddress: 10.100.50.249

@@ -1,0 +1,63 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open5gs-smf
+data:
+  smf.yaml: |
+    logger:
+      level: info
+
+    parameter: {}
+
+    sbi:
+      server:
+        no_tls: true
+      client:
+        no_tls: true
+
+    smf:
+      sbi:
+        - dev: "eth0"
+          port: 7777
+      pfcp:
+        - dev: "eth0"
+          port: 8805
+      gtpc:
+        - dev: "eth0"
+          port: 2123
+      gtpu:
+        - dev: "eth0"
+          port: 2152
+      subnet:
+        - addr: 10.11.0.1/16
+          dnn: internet
+        - addr: 2001:db8:cafe::1/48
+          dnn: internet
+      dns:
+        - 8.8.8.8
+        - 8.8.4.4
+        - 2001:4860:4860::8888
+        - 2001:4860:4860::8844
+      mtu: 1400
+      info:
+        - s_nssai:
+            - sst: 1
+              sd: 111111
+              dnn:
+                - internet
+          tai:
+            - plmn_id:
+                mcc: 999
+                mnc: 70
+              tac: 1
+
+    nrf:
+      sbi:
+        - name: open5gs-nrf-sbi
+          port: 7777
+
+    upf:
+      pfcp:
+        - name: eupf
+          port: 8805

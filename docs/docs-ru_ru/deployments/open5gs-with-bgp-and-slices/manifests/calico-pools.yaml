@@ -1,0 +1,28 @@
+---
+apiVersion: crd.projectcalico.org/v1
+kind: IPPool
+metadata:
+  name: eupf-ue-pool-10-11-0-0
+spec:
+  cidr: 10.11.0.0/16
+  ipipMode: Never
+  natOutgoing: true
+  disabled: false
+  nodeSelector: all()
+  allowedUses:
+    - Workload
+    - Tunnel
+---
+apiVersion: crd.projectcalico.org/v1
+kind: IPPool
+metadata:
+  name: eupf-ue-pool-10-22-0-0
+spec:
+  cidr: 10.22.0.0/16
+  ipipMode: Never
+  natOutgoing: true
+  disabled: false
+  nodeSelector: all()
+  allowedUses:
+    - Workload
+    - Tunnel

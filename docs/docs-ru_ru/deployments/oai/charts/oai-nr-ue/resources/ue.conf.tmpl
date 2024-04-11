@@ -1,0 +1,8 @@
+uicc0 = {
+  imsi = "{{ .Env.MCC }}{{ .Env.MNC }}{{ .Env.MSISDN }}";
+  key = "{{ .Env.KEY }}";
+  opc = "{{ .Env.OP }}";
+  dnn = "{{ .Env.APN }}";
+  nssai_sst = {{ .Env.SST }};
+  nssai_sd = {{ .Env.SD }};
+}

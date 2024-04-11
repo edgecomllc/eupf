@@ -1,0 +1,33 @@
+image:
+  registry: docker.io
+  repository: openverso/srsran-4g
+  tag: "23_04_1"
+  ## Specify a imagePullPolicy
+  ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
+  ## ref: http://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+  ##
+  pullPolicy: IfNotPresent
+  ## Optionally specify an array of imagePullSecrets.
+  ## Secrets must be manually created in the namespace.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  ##
+  # pullSecrets:
+  #  - regcred
+
+ue:
+  algo: milenage
+  opc: 'E8ED289DEBA952E4283B54E88E6183CA'
+  k: '465B5CE8B199B49FAA5F0A2EE238A6BC'
+  mcc: '999'
+  mnc: '70'
+  msisdn: '0000000001'
+  # imei: '353490069873319'
+  gnb_host: ''
+  gnb_addr: 127.0.0.1
+  resources: {}
+
+gnb:
+  image: 'edgecom/library:srsran5g-zmq-gnb-23.5'
+  amf: open5gs-amf-ngap
+  tac: '1'
+  resources: {}

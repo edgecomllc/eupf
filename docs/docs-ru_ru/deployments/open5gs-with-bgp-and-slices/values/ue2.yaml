@@ -1,0 +1,15 @@
+---
+
+count: 1
+initialMSISDN: '0000000003'
+gnb:
+  hostname: gnb-ueransim-gnb
+sst: 1
+sd: "0x222222"
+apnList:
+  - type: 'IPv4'
+    apn: 'internet'
+    slice:
+      sst: 1
+      sd: "0x222222"
+    emergency: false

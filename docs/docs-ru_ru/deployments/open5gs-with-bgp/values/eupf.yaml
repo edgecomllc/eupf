@@ -1,0 +1,133 @@
+---
+
+global:
+  imagePullPolicy: Always
+
+deploymentStrategy:
+  type: Recreate
+
+image:
+  # tag: 0ac3d9fb28808dbca7e123205323e2c09f377971@sha256:a03bdd30efa623b0d3ddc99d9a6472453a43d2d64ed715a9a042e893d82ffb68
+  registry: ghcr.io
+  repository: edgecomllc
+  name: eupf
+  tag: 893648fecb05faf4b92656647f26922b34148a6c
+  pullPolicy: Always
+
+args:
+  - --config
+  - /app/conf/config.yml
+
+env:
+  UPF_PFCP_NODE_ID: $(MY_POD_IP)
+  UPF_N3_ADDRESS: $(MY_POD_IP)
+
+configMaps:
+  config:
+    data:
+      config.yml: |
+        interface_name: eth0
+        api_address: :8080
+        pfcp_address: :8805
+        metrics_address: :9090
+
+volumes:
+  - name: sys
+    hostPath:
+      path: /sys
+  - name: config
+    configMap:
+      name: eupf-config
+      defaultMode: 420
+      items:
+        - key: config.yml
+          mode: 493
+          path: config.yml
+
+volumeMounts:
+  - name: sys
+    mountPath: /sys
+    readOnly:  true
+  - name: config
+    mountPath: /app/conf
+
+bird:
+  enabled: true
+  image: docker.io/edgecom/bird:0.0.4b
+  env:
+    BIRD_LOCAL_AS: 65001
+    BIRD_LOCAL_PREFIX: 10.11.0.0/16
+
+metrics:
+  enabled: false
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+    endpoints:
+      port: metrics
+      path: "/metrics"
+
+podAnnotations:
+  cni.projectcalico.org/ipv4pools: '["default-pool"]'
+  cni.projectcalico.org/ipAddrs: '["10.233.64.11"]'
+
+podSecurityContext:
+  sysctls:
+  - name: net.ipv4.ip_forward
+    value: "1"
+
+securityContext:
+  privileged: true
+
+extraContainerPorts:
+  - name: gtpu
+    containerPort: 2152
+    protocol: UDP
+  - name: pfcp
+    containerPort: 8805
+    protocol: UDP
+
+service:
+  type: ClusterIP
+  port: 8080
+  extraPorts:
+    - port: 2152
+      targetPort: gtpu
+      protocol: UDP
+      name: gtpu
+    - port: 8805
+      targetPort: pfcp
+      protocol: UDP
+      name: pfcp
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+ui:
+  enabled: true
+  image:
+    registry: ghcr.io
+    repository: edgecomllc
+    name: eupf-ui
+    tag: 92294e11a733790ae2872dd1bc3128ce1a550734
+    pullPolicy: Always
+  env:
+    API_ADDR: localhost:8080

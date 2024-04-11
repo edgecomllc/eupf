@@ -1,0 +1,145 @@
+---
+
+deployUpf: false
+deployDbPython: false
+
+# webui chart settings
+free5gc-webui:
+  webui:
+    service:
+      type: ClusterIP
+      nodePort: ""
+
+# mongodb chart settings
+mongodb:
+  persistence:
+    enabled: false
+
+# smf chart settings
+free5gc-smf:
+  smf:
+    configuration:
+      configuration: |
+        smfName: SMF
+        snssaiInfos:
+          - sNssai:
+              sst: 1
+              sd: 010203
+            dnnInfos:
+              - dnn: internet
+                dns:
+                  ipv4: 8.8.8.8
+                  ipv6: 2001:4860:4860::8888
+          - sNssai:
+              sst: 1
+              sd: 112233
+            dnnInfos:
+              - dnn: internet
+                dns:
+                  ipv4: 8.8.8.8
+                  ipv6: 2001:4860:4860::8888
+          - sNssai:
+              sst: 2
+              sd: 112234
+            dnnInfos:
+              - dnn: internet
+                dns:
+                  ipv4: 8.8.8.8
+                  ipv6: 2001:4860:4860::8888
+        plmnList:
+          - mcc: "208"
+            mnc: "93"
+        userplaneInformation:
+          upNodes:
+            gNB1:
+              type: AN
+            upfb:
+              type: UPF
+              nodeID: 10.100.50.241
+              sNssaiUpfInfos:
+                - sNssai:
+                    sst: 1
+                    sd: 010203
+                  dnnUpfInfoList:
+                    - dnn: internet
+                - sNssai:
+                    sst: 1
+                    sd: 112233
+                  dnnUpfInfoList:
+                    - dnn: internet
+              interfaces:
+                - interfaceType: N3
+                  endpoints:
+                    - 10.100.50.233
+                  networkInstances:
+                    - internet # Data Network Name (DNN)
+                - interfaceType: N9
+                  endpoints:
+                    - 10.100.50.233
+                  networkInstances:
+                    - internet # Data Network Name (DNN)
+            upf1:
+              type: UPF
+              nodeID: 10.100.50.242
+              sNssaiUpfInfos:
+                - sNssai:
+                    sst: 1
+                    sd: 010203
+                  dnnUpfInfoList:
+                    - dnn: internet
+                      pools:
+                      - cidr: 10.1.0.0/17
+              interfaces:
+                - interfaceType: N9
+                  endpoints:
+                    - 10.100.50.226
+                  networkInstances:
+                    - internet # Data Network Name (DNN)
+            upf2:
+              type: UPF
+              nodeID: 10.100.50.243
+              sNssaiUpfInfos:
+                - sNssai:
+                    sst: 1
+                    sd: 010203
+                  dnnUpfInfoList:
+                    - dnn: internet
+                      pools:
+                      - cidr: 10.1.128.0/17
+              interfaces:
+                - interfaceType: N9
+                  endpoints:
+                    - 10.100.50.227
+                  networkInstances:
+                    - internet # Data Network Name (DNN)
+          links:
+            - A: gNB1
+              B: upfb
+            - A: upfb
+              B: upf1
+            - A: upfb
+              B: upf2
+        locality: area1
+        ulcl: true
+        t3591:
+          enable: true     # true or false
+          expireTime: 16s   # default is 6 seconds
+          maxRetryTimes: 3 # the max number of retransmission
+        # retransmission timer for pdu session release command
+        t3592:
+          enable: true     # true or false
+          expireTime: 16s   # default is 6 seconds
+          maxRetryTimes: 3 # the max number of retransmission
+
+      ueRoutingInfo: |
+        UE1:
+          members:
+            - imsi-208930000000003
+          topology:
+            - A: gNB1
+              B: upfb
+            - A: upfb
+              B: upf1
+          specificPath:
+            - dest: 1.1.1.1/32
+              path: [upfb, upf2]

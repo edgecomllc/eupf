@@ -1,0 +1,68 @@
+---
+
+upf1:
+  image:
+    tag: latest
+  configmap:
+    wrapperAdditionalCommands: |
+      iptables -D POSTROUTING 1 -t nat
+      iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o eth0 -j MASQUERADE
+      ip ro del default table n6if
+      ip route add default dev eth0 table n6if
+  n4if:
+    ipAddress: 10.100.50.242
+  n6if:
+    ipAddress: 10.100.100.13
+  n9if:
+    ipAddress: 10.100.50.226
+  podSecurityContext:
+    sysctls:
+      - name: net.ipv4.ip_forward
+        value: "1"
+  securityContext:
+    privileged: true
+    capabilities:
+      add: ["NET_ADMIN"]
+
+upf2:
+  image:
+    tag: latest
+  configmap:
+    wrapperAdditionalCommands: |
+      iptables -D POSTROUTING 1 -t nat
+      iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o eth0 -j MASQUERADE
+      ip ro del default table n6if
+      ip route add default dev eth0 table n6if
+  n4if:
+    ipAddress: 10.100.50.243
+  n6if:
+    ipAddress: 10.100.100.14
+  n9if:
+    ipAddress: 10.100.50.227
+  podSecurityContext:
+    sysctls:
+      - name: net.ipv4.ip_forward
+        value: "1"
+  securityContext:
+    privileged: true
+    capabilities:
+      add: ["NET_ADMIN"]
+
+upfb: []
+  # set it empty to avoid creation. upfb will be created from eupf chart.
+  # n3if:
+    # ipAddress: 10.100.50.233
+  # n4if:
+    # ipAddress: 10.100.50.241
+  # n6if:
+    # ipAddress: 10.100.100.12
+  # n9if:
+    # ipAddress: 10.100.50.225
+  # podSecurityContext:
+    # sysctls:
+      # - name: net.ipv4.ip_forward
+        # value: "1"
+  # securityContext:
+    # privileged: true
+    # capabilities:
+      # add: ["NET_ADMIN"]
