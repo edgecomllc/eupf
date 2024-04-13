@@ -2,57 +2,54 @@
 
 ![](./schema.png)
 
-<b>⚠️ not finished, work in progress</b>
+<b>⚠️ Инструкция находится в разработке</b>
 
-## Requirements
+## Требования
 
-- [helm](https://helm.sh/docs/intro/install/) installed
+- Установлена утилита[helm](https://helm.sh/docs/intro/install/)
+- Сalico настроен на использование BIRD
 
-    change `calico_backend` parameter to `bird` in configmap with name `calico-config` and then restart all pods with name `calico-node-*` -->
+    Для этого измените значение параметра `calico_backend` на `bird` в настройках (configmap) `calico-config` и перезапустите все поды с именем `calico-node-*`
 
-## Deployment steps
+## Шаги развертывания
 
-1. install eupf
-
-<b>⚠️ not finished, work in progress</b>
-
-    `make upf`
-
-2. configure calico BGP settings. Here, we configure Calico BGP peer, create Calico IP Pool (for NAT) and configure Felix for save external routes (recevied by BGP from eUPF BIRD)
-
-<b>⚠️ not finished, work in progress</b>
+1. перейдите в папку docs/deployments/oai
+1. настройте параметры calico BGP. В частномти, настройки Calico BGP пиринга, Calico IP Pool (для корректного NAT) и параметры модуля Felix для того, чтобы корректно сохранять маршруты в абонентскую подсеть (получаемые по BGP от eUPF)
 
     `make calico`
 
-3. install openair core
+1. разверните eupf
+
+    `make upf`
+3. установите OpenAir core
 
 `git clone -b master https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed`
 
-change directory to `oai-cn5g-fed/charts/oai-5g-core/oai-5g-basic`
+перейдите в папку `oai-cn5g-fed/charts/oai-5g-core/oai-5g-basic`
 
-apply charts how describe here https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed/-/blob/master/docs/DEPLOY_SA5G_HC.md#4-deploying-helm-charts but use namespace `open5gs`
+примените чарты согласно инструкции https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed/-/blob/master/docs/DEPLOY_SA5G_HC.md#4-deploying-helm-charts, но при этом используйте namespace `open5gs`
 
-4. install GNB
+4. установите gNB
 
     `make gnb`
 
-5. install UE
+5. установите UE
 
     `make ue`
 
-## Check steps
+## Проверка
 
-1. exec shell in UE pod
+1. перейдите в оболочку shell UE пода
 
     `kubectl -n open5gs exec -ti deployment/ue-oai-nr-ue -- /bin/bash`
 
-2. run ICMP test
+2. запустите команду ping
 
     `ping -I oaitun_ue1 1.1.1.1`
 
 
-## Undeploy steps
+## Удаление конфигурации
 
-1. undeploy all
+1. выполните команду
 
     `make clean`
