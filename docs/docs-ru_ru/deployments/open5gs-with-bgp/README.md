@@ -2,59 +2,60 @@
 
 ![](./schema.png)
 
-## Requirements
+## Предварительные требования
 
-- Kubernetes cluster with Calico
-- [helm](https://helm.sh/docs/intro/install/) installed
-- calico backend configured as BIRD
+- Kubernetes кластер с Calico и Multus плагинами CNI
+- [Утилита helm](https://helm.sh/docs/intro/install/)
+- Calico настроен на использование BIRD
 
-    change `calico_backend` parameter to `bird` in configmap with name `calico-config` and then restart all pods with name `calico-node-*`
+    Для этого измените значение параметра `calico_backend` на `bird` в настройках (configmap) `calico-config` и перезапустите все поды с именем `calico-node-*`
 
-- configure helm repos
+- Настроены helm-репозитории
 
     ```
     helm repo add openverso https://gradiant.github.io/openverso-charts/
     helm repo update
     ```
 
-## Deployment steps
+## Шаги развертывания
 
-1. install eupf
+1. перейдите в папку docs/deployments/open5gs-with-bgp
+1. разверните eupf
 
     `make upf`
 
-2. configure calico BGP settings. Here, we configure Calico BGP peer, create Calico IP Pool (for NAT) and configure Felix for save external routes (recevied by BGP from eUPF BIRD)
+1. настройте параметры calico BGP. В частномти, настройки Calico BGP пиринга, Calico IP Pool (для корректного NAT) и параметры модуля Felix для того, чтобы корректно сохранять маршруты в абонентскую подсеть (получаемые по BGP от eUPF)
 
     `make calico`
 
-3. install open5gs
+3. разверните open5gs
 
     `make open5gs`
 
-4. configure SMF
+4. разверните SMF
 
     `make smf`
 
-5. install gNB
+5. разверните gNB
 
     `make gnb`
 
-6. install UERANSim
+6. разверните UERANSim
 
     `make ue1`
 
-## Check steps
+## Проверка
 
-1. exec shell in UE pod
+1. запустите оболочку shell в поде UE
 
     `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
 
-2. run ICMP test
+1. проверьте доступность сети с помошью команды ping
 
     `ping -I uesimtun0 1.1.1.1`
 
-## Undeploy steps
+## Удаление конфигурации
 
-1. undeploy all
+1. выполните команду
 
     `make clean`

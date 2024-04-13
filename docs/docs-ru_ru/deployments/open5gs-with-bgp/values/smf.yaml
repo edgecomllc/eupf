@@ -1,7 +1,0 @@
----
-
-replicaCount: 0
-
-config:
-  pcrf:
-    enabled: false
