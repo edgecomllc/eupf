@@ -1,15 +1,16 @@
 # OpenAir Core + OpenAir RAN as a docker-compose
-We will use 5G L2 nFAPI simulator to test L2 and above Layers. Let's pull Eurecom's deployment for 5G SA mode with 1 User: [OAI Full Stack 5G-NR L2 simulation with containers and a proxy](https://gitlab.eurecom.fr/oai/openairinterface5g/-/tree/develop/ci-scripts/yaml_files/5g_l2sim_tdd) and replace the UPF with our eUPF.
 
-📝This deploy uses `network_mode: "host"` for communications over `lo` interface of the host between containers oai-gnb, proxy, oai-nr-ue0.
+В данной инструкции используется 5G L2 nFAPI симулятор из проекта OpenAirInterface для эмуляции радиосети и eUPF модуль в качестве замены штатного модуля UPF. Развертывание основано на инструкции Eurecom для 5G SA режиме с 1 абонентом: [OAI Full Stack 5G-NR L2 simulation with containers and a proxy](https://gitlab.eurecom.fr/oai/openairinterface5g/-/tree/develop/ci-scripts/yaml_files/5g_l2sim_tdd), в которой штатный UPF заменен на eUPF.
 
-We will add two services `edgecom-upf` and `edgecom-nat` with a dedicated network between. We have configured routing between the both, so that eUPF passes packets from the UE towards the NAT container, and the replies come through NAT to eUPF and down to the UE.
+📝В развертывании используется настройка `network_mode: "host"` для того, чтобы обеспечить взаимодействие через `lo` инерфейс хоста между контейнерами oai-gnb, proxy, oai-nr-ue0.
 
-## How to deploy:
-1. Deploy  the whole project "OAI Full Stack 5G-NR L2 simulation with containers and a proxy" 
-    following instructions https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/ci-scripts/yaml_files/5g_l2sim_tdd/README.md
+В развертывании используются 2 дополнительных сервиса `edgecom-upf` и `edgecom-nat` с отдельной сетью для их взаимодействия. Роутинг в рамках этой сети организован таким образом, что eUPF передает сетевые пакеты от UE через NAT-контейнер, а ответные пакета идут через NAT-контейнер в сторону eUPF и далее в сторону UE.
 
-    <details><summary>TLDR: Look at our example where host interface name is `ens3` with IP addr `188.120.232.247`</summary>
+## Инструкция по развертыванию
+1. Разверните ядро сети и эмулятор радиосети согласно инструкции "OAI Full Stack 5G-NR L2 simulation with containers and a proxy"
+    по ссылке https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/ci-scripts/yaml_files/5g_l2sim_tdd/README.md
+
+    <details><summary>TLDR: Пример команд для хоста с сетевым интерфейсом `ens3` и IP-адресом `188.120.232.247`</summary>
     <p>
 
     ```ruby
@@ -51,22 +52,22 @@ We will add two services `edgecom-upf` and `edgecom-nat` with a dedicated networ
 
     **Don't start it.**
 
-2. Copy content of folder `edgecomllc/eupf/docs/deployments/oai-nfapi-sim-compose` from https://github.com/edgecomllc/eupf repository to your `openairinterface5g/ci-scripts/yaml_files/5g_l2sim_tdd`
+2. Скопируйте папку `edgecomllc/eupf/docs/deployments/oai-nfapi-sim-compose` по ссылке https://github.com/edgecomllc/eupf внутрь `openairinterface5g/ci-scripts/yaml_files/5g_l2sim_tdd`
 
-    📝 There is `docker-compose.override.yml` file which should happen to be in the same folder with `docker-compose.yml`. Check it before continue.
-3. Start containers in the following order:
+    📝 В папук находится файл `docker-compose.override.yml`, который должен оказаться в одной папке с файлом `docker-compose.yml` из основного проекта. Проверьте это перед тем как продолжить.
+3. Запустите docker-контейнеры в следующем порядке:
     ```ruby
     sudo docker-compose up -d mysql oai-nrf oai-amf oai-smf edgecom-nat edgecom-upf
     sudo docker-compose up -d  oai-gnb
     sudo docker-compose up -d proxy oai-nr-ue0
     ```
-4. Check the interface `oaitun_ue1` is created and ip address is set: `ip a |grep oaitun`
+4. Проверьте, что в системе появился сетевой интерфейс `oaitun_ue1` и на нем настроен IP-адрес: `ip a |grep oaitun`
     ```ruby
     ip a |grep oaitun
     8808: oaitun_ue1: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UNKNOWN group default qlen 500
         inet 12.1.1.5/24 brd 12.1.1.255 scope global oaitun_ue1
     ```
-5. Check the Internet is accessible over created GTP tunnel
+5. Проверьте, что через этот интерфейс есть доступ в сеть Интернет
     ```ruby
     ping -I oaitun_ue1 -c 3 1.1.1.1
     PING 1.1.1.1 (1.1.1.1) from 12.1.1.5 oaitun_ue1: 56(84) bytes of data.
@@ -78,8 +79,8 @@ We will add two services `edgecom-upf` and `edgecom-nat` with a dedicated networ
     3 packets transmitted, 3 received, 0% packet loss, time 2000ms
     rtt min/avg/max/mdev = 67.998/136.369/191.533/51.290 ms
     ```
-6. `sudo docker-compose down oai-nr-ue0 proxy` to free up resources before the system sluggish.
+6. Поскольку модули OpenAirInterface могут сильно нагружить системы, то используйти команду `sudo docker-compose down oai-nr-ue0 proxy` для того, чтобы остановить основные модули, которые могут нагружать систему.
 
-### Undeploy all
+### Удаление конфигурации
 `sudo docker-compose down`
 
