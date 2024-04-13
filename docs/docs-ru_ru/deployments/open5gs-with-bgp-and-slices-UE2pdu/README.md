@@ -2,76 +2,77 @@
 
 ![](./schema.png)
 
-## Requirements
+## Предварительные требования
 
-- Kubernetes cluster with Calico
-- [helm](https://helm.sh/docs/intro/install/) installed
-- calico backend configured as BIRD
+- Kubernetes кластер с Calico и Multus плагинами CNI
+- [Утилита helm](https://helm.sh/docs/intro/install/)
+- Calico настроен на использование BIRD
 
-    change `calico_backend` parameter to `bird` in configmap with name `calico-config` and then restart all pods with name `calico-node-*`
+    Для этого измените значение параметра `calico_backend` на `bird` в настройках (configmap) `calico-config` и перезапустите все поды с именем `calico-node-*`
 
-- configure helm repos
+- Настроены helm-репозитории
 
     ```
     helm repo add openverso https://gradiant.github.io/openverso-charts/
     helm repo update
     ```
 
-## Deployment steps
+## Шаги развертывания
 
-1. install eupf for slice 1
+1. перейдите в папку docs/deployments/open5gs-with-bgp-and-slices-UE2pdu
+1. разверните eupf для слайса 1
 
     `make upf`
 
-2. install eupf for slice 2
+2. разверните eupf для слайса 2
 
     `make upf2`
 
-3. configure calico BGP settings. Here, we configure Calico BGP peer, create Calico IP Pool (for NAT) and configure Felix for save external routes (recevied by BGP from eUPF BIRD)
+1. настройте параметры calico BGP. В частномти, настройки Calico BGP пиринга, Calico IP Pool (для корректного NAT) и параметры модуля Felix для того, чтобы корректно сохранять маршруты в абонентскую подсеть (получаемые по BGP от eUPF)
 
     `make calico`
 
-4. install open5gs
+4. разверните open5gs
 
     `make open5gs`
 
-5. configure SMF for slice 1
+5. настройте SMF для слайса 1
 
     `make smf`
 
-6. configure SMF for slice 2
+6. настройте SMF для слайса 2
 
     `make smf2`
 
-7. install gNB
+7. разверните gNB
 
     `make gnb`
 
-8. install UERANSim for slice 1
+8. разверните UERANSim для слайса 1
 
     `make ue1`
 
-9. install UERANSim for PDU sessions in slice 2 + slice 1 
+9. разверните UERANSim для PDU сессий в slice 2 + slice 1 
 
     `make ue2`
 
-## Check steps
+## Проверка
 
-1. exec shell in UE1 pod
+1. запустите оболочку shell в поде UE1
 
-    `kubectl -n open5gslices2 exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
+    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
 
-2. run ICMP test
+2. проверьте доступность сети с помошью команды ping
 
     `ping -I uesimtun0 1.1.1.1`
 
-3. exec shell in UE2 pod
+3. запустите оболочку shell в поде UE2
 
     ```
 	kubectl -n open5gslices2 exec -ti deployment/ueransim2-ueransim-ues-ues -- /bin/bash
 	ip a
 	```
-	See there is two interfaces `uesimtun` with ip addresses from different subnets, like this:
+	Проверьте, что в поде появились 2 интерфейса `uesimtun` с ip адресами из разных подсетей, как в примере:
 	```
 	7: uesimtun0: <POINTOPOINT,PROMISC,NOTRAILERS,UP,LOWER_UP> mtu 1400 qdisc fq_codel state UNKNOWN group default qlen 500
 		link/none
@@ -87,12 +88,12 @@
 		   valid_lft forever preferred_lft forever
 	```
 
-4. run ICMP test
+4. проверьте доступность сети с помошью команды ping
 
     `ping -I uesimtun0 1.1.1.1`
 
-## Undeploy steps
+## Удаление конфигурации
 
-1. undeploy all
+1. выполните команду
 
     `make clean`
