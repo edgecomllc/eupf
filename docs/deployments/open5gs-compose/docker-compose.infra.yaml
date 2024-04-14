@@ -1,0 +1,27 @@
+version: '3.8'
+
+x-container-defaults: &container_defaults
+  restart: unless-stopped
+  networks:
+    - open5gs-main
+
+services:
+
+  mongodb:
+    image: mongo:5.0.10-focal
+    <<: *container_defaults
+    ports:
+      - ${MONGO_EXT_PORT}:27017
+    volumes:
+      - ${DOCKER_SHARED_DIR}/mongodb:/data/db
+      - .deploy/docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo 127.0.0.1:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+networks:
+  open5gs-main:
+    external: true

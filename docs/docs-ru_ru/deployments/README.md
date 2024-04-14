@@ -7,7 +7,7 @@ eUPF использует функционал маршрутиации того
 
 | Ядро 5G | Радиосеть(эмулятор) | Опции | Описание |
 | ------- | --- | ------- | ---------------------- |
-| Open5GS | UERANSIM | - | [Open5GS](https://github.com/edgecomllc/open5gs-compose) |
+| Open5GS | UERANSIM | - | [Open5GS](./open5gs-compose/README.md) |
 | Open5GS | OpenAirInterface | - | В работе... |
 | Free5GC | UERANSIM | - | [Free5GC](https://github.com/edgecomllc/free5gc-compose/blob/master/README.md) |
 | Free5GC | UERANSIM | ULCL | [Free5GC с поддержкой опции UpLink Classifier с eUPF в качестве I-UPF](https://github.com/edgecomllc/free5gc-compose/tree/ulcl-n9upf-experimetns#ulcl-configuration) |
