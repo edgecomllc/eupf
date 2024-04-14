@@ -2,35 +2,49 @@
 
 ![](./schema.png)
 
-## Requirements
+Данный пример конфигурации показывает возможности масштадирования плоскости обработки данных в 5G сети на основе eUPF и open-source решения Open5GS в составе:
+- UERANSIM в качестве радиочасти
+- Open5GS ядро сети
+- eUPF в качестве модулей UPF
 
-- [helm](https://helm.sh/docs/intro/install/) installed
-- configure helm repos
+При наличии нескольких подключенных модулей UPF модуль SMF производит распределение новых PDU-сессий абонентов поочередно на каждый из подключенных UPF.
+
+## Предварительные требования
+
+- Kubernetes кластер с Calico и Multus плагинами CNI
+- [Утилита helm](https://helm.sh/docs/intro/install/)
+- Calico настроен на использование BIRD
+
+    Для этого измените значение параметра `calico_backend` на `bird` в настройках (configmap) `calico-config` и перезапустите все поды с именем `calico-node-*`
+
+- Настроены helm-репозитории
 
     ```
     helm repo add openverso https://gradiant.github.io/openverso-charts/
     helm repo update
     ```
 
-# Attention!
+## Ограничения
 
 ---
 
-this document work in progress!!
+На данный момент нет возможности выполнять роутинг трафика в сторону абонентов, т.к. оба UPF работают с одинаковой абонентской подсетью и не реализуют функции NAT.
 
-now, we dont have solution for routing and NAT with one IP pool and multiple eUPF
-
-**check steps not working**
+Т.о. шаги проверки не будут работать корректно.
 
 ---
 
-## Deployment steps
+# Шаги развертывания
 
-1. install eupf (for example we use 2 replicas of eUPF)
+0. перейдите в папку docs/deployments/open5gs-with-scaling-eupf
+
+    `cd docs/deployments/open5gs-with-scaling-eupf/`
+
+1. разверните eupf
 
     `make upf`
 
-check pods and ips:
+Проверьте, что созданы 2 пода eUPF и запомните их IP-вдреса:
 
 ```bash
 $ kubectl get po -n open5gs -l "app.kubernetes.io/name=eupf" -o wide
@@ -39,29 +53,28 @@ eupf-0   1/1     Running   0          6m29s   10.233.64.17   edgecom   <none>   
 eupf-1   1/1     Running   0          6m19s   10.233.64.44   edgecom   <none>           <none>
 ```
 
-2. install open5gs
+2. разверните open5gs
 
     `make open5gs`
 
-3. configure SMF
+3. разверните SMF
 
     `make smf`
 
-4. install gNB
+4. разверните gNB
 
     `make gnb`
 
-5. install UERANSim
+5. разверните 2 эмулятора UE на основе UERANSim
 
     `make ue1`
 
     `make ue2`
 
 
-6. check SMF logs:
+6. проверьте подключение SMF к обоим UPF по логам SMF:
 
-
-ue1 is connected and work via eUPF 0 (10.233.64.17)
+ue1 должен установить PDU-сессию через eUPF 0 (10.233.64.17)
 
 ```
 10/16 19:05:30.573: [smf] INFO: [Added] Number of SMF-UEs is now 1 (../src/smf/context.c:898)
@@ -70,7 +83,7 @@ ue1 is connected and work via eUPF 0 (10.233.64.17)
 10/16 19:05:30.599: [gtp] INFO: gtp_connect() [10.233.64.17]:2152 (../lib/gtp/path.c:60)
 ```
 
-ue2 is connected and work via eUPF 1 (10.233.64.44)
+ue2 должен установить PDU-сессию через eUPF 1 (10.233.64.44)
 
 ```
 10/16 19:05:42.749: [smf] INFO: [Added] Number of SMF-UEs is now 2 (../src/smf/context.c:898)
@@ -79,18 +92,18 @@ ue2 is connected and work via eUPF 1 (10.233.64.44)
 10/16 19:05:42.774: [gtp] INFO: gtp_connect() [10.233.64.44]:2152 (../lib/gtp/path.c:60)
 ```
 
-## Check steps
+## Проверка
 
-1. exec shell in UE pod
+1. запустите оболочку shell в поде UE1
 
     `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
 
-2. run ICMP test
+2. проверьте доступность сети с помошью команды ping
 
     `ping -I uesimtun0 1.1.1.1`
 
-## Undeploy steps
+## Удаление конфигурации
 
-1. undeploy all
+1. выполните команду
 
     `make clean`
