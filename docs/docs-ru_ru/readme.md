@@ -70,7 +70,7 @@ sudo docker run -d --rm -v --privileged \
   ghcr.io/edgecomllc/eupf:main
 ```
 
-## Что дальше??
+## Что дальше?
 Просмотрите описание **[eUPF configuration guide](Configuration.md)**, в котором указаны основные параметры конфигурации eUPF.
 
 В **[eUPF installation guide](install.md)** можно узнать, как запускать eUPF в разных средах с различными реализациями ядра 5G с использованием docker-compose или кластера Kubernetes..
