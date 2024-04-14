@@ -9,8 +9,8 @@ eUPF использует функционал маршрутиации того
 | ------- | --- | ------- | ---------------------- |
 | Open5GS | UERANSIM | - | [Open5GS](./open5gs-compose/README.md) |
 | Open5GS | OpenAirInterface | - | В работе... |
-| Free5GC | UERANSIM | - | [Free5GC](https://github.com/edgecomllc/free5gc-compose/blob/master/README.md) |
-| Free5GC | UERANSIM | ULCL | [Free5GC с поддержкой опции UpLink Classifier с eUPF в качестве I-UPF](https://github.com/edgecomllc/free5gc-compose/tree/ulcl-n9upf-experimetns#ulcl-configuration) |
+| Free5GC | UERANSIM | - | [Free5GC](./free5gc-compose/README.md) |
+| Free5GC | UERANSIM | ULCL | [Free5GC с поддержкой опции UpLink Classifier с eUPF в качестве I-UPF](./free5gc-ulcl-compose/README.md) |
 | OpenAirInterface 5G Core | OpenAirInterface 5G RAN	 | - | [OAI в режиме 5G SA с использованием L2 nFAPI симулятора](./oai-nfapi-sim-compose/README.md) |
 
 ## Резвертывания с использованием K8s
