@@ -77,6 +77,8 @@ sudo docker run -d --rm -v --privileged \
 
 Работа с метриками и статистикой описана **[eUPF metrics and monitoring guide](metrics.md)**.
 
+Сценарии развёртывания c Open5GS и free5GC описаны в **[Deployments](deployments/README.md)**
+
 Ссылки на различные сценарии применения указаны в **[Implementation expamples](../../docs/implementation_examples.md)**.
 
 ## Различные варианты установки
