@@ -1,61 +1,66 @@
 # Open5GS + eUPF with Calico BGP + srsUE
 
 ![](./schema.png)
-This deployment helps to create an end-to-end fully open-source 5G network, consisting from srsUE, the srsRAN Project gNodeB with Open5GS 5G core network.
 
-## Requirements
+Данный пример конфигурации показывает возможность развертывания 5G сети на основе eUPF и open-source решения srsRAN в составе:
+- srsUE и srsRAN gNodeB в качестве радиочасти
+- Open5GS ядро сети
+- eUPF в качестве модуля UPF
 
-- Kubernetes cluster with Calico
-- [helm](https://helm.sh/docs/intro/install/) installed
-- calico backend configured as BIRD
+## Предварительные требования
 
-    change `calico_backend` parameter to `bird` in configmap with name `calico-config` and then restart all pods with name `calico-node-*`
+- Kubernetes кластер с Calico и Multus плагинами CNI
+- [Утилита helm](https://helm.sh/docs/intro/install/)
+- Calico настроен на использование BIRD
 
-- configure helm repos
+    Для этого измените значение параметра `calico_backend` на `bird` в настройках (configmap) `calico-config` и перезапустите все поды с именем `calico-node-*`
+
+- Настроены helm-репозитории
 
     ```
     helm repo add openverso https://gradiant.github.io/openverso-charts/
     helm repo update
-	git clone https://github.com/edgecomllc/srsRAN5Gue-zmg-gNB.git ../srsRAN5Gue-zmg-gNB
     ```
 
-## Deployment steps
+## Шаги развертывания
 
-0. `cd docs/deployments/srsran-gnb/`
+0. перейдите в папку docs/deployments/srsran-gnb
 
-1. install eupf
+    `cd docs/deployments/srsran-gnb/`
+
+1. разверните eupf
 
     `make upf`
 
-2. configure calico BGP settings. Here, we configure Calico BGP peer, create Calico IP Pool (for NAT) and configure Felix for save external routes (recevied by BGP from eUPF BIRD)
+2. настройте параметры calico BGP. В частномти, настройки Calico BGP пиринга, Calico IP Pool (для корректного NAT) и параметры модуля Felix для того, чтобы корректно сохранять маршруты в абонентскую подсеть (получаемые по BGP от eUPF)
 
     `make calico`
 
-3. install open5gs
+3. разверните open5gs
 
     `make open5gs`
 
-4. configure SMF
+4. разверните SMF
 
     `make smf`
 
-5. install gNB with srsUE
+5. разверните gNB из проекта srsUE
 
     `make srs`
 
 
-## Check steps
+## Проверка
 
-1. exec shell in UE pod
+1. запустите оболочку shell в поде UE1
 
-    `kubectl -n srs-open5gs exec -ti statefulset/srsran-srs-5g -- /bin/bash`
+    `kubectl -n open5gs exec -ti statefulset/srsran-srs-5g -- /bin/bash`
 
-2. run ICMP test
+2. проверьте доступность сети с помошью команды ping
 
-    `ping -I tun_srsue 1.1.1.1`
+    `ping -I uesimtun0 1.1.1.1`
 
-## Undeploy steps
+## Удаление конфигурации
 
-1. undeploy all
+1. выполните команду
 
     `make clean`
