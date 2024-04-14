@@ -1,0 +1,157 @@
+version: '3.8'
+
+x-container-defaults: &container_defaults
+  restart: unless-stopped
+  networks:
+    - open5gs-main
+
+x-open5gs-svc-image: &open5gs_svc_image
+  image: docker.io/openverso/open5gs:2.6.2
+  <<: *container_defaults
+
+x-open5gs-svc-envs: &open5gs_svc_envs
+  DB_URI: mongodb://mongodb/open5gs
+
+services:
+
+  webui:
+    image: docker.io/openverso/open5gs-webui:2.4.11
+    <<: *container_defaults
+    ports:
+      - ${WEBUI_EXT_PORT}:3000
+    environment:
+      <<: *open5gs_svc_envs
+
+  populate:
+    image: docker.io/openverso/open5gs-dbctl:0.10.2
+    <<: *container_defaults
+    entrypoint: ""
+    command:
+      - /bin/bash
+      - -c
+      - |
+        open5gs-dbctl add_ue_with_slice 999700000000001 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 111111
+        open5gs-dbctl add_ue_with_slice 999700000000002 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 111111
+        open5gs-dbctl add_ue_with_slice 999700000000003 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
+        open5gs-dbctl add_ue_with_slice 999700000000004 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
+        open5gs-dbctl add_ue_with_slice 999700000000005 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
+        open5gs-dbctl add_ue_with_slice 999700000000006 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
+        open5gs-dbctl add_ue_with_slice 999700000000007 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
+        open5gs-dbctl add_ue_with_slice 999700000000008 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
+        open5gs-dbctl add_ue_with_slice 999700000000009 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
+        open5gs-dbctl add_ue_with_slice 999700000000010 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
+        tail -f /dev/null
+    environment:
+      <<: *open5gs_svc_envs
+
+  amf:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-amfd
+    volumes:
+      - .deploy/docker/amf.yaml:/opt/open5gs/etc/open5gs/amf.yaml
+
+  ausf:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-ausfd
+    volumes:
+      - .deploy/docker/ausf.yaml:/opt/open5gs/etc/open5gs/ausf.yaml
+
+  bsf:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-bsfd
+    volumes:
+      - .deploy/docker/bsf.yaml:/opt/open5gs/etc/open5gs/bsf.yaml
+
+  nrf:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-nrfd
+    volumes:
+      - .deploy/docker/nrf.yaml:/opt/open5gs/etc/open5gs/nrf.yaml
+    networks:
+      open5gs-main:
+        aliases:
+          - open5gs-nrf-sbi
+
+  nssf:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-nssfd
+    volumes:
+      - .deploy/docker/nssf.yaml:/opt/open5gs/etc/open5gs/nssf.yaml
+
+  pcf:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-pcfd
+    volumes:
+      - .deploy/docker/pcf.yaml:/opt/open5gs/etc/open5gs/pcf.yaml
+    environment:
+      <<: *open5gs_svc_envs
+
+  smf1:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-smfd
+    volumes:
+      - .deploy/docker/smf1.yaml:/opt/open5gs/etc/open5gs/smf.yaml
+    networks:
+      open5gs-main:
+        aliases:
+          - open5gs-smf-pfcp
+
+  smf2:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-smfd
+    volumes:
+      - .deploy/docker/smf2.yaml:/opt/open5gs/etc/open5gs/smf.yaml
+
+  udm:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-udmd
+    volumes:
+      - .deploy/docker/udm.yaml:/opt/open5gs/etc/open5gs/udm.yaml
+
+  udr:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-udrd
+    volumes:
+      - .deploy/docker/udr.yaml:/opt/open5gs/etc/open5gs/udr.yaml
+    environment:
+      <<: *open5gs_svc_envs
+
+  upf:
+    <<: *open5gs_svc_image
+    volumes:
+      - .deploy/docker/upf.yaml:/opt/open5gs/etc/open5gs/upf.yaml
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+    entrypoint: ""
+    command:
+      - /bin/bash
+      - -c
+      - |
+        ip tuntap add name ogstun mode tun
+        ip link set ogstun up
+        echo "Setting IP 10.45.0.1/16 to device ogstun"
+        ip addr add 10.45.0.1/16 dev ogstun;
+        sysctl -w net.ipv4.ip_forward=1;
+        echo "Enable NAT for 10.45.0.1/16 and device ogstun"
+        iptables -t nat -A POSTROUTING -s 10.45.0.1/16 ! -o ogstun -j MASQUERADE;
+
+        open5gs-upfd
+
+networks:
+  open5gs-main:
+    external: true

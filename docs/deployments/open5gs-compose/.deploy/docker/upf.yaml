@@ -1,0 +1,24 @@
+logger:
+  level: info
+parameter: {}
+
+upf:
+  pfcp:
+    - dev: "eth0"
+      port: 8805
+  gtpu:
+    - dev: eth0
+      port: 2152
+  subnet:
+    -
+      addr: 10.45.0.1/16
+      dev: ogstun
+      dnn: internet
+  metrics:
+    addr: 0.0.0.0
+    port: 9090
+
+smf:
+  pfcp:
+    - name: open5gs-smf-pfcp
+      port: 8805
