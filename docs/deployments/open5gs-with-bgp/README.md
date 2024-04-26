@@ -13,7 +13,7 @@
 - configure helm repos
 
     ```
-    helm repo add openverso https://gradiant.github.io/openverso-charts/
+    helm repo add openverso https://github.com/Gradiant/5g-charts
     helm repo update
     ```
 
