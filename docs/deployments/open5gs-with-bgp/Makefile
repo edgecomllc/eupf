@@ -3,10 +3,11 @@ HELM_VALUES_DIR?=./values
 
 HELM_ARGS?=--timeout 30s --create-namespace
 HELM_ACTION?=upgrade --install
+HELM_REGISTRY?=oci://registry-1.docker.io/gradiant
 
 open5gs:
 	helm $(HELM_ACTION) \
-		open5gs openverso/open5gs \
+		open5gs $(HELM_REGISTRY)/open5gs \
 		--version 2.0.12 \
 		--values $(HELM_VALUES_DIR)/main.yaml \
 		-n $(NAMESPACE) \
@@ -14,7 +15,7 @@ open5gs:
 
 smf:
 	helm $(HELM_ACTION) \
-		open5gs-smf openverso/open5gs-smf \
+		open5gs-smf $(HELM_REGISTRY)/open5gs-smf \
 		--version 2.0.10 \
 		--values $(HELM_VALUES_DIR)/smf.yaml \
 		-n $(NAMESPACE) \
@@ -39,7 +40,7 @@ upf:
 
 gnb:
 	helm $(HELM_ACTION) \
-		gnb openverso/ueransim-gnb \
+		gnb $(HELM_REGISTRY)/ueransim-gnb \
 		--version 0.2.5 \
 		--values $(HELM_VALUES_DIR)/gnb.yaml \
 		-n $(NAMESPACE) \
@@ -47,7 +48,7 @@ gnb:
 
 ue1:
 	helm $(HELM_ACTION) \
-		ueransim1 openverso/ueransim-ues \
+		ueransim1 $(HELM_REGISTRY)/ueransim-ues \
 		--version 0.1.1 \
 		--values $(HELM_VALUES_DIR)/ue.yaml \
 		-n $(NAMESPACE) \
