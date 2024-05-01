@@ -10,13 +10,6 @@
 
     change `calico_backend` parameter to `bird` in configmap with name `calico-config` and then restart all pods with name `calico-node-*`
 
-- configure helm repos
-
-    ```
-    helm repo add openverso https://github.com/Gradiant/5g-charts
-    helm repo update
-    ```
-
 ## Deployment steps
 
 1. install eupf for slice 1
@@ -59,7 +52,7 @@
 
 1. exec shell in UE1 pod
 
-    `kubectl -n open5gslices2 exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
+    `kubectl -n open5gslices2 exec -ti deployment/ueransim1-ueransim-ues -- /bin/bash`
 
 2. run ICMP test
 
@@ -68,7 +61,7 @@
 3. exec shell in UE2 pod
 
     ```
-	kubectl -n open5gslices2 exec -ti deployment/ueransim2-ueransim-ues-ues -- /bin/bash
+	kubectl -n open5gslices2 exec -ti deployment/ueransim2-ueransim-ues -- /bin/bash
 	ip a
 	```
 	See there is two interfaces `uesimtun` with ip addresses from different subnets, like this:

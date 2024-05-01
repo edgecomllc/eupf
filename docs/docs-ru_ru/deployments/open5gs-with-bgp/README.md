@@ -15,13 +15,6 @@
 
     Для этого измените значение параметра `calico_backend` на `bird` в настройках (configmap) `calico-config` и перезапустите все поды с именем `calico-node-*`
 
-- Настроены helm-репозитории
-
-    ```
-    helm repo add openverso https://github.com/Gradiant/5g-charts
-    helm repo update
-    ```
-
 ## Шаги развертывания
 
 1. перейдите в папку docs/deployments/open5gs-with-bgp
@@ -53,7 +46,7 @@
 
 1. запустите оболочку shell в поде UE
 
-    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
+    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues -- /bin/bash`
 
 1. проверьте доступность сети с помошью команды ping
 

@@ -10,13 +10,6 @@
 
     change `calico_backend` parameter to `bird` in configmap with name `calico-config` and then restart all pods with name `calico-node-*`
 
-- configure helm repos
-
-    ```
-    helm repo add openverso https://github.com/Gradiant/5g-charts
-    helm repo update
-    ```
-
 ## Deployment steps
 
 1. install eupf
@@ -47,7 +40,7 @@
 
 1. exec shell in UE pod
 
-    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
+    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues -- /bin/bash`
 
 2. run ICMP test
 

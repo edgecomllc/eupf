@@ -5,12 +5,6 @@
 ## Requirements
 
 - [helm](https://helm.sh/docs/intro/install/) installed
-- configure helm repos
-
-    ```
-    helm repo add openverso https://github.com/Gradiant/5g-charts
-    helm repo update
-    ```
 
 # Attention!
 
@@ -83,7 +77,7 @@ ue2 is connected and work via eUPF 1 (10.233.64.44)
 
 1. exec shell in UE pod
 
-    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
+    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues -- /bin/bash`
 
 2. run ICMP test
 

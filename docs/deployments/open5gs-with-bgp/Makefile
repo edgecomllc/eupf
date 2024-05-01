@@ -8,7 +8,7 @@ HELM_REGISTRY?=oci://registry-1.docker.io/gradiant
 open5gs:
 	helm $(HELM_ACTION) \
 		open5gs $(HELM_REGISTRY)/open5gs \
-		--version 2.0.12 \
+		--version 2.1.0 \
 		--values $(HELM_VALUES_DIR)/main.yaml \
 		-n $(NAMESPACE) \
 		$(HELM_ARGS)
@@ -16,7 +16,7 @@ open5gs:
 smf:
 	helm $(HELM_ACTION) \
 		open5gs-smf $(HELM_REGISTRY)/open5gs-smf \
-		--version 2.0.10 \
+		--version 2.1.0 \
 		--values $(HELM_VALUES_DIR)/smf.yaml \
 		-n $(NAMESPACE) \
 		$(HELM_ARGS)
