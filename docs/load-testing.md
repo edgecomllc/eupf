@@ -203,7 +203,7 @@ Consider following test scenarios:
 
 ```bash
 helm upgrade --install \
-  iperf3 openverso/iperf3 \
+  iperf3 oci://registry-1.docker.io/gradiant/iperf3 \
   --values docs/examples/open5gs/iperf.yaml \
   --version 0.1.2 \
   --namespace open5gs \
@@ -363,7 +363,7 @@ HOST: ueransim-ueransim-gnb-ues-5 Loss%   Snt   Last   Avg  Best  Wrst StDev
 
 ```bash
 helm upgrade --install \
-  iperf3 openverso/iperf3 \
+  iperf3 oci://registry-1.docker.io/gradiant/iperf3 \
   --values docs/examples/free5gc/iperf.yaml \
   --version 0.1.2 \
   --namespace free5gc \
