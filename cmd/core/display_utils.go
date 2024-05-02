@@ -267,6 +267,10 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue), 3)
 			}
+			forwardingPolicyIdentifier, err := forwardingParameter.ForwardingPolicyIdentifier()
+			if err == nil {
+				writeLineTabbed(sb, fmt.Sprintf("Fordward Policy Identifier: %s ", forwardingPolicyIdentifier), 3)
+			}
 		}
 	}
 	if updateForwardingParameters, err := far.UpdateForwardingParameters(); err == nil {
@@ -288,6 +292,10 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 			headerEnrichment, err := updateForwardingParameter.HeaderEnrichment()
 			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue), 3)
+			}
+			forwardingPolicyIdentifier, err := updateForwardingParameter.ForwardingPolicyIdentifier()
+			if err == nil {
+				writeLineTabbed(sb, fmt.Sprintf("Fordward Policy Identifier: %s ", forwardingPolicyIdentifier), 3)
 			}
 		}
 	}

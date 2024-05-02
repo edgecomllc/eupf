@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
@@ -478,6 +479,16 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarI
 			if outerHeaderCreation.HasIPv6() {
 				log.Info().Msg("WARN: IPv6 not supported yet, ignoring")
 				return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
+			}
+		}
+		forwardingPolicyIndex := findIEindex(forward, 41) // IE Type Outer Header Creation
+		if forwardingPolicyIndex == -1 {
+			log.Info().Msg("WARN: No ForwardingPolicy")
+		} else {
+			forwardingPolicyIdentifier, _ := forward[forwardingPolicyIndex].ForwardingPolicyIdentifier()
+			uint64Value, err := strconv.ParseUint(forwardingPolicyIdentifier, 16, 64)
+			if err == nil {
+				farInfo.ForwardingPolicyIdentifier = uint64Value
 			}
 		}
 	}

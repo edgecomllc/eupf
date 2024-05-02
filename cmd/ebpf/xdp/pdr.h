@@ -114,6 +114,7 @@ struct far_info {
     __u32 localip;
     /* first octet DSCP value in the Type-of-Service, second octet shall contain the ToS/Traffic Class mask field, which shall be set to "0xFC". */
     __u16 transport_level_marking;
+    __u64 forwarding_policy_identifier;
 };
 
 /* FAR ID -> FAR */
