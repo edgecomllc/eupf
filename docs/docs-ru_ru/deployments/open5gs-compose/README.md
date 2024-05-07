@@ -25,14 +25,29 @@ docker network create \
     --driver=bridge \
     --subnet=172.20.0.0/24 \
     --gateway=172.20.0.1 \
+    -o "com.docker.network.bridge.name"="br-open5gs-main" \
     open5gs-main
+sudo ethtool -K br-open5gs-main tx off
 ```
 
+<details><summary> <i>Здесь мы отключаем tx offload чтобы не было TCP checksum error на внутренних пакетах, для тестов iperf.</summary>
+<p>
+
+Видимо дело в том, что по-умолчанию включен offloading расчета контрольных сумм и ядро до последнего откладывает вычисление csum в расчете на то, что csum посчитается в драйвере при отправке пакета. Но у нас виртуальное окружение и пакет в итоге улетает в туннель GTP на UPF. Видимо из-за этого не происходит корректного расчета csum.
+
+При этом если отключить offloading, то контрольная сумма считается сразу же на iperf и всё работает.
+
+</p>
+</details> 
+
+<!---
 # настройте правила firewall
 
 `bash fw.sh`
-
+--><br>
 # запустите iperf-сервисы
+
+`sudo apt install iperf3`
 
 `for i in $(seq 5201 5208); do (iperf3 -s -p $i &) ; done`
 
@@ -77,3 +92,5 @@ docker network create \
 # остановка и удаление всех контейнеров
 
 `make clean`
+
+`docker network rm open5gs-main`
