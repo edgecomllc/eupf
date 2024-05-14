@@ -15,13 +15,6 @@
 
     Для этого измените значение параметра `calico_backend` на `bird` в настройках (configmap) `calico-config` и перезапустите все поды с именем `calico-node-*`
 
-- Настроены helm-репозитории
-
-    ```
-    helm repo add openverso https://gradiant.github.io/openverso-charts/
-    helm repo update
-    ```
-
 ## Шаги развертывания
 
 0. перейдите в папку docs/deployments/srsran-gnb

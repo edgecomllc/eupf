@@ -17,13 +17,6 @@
 
     Для этого измените значение параметра `calico_backend` на `bird` в настройках (configmap) `calico-config` и перезапустите все поды с именем `calico-node-*`
 
-- Настроены helm-репозитории
-
-    ```
-    helm repo add openverso https://gradiant.github.io/openverso-charts/
-    helm repo update
-    ```
-
 ## Ограничения
 
 ---
@@ -96,7 +89,7 @@ ue2 должен установить PDU-сессию через eUPF 1 (10.233
 
 1. запустите оболочку shell в поде UE1
 
-    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
+    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues -- /bin/bash`
 
 2. проверьте доступность сети с помошью команды ping
 

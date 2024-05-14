@@ -15,13 +15,6 @@
 
     Для этого измените значение параметра `calico_backend` на `bird` в настройках (configmap) `calico-config` и перезапустите все поды с именем `calico-node-*`
 
-- Настроены helm-репозитории
-
-    ```
-    helm repo add openverso https://gradiant.github.io/openverso-charts/
-    helm repo update
-    ```
-
 ## Шаги развертывания
 
 1. перейдите в папку docs/deployments/open5gs-with-bgp-and-slices-UE2pdu
@@ -65,7 +58,7 @@
 
 1. запустите оболочку shell в поде UE1
 
-    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues-ues -- /bin/bash`
+    `kubectl -n open5gs exec -ti deployment/ueransim1-ueransim-ues -- /bin/bash`
 
 2. проверьте доступность сети с помошью команды ping
 
@@ -74,7 +67,7 @@
 3. запустите оболочку shell в поде UE2
 
     ```
-	kubectl -n open5gslices2 exec -ti deployment/ueransim2-ueransim-ues-ues -- /bin/bash
+	kubectl -n open5gslices2 exec -ti deployment/ueransim2-ueransim-ues -- /bin/bash
 	ip a
 	```
 	Проверьте, что в поде появились 2 интерфейса `uesimtun` с ip адресами из разных подсетей, как в примере:

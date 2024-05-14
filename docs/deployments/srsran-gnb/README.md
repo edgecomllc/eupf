@@ -14,8 +14,6 @@ This deployment helps to create an end-to-end fully open-source 5G network, cons
 - configure helm repos
 
     ```
-    helm repo add openverso https://gradiant.github.io/openverso-charts/
-    helm repo update
 	git clone https://github.com/edgecomllc/srsRAN5Gue-zmg-gNB.git ../srsRAN5Gue-zmg-gNB
     ```
 

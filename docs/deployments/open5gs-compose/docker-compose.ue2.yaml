@@ -14,7 +14,7 @@ x-ue-env: &ue_env
   APN: internet
   SST: 1
   SD: "0x222222"
-  IPERF_HOST: 10.128.0.14
+  IPERF_HOST: 172.20.0.1
   IPERF_TIME: 30
 
 x-ue-service: &ue_service
@@ -36,7 +36,7 @@ services:
     environment:
       <<: *ue_env
       MSISDN: "0000000003"
-      GNB_HOSTNAME: open5gs-gnb-1
+      GNB_HOSTNAME: open5gs-compose-gnb-1
       IPERF_PORT: 5201
 
   ue2-04:
@@ -44,7 +44,7 @@ services:
     environment:
       <<: *ue_env
       MSISDN: "0000000004"
-      GNB_HOSTNAME: open5gs-gnb-2
+      GNB_HOSTNAME: open5gs-compose-gnb-2
       IPERF_PORT: 5202
 
   ue2-05:
@@ -52,7 +52,7 @@ services:
     environment:
       <<: *ue_env
       MSISDN: "0000000005"
-      GNB_HOSTNAME: open5gs-gnb-3
+      GNB_HOSTNAME: open5gs-compose-gnb-3
       IPERF_PORT: 5203
 
   ue2-06:
@@ -60,7 +60,7 @@ services:
     environment:
       <<: *ue_env
       MSISDN: "0000000006"
-      GNB_HOSTNAME: open5gs-gnb-4
+      GNB_HOSTNAME: open5gs-compose-gnb-4
       IPERF_PORT: 5204
 
   ue2-07:
@@ -68,7 +68,7 @@ services:
     environment:
       <<: *ue_env
       MSISDN: "0000000007"
-      GNB_HOSTNAME: open5gs-gnb-5
+      GNB_HOSTNAME: open5gs-compose-gnb-5
       IPERF_PORT: 5205
 
   ue2-08:
@@ -76,7 +76,7 @@ services:
     environment:
       <<: *ue_env
       MSISDN: "0000000008"
-      GNB_HOSTNAME: open5gs-gnb-6
+      GNB_HOSTNAME: open5gs-compose-gnb-6
       IPERF_PORT: 5206
 
 networks:
