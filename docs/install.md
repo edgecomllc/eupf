@@ -77,8 +77,8 @@ services:
     ports:
       - 2152:2152/udp
       - 8805:8805/udp
-      - 8080:8080
-      - 9090:9090
+      - 8080:8081
+      - 9090:9091
     restart: unless-stopped
     networks:
       local-dc:
