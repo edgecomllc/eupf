@@ -15,14 +15,28 @@ docker network create \
     --driver=bridge \
     --subnet=172.20.0.0/24 \
     --gateway=172.20.0.1 \
+    -o "com.docker.network.bridge.name"="br-open5gs-main" \
     open5gs-main
+sudo ethtool -K br-open5gs-main tx off
 ```
 
+<details><summary><i> Here we turn off tx offload to avoid TCP checksum error in internal packets for iperf tests.</summary>
+<p>
+
+Apparently, checksum offloading is enabled by default and the kernel postpones csum calculation until the last moment, expecting csum to be calculated in the driver when the packet is sent. But we have a virtual environment and the packet eventually goes to the GTP tunnel on UPF. Obviously, this is the reason why csum is not calculated correctly.
+
+However, if we disable offloading, the checksum is calculated immediately on iperf and everything works.
+</p>
+</details> 
+
+<!---
 # configure firewall
 
 `bash fw.sh`
+--><br>
+# To run multiple iperf servers, use this command
 
-# for run multiple iperf servers, use this command
+`sudo apt install iperf3`
 
 `for i in $(seq 5201 5208); do (iperf3 -s -p $i &) ; done`
 
@@ -67,3 +81,5 @@ when test ended, you can see reports in directory `.deploy/docker/local-data/ipe
 # stop and remove all containers
 
 `make clean`
+
+`docker network rm open5gs-main`
