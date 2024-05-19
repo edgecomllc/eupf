@@ -155,7 +155,7 @@ type FarInfo struct {
 	RemoteIP                   uint32
 	LocalIP                    uint32
 	TransportLevelMarking      uint16
-	ForwardingPolicyIdentifier uint64
+	ForwardingPolicyIdentifier uint32
 }
 
 func (f FarInfo) MarshalJSON() ([]byte, error) {
