@@ -49,4 +49,4 @@ ueransim_shell:
 	kubectl exec -n $(NAMESPACE) --stdin --tty $(UERANSIM_UE_POD) -- /bin/bash
 
 clean:
-	helm delete free5gc edgecomllc-eupf ueransim -n $(NAMESPACE)
+	helm delete free5gc edgecomllc-eupf ueransim free5gc-upf -n $(NAMESPACE)
