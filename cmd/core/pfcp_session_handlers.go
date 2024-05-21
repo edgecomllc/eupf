@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"net"
@@ -486,10 +487,15 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarI
 			log.Info().Msg("WARN: No ForwardingPolicy")
 		} else {
 			forwardingPolicyIdentifier, _ := forward[forwardingPolicyIndex].ForwardingPolicyIdentifier()
-			uint32Value, err := strconv.ParseUint(forwardingPolicyIdentifier, 16, 32)
+
+			forwardingPolicyIdentifierDecode, err := base64.StdEncoding.DecodeString(forwardingPolicyIdentifier)
 			if err == nil {
-				farInfo.ForwardingPolicyIdentifier = uint32(uint32Value)
+				uint32Value, err := strconv.ParseUint(string(forwardingPolicyIdentifierDecode), 10, 32)
+				if err == nil {
+					farInfo.ForwardingPolicyIdentifier = uint32(uint32Value)
+				}
 			}
+			// TODO support pre-defined policy if forwardingPolicyIdentifier is not base64 treat it as referring to a pre-defined policy
 		}
 	}
 	transportLevelMarking, err := GetTransportLevelMarking(far)
