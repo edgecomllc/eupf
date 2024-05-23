@@ -28,9 +28,13 @@ services:
       - USE_FQDN_DNS=no
 
   oai-gnb:
+    image: oaisoftwarealliance/oai-gnb:2023.w43
     depends_on: !reset
       - edgecom-upf
       - oai-amf
+
+  oai-nr-ue0:
+    image: oaisoftwarealliance/oai-nr-ue:2023.w43
 
   edgecom-upf:
     container_name: eupf
@@ -106,7 +110,7 @@ services:
     ports:
       - "8081:80"
     environment:
-      - API_PORT=8080
+      - API_PORT=8880
 
 networks:
   privnet_n6:
@@ -116,3 +120,7 @@ networks:
         - subnet: 10.100.250.0/24
     driver_opts:
       com.docker.network.bridge.name: br-oainfapi-n6
+
+volumes:
+  prom_data:
+  

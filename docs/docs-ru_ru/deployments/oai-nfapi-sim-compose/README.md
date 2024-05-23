@@ -1,6 +1,6 @@
 # OpenAir Core + OpenAir RAN as a docker-compose
 
-В данной инструкции используется 5G L2 nFAPI симулятор из проекта OpenAirInterface для эмуляции радиосети и eUPF модуль в качестве замены штатного модуля UPF. Развертывание основано на инструкции Eurecom для 5G SA режиме с 1 абонентом: [OAI Full Stack 5G-NR L2 simulation with containers and a proxy](https://gitlab.eurecom.fr/oai/openairinterface5g/-/tree/develop/ci-scripts/yaml_files/5g_l2sim_tdd), в которой штатный UPF заменен на eUPF.
+В данной инструкции используется 5G L2 nFAPI симулятор из проекта OpenAirInterface для эмуляции радиосети и eUPF модуль в качестве замены штатного модуля UPF. Развертывание основано на инструкции Eurecom для 5G SA режиме с 1 абонентом: [OAI Full Stack 5G-NR L2 simulation with containers and a proxy](https://gitlab.eurecom.fr/oai/openairinterface5g/-/tree/f1d080d31515d3cc9a31a41fd548753ccba4f09f/ci-scripts/yaml_files/5g_l2sim_tdd), в которой штатный UPF заменен на eUPF.
 
 📝В развертывании используется настройка `network_mode: "host"` для того, чтобы обеспечить взаимодействие через `lo` инерфейс хоста между контейнерами oai-gnb, proxy, oai-nr-ue0.
 
@@ -8,14 +8,22 @@
 
 ## Инструкция по развертыванию
 1. Разверните ядро сети и эмулятор радиосети согласно инструкции "OAI Full Stack 5G-NR L2 simulation with containers and a proxy"
-    по ссылке https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/ci-scripts/yaml_files/5g_l2sim_tdd/README.md
+    по ссылке https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/f1d080d31515d3cc9a31a41fd548753ccba4f09f/ci-scripts/yaml_files/5g_l2sim_tdd/README.md
+    Переключитесь на `git checkout f1d080d31515d3cc9a31a41fd548753ccba4f09f`
 
     <details><summary>TLDR: Пример команд для хоста с сетевым интерфейсом `ens3` и IP-адресом `188.120.232.247`</summary>
     <p>
 
     ```ruby
-    sergo@edgecom:~/gitlab$ git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git
-    sergo@edgecom:~/gitlab$ cd openairinterface5g/ci-scripts/yaml_files/5g_l2sim_tdd/
+    sergo@edgecom:~/gitlab$ git clone -n https://gitlab.eurecom.fr/oai/openairinterface5g.git
+    sergo@edgecom:~/gitlab$ cd openairinterface5g/
+    sergo@edgecom:~/gitlab/openairinterface5g$ git checkout f1d080d31515d3cc9a31a41fd548753ccba4f09f
+        Note: switching to 'f1d080d31515d3cc9a31a41fd548753ccba4f09f'.
+        ...
+        HEAD is now at f1d080d315 chore(ci): updating 5G rfsimulator scenarios to release v2.0
+
+
+    cd ci-scripts/yaml_files/5g_l2sim_tdd/
 
     nano docker-compose.yaml
                 - DEFAULT_DNS_IPV4_ADDRESS=169.254.25.10  #172.21.3.100
