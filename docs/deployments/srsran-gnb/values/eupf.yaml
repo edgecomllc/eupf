@@ -11,7 +11,7 @@ image:
   registry: ghcr.io
   repository: edgecomllc
   name: eupf
-  tag: 893648fecb05faf4b92656647f26922b34148a6c
+  tag: main
   pullPolicy: Always
 
 args:
