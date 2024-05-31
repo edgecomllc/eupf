@@ -46,7 +46,7 @@ This deployment helps to create an end-to-end fully open-source 5G network, cons
 
 1. exec shell in UE pod
 
-    `kubectl -n srs-open5gs exec -ti statefulset/srsran-srs-5g -- /bin/bash`
+    `kubectl -n srs-open5gs exec -ti statefulset/srsran-srsran5gue-zmq-gnb -- /bin/bash`
 
 2. run ICMP test
 
