@@ -1,5 +1,5 @@
 # OpenAir Core + OpenAir RAN as a docker-compose
-We will use 5G L2 nFAPI simulator to test L2 and above Layers. Let's pull Eurecom's deployment for 5G SA mode with 1 User: [OAI Full Stack 5G-NR L2 simulation with containers and a proxy](https://gitlab.eurecom.fr/oai/openairinterface5g/-/tree/f1d080d31515d3cc9a31a41fd548753ccba4f09f/ci-scripts/yaml_files/5g_l2sim_tdd) and replace the UPF with our eUPF.
+We will use 5G L2 nFAPI simulator to test L2 and above Layers. Let's pull Eurecom's deployment for 5G SA mode with 1 User: [OAI Full Stack 5G-NR L2 simulation with containers and a proxy](https://gitlab.eurecom.fr/oai/openairinterface5g/-/tree/v2.1.0/ci-scripts/yaml_files/5g_l2sim_tdd) and replace the UPF with our eUPF.
 
 📝This deploy uses `network_mode: "host"` for communications over `lo` interface of the host between containers oai-gnb, proxy, oai-nr-ue0.
 
@@ -7,8 +7,8 @@ We will add two services `edgecom-upf` and `edgecom-nat` with a dedicated networ
 
 ## How to deploy:
 1. Deploy  the whole project "OAI Full Stack 5G-NR L2 simulation with containers and a proxy" 
-    following instructions https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/f1d080d31515d3cc9a31a41fd548753ccba4f09f/ci-scripts/yaml_files/5g_l2sim_tdd/README.md
-    Use `git checkout f1d080d31515d3cc9a31a41fd548753ccba4f09f` 
+    following instructions https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/v2.1.0/ci-scripts/yaml_files/5g_l2sim_tdd/README.md
+    Use `git checkout v2.1.0` 
 
     <details><summary>TLDR: Look at our example where host interface name is `ens3` with IP addr `188.120.232.247`</summary>
     <p>
@@ -16,8 +16,8 @@ We will add two services `edgecom-upf` and `edgecom-nat` with a dedicated networ
     ```ruby
     sergo@edgecom:~/gitlab$ git clone -n https://gitlab.eurecom.fr/oai/openairinterface5g.git
     sergo@edgecom:~/gitlab$ cd openairinterface5g/
-    sergo@edgecom:~/gitlab/openairinterface5g$ git checkout f1d080d31515d3cc9a31a41fd548753ccba4f09f
-        Note: switching to 'f1d080d31515d3cc9a31a41fd548753ccba4f09f'.
+    sergo@edgecom:~/gitlab/openairinterface5g$ git checkout v2.1.0
+        Note: switching to 'v2.1.0'.
         ...
         HEAD is now at f1d080d315 chore(ci): updating 5G rfsimulator scenarios to release v2.0
 
