@@ -32,13 +32,8 @@ ue1:
 		--values $(HELM_VALUES_DIR)/global.yaml \
 		--values $(HELM_VALUES_DIR)/ueransim.yaml \
 		--version 2.0.17 \
-		-n $(NAMESPACE) \
+		-n $(NAMESPACE) --post-renderer ./kustomize/kustomize.sh \
 		$(HELM_ARGS)
-
-	# change default NetworkAttachmentDefinition to our correct: excluded wrong default route.
-	kubectl -n $(NAMESPACE) apply -f $(HELM_VALUES_DIR)/../manifests/netad-ueransim.yaml
-	# scale deployment from 0 to 1 to start it
-	kubectl -n $(NAMESPACE) scale --replicas=1 deployment ueransim1-gnb ueransim1-ue
 
 clean:
 	helm delete free5gc -n $(NAMESPACE) || true

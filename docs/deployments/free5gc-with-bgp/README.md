@@ -25,7 +25,7 @@
 1. update values files, you should set name of your node's real network interface in:
     - file `values/global.yaml`: parameter `masterIf` 5 matches
     - file `values/eupf.yaml`:  `"master": ` 1 match
-    - file `manifests/netad-ueransim.yaml`: `"master": ` 2 matches 
+    - file `kustomize/patch_rm_default_route_from_nad.yaml`: `"master": ` 1 matche 
 
 1. install free5gc
 
