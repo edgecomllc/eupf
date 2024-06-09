@@ -4,7 +4,7 @@ image:
   registry: ghcr.io
   repository: edgecomllc
   name: eupf
-  tag: main
+  tag: 0.6.4
   pullPolicy: Always
 
 deploymentStrategy:
@@ -145,7 +145,7 @@ extraDeploy:
             {
               "type": "ipvlan",
               "capabilities": { "ips": true },
-              "master": "ens3",
+              "master": "eth0",
               "mode": "l2",
               "ipam": {
                 "type": "static"
@@ -165,7 +165,7 @@ extraDeploy:
             {
               "type": "ipvlan",
               "capabilities": { "ips": true },
-              "master": "ens3",
+              "master": "eth0",
               "mode": "l2",
               "ipam": {
                 "type": "static"

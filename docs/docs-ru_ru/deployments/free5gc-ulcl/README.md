@@ -54,7 +54,7 @@ make && make install
 1. обновите файлы values, задав корректное название сетевого интерфейса вашего нода:
     - file `global.yaml`: parameter `masterIf` в 5 строках
     - file `eupf-b.yaml`:  `"master": ` в 2 строках
-    - file `netad-ueransim.yaml`: `"master": ` в 2 строках 
+    - file `kustomize/patch_rm_default_route_from_nad.yaml`: `"master": ` в 1 строке 
 1. Выполните `make eupf` для развернывания eUPF в качестве upfb
 1. Выполните `make upf` для развернывания Free5gc модулей UPF в качестве upf1, upf2
 1. `make free5gc` to install free5gc core

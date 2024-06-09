@@ -54,7 +54,7 @@ check that the module is loaded:
 1. update values files, you should set name of your node's real network interface in:
     - file `global.yaml`: parameter `masterIf` 5 matches
     - file `eupf-b.yaml`:  `"master": ` 2 matches
-    - file `netad-ueransim.yaml`: `"master": ` 2 matches 
+    - file `kustomize/patch_rm_default_route_from_nad.yaml`: `"master": ` 1 match 
 1. `make eupf` to install eUPF deploy as upfb
 1. `make upf` to install Free5gc UPFs deploy as upf1, upf2
 1. `make free5gc` to install free5gc core

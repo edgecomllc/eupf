@@ -7,7 +7,7 @@ deploymentStrategy:
   type: Recreate
 
 image:
-  tag: main
+  tag: 0.6.4
 
 args:
   - --config

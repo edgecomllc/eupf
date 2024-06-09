@@ -37,12 +37,8 @@ ueransim:
 		--set ue.replicaCount=0 \
 		--version 2.0.17 \
 		-n $(NAMESPACE) \
+		--post-renderer ./kustomize/kustomize.sh \
 		$(HELM_ARGS)
-
-	# change default NetworkAttachmentDefinition to our correct: excluded wrong default route.
-	kubectl -n $(NAMESPACE) apply -f netad-ueransim.yaml
-	# scale deployment from 0 to 1 to start it
-	kubectl -n $(NAMESPACE) scale --replicas=1 deployment ueransim-gnb ueransim-ue
 
 ueransim_shell:
 	$(eval UERANSIM_UE_POD=`kubectl get pods -l "app=ueransim,component=ue" --output=jsonpath="{.items..metadata.name}" -n ${NAMESPACE}`)

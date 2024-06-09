@@ -8,7 +8,4 @@ gnb:
   amf:
     n2if:
       ipAddress: 10.100.50.249
-  replicaCount: 0
-  
-ue:
-  replicaCount: 0
+

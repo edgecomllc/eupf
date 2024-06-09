@@ -30,7 +30,7 @@
 1. обновите файлы values, задав корректное название сетевого интерфейса вашего нода:
     - file `values/global.yaml`: parameter `masterIf` в 5 строках
     - file `values/eupf.yaml`:  `"master": ` в 1 строке
-    - file `manifests/netad-ueransim.yaml`: `"master": ` в 2 строках 
+    - file `kustomize/patch_rm_default_route_from_nad.yaml`: `"master": ` в 1 строке 
 
 1. установитe free5gc
 
