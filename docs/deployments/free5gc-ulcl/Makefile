@@ -33,8 +33,6 @@ ueransim:
 	helm install \
 		ueransim towards5gs/ueransim \
 		--values global.yaml \
-		--set gnb.replicaCount=0 \
-		--set ue.replicaCount=0 \
 		--version 2.0.17 \
 		-n $(NAMESPACE) \
 		--post-renderer ./kustomize/kustomize.sh \

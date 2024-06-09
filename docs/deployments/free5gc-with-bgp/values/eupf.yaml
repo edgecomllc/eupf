@@ -141,7 +141,7 @@ extraDeploy:
             {
               "type": "ipvlan",
               "capabilities": { "ips": true },
-              "master": "eth0",
+              "master": "ens3",
               "mode": "l2",
               "ipam": {
                 "type": "static"
