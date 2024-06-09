@@ -35,13 +35,12 @@ ueransim:
 		--values global.yaml \
 		--version 2.0.17 \
 		-n $(NAMESPACE) \
+		--post-renderer ./kustomize/kustomize.sh \
 		$(HELM_ARGS)
-
-	kubectl -n $(NAMESPACE) apply -f netad-ueransim.yaml
 
 ueransim_shell:
 	$(eval UERANSIM_UE_POD=`kubectl get pods -l "app=ueransim,component=ue" --output=jsonpath="{.items..metadata.name}" -n ${NAMESPACE}`)
 	kubectl exec -n $(NAMESPACE) --stdin --tty $(UERANSIM_UE_POD) -- /bin/bash
 
 clean:
-	helm delete free5gc edgecomllc-eupf ueransim -n $(NAMESPACE)
+	helm delete free5gc edgecomllc-eupf ueransim free5gc-upf -n $(NAMESPACE)

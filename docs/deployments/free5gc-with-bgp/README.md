@@ -1,6 +1,6 @@
 # Free5GC + eUPF with Calico BGP
 
-Be careful, this document work in progress
+
 
 ![](./schema.png)
 
@@ -20,9 +20,12 @@ Be careful, this document work in progress
     helm repo update
     ```
 
-- update values files, you should set name of network interface in file `global.yaml` (parameter masterIf)
-
 ## Deployment steps
+
+1. update values files, you should set name of your node's real network interface in:
+    - file `values/global.yaml`: parameter `masterIf` 5 matches
+    - file `values/eupf.yaml`:  `"master": ` 1 match
+    - file `kustomize/patch_rm_default_route_from_nad.yaml`: `"master": ` 1 matche 
 
 1. install free5gc
 
@@ -56,7 +59,7 @@ Be careful, this document work in progress
 
 1. exec shell in UE pod
 
-    `kubectl -n free5gc exec -ti deployment/ueransim-ue -- /bin/bash`
+    `kubectl -n free5gc exec -ti deployment/ueransim1-ue -- /bin/bash`
 
 1. run ICMP test
 

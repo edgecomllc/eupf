@@ -1,8 +1,7 @@
 # Free5GC + eUPF with Calico BGP
 
-(!) Описание находится в разработке
 
-![](./schema.png)
+![](/docs/deployments/free5gc-with-bgp/schema.png)
 
 Данный пример конфигурации показывает возможность развертывания 5G сети на основе eUPF и проекта Free5GC с помощью следующих компонентов:
 - UERANSIM в качестве радиочасти
@@ -25,11 +24,14 @@
     helm repo update
     ```
 
-- обновите файлы values, чтобы пареметр `free5gc-ulcl` в `global.yaml` содержал корректное название сетевого интерфейса нода
 
 ## Шаги развертывания
-
 1. перейдите в папку docs/deployments/free5gc-with-bgp
+1. обновите файлы values, задав корректное название сетевого интерфейса вашего нода:
+    - file `values/global.yaml`: parameter `masterIf` в 5 строках
+    - file `values/eupf.yaml`:  `"master": ` в 1 строке
+    - file `kustomize/patch_rm_default_route_from_nad.yaml`: `"master": ` в 1 строке 
+
 1. установитe free5gc
 
     `make free5gc`
@@ -62,7 +64,7 @@
 
 1. запустите оболочку shell в поде UE
 
-    `kubectl -n free5gc exec -ti deployment/ueransim-ue -- /bin/bash`
+    `kubectl -n free5gc exec -ti deployment/ueransim1-ue -- /bin/bash`
 
 1. проверьте доступность сети с помошью команды ping
 
