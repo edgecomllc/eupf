@@ -38,6 +38,7 @@
 #include "xdp/utils/parsers.h"
 #include "xdp/utils/csum.h"
 #include "xdp/utils/gtp_utils.h"
+#include "xdp/utils/nsh_utils.h"
 #include "xdp/utils/routing.h"
 #include "xdp/utils/icmp.h"
 
@@ -310,6 +311,23 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         if (result) {
             upf_printk("upf: handle_gtp_packet: can't remove gtp header: %d", result);
             return XDP_ABORTED;
+        }
+    }
+
+    // Check for forwarding policy identifier
+    if (far->forwarding_policy_identifier) {
+        /*
+         * TODO: support predefined traffic steering policy. Should check
+         * first if the forwarding policy identifier refers to a pre-defined
+         * policy, if not we treat this as a SFC ID as below.
+        */ 
+        // NOTE: The FIB tables need to have been populate prior. 
+        // Traffic with forwarding_policy_identifier should'nt be the first traffic to be received
+        if (ctx->ip4) {
+            if (-1 == add_nsh_over_ip4_headers(ctx, far->forwarding_policy_identifier)) {
+                upf_printk("upf: failed to NSH encapsulate packet");
+                return XDP_ABORTED;
+            }
         }
     }
 
