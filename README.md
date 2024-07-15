@@ -44,7 +44,7 @@ Use following command to mount it: `sudo mount bpffs /sys/fs/bpf -t bpf`
 
    - UPF_INTERFACE_NAME=lo    *Network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
    - UPF_N3_ADDRESS=127.0.0.1 *IPv4 address for N3 interface*
-   - UPF_XDP_ATTACH_MODE=generic *XDP attach mode. Generic-only at the moment*
+   - UPF_XDP_ATTACH_MODE=generic *XDP attach mode.*
    - UPF_API_ADDRESS=:8080    *Local host:port for serving [REST API](api.md) server*
    - UPF_PFCP_ADDRESS=:8805   *Local host:port that PFCP server will listen to*
    - UPF_PFCP_NODE_ID=127.0.0.1  *Local NodeID for PFCP protocol. Format is IPv4 address*
