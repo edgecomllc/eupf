@@ -37,7 +37,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	session := NewSession(localSEID, remoteSEID.SEID)
 
-	printSessionEstablishmentRequest(req)
+	log.Info().Msg(printSessionEstablishmentRequest(req))
 	// #TODO: Implement rollback on error
 	createdPDRs := []SPDRInfo{}
 	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
@@ -132,7 +132,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), nil
 	}
-	printSessionDeleteRequest(req)
+	log.Info().Msg(printSessionDeleteRequest(req))
 
 	session, ok := association.Sessions[req.SEID()]
 	if !ok {
@@ -201,7 +201,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		}
 	}
 
-	printSessionModificationRequest(req)
+	log.Info().Msg(printSessionModificationRequest(req))
 
 	// #TODO: Implement rollback on error
 	createdPDRs := []SPDRInfo{}

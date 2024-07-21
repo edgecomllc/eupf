@@ -17,7 +17,7 @@ func writeLineTabbed(sb *strings.Builder, s string, tab int) {
 	sb.WriteString("\n")
 }
 
-func printAssociationSetupRequest(req *message.AssociationSetupRequest) {
+func printAssociationSetupRequest(req *message.AssociationSetupRequest) string {
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, "Association Setup Request:", 0)
@@ -31,10 +31,10 @@ func printAssociationSetupRequest(req *message.AssociationSetupRequest) {
 			writeLineTabbed(&sb, fmt.Sprintf("Recovery Time: %s", recoveryTime.String()), 1)
 		}
 	}
-	log.Info().Msg(sb.String())
+	return sb.String()
 }
 
-func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) {
+func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) string {
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, "Session Establishment Request:", 0)
@@ -62,11 +62,22 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 		sb.WriteString("  Create")
 		displayBar(&sb, req.CreateBAR)
 	}
-	log.Info().Msg(sb.String())
+	return sb.String()
+}
+
+func printHeartbeatRequest(req *message.HeartbeatRequest) string {
+	var sb strings.Builder
+	writeLineTabbed(&sb, "Heartbeat Request:", 0)
+
+	if ts, err := req.RecoveryTimeStamp.RecoveryTimeStamp(); err == nil {
+		writeLineTabbed(&sb, fmt.Sprintf("RecoveryTimeStamp: %s", ts), 1)
+	}
+
+	return sb.String()
 }
 
 // IE Contents of Create/Update/Remove are mostly the same
-func printSessionModificationRequest(req *message.SessionModificationRequest) {
+func printSessionModificationRequest(req *message.SessionModificationRequest) string {
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, "Session Modification Request:", 0)
@@ -163,14 +174,15 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 			writeLineTabbed(&sb, fmt.Sprintf("BAR ID: %d ", barId), 2)
 		}
 	}
-	log.Info().Msg(sb.String())
+	return sb.String()
 }
 
-func printSessionDeleteRequest(req *message.SessionDeletionRequest) {
+func printSessionDeleteRequest(req *message.SessionDeletionRequest) string {
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, "Session Deletion Request:", 0)
 	writeLineTabbed(&sb, fmt.Sprintf("SEID: %d", req.SEID()), 1)
+	return sb.String()
 }
 
 func displayBar(sb *strings.Builder, bar *ie.IE) {

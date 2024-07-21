@@ -73,7 +73,7 @@ func ParseProtocol(protocol string) (uint8, error) {
 	if ok {
 		return number, nil
 	} else {
-		return 0, fmt.Errorf("Unsupported protocol.")
+		return 0, fmt.Errorf("unsupported protocol")
 	}
 }
 
@@ -92,7 +92,7 @@ func ParseCidrIp(ipStr, maskStr string) (ebpf.IpWMask, error) {
 				mask = net.CIDRMask(int(maskUint), 8*len(ip))
 				ip = ip.Mask(mask)
 			} else {
-				return ebpf.IpWMask{}, fmt.Errorf("Bad IP mask formatting.")
+				return ebpf.IpWMask{}, fmt.Errorf("bad IP mask formatting")
 			}
 		}
 		return ebpf.IpWMask{
@@ -101,7 +101,7 @@ func ParseCidrIp(ipStr, maskStr string) (ebpf.IpWMask, error) {
 			Mask: mask,
 		}, nil
 	} else {
-		return ebpf.IpWMask{}, fmt.Errorf("Bad IP formatting.")
+		return ebpf.IpWMask{}, fmt.Errorf("bad IP formatting")
 	}
 }
 
@@ -121,7 +121,7 @@ func ParsePortRange(str string) (ebpf.PortRange, error) {
 		portRange.UpperBound = portRange.LowerBound
 	}
 	if portRange.LowerBound > portRange.UpperBound {
-		return ebpf.PortRange{}, fmt.Errorf("Invalid port range. Left port should be less or equal to right port.")
+		return ebpf.PortRange{}, fmt.Errorf("invalid port range. Left port should be less or equal to right port")
 	}
 	return portRange, nil
 }
@@ -129,7 +129,7 @@ func ParsePortRange(str string) (ebpf.PortRange, error) {
 func ParsePort(str string) (uint16, error) {
 	if port64, err := strconv.ParseUint(str, 10, 64); err == nil {
 		if port64 > 65535 {
-			return 0, fmt.Errorf("Invalid port. Port must be inside bounds [0, 65535].")
+			return 0, fmt.Errorf("invalid port. Port must be inside bounds [0, 65535]")
 		}
 		return uint16(port64), nil
 	} else {

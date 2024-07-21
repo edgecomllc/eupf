@@ -109,16 +109,16 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
 	if spdrInfo.Ipv4 != nil {
 		if err := mapOperations.DeletePdrDownlink(spdrInfo.Ipv4); err != nil {
-			return fmt.Errorf("Can't delete IPv4 PDR: %s", err.Error())
+			return fmt.Errorf("can't delete IPv4 PDR: %s", err.Error())
 		}
 	} else if spdrInfo.Ipv6 != nil {
 		if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
-			return fmt.Errorf("Can't delete IPv6 PDR: %s", err.Error())
+			return fmt.Errorf("can't delete IPv6 PDR: %s", err.Error())
 		}
 	} else {
 		if _, ok := pdrContext.TEIDCache[uint8(spdrInfo.Teid)]; !ok {
 			if err := mapOperations.DeletePdrUplink(spdrInfo.Teid); err != nil {
-				return fmt.Errorf("Can't delete GTP PDR: %s", err.Error())
+				return fmt.Errorf("can't delete GTP PDR: %s", err.Error())
 			}
 			pdrContext.TEIDCache[uint8(spdrInfo.Teid)] = 0
 		}
@@ -145,7 +145,7 @@ func (pdrContext *PDRCreationContext) getFTEID(seID uint64, pdrID uint32) (uint3
 	allocatedTeid, err := pdrContext.ResourceManager.FTEIDM.AllocateTEID(seID, pdrID)
 	if err != nil {
 		log.Error().Msgf("AllocateTEID err: %v", err)
-		return 0, fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
+		return 0, fmt.Errorf("can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 	}
 	return allocatedTeid, nil
 }

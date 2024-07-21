@@ -60,7 +60,7 @@ func (gtpPathManager *GtpPathManager) Stop() {
 	gtpPathManager.cancelCtx()
 }
 
-func (gtpPathManager *GtpPathManager) sendEcho(gtpPeerAddress string, seq uint16) (time.Duration, error) {
+func (gtpPathManager *GtpPathManager) sendEcho(gtpPeerAddress string, _ uint16) (time.Duration, error) {
 	gtpEchoRequest := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(gtpEchoRequest, gopacket.SerializeOptions{},
 		&layers.GTPv1U{
