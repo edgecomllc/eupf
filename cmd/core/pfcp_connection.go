@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/edgecomllc/eupf/cmd/core/service"
@@ -17,6 +18,7 @@ import (
 type PfcpConnection struct {
 	udpConn           *net.UDPConn
 	pfcpHandlerMap    PfcpHandlerMap
+	muAssoc           *sync.Mutex
 	NodeAssociations  map[string]*NodeAssociation
 	nodeId            string
 	nodeAddrV4        net.IP
@@ -54,6 +56,7 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 	return &PfcpConnection{
 		udpConn:           udpConn,
 		pfcpHandlerMap:    pfcpHandlerMap,
+		muAssoc:           &sync.Mutex{},
 		NodeAssociations:  map[string]*NodeAssociation{},
 		nodeId:            nodeId,
 		nodeAddrV4:        udpAddr.IP,
