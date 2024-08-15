@@ -7,7 +7,7 @@ deploymentStrategy:
   type: Recreate
 
 image:
-  tag: 0ac3d9fb28808dbca7e123205323e2c09f377971@sha256:a03bdd30efa623b0d3ddc99d9a6472453a43d2d64ed715a9a042e893d82ffb68
+  tag: 0.6.4
 
 args:
   - --config
@@ -141,7 +141,7 @@ extraDeploy:
             {
               "type": "ipvlan",
               "capabilities": { "ips": true },
-              "master": "eth0",
+              "master": "ens3",
               "mode": "l2",
               "ipam": {
                 "type": "static"

@@ -1,0 +1,84 @@
+version: '3.8'
+
+x-container-defaults: &container_defaults
+  restart: unless-stopped
+  networks:
+    - open5gs-main
+
+x-ue-env: &ue_env
+  MCC: 999
+  MNC: 70
+  KEY: 465B5CE8B199B49FAA5F0A2EE238A6BC
+  OP: E8ED289DEBA952E4283B54E88E6183CA
+  OP_TYPE: OPC
+  APN: internet
+  SST: 1
+  SD: "0x222222"
+  IPERF_HOST: 172.20.0.1
+  IPERF_TIME: 30
+
+x-ue-service: &ue_service
+  image: docker.io/openverso/ueransim:3.2.6
+  <<: *container_defaults
+  cap_add:
+    - NET_ADMIN
+  devices:
+    - /dev/net/tun:/dev/net/tun
+  command: "ue -n 1"
+  volumes:
+    - .deploy/docker/iperf-test.sh:/opt/iperf-test.sh
+    - ${DOCKER_SHARED_DIR}/iperf:/opt/iperf/results
+
+services:
+
+  ue2-03:
+    <<: *ue_service
+    environment:
+      <<: *ue_env
+      MSISDN: "0000000003"
+      GNB_HOSTNAME: open5gs-compose-gnb-1
+      IPERF_PORT: 5201
+
+  ue2-04:
+    <<: *ue_service
+    environment:
+      <<: *ue_env
+      MSISDN: "0000000004"
+      GNB_HOSTNAME: open5gs-compose-gnb-2
+      IPERF_PORT: 5202
+
+  ue2-05:
+    <<: *ue_service
+    environment:
+      <<: *ue_env
+      MSISDN: "0000000005"
+      GNB_HOSTNAME: open5gs-compose-gnb-3
+      IPERF_PORT: 5203
+
+  ue2-06:
+    <<: *ue_service
+    environment:
+      <<: *ue_env
+      MSISDN: "0000000006"
+      GNB_HOSTNAME: open5gs-compose-gnb-4
+      IPERF_PORT: 5204
+
+  ue2-07:
+    <<: *ue_service
+    environment:
+      <<: *ue_env
+      MSISDN: "0000000007"
+      GNB_HOSTNAME: open5gs-compose-gnb-5
+      IPERF_PORT: 5205
+
+  ue2-08:
+    <<: *ue_service
+    environment:
+      <<: *ue_env
+      MSISDN: "0000000008"
+      GNB_HOSTNAME: open5gs-compose-gnb-6
+      IPERF_PORT: 5206
+
+networks:
+  open5gs-main:
+    external: true

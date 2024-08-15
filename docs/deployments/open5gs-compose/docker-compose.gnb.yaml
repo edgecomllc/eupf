@@ -1,0 +1,30 @@
+version: '3.8'
+
+x-container-defaults: &container_defaults
+  restart: unless-stopped
+  networks:
+    - open5gs-main
+
+x-gnb-svc: &gnb_service
+    image: docker.io/openverso/ueransim:3.2.6
+    <<: *container_defaults
+    environment:
+      - MCC=999
+      - MNC=70
+      - TAC=001
+      - SST=1
+      - SD=0x111111
+      - N2_IFACE=eth0
+      - N3_IFACE=eth0
+      - RADIO_IFACE=eth0
+      - AMF_HOSTNAME=amf
+    command: gnb
+
+services:
+
+  gnb:
+    <<: *gnb_service
+
+networks:
+  open5gs-main:
+    external: true

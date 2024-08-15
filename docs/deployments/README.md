@@ -7,7 +7,7 @@ eUPF outbound connections is pure routed at the node. There is no embedded NAT, 
 
 | 5G Core | RAN | Options | Deployment description |
 | ------- | --- | ------- | ---------------------- |
-| Open5GS | UERANSIM | - | [Open5GS](https://github.com/edgecomllc/open5gs-compose) |
+| Open5GS | UERANSIM | - | [Open5GS](./open5gs-compose/README.md) |
 | Open5GS | OpenAirInterface | - | Comming soon... |
 | Free5GC | UERANSIM | - | [Free5GC](https://github.com/edgecomllc/free5gc-compose/blob/master/README.md) |
 | Free5GC | UERANSIM | ULCL | [Free5GC with UpLink Classifier config throught three eUPFs](https://github.com/edgecomllc/free5gc-compose/tree/ulcl-n9upf-experimetns#ulcl-configuration) |

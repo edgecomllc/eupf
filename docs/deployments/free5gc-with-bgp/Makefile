@@ -33,6 +33,7 @@ ue1:
 		--values $(HELM_VALUES_DIR)/ueransim.yaml \
 		--version 2.0.17 \
 		-n $(NAMESPACE) \
+		--post-renderer ./kustomize/kustomize.sh \
 		$(HELM_ARGS)
 
 clean:

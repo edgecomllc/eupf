@@ -1,0 +1,19 @@
+logger:
+  level: info
+parameter: {}
+
+sbi:
+  server:
+    no_tls: true
+  client:
+    no_tls: true
+
+bsf:
+  sbi:
+    - dev: "eth0"
+      port: 7777
+
+nrf:
+  sbi:
+    - name: open5gs-nrf-sbi
+      port: 7777

@@ -1,0 +1,32 @@
+version: '3.8'
+
+x-container-defaults: &container_defaults
+  restart: unless-stopped
+  networks:
+    - open5gs-main
+
+services:
+
+  ue1:
+    image: docker.io/openverso/ueransim:3.2.6
+    <<: *container_defaults
+    environment:
+      - MCC=999
+      - MNC=70
+      - MSISDN=0000000001
+      - KEY=465B5CE8B199B49FAA5F0A2EE238A6BC
+      - OP=E8ED289DEBA952E4283B54E88E6183CA
+      - OP_TYPE=OPC
+      - APN=internet
+      - SST=1
+      - SD=0x111111
+      - GNB_HOSTNAME=gnb
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    command: "ue -n 1"
+
+networks:
+  open5gs-main:
+    external: true
