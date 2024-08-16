@@ -54,7 +54,7 @@ func init() {
 	pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
 	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
-	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout
+	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
 	pflag.String("loglvl", "info", "Logging level")
 	pflag.Bool("ueip", false, "Enable or disable UEIP feature")
 	pflag.Bool("ftup", false, "Enable or disable FTUP feature")
