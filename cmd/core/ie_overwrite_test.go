@@ -2,7 +2,9 @@ package core
 
 import (
 	"net"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/wmnsk/go-pfcp/ie"
@@ -67,9 +69,11 @@ func TestSessionOverwrite(t *testing.T) {
 		nodeId:           "test-node",
 		mapOperations:    &mapOps,
 		n3Address:        net.ParseIP("127.0.0.1"),
+		associationMutex: &sync.Mutex{},
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
+		ie.NewRecoveryTimeStamp(time.Now()),
 	)
 	remoteIP := "127.0.0.1"
 	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, remoteIP)

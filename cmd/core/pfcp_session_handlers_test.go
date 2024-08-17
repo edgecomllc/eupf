@@ -2,6 +2,7 @@ package core
 
 import (
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -39,9 +40,11 @@ func TestAssociationSetup(t *testing.T) {
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),
 		nodeId:           "test-node",
+		associationMutex: &sync.Mutex{},
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
+		ie.NewRecoveryTimeStamp(time.Now()),
 	)
 
 	remoteIP := "127.0.0.1"
@@ -80,6 +83,10 @@ func PreparePfcpConnection(t *testing.T) (PfcpConnection, string) {
 		message.MsgTypeSessionModificationRequest:  HandlePfcpSessionModificationRequest,
 	}
 
+	featuresOctets := []uint8{0, 0, 0}
+	featuresOctets[0] = setBit(featuresOctets[0], 4)
+	featuresOctets[2] = setBit(featuresOctets[2], 2)
+
 	smfIP := "127.0.0.1"
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),
@@ -87,9 +94,12 @@ func PreparePfcpConnection(t *testing.T) (PfcpConnection, string) {
 		mapOperations:    &mapOps,
 		pfcpHandlerMap:   pfcpHandlers,
 		n3Address:        net.ParseIP("1.2.3.4"),
+		associationMutex: &sync.Mutex{},
+		featuresOctets:   featuresOctets,
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
+		ie.NewRecoveryTimeStamp(time.Now()),
 	)
 	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
 	if err != nil {
@@ -311,6 +321,7 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 	// Creating an Association Setup Request
 	asReq := message.NewAssociationSetupRequest(1,
 		ie.NewNodeID("", "", "test"),
+		ie.NewRecoveryTimeStamp(time.Now()),
 	)
 
 	// Processing Association Setup Request
@@ -323,6 +334,14 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 	asRes, ok := response.(*message.AssociationSetupResponse)
 	if !ok {
 		t.Error("Unexpected response type")
+	}
+
+	cause, err := response.(*message.AssociationSetupResponse).Cause.Cause()
+	if err != nil {
+		t.Errorf("Error getting cause from association setup response: %s", err)
+	}
+	if cause != ie.CauseRequestAccepted {
+		t.Errorf("Unexpected cause in association setup response: %d", cause)
 	}
 
 	ftupEnabled := asRes.UPFunctionFeatures.HasFTUP()
@@ -505,6 +524,7 @@ func TestUEIPInAssociationSetupResponse(t *testing.T) {
 	// Creating an Association Setup Request
 	asReq := message.NewAssociationSetupRequest(1,
 		ie.NewNodeID("", "", "test"),
+		ie.NewRecoveryTimeStamp(time.Now()),
 	)
 
 	// Processing Association Setup Request
