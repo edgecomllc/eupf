@@ -12,29 +12,34 @@ import (
 )
 
 type PfcpPathManager struct {
-	localAddress           string
-	peers                  map[string]uint32
-	checkInterval          time.Duration
-	ctx                    context.Context
-	cancelCtx              context.CancelFunc
-	cancelAssociationSetup map[string]context.CancelFunc
+	conn                    *PfcpConnection
+	localAddress            string
+	servers                 map[string]uint32
+	checkInterval           time.Duration
+	ctx                     context.Context
+	cancelCtx               context.CancelFunc
+	ongoingAssociationSetup map[string]context.CancelFunc
 }
 
-func NewPfcpPathManager(localAddress string, interval time.Duration) *PfcpPathManager {
+func NewPfcpPathManager(conn *PfcpConnection, localAddress string, interval time.Duration) *PfcpPathManager {
 	ctx, cancelCtx := context.WithCancel(context.Background())
-	return &PfcpPathManager{localAddress: localAddress, peers: map[string]uint32{},
-		checkInterval: interval, ctx: ctx, cancelCtx: cancelCtx, cancelAssociationSetup: map[string]context.CancelFunc{}}
+	return &PfcpPathManager{
+		conn:                    conn,
+		localAddress:            localAddress,
+		servers:                 map[string]uint32{},
+		checkInterval:           interval,
+		ctx:                     ctx,
+		cancelCtx:               cancelCtx,
+		ongoingAssociationSetup: map[string]context.CancelFunc{}}
 }
 
-func (pfcpPathManager *PfcpPathManager) AddPfcpPath(pfcpPeerAddress string) {
-	pfcpPathManager.peers[pfcpPeerAddress] = 0
+func (pfcpPathManager *PfcpPathManager) AddPfcpServer(pfcpServerAddress string) {
+	pfcpPathManager.servers[pfcpServerAddress] = 0
 }
 
-func (pfcpPathManager *PfcpPathManager) Run(conn *PfcpConnection) {
-	for peer, _ := range pfcpPathManager.peers {
-		pfcpPathManager.cancelAssociationSetup[peer] =
-			pfcpPathManager.ScheduleAssociationSetupRequest(time.Duration(config.Conf.AssociationSetupTimeout)*time.Second, conn, peer)
-	}
+func (pfcpPathManager *PfcpPathManager) Run() {
+	pfcpPathManager.initiateAssociationSetup()
+
 	go func() {
 		ticker := time.NewTicker(pfcpPathManager.checkInterval)
 		defer ticker.Stop()
@@ -43,13 +48,7 @@ func (pfcpPathManager *PfcpPathManager) Run(conn *PfcpConnection) {
 			case <-pfcpPathManager.ctx.Done():
 				return
 			case <-ticker.C:
-				for peer, _ := range pfcpPathManager.peers {
-					if IsAssociationSetupEnded(peer, conn) && pfcpPathManager.cancelAssociationSetup[peer] != nil {
-						log.Debug().Msgf("Stop sending Association Setup Request to %s", peer)
-						pfcpPathManager.cancelAssociationSetup[peer]()
-						pfcpPathManager.cancelAssociationSetup[peer] = nil
-					}
-				}
+				pfcpPathManager.cancelOngoningAssociationSetup()
 			}
 		}
 	}()
@@ -59,17 +58,39 @@ func (pfcpPathManager *PfcpPathManager) Stop() {
 	pfcpPathManager.cancelCtx()
 }
 
-func IsAssociationSetupEnded(addr string, conn *PfcpConnection) bool {
+func (pfcpPathManager *PfcpPathManager) isAssociationEstablished(addr string) bool {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr+":8805")
 	if err != nil {
 		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", addr, err.Error())
 		return true
 	}
-	_, ok := conn.NodeAssociations[udpAddr.IP.String()]
+	_, ok := pfcpPathManager.conn.NodeAssociations[udpAddr.IP.String()]
 	return ok
 }
 
-func (pfcpPathManager *PfcpPathManager) ScheduleAssociationSetupRequest(duration time.Duration, conn *PfcpConnection, associationAddr string) context.CancelFunc {
+func (pfcpPathManager *PfcpPathManager) initiateAssociationSetup() {
+	for server, _ := range pfcpPathManager.servers {
+		pfcpPathManager.ongoingAssociationSetup[server] =
+			pfcpPathManager.scheduleAssociationSetupRequest(
+				time.Duration(config.Conf.AssociationSetupTimeout)*time.Second, server)
+	}
+}
+
+func (pfcpPathManager *PfcpPathManager) hasOngoningAssociationSetup(server string) bool {
+	return pfcpPathManager.ongoingAssociationSetup[server] != nil
+}
+
+func (pfcpPathManager *PfcpPathManager) cancelOngoningAssociationSetup() {
+	for server, _ := range pfcpPathManager.servers {
+		if pfcpPathManager.isAssociationEstablished(server) && pfcpPathManager.hasOngoningAssociationSetup(server) {
+			log.Debug().Msgf("Stop sending Association Setup Request to %s", server)
+			pfcpPathManager.ongoingAssociationSetup[server]()
+			pfcpPathManager.ongoingAssociationSetup[server] = nil
+		}
+	}
+}
+
+func (pfcpPathManager *PfcpPathManager) scheduleAssociationSetupRequest(duration time.Duration, associationAddr string) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func(ctx context.Context, duration time.Duration) {
 		ticker := time.NewTicker(duration)
@@ -78,33 +99,29 @@ func (pfcpPathManager *PfcpPathManager) ScheduleAssociationSetupRequest(duration
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				pfcpPathManager.peers[associationAddr] += 1
-				SendAssociationSetupRequest(conn, pfcpPathManager.peers[associationAddr], associationAddr)
+				pfcpPathManager.servers[associationAddr] += 1
+				pfcpPathManager.sendAssociationSetupRequest(pfcpPathManager.servers[associationAddr], associationAddr)
 			}
 		}
 	}(ctx, duration)
 	return cancel
 }
 
-func SendAssociationSetupRequest(conn *PfcpConnection, sequenceID uint32, associationAddr string) {
-	asreq := message.NewAssociationSetupRequest(sequenceID,
+func (pfcpPathManager *PfcpPathManager) sendAssociationSetupRequest(sequenceID uint32, associationAddr string) {
+	conn := pfcpPathManager.conn
+	AssociationSetupRequest := message.NewAssociationSetupRequest(sequenceID,
 		newIeNodeID(conn.nodeId),
 		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
-		ie.NewUPFunctionFeatures(), // information of all supported optional features in the UP function; We don't support any optional features at the moment
-		// 0x41 = Spare (0) | Assoc Src Inst (0) | Assoc Net Inst (0) | Teid Range (000) | IPV6 (0) | IPV4 (1)
-		//      = 00000001
-		// If both the ASSONI and ASSOSI flags are set to "0", this shall indicate that the User Plane IP Resource Information
-		// provided can be used by CP function for any Network Instance and any Source Interface of GTP-U user plane in the UP
-		// function.
-		ie.NewUserPlaneIPResourceInformation(0x1, 0, config.Conf.PfcpNodeId, "", "", 0),
+		ie.NewUPFunctionFeatures(conn.featuresOctets[:]...),
 	)
 	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
+
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err != nil {
 		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", associationAddr, err.Error())
 		return
 	}
-	if err := conn.SendMessage(asreq, udpAddr); err != nil {
+	if err := conn.SendMessage(AssociationSetupRequest, udpAddr); err != nil {
 		log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
 	}
 }
