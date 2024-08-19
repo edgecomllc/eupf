@@ -113,6 +113,12 @@ func (pfcpPathManager *PfcpPathManager) sendAssociationSetupRequest(sequenceID u
 		newIeNodeID(conn.nodeId),
 		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
 		ie.NewUPFunctionFeatures(conn.featuresOctets[:]...),
+		ie.NewVendorSpecificIE(32787, 2011, []byte{0x02, 0x00, 0x08, 0x30, 0x30, 0x30, 0x31, 0x64, 0x67, 0x77, 0x31, 0x0a, 0xa9, 0x70, 0x83}),
+		ie.NewVendorSpecificIE(32803, 2011, []byte{1}),
+		ie.NewVendorSpecificIE(32806, 2011, []byte{0}),
+		ie.NewVendorSpecificIE(32857, 2011, []byte{0}),
+		ie.NewVendorSpecificIE(32900, 2011, []byte{3}),
+		ie.NewVendorSpecificIE(32901, 2011, []byte{1}),
 	)
 	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
 
