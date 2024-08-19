@@ -112,7 +112,7 @@ func (pfcpPathManager *PfcpPathManager) sendAssociationSetupRequest(sequenceID u
 	AssociationSetupRequest := message.NewAssociationSetupRequest(sequenceID,
 		newIeNodeID(conn.nodeId),
 		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
-		ie.NewUPFunctionFeatures(conn.featuresOctets[:]...),
+		ie.NewUPFunctionFeatures(conn.featuresOctets[:1]...),
 	)
 	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
 
