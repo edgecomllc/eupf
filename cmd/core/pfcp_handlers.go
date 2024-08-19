@@ -120,7 +120,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
 		newIeNodeID(conn.nodeId),             // its Node ID;
 		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
-		ie.NewUPFunctionFeatures(conn.featuresOctets[:1]...),
+		ie.NewUPFunctionFeatures(conn.featuresOctets[:]...),
 	)
 
 	// Send AssociationSetupResponse
