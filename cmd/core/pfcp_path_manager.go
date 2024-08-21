@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/edgecomllc/eupf/cmd/config"
@@ -107,14 +108,62 @@ func (pfcpPathManager *PfcpPathManager) scheduleAssociationSetupRequest(duration
 	return cancel
 }
 
+func EncodeFQDN(fqdn string) []byte {
+	b := make([]byte, len(fqdn) /*+1*/)
+
+	var offset = 0
+	for _, label := range strings.Split(fqdn, ".") {
+		l := len(label)
+		//b[offset] = uint8(l)
+		copy(b[offset: /*+1*/], label)
+		offset += l /*+ 1*/
+	}
+
+	return b
+}
+
+func NewNodeIDHuawei(ipv4, ipv6, fqdn string) *ie.IE {
+	var p []byte
+
+	switch {
+	case ipv4 != "":
+		p = make([]byte, 5)
+		p[0] = ie.NodeIDIPv4Address
+		copy(p[1:], net.ParseIP(ipv4).To4())
+	case ipv6 != "":
+		p = make([]byte, 17)
+		p[0] = ie.NodeIDIPv6Address
+		copy(p[1:], net.ParseIP(ipv6).To16())
+	case fqdn != "":
+		p = make([]byte, 2+len([]byte(fqdn)))
+		p[0] = ie.NodeIDFQDN
+		copy(p[1:], EncodeFQDN(fqdn))
+	default: // all params are empty
+		return nil
+	}
+
+	return ie.New(ie.NodeID, p)
+}
+
+func newIeNodeIDHuawei(nodeID string) *ie.IE {
+	ip := net.ParseIP(nodeID)
+	if ip != nil {
+		if ip.To4() != nil {
+			return NewNodeIDHuawei(nodeID, "", "")
+		}
+		return NewNodeIDHuawei("", nodeID, "")
+	}
+	return NewNodeIDHuawei("", "", nodeID)
+}
+
 func (pfcpPathManager *PfcpPathManager) sendAssociationSetupRequest(sequenceID uint32, associationAddr string) {
 	conn := pfcpPathManager.conn
 
 	AssociationSetupRequest := message.NewAssociationSetupRequest(sequenceID,
-		newIeNodeID(conn.nodeId),
+		newIeNodeIDHuawei(conn.nodeId),
 		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
 		ie.NewUPFunctionFeatures(conn.featuresOctets[:]...),
-		ie.NewVendorSpecificIE(32787, 2011, []byte{0x02, 0x00, 0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34, conn.n3Address[0], conn.n3Address[1], conn.n3Address[2], conn.n3Address[3]}),
+		ie.NewVendorSpecificIE(32787, 2011, []byte{0x02, 0x00, 0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34, conn.n3Address.To4()[0], conn.n3Address.To4()[1], conn.n3Address.To4()[2], conn.n3Address.To4()[3]}),
 		//CHOICE
 		//	user-plane-element-weight
 		//		enterprise-id: ---- 0x7db(2011)
