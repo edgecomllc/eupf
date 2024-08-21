@@ -55,10 +55,16 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 	log.Info().Msgf("Starting PFCP connection: %v with Node ID: %v and N3 address: %v", udpAddr, nodeId, n3Addr)
 
 	//featuresOctets := []uint8{0, 0, 0}
-	featuresOctets := []uint8{0}
-	if config.Conf.FeatureFTUP {
-		featuresOctets[0] = setBit(featuresOctets[0], 4)
-	}
+	featuresOctets := []uint8{0, 0}
+	featuresOctets[0] = setBit(featuresOctets[0], 1)
+	featuresOctets[0] = setBit(featuresOctets[0], 2)
+	featuresOctets[0] = setBit(featuresOctets[0], 6)
+	featuresOctets[0] = setBit(featuresOctets[0], 7)
+
+	featuresOctets[1] = setBit(featuresOctets[1], 0)
+	//if config.Conf.FeatureFTUP {
+	//	featuresOctets[0] = setBit(featuresOctets[0], 4)
+	//}
 	//if config.Conf.FeatureUEIP {
 	//	featuresOctets[2] = setBit(featuresOctets[2], 2)
 	//}

@@ -109,15 +109,38 @@ func (pfcpPathManager *PfcpPathManager) scheduleAssociationSetupRequest(duration
 
 func (pfcpPathManager *PfcpPathManager) sendAssociationSetupRequest(sequenceID uint32, associationAddr string) {
 	conn := pfcpPathManager.conn
+
 	AssociationSetupRequest := message.NewAssociationSetupRequest(sequenceID,
 		newIeNodeID(conn.nodeId),
 		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
 		ie.NewUPFunctionFeatures(conn.featuresOctets[:]...),
-		ie.NewVendorSpecificIE(32787, 2011, []byte{0x02, 0x00, 0x08, 0x30, 0x30, 0x30, 0x31, 0x64, 0x67, 0x77, 0x31, 0x0a, 0xa9, 0x70, 0x83}),
+		ie.NewVendorSpecificIE(32787, 2011, []byte{0x02, 0x00, 0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34, conn.n3Address[0], conn.n3Address[1], conn.n3Address[2], conn.n3Address[3]}),
+		//CHOICE
+		//	user-plane-element-weight
+		//		enterprise-id: ---- 0x7db(2011)
+		//		weight-value: ---- 0x1(1)
 		ie.NewVendorSpecificIE(32803, 2011, []byte{1}),
+		//CHOICE
+		//	lock-information
+		//		enterprise-id: ---- 0x7db(2011)
+		//		lock-information-value: ---- 0x0(0)
 		ie.NewVendorSpecificIE(32806, 2011, []byte{0}),
+		//CHOICE
+		//	apn-support-mode
+		//		enterprise-id: ---- 0x7db(2011)
+		//		apn-support-mode-value: ---- 0x0(0)
 		ie.NewVendorSpecificIE(32857, 2011, []byte{0}),
+		//CHOICE
+		//	sx-uf-flag
+		//		enterprise-id: ---- 0x7db(2011)
+		//		spare: ---- 0x0(0)
+		//		nb-iot-value: ---- 0x1(1)
+		//		dual-connectivity-with-nr-value: ---- 0x1(1)
 		ie.NewVendorSpecificIE(32900, 2011, []byte{3}),
+		//CHOICE
+		//	high-bandwidth
+		//		enterprise-id: ---- 0x7db(2011)
+		//		high-bandwidth-value: ---- 0x1(1)
 		ie.NewVendorSpecificIE(32901, 2011, []byte{1}),
 	)
 	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
