@@ -135,7 +135,7 @@ func NewNodeIDHuawei(ipv4, ipv6, fqdn string) *ie.IE {
 		p[0] = ie.NodeIDIPv6Address
 		copy(p[1:], net.ParseIP(ipv6).To16())
 	case fqdn != "":
-		p = make([]byte, 2+len([]byte(fqdn)))
+		p = make([]byte, 1+len([]byte(fqdn)))
 		p[0] = ie.NodeIDFQDN
 		copy(p[1:], EncodeFQDN(fqdn))
 	default: // all params are empty
