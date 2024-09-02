@@ -96,6 +96,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}
+	pfcpConn.SetRemoteNodes(config.Conf.PfcpRemoteNode)
 	go pfcpConn.Run()
 	defer pfcpConn.Close()
 
@@ -131,13 +132,6 @@ func main() {
 	}
 	gtpPathManager.Run()
 	defer gtpPathManager.Stop()
-
-	pfcpPathManager := core.NewPfcpPathManager(pfcpConn, config.Conf.PfcpAddress, time.Duration(config.Conf.HeartbeatInterval)*time.Second)
-	for _, peer := range config.Conf.PfcpRemoteNode {
-		pfcpPathManager.AddPfcpServer(peer)
-	}
-	pfcpPathManager.Run()
-	defer pfcpPathManager.Stop()
 
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)

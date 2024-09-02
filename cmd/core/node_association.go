@@ -17,7 +17,6 @@ type NodeAssociation struct {
 	NextSequenceID   uint32
 	Sessions         map[uint64]*Session
 	HeartbeatChannel chan uint32
-	FailedHeartbeats uint32
 	HeartbeatsActive bool
 	sync.Mutex
 	// AssociationStart time.Time // Held until propper failure detection is implemented
@@ -41,29 +40,34 @@ func (association *NodeAssociation) NewLocalSEID() uint64 {
 }
 
 func (association *NodeAssociation) NewSequenceID() uint32 {
+	association.Lock()
+	defer association.Unlock()
+
 	association.NextSequenceID += 1
 	return association.NextSequenceID
 }
 
 func (association *NodeAssociation) ScheduleHeartbeat(conn *PfcpConnection) {
-	association.HeartbeatsActive = true
 	ctx := context.Background()
+	failedHeartbeats := uint32(0)
 
 	for {
 		sequence := association.NewSequenceID()
 		SendHeartbeatRequest(conn, sequence, association.Addr)
 
+		heartbeatTimeout := time.NewTimer(time.Duration(config.Conf.HeartbeatTimeout) * time.Second)
 		select {
-		case <-time.After(time.Duration(config.Conf.HeartbeatTimeout) * time.Second):
-			if !association.HandleHeartbeatTimeout() {
+		case <-heartbeatTimeout.C:
+			failedHeartbeats++
+			if failedHeartbeats >= config.Conf.HeartbeatRetries {
 				log.Warn().Msgf("the number of unanswered heartbeats has reached the limit, association deleted: %s", association.Addr)
-				close(association.HeartbeatChannel)
-				conn.DeleteAssociation(association.Addr)
+				conn.heartbeatFailedC <- association.Addr
 				return
 			}
 		case seq := <-association.HeartbeatChannel:
 			if sequence == seq {
-				association.ResetFailedHeartbeats()
+				heartbeatTimeout.Stop()
+				failedHeartbeats = 0
 				<-time.After(time.Duration(config.Conf.HeartbeatInterval) * time.Second)
 			}
 		case <-ctx.Done():
@@ -73,25 +77,6 @@ func (association *NodeAssociation) ScheduleHeartbeat(conn *PfcpConnection) {
 	}
 }
 
-func (association *NodeAssociation) ResetFailedHeartbeats() {
-	association.Lock()
-	association.FailedHeartbeats = 0
-	association.Unlock()
-}
-
-func (association *NodeAssociation) HandleHeartbeatTimeout() bool {
-	association.Lock()
-	defer association.Unlock()
-
-	association.FailedHeartbeats++
-	return association.FailedHeartbeats < config.Conf.HeartbeatRetries
-}
-
 func (association *NodeAssociation) HandleHeartbeat(sequence uint32) {
-	association.Lock()
-	defer association.Unlock()
-
-	if association.HeartbeatChannel != nil {
-		association.HeartbeatChannel <- sequence
-	}
+	association.HeartbeatChannel <- sequence
 }

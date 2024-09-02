@@ -6,12 +6,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core/service"
 
-	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 
+	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -27,6 +28,8 @@ type PfcpConnection struct {
 	RecoveryTimestamp time.Time
 	featuresOctets    []uint8
 	ResourceManager   *service.ResourceManager
+	heartbeatFailedC  chan string
+	nodes             []string
 }
 
 func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
@@ -54,20 +57,20 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 	}
 	log.Info().Msgf("Starting PFCP connection: %v with Node ID: %v and N3 address: %v", udpAddr, nodeId, n3Addr)
 
-	//featuresOctets := []uint8{0, 0, 0}
-	featuresOctets := []uint8{0, 0}
-	featuresOctets[0] = setBit(featuresOctets[0], 1)
-	featuresOctets[0] = setBit(featuresOctets[0], 2)
-	featuresOctets[0] = setBit(featuresOctets[0], 6)
-	featuresOctets[0] = setBit(featuresOctets[0], 7)
+	featuresOctets := []uint8{0, 0, 0}
+	// featuresOctets := []uint8{0, 0}
+	// featuresOctets[0] = setBit(featuresOctets[0], 1)
+	// featuresOctets[0] = setBit(featuresOctets[0], 2)
+	// featuresOctets[0] = setBit(featuresOctets[0], 6)
+	// featuresOctets[0] = setBit(featuresOctets[0], 7)
 
 	featuresOctets[1] = setBit(featuresOctets[1], 0)
-	//if config.Conf.FeatureFTUP {
-	//	featuresOctets[0] = setBit(featuresOctets[0], 4)
-	//}
-	//if config.Conf.FeatureUEIP {
-	//	featuresOctets[2] = setBit(featuresOctets[2], 2)
-	//}
+	if config.Conf.FeatureFTUP {
+		featuresOctets[0] = setBit(featuresOctets[0], 4)
+	}
+	if config.Conf.FeatureUEIP {
+		featuresOctets[2] = setBit(featuresOctets[2], 2)
+	}
 
 	return &PfcpConnection{
 		udpConn:           udpConn,
@@ -81,26 +84,40 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 		RecoveryTimestamp: time.Now(),
 		featuresOctets:    featuresOctets,
 		ResourceManager:   resourceManager,
+		heartbeatFailedC:  make(chan string),
+		nodes:             []string{},
 	}, nil
 }
 
+func (connection *PfcpConnection) SetRemoteNodes(nodes []string) {
+	connection.nodes = nodes
+}
+
 func (connection *PfcpConnection) Run() {
-	go func() {
-		for {
-			connection.RefreshAssociations()
-			time.Sleep(time.Duration(config.Conf.HeartbeatInterval) * time.Second)
-		}
-	}()
+
+	ticker := time.NewTicker(time.Duration(config.Conf.AssociationSetupTimeout) * time.Second)
 	buf := make([]byte, 1500)
+
 	for {
-		n, addr, err := connection.Receive(buf)
-		if err != nil {
-			log.Warn().Msgf("Error reading from UDP socket: %s", err.Error())
-			time.Sleep(1 * time.Second)
-			continue
+		select {
+		case <-ticker.C:
+			connection.RefreshAssociations()
+		case associationAddr := <-connection.heartbeatFailedC:
+			connection.DeleteAssociation(associationAddr)
+		default:
+			connection.udpConn.SetReadDeadline(time.Now().Add(time.Second))
+			n, addr, err := connection.Receive(buf)
+			if err != nil {
+				if err.(*net.OpError).Timeout() {
+					continue
+				}
+				log.Warn().Msgf("Error reading from UDP socket: %s", err.Error())
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			log.Debug().Msgf("Received %d bytes from %s", n, addr)
+			connection.Handle(buf[:n], addr)
 		}
-		log.Debug().Msgf("Received %d bytes from %s", n, addr)
-		connection.Handle(buf[:n], addr)
 	}
 }
 
@@ -137,9 +154,9 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 }
 
 func (connection *PfcpConnection) RefreshAssociations() {
-	for _, assoc := range connection.NodeAssociations {
-		if !assoc.HeartbeatsActive {
-			go assoc.ScheduleHeartbeat(connection)
+	for _, node := range connection.nodes {
+		if connection.GetAssociation(node) == nil {
+			connection.sendAssociationSetupRequest(node)
 		}
 	}
 }
@@ -192,5 +209,52 @@ func (connection *PfcpConnection) ReleaseResources(seID uint64) {
 
 	if connection.ResourceManager.FTEIDM != nil {
 		connection.ResourceManager.FTEIDM.ReleaseTEID(seID)
+	}
+}
+
+func (connection *PfcpConnection) sendAssociationSetupRequest(associationAddr string) {
+
+	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
+		newIeNodeIDHuawei(connection.nodeId),
+		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
+		ie.NewUPFunctionFeatures(connection.featuresOctets[:]...),
+		ie.NewVendorSpecificIE(32787, 2011, []byte{0x02, 0x00, 0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34, connection.n3Address.To4()[0], connection.n3Address.To4()[1], connection.n3Address.To4()[2], connection.n3Address.To4()[3]}),
+		//CHOICE
+		//	user-plane-element-weight
+		//		enterprise-id: ---- 0x7db(2011)
+		//		weight-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32803, 2011, []byte{1}),
+		//CHOICE
+		//	lock-information
+		//		enterprise-id: ---- 0x7db(2011)
+		//		lock-information-value: ---- 0x0(0)
+		ie.NewVendorSpecificIE(32806, 2011, []byte{0}),
+		//CHOICE
+		//	apn-support-mode
+		//		enterprise-id: ---- 0x7db(2011)
+		//		apn-support-mode-value: ---- 0x0(0)
+		ie.NewVendorSpecificIE(32857, 2011, []byte{0}),
+		//CHOICE
+		//	sx-uf-flag
+		//		enterprise-id: ---- 0x7db(2011)
+		//		spare: ---- 0x0(0)
+		//		nb-iot-value: ---- 0x1(1)
+		//		dual-connectivity-with-nr-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32900, 2011, []byte{3}),
+		//CHOICE
+		//	high-bandwidth
+		//		enterprise-id: ---- 0x7db(2011)
+		//		high-bandwidth-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32901, 2011, []byte{1}),
+	)
+	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
+
+	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
+	if err != nil {
+		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", associationAddr, err.Error())
+		return
+	}
+	if err := connection.SendMessage(AssociationSetupRequest, udpAddr); err != nil {
+		log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
 	}
 }

@@ -98,22 +98,23 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	// proceed with establishing the new PFCP association (regardless of the Recovery AssociationStart received in the request), overwriting the existing association;
 	// if the request is accepted:
 	// shall store the Node ID of the CP function as the identifier of the PFCP association;
-	// Create RemoteNode from AssociationSetupRequest
-	remoteNode := NewNodeAssociation(remoteNodeID, addr)
 
 	// Check if the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
 	conn.associationMutex.Lock()
+	defer conn.associationMutex.Unlock()
 	if _, ok := conn.NodeAssociations[addr]; ok {
 		log.Warn().Msgf("Association with NodeID: %s and address: %s already exists", remoteNodeID, addr)
 		// retain the PFCP sessions that were established with the existing PFCP association and that are requested to be retained, if the PFCP Session Retention Information IE was received in the request; otherwise, delete the PFCP sessions that were established with the existing PFCP association;
-		log.Warn().Msg("Session retention is not yet implemented")
+		//log.Warn().Msg("Session retention is not yet implemented")
+	} else {
+		// Create RemoteNode from AssociationSetupRequest
+		remoteNode := NewNodeAssociation(remoteNodeID, addr)
+		// Add or replace RemoteNode to NodeAssociationMap
+		conn.NodeAssociations[addr] = remoteNode
+
+		log.Info().Msgf("Saving new association: %+v", remoteNode)
+		go remoteNode.ScheduleHeartbeat(conn)
 	}
-
-	// Add or replace RemoteNode to NodeAssociationMap
-	conn.NodeAssociations[addr] = remoteNode
-	conn.associationMutex.Unlock()
-
-	log.Info().Msgf("Saving new association: %+v", remoteNode)
 
 	// shall send a PFCP Association Setup Response including:
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
@@ -194,13 +195,16 @@ func HandlePfcpAssociationSetupResponse(conn *PfcpConnection, msg message.Messag
 	if _, ok := conn.NodeAssociations[addr]; ok {
 		log.Warn().Msgf("Association with NodeID: %s and address: %s already exists", remoteNodeID, addr)
 		// retain the PFCP sessions that were established with the existing PFCP association and that are requested to be retained, if the PFCP Session Retention Information IE was received in the request; otherwise, delete the PFCP sessions that were established with the existing PFCP association;
-		log.Warn().Msg("Session retention is not yet implemented")
+		//log.Warn().Msg("Session retention is not yet implemented")
+	} else {
+		// Create RemoteNode from AssociationSetupResponse
+		remoteNode := NewNodeAssociation(remoteNodeID, addr)
+		// Add or replace RemoteNode to NodeAssociationMap
+		conn.NodeAssociations[addr] = remoteNode
+		log.Info().Msgf("Saving new association: %+v", remoteNode)
+
+		go remoteNode.ScheduleHeartbeat(conn)
 	}
 
-	// Create RemoteNode from AssociationSetupResponse
-	remoteNode := NewNodeAssociation(remoteNodeID, addr)
-	// Add or replace RemoteNode to NodeAssociationMap
-	conn.NodeAssociations[addr] = remoteNode
-	log.Info().Msgf("Saving new association: %+v", remoteNode)
 	return nil, nil
 }
