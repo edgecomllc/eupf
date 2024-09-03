@@ -17,6 +17,8 @@ type UpfConfig struct {
 	PfcpAddress             string   `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
 	PfcpNodeId              string   `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
 	PfcpRemoteNode          []string `mapstructure:"pfcp_remote_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
+	SxaRemoteNode           []string `mapstructure:"sxa_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxa_node"`
+	SxbRemoteNode           []string `mapstructure:"sxb_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxb_node"`
 	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
 	MetricsAddress          string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
 	N3Address               string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
@@ -61,6 +63,8 @@ func init() {
 	pflag.String("ueippool", "10.60.0.0/24", "IP pool for UEIP feature")
 	pflag.Uint32("teidpool", 65535, "TEID pool for FTUP feature")
 	pflag.StringArray("pfcprnode", []string{}, "Address of remote PFCP node")
+	pflag.StringArray("sxanode", []string{}, "Address of remote Sxa node")
+	pflag.StringArray("sxbnode", []string{}, "Address of remote Sxb node")
 	pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
 	pflag.Parse()
 
@@ -71,6 +75,8 @@ func init() {
 	_ = v.BindPFlag("pfcp_address", pflag.Lookup("paddr"))
 	_ = v.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
 	_ = v.BindPFlag("pfcp_remote_node", pflag.Lookup("pfcprnode"))
+	_ = v.BindPFlag("sxa_remote_node", pflag.Lookup("sxanode"))
+	_ = v.BindPFlag("sxb_remote_node", pflag.Lookup("sxbnode"))
 	_ = v.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
 	_ = v.BindPFlag("metrics_address", pflag.Lookup("maddr"))
 	_ = v.BindPFlag("n3_address", pflag.Lookup("n3addr"))

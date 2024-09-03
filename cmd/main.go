@@ -19,7 +19,6 @@ import (
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/wmnsk/go-pfcp/message"
 )
 
 //go:generate swag init --parseDependency --parseInternal --parseDepth 1 -g api/rest/handler.go
@@ -82,21 +81,22 @@ func main() {
 	}
 
 	// Create PFCP connection
-	var pfcpHandlers = core.PfcpHandlerMap{
-		message.MsgTypeHeartbeatRequest:            core.HandlePfcpHeartbeatRequest,
-		message.MsgTypeHeartbeatResponse:           core.HandlePfcpHeartbeatResponse,
-		message.MsgTypeAssociationSetupRequest:     core.HandlePfcpAssociationSetupRequest,
-		message.MsgTypeAssociationSetupResponse:    core.HandlePfcpAssociationSetupResponse,
-		message.MsgTypeSessionEstablishmentRequest: core.HandlePfcpSessionEstablishmentRequest,
-		message.MsgTypeSessionDeletionRequest:      core.HandlePfcpSessionDeletionRequest,
-		message.MsgTypeSessionModificationRequest:  core.HandlePfcpSessionModificationRequest,
-	}
-
-	pfcpConn, err := core.CreatePfcpConnection(config.Conf.PfcpAddress, pfcpHandlers, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects, resourceManager)
+	pfcpConn, err := core.NewPfcpConnection(config.Conf.PfcpAddress, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects, resourceManager)
 	if err != nil {
 		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}
-	pfcpConn.SetRemoteNodes(config.Conf.PfcpRemoteNode)
+
+	remoteNodes := []core.AssociationConnector{}
+	for _, remoteNode := range config.Conf.PfcpRemoteNode {
+		remoteNodes = append(remoteNodes, core.NewDefaultAssociationConnector(remoteNode))
+	}
+	for _, remoteNode := range config.Conf.SxaRemoteNode {
+		remoteNodes = append(remoteNodes, core.NewSxaAssociationConnector(remoteNode))
+	}
+	for _, remoteNode := range config.Conf.SxaRemoteNode {
+		remoteNodes = append(remoteNodes, core.NewSxbAssociationConnector(remoteNode))
+	}
+	pfcpConn.SetRemoteNodes(remoteNodes)
 	go pfcpConn.Run()
 	defer pfcpConn.Close()
 
