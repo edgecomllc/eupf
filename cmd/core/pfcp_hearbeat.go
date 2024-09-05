@@ -40,7 +40,7 @@ func HandlePfcpHeartbeatResponse(conn *PfcpConnection, msg message.Message, addr
 }
 
 func SendHeartbeatRequest(conn *PfcpConnection, sequenceID uint32, associationAddr string) {
-	hbreq := message.NewHeartbeatRequest(sequenceID, ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp), nil)
+	hbreq := message.NewHeartbeatRequest(sequenceID, ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp), nil, ie.NewMetric(25))
 	log.Debug().Msgf("Sent Heartbeat Request to: %s", associationAddr)
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err == nil {
