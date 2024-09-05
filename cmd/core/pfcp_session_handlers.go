@@ -469,7 +469,8 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarI
 		if outerHeaderCreationIndex == -1 {
 			log.Info().Msg("WARN: No OuterHeaderCreation")
 		} else {
-			outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
+			//outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
+			outerHeaderCreation, _ := HuaweiOuterHeaderCreation(forward[outerHeaderCreationIndex])
 			farInfo.OuterHeaderCreation = uint8(outerHeaderCreation.OuterHeaderCreationDescription >> 8)
 			farInfo.Teid = outerHeaderCreation.TEID
 			if outerHeaderCreation.HasIPv4() {

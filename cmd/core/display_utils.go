@@ -265,7 +265,8 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Network Instance: %s ", networkInstance), 3)
 			}
-			outerHeaderCreation, err := forwardingParameter.OuterHeaderCreation()
+			//outerHeaderCreation, err := forwardingParameter.OuterHeaderCreation()
+			outerHeaderCreation, err := HuaweiOuterHeaderCreation(forwardingParameter)
 			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation), 3)
 			}
@@ -287,7 +288,8 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Network Instance: %s ", networkInstance), 3)
 			}
-			outerHeaderCreation, err := updateForwardingParameter.OuterHeaderCreation()
+			//outerHeaderCreation, err := updateForwardingParameter.OuterHeaderCreation()
+			outerHeaderCreation, err := HuaweiOuterHeaderCreation(updateForwardingParameter)
 			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation), 3)
 			}
