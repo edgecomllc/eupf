@@ -90,12 +90,6 @@ func main() {
 	for _, remoteNode := range config.Conf.PfcpRemoteNode {
 		remoteNodes = append(remoteNodes, core.NewDefaultAssociationConnector(remoteNode))
 	}
-	for _, remoteNode := range config.Conf.SxaRemoteNode {
-		remoteNodes = append(remoteNodes, core.NewSxaAssociationConnector(remoteNode))
-	}
-	for _, remoteNode := range config.Conf.SxbRemoteNode {
-		remoteNodes = append(remoteNodes, core.NewSxbAssociationConnector(remoteNode))
-	}
 	pfcpConn.SetRemoteNodes(remoteNodes)
 	go pfcpConn.Run()
 	defer pfcpConn.Close()

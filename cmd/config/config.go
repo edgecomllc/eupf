@@ -17,8 +17,6 @@ type UpfConfig struct {
 	PfcpAddress             string   `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
 	PfcpNodeId              string   `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
 	PfcpRemoteNode          []string `mapstructure:"pfcp_remote_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
-	SxaRemoteNode           []string `mapstructure:"sxa_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxa_node"`
-	SxbRemoteNode           []string `mapstructure:"sxb_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxb_node"`
 	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
 	MetricsAddress          string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
 	N3Address               string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
