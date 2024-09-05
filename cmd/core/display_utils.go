@@ -34,6 +34,17 @@ func printAssociationSetupRequest(req *message.AssociationSetupRequest) {
 	log.Info().Msg(sb.String())
 }
 
+func printAssociationUpdateRequest(req *message.AssociationUpdateRequest) {
+	var sb strings.Builder
+	sb.WriteString("\n")
+	writeLineTabbed(&sb, "Association Update Request:", 0)
+	nodeId, err := req.NodeID.NodeID()
+	if err == nil {
+		writeLineTabbed(&sb, fmt.Sprintf("Node ID: %s", nodeId), 1)
+	}
+	log.Info().Msg(sb.String())
+}
+
 func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
