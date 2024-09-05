@@ -16,9 +16,9 @@ type NodeAssociation struct {
 	NextSessionID    uint64
 	NextSequenceID   uint32
 	Sessions         map[uint64]*Session
-	HeartbeatChannel chan uint32
+	HeartbeatChannel chan uint32 `json:"-"`
 	HeartbeatsActive bool
-	sync.Mutex
+	sync.Mutex       `json:"-"`
 	// AssociationStart time.Time // Held until propper failure detection is implemented
 }
 

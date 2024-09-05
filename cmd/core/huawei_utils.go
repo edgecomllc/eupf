@@ -288,6 +288,36 @@ func ParseOuterHeaderCreationFields(b []byte) (*OuterHeaderCreationFields, error
 	return f, nil
 }
 
+// ..................forwarding-parameters
+// ....................CHOICE
+// ......................destination-interface
+// 294>   00   0000****   ........................spare --- 0x0(0)
+// ****0000   ........................interface-value --- access(0)
+// ....................CHOICE
+// ......................outer-header-creation
+// 299>   00   00000000   ........................outer-header-creation --- gtpu-udp-ipv4(0)
+// 300>   02   00000010
+// 301>   44   01000100
+// 302>   09   00001001
+// 303>   C0   11000000   ........................teid --- 0x24409c0(38013376)
+// ........................ipv4-address
+// 304>   0A   00001010   ..........................uladdr1 --- 0xa(10)
+// 305>   A9   10101001   ..........................uladdr2 --- 0xa9(169)
+// 306>   70   01110000   ..........................uladdr3 --- 0x70(112)
+// 307>   91   10010001   ..........................uladdr4 --- 0x91(145)
+
+// update-forwarding-parameters
+// CHOICE
+//    outer-header-creation
+// 	  length: ---- 0x9(9)
+// 	  outer-header-creation-old-version: ---- gtpu-udp-ipv4(0)
+// 	  teid: ---- 0xca632b5(212218549)
+// 	  ipv4-address
+// 		 uladdr1: ---- 0xa(10)
+// 		 uladdr2: ---- 0xa9(169)
+// 		 uladdr3: ---- 0xfa(250)
+// 		 uladdr4: ---- 0x2e(46)
+
 func HuaweiOuterHeaderCreation(i *ie.IE) (*OuterHeaderCreationFields, error) {
 	switch i.Type {
 	case ie.OuterHeaderCreation:
