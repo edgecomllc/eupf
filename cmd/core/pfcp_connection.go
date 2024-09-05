@@ -3,27 +3,48 @@ package core
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core/service"
 
-	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 
+	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
+
+type AssociationConnector interface {
+	getAddress() string
+	sendAssociationSetupRequest(connection *PfcpConnection)
+}
+
+var pfcpHandlers = PfcpHandlerMap{
+	message.MsgTypeHeartbeatRequest:            HandlePfcpHeartbeatRequest,
+	message.MsgTypeHeartbeatResponse:           HandlePfcpHeartbeatResponse,
+	message.MsgTypeAssociationSetupRequest:     HandlePfcpAssociationSetupRequest,
+	message.MsgTypeAssociationSetupResponse:    HandlePfcpAssociationSetupResponse,
+	message.MsgTypeSessionEstablishmentRequest: HandlePfcpSessionEstablishmentRequest,
+	message.MsgTypeSessionDeletionRequest:      HandlePfcpSessionDeletionRequest,
+	message.MsgTypeSessionModificationRequest:  HandlePfcpSessionModificationRequest,
+}
 
 type PfcpConnection struct {
 	udpConn           *net.UDPConn
 	pfcpHandlerMap    PfcpHandlerMap
+	associationMutex  *sync.Mutex
 	NodeAssociations  map[string]*NodeAssociation
 	nodeId            string
 	nodeAddrV4        net.IP
 	n3Address         net.IP
 	mapOperations     ebpf.ForwardingPlaneController
 	RecoveryTimestamp time.Time
+	featuresOctets    []uint8
 	ResourceManager   *service.ResourceManager
+	heartbeatFailedC  chan string
+	nodes             []AssociationConnector
 }
 
 func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
@@ -33,7 +54,7 @@ func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociat
 	return nil
 }
 
-func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager) (*PfcpConnection, error) {
+func NewPfcpConnection(addr string, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Warn().Msgf("Can't resolve UDP address: %s", err.Error())
@@ -51,36 +72,61 @@ func CreatePfcpConnection(addr string, pfcpHandlerMap PfcpHandlerMap, nodeId str
 	}
 	log.Info().Msgf("Starting PFCP connection: %v with Node ID: %v and N3 address: %v", udpAddr, nodeId, n3Addr)
 
+	featuresOctets := []uint8{0, 0, 0}
+	featuresOctets[1] = setBit(featuresOctets[1], 0)
+	if config.Conf.FeatureFTUP {
+		featuresOctets[0] = setBit(featuresOctets[0], 4)
+	}
+	if config.Conf.FeatureUEIP {
+		featuresOctets[2] = setBit(featuresOctets[2], 2)
+	}
+
 	return &PfcpConnection{
 		udpConn:           udpConn,
-		pfcpHandlerMap:    pfcpHandlerMap,
+		pfcpHandlerMap:    pfcpHandlers,
+		associationMutex:  &sync.Mutex{},
 		NodeAssociations:  map[string]*NodeAssociation{},
 		nodeId:            nodeId,
 		nodeAddrV4:        udpAddr.IP,
 		n3Address:         n3Addr,
 		mapOperations:     mapOperations,
 		RecoveryTimestamp: time.Now(),
+		featuresOctets:    featuresOctets,
 		ResourceManager:   resourceManager,
+		heartbeatFailedC:  make(chan string),
+		nodes:             []AssociationConnector{},
 	}, nil
 }
 
+func (connection *PfcpConnection) SetRemoteNodes(nodes []AssociationConnector) {
+	connection.nodes = nodes
+}
+
 func (connection *PfcpConnection) Run() {
-	go func() {
-		for {
-			connection.RefreshAssociations()
-			time.Sleep(time.Duration(config.Conf.HeartbeatInterval) * time.Second)
-		}
-	}()
+
+	ticker := time.NewTicker(time.Duration(config.Conf.AssociationSetupTimeout) * time.Second)
 	buf := make([]byte, 1500)
+
 	for {
-		n, addr, err := connection.Receive(buf)
-		if err != nil {
-			log.Warn().Msgf("Error reading from UDP socket: %s", err.Error())
-			time.Sleep(1 * time.Second)
-			continue
+		select {
+		case <-ticker.C:
+			connection.RefreshAssociations()
+		case associationAddr := <-connection.heartbeatFailedC:
+			connection.DeleteAssociation(associationAddr)
+		default:
+			_ = connection.udpConn.SetReadDeadline(time.Now().Add(time.Second))
+			n, addr, err := connection.Receive(buf)
+			if err != nil {
+				if err.(*net.OpError).Timeout() {
+					continue
+				}
+				log.Warn().Msgf("Error reading from UDP socket: %s", err.Error())
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			log.Debug().Msgf("Received %d bytes from %s", n, addr)
+			connection.Handle(buf[:n], addr)
 		}
-		log.Debug().Msgf("Received %d bytes from %s", n, addr)
-		connection.Handle(buf[:n], addr)
 	}
 }
 
@@ -117,9 +163,9 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 }
 
 func (connection *PfcpConnection) RefreshAssociations() {
-	for _, assoc := range connection.NodeAssociations {
-		if !assoc.HeartbeatsActive {
-			go assoc.ScheduleHeartbeat(connection)
+	for _, node := range connection.nodes {
+		if connection.GetAssociation(node.getAddress()) == nil {
+			node.sendAssociationSetupRequest(connection)
 		}
 	}
 }
@@ -172,5 +218,39 @@ func (connection *PfcpConnection) ReleaseResources(seID uint64) {
 
 	if connection.ResourceManager.FTEIDM != nil {
 		connection.ResourceManager.FTEIDM.ReleaseTEID(seID)
+	}
+}
+
+type DefaultAssociationConnector struct {
+	address string
+}
+
+func NewDefaultAssociationConnector(address string) *DefaultAssociationConnector {
+	return &DefaultAssociationConnector{
+		address: address,
+	}
+}
+
+func (connector *DefaultAssociationConnector) getAddress() string {
+	return connector.address
+}
+
+func (connector *DefaultAssociationConnector) sendAssociationSetupRequest(connection *PfcpConnection) {
+
+	associationAddr := connector.getAddress()
+	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
+		newIeNodeID(connection.nodeId),
+		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
+		ie.NewUPFunctionFeatures(connection.featuresOctets[:]...),
+	)
+	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
+
+	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
+	if err != nil {
+		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", associationAddr, err.Error())
+		return
+	}
+	if err := connection.SendMessage(AssociationSetupRequest, udpAddr); err != nil {
+		log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
 	}
 }

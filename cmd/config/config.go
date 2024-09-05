@@ -11,27 +11,29 @@ import (
 var v = viper.GetViper()
 
 type UpfConfig struct {
-	InterfaceName     []string `mapstructure:"interface_name" json:"interface_name"`
-	XDPAttachMode     string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload" json:"xdp_attach_mode"`
-	ApiAddress        string   `mapstructure:"api_address" validate:"hostname_port" json:"api_address"`
-	PfcpAddress       string   `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
-	PfcpNodeId        string   `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
-	MetricsAddress    string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
-	N3Address         string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
-	GtpPeer           []string `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
-	EchoInterval      uint32   `mapstructure:"echo_interval" validate:"min=1" json:"echo_interval"`
-	QerMapSize        uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
-	FarMapSize        uint32   `mapstructure:"far_map_size" validate:"min=1" json:"far_map_size"`
-	PdrMapSize        uint32   `mapstructure:"pdr_map_size" validate:"min=1" json:"pdr_map_size"`
-	EbpfMapResize     bool     `mapstructure:"resize_ebpf_maps" json:"resize_ebpf_maps"`
-	HeartbeatRetries  uint32   `mapstructure:"heartbeat_retries" json:"heartbeat_retries"`
-	HeartbeatInterval uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
-	HeartbeatTimeout  uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
-	LoggingLevel      string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
-	UEIPPool          string   `mapstructure:"ueip_pool" validate:"cidr" json:"ueip_pool"`
-	FTEIDPool         uint32   `mapstructure:"teid_pool" json:"teid_pool"`
-	FeatureUEIP       bool     `mapstructure:"feature_ueip" json:"feature_ueip"`
-	FeatureFTUP       bool     `mapstructure:"feature_ftup" json:"feature_ftup"`
+	InterfaceName           []string `mapstructure:"interface_name" json:"interface_name"`
+	XDPAttachMode           string   `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload" json:"xdp_attach_mode"`
+	ApiAddress              string   `mapstructure:"api_address" validate:"hostname_port" json:"api_address"`
+	PfcpAddress             string   `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
+	PfcpNodeId              string   `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
+	PfcpRemoteNode          []string `mapstructure:"pfcp_remote_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
+	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
+	MetricsAddress          string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
+	N3Address               string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
+	GtpPeer                 []string `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
+	GtpEchoInterval         uint32   `mapstructure:"gtp_echo_interval" validate:"min=1" json:"gtp_echo_interval"`
+	QerMapSize              uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
+	FarMapSize              uint32   `mapstructure:"far_map_size" validate:"min=1" json:"far_map_size"`
+	PdrMapSize              uint32   `mapstructure:"pdr_map_size" validate:"min=1" json:"pdr_map_size"`
+	EbpfMapResize           bool     `mapstructure:"resize_ebpf_maps" json:"resize_ebpf_maps"`
+	HeartbeatRetries        uint32   `mapstructure:"heartbeat_retries" json:"heartbeat_retries"`
+	HeartbeatInterval       uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
+	HeartbeatTimeout        uint32   `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
+	LoggingLevel            string   `mapstructure:"logging_level" validate:"required" json:"logging_level"`
+	UEIPPool                string   `mapstructure:"ueip_pool" validate:"cidr" json:"ueip_pool"`
+	FTEIDPool               uint32   `mapstructure:"teid_pool" json:"teid_pool"`
+	FeatureUEIP             bool     `mapstructure:"feature_ueip" json:"feature_ueip"`
+	FeatureFTUP             bool     `mapstructure:"feature_ftup" json:"feature_ftup"`
 }
 
 func init() {
@@ -58,6 +60,10 @@ func init() {
 	pflag.Bool("ftup", false, "Enable or disable FTUP feature")
 	pflag.String("ueippool", "10.60.0.0/24", "IP pool for UEIP feature")
 	pflag.Uint32("teidpool", 65535, "TEID pool for FTUP feature")
+	pflag.StringArray("pfcprnode", []string{}, "Address of remote PFCP node")
+	pflag.StringArray("sxanode", []string{}, "Address of remote Sxa node")
+	pflag.StringArray("sxbnode", []string{}, "Address of remote Sxb node")
+	pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -66,10 +72,14 @@ func init() {
 	_ = v.BindPFlag("api_address", pflag.Lookup("aaddr"))
 	_ = v.BindPFlag("pfcp_address", pflag.Lookup("paddr"))
 	_ = v.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
+	_ = v.BindPFlag("pfcp_remote_node", pflag.Lookup("pfcprnode"))
+	_ = v.BindPFlag("sxa_remote_node", pflag.Lookup("sxanode"))
+	_ = v.BindPFlag("sxb_remote_node", pflag.Lookup("sxbnode"))
+	_ = v.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
 	_ = v.BindPFlag("metrics_address", pflag.Lookup("maddr"))
 	_ = v.BindPFlag("n3_address", pflag.Lookup("n3addr"))
 	_ = v.BindPFlag("gtp_peer", pflag.Lookup("peer"))
-	_ = v.BindPFlag("echo_interval", pflag.Lookup("echo"))
+	_ = v.BindPFlag("gtp_echo_interval", pflag.Lookup("echo"))
 	_ = v.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
 	_ = v.BindPFlag("far_map_size", pflag.Lookup("farsize"))
 	_ = v.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
@@ -88,9 +98,10 @@ func init() {
 	v.SetDefault("api_address", ":8080")
 	v.SetDefault("pfcp_address", "127.0.0.1:8805")
 	v.SetDefault("pfcp_node_id", "127.0.0.1")
+	v.SetDefault("association_setup_timeout", 5)
 	v.SetDefault("metrics_address", ":9090")
 	v.SetDefault("n3_address", "127.0.0.1")
-	v.SetDefault("echo_interval", 10)
+	v.SetDefault("gtp_echo_interval", 10)
 	v.SetDefault("qer_map_size", 1024)
 	v.SetDefault("far_map_size", 1024)
 	v.SetDefault("pdr_map_size", 1024)

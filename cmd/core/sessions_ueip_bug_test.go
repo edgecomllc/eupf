@@ -2,7 +2,9 @@ package core
 
 import (
 	"net"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
@@ -26,9 +28,11 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 		nodeId:           "test-node",
 		mapOperations:    &mapOps,
 		pfcpHandlerMap:   pfcpHandlers,
+		associationMutex: &sync.Mutex{},
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
+		ie.NewRecoveryTimeStamp(time.Now()),
 	)
 	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
 	if err != nil {

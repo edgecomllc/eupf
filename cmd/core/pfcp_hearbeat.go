@@ -10,9 +10,6 @@ import (
 
 func HandlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	hbreq := msg.(*message.HeartbeatRequest)
-	if association := conn.GetAssociation(addr); association != nil {
-		association.ResetFailedHeartbeats()
-	}
 	ts, err := hbreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
 		log.Warn().Msgf("Got Heartbeat Request with invalid TS: %s, from: %s", err, addr)
