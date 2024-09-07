@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"io"
 	"net"
 
@@ -384,4 +385,17 @@ func HuaweiOuterHeaderCreation(i *ie.IE) (*OuterHeaderCreationFields, error) {
 	default:
 		return nil, &ie.InvalidTypeError{Type: i.Type}
 	}
+}
+
+//-----
+
+func DecodeDigitsFromBytes(buffer []byte) string {
+
+	for i := 0; i < len(buffer); i++ {
+		highNybble := (buffer[i] & 0xf0) >> 4
+		lowNybble := buffer[i] & 0x0f
+		buffer[i] = lowNybble<<4 | highNybble
+	}
+
+	return hex.EncodeToString(buffer)
 }

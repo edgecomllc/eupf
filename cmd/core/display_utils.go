@@ -45,10 +45,20 @@ func printAssociationUpdateRequest(req *message.AssociationUpdateRequest) {
 	log.Info().Msg(sb.String())
 }
 
+func GetFSEID(CPFSEID *ie.IE) uint64 {
+	if CPFSEID != nil {
+		if fseid, err := CPFSEID.FSEID(); err != nil {
+			return fseid.SEID
+		}
+	}
+	return 0
+}
+
 func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
-	writeLineTabbed(&sb, "Session Establishment Request:", 0)
+	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), GetFSEID(req.CPFSEID)), 0)
+
 	for _, pdr := range req.CreatePDR {
 		sb.WriteString("  Create")
 		displayPdr(&sb, pdr)
@@ -73,6 +83,17 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 		sb.WriteString("  Create")
 		displayBar(&sb, req.CreateBAR)
 	}
+
+	if imsiId := findEnterpriseSpecificIEindex(req.IEs, 32769, 2011); imsiId != -1 { // IE Huawei IMSI
+		imsiEncoded := req.IEs[imsiId].Payload
+		writeLineTabbed(&sb, fmt.Sprintf("IMSI: %s ", DecodeDigitsFromBytes(imsiEncoded)), 1)
+	}
+
+	if msisdnId := findEnterpriseSpecificIEindex(req.IEs, 32770, 2011); msisdnId != -1 { // IE Huawei MSISDN
+		msisdnEncoded := req.IEs[msisdnId].Payload
+		writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", DecodeDigitsFromBytes(msisdnEncoded)), 1)
+	}
+
 	log.Info().Msg(sb.String())
 }
 
@@ -80,7 +101,7 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
-	writeLineTabbed(&sb, "Session Modification Request:", 0)
+	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), GetFSEID(req.CPFSEID)), 0)
 	for _, pdr := range req.CreatePDR {
 		sb.WriteString("  Create")
 		displayPdr(&sb, pdr)
@@ -174,14 +195,24 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 			writeLineTabbed(&sb, fmt.Sprintf("BAR ID: %d ", barId), 2)
 		}
 	}
+
+	if imsiId := findEnterpriseSpecificIEindex(req.IEs, 32769, 2011); imsiId != -1 { // IE Huawei IMSI
+		imsiEncoded := req.IEs[imsiId].Payload
+		writeLineTabbed(&sb, fmt.Sprintf("IMSI: %s ", DecodeDigitsFromBytes(imsiEncoded)), 1)
+	}
+
+	if msisdnId := findEnterpriseSpecificIEindex(req.IEs, 32770, 2011); msisdnId != -1 { // IE Huawei MSISDN
+		msisdnEncoded := req.IEs[msisdnId].Payload
+		writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", DecodeDigitsFromBytes(msisdnEncoded)), 1)
+	}
+
 	log.Info().Msg(sb.String())
 }
 
 func printSessionDeleteRequest(req *message.SessionDeletionRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
-	writeLineTabbed(&sb, "Session Deletion Request:", 0)
-	writeLineTabbed(&sb, fmt.Sprintf("SEID: %d", req.SEID()), 1)
+	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), 0), 0)
 }
 
 func displayBar(sb *strings.Builder, bar *ie.IE) {

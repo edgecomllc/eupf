@@ -405,6 +405,13 @@ func findIEindex(ieArr []*ie.IE, ieType uint16) int {
 	return arrIndex
 }
 
+func findEnterpriseSpecificIEindex(ieArr []*ie.IE, ieType uint16, ieEnterpriseID uint16) int {
+	arrIndex := slices.IndexFunc(ieArr, func(ie *ie.IE) bool {
+		return ie.Type == ieType && ie.EnterpriseID == ieEnterpriseID
+	})
+	return arrIndex
+}
+
 func causeToString(cause uint8) string {
 	switch cause {
 	case ie.CauseRequestAccepted:
