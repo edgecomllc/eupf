@@ -12,6 +12,7 @@ type Session struct {
 	PDRs       map[uint32]SPDRInfo
 	FARs       map[uint32]SFarInfo
 	QERs       map[uint32]SQerInfo
+	URRs       []uint32
 }
 
 func NewSession(localSEID uint64, remoteSEID uint64) *Session {
