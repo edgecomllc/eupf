@@ -124,7 +124,9 @@ func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations
 		}
 	}
 	if spdrInfo.Teid != 0 {
-		pdrContext.ResourceManager.FTEIDM.ReleaseTEID(pdrContext.Session.RemoteSEID)
+		if pdrContext.ResourceManager != nil {
+			pdrContext.ResourceManager.FTEIDM.ReleaseTEID(pdrContext.Session.RemoteSEID)
+		}
 	}
 	return nil
 }
