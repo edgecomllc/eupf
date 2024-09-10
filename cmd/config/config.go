@@ -19,6 +19,10 @@ type UpfConfig struct {
 	PfcpRemoteNode          []string `mapstructure:"pfcp_remote_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
 	SxaRemoteNode           []string `mapstructure:"sxa_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxa_node"`
 	SxbRemoteNode           []string `mapstructure:"sxb_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxb_node"`
+	SxaLocalAddress         string   `mapstructure:"sxa_address" validate:"hostname_port" json:"sxa_address"`
+	SxbLocalAddress         string   `mapstructure:"sxb_address" validate:"hostname_port" json:"sxb_address"`
+	SxaLocalNodeId          string   `mapstructure:"sxa_node_id" validate:"omitempty,dive,hostname|ip" json:"sxa_node_id"`
+	SxbLocalNodeId          string   `mapstructure:"sxb_node_id" validate:"omitempty,dive,hostname|ip" json:"sxb_node_id"`
 	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
 	MetricsAddress          string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
 	N3Address               string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
@@ -65,6 +69,10 @@ func init() {
 	pflag.StringArray("pfcprnode", []string{}, "Address of remote PFCP node")
 	pflag.StringArray("sxanode", []string{}, "Address of remote Sxa node")
 	pflag.StringArray("sxbnode", []string{}, "Address of remote Sxb node")
+	pflag.String("sxaaddr", "127.0.0.2:8805", "Sxa Address to bind PFCP server to")
+	pflag.String("sxbaddr", "127.0.0.3:8805", "Sxb Address to bind PFCP server to")
+	pflag.String("sxanodeid", "127.0.0.2", "Sxa Server Node ID")
+	pflag.String("sxbnodeid", "127.0.0.3", "Sxb Server Node ID")
 	pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
 	pflag.Parse()
 
@@ -77,6 +85,10 @@ func init() {
 	_ = v.BindPFlag("pfcp_remote_node", pflag.Lookup("pfcprnode"))
 	_ = v.BindPFlag("sxa_remote_node", pflag.Lookup("sxanode"))
 	_ = v.BindPFlag("sxb_remote_node", pflag.Lookup("sxbnode"))
+	_ = v.BindPFlag("sxa_address", pflag.Lookup("sxaaddr"))
+	_ = v.BindPFlag("sxb_address", pflag.Lookup("sxbaddr"))
+	_ = v.BindPFlag("sxa_node_id", pflag.Lookup("sxanodeid"))
+	_ = v.BindPFlag("sxb_node_id", pflag.Lookup("sxbnodeid"))
 	_ = v.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
 	_ = v.BindPFlag("metrics_address", pflag.Lookup("maddr"))
 	_ = v.BindPFlag("n3_address", pflag.Lookup("n3addr"))

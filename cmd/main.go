@@ -85,20 +85,39 @@ func main() {
 	if err != nil {
 		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}
-
 	remoteNodes := []core.AssociationConnector{}
 	for _, remoteNode := range config.Conf.PfcpRemoteNode {
 		remoteNodes = append(remoteNodes, core.NewDefaultAssociationConnector(remoteNode))
 	}
-	for _, remoteNode := range config.Conf.SxaRemoteNode {
-		remoteNodes = append(remoteNodes, core.NewSxaAssociationConnector(remoteNode))
-	}
-	for _, remoteNode := range config.Conf.SxbRemoteNode {
-		remoteNodes = append(remoteNodes, core.NewSxbAssociationConnector(remoteNode))
-	}
 	pfcpConn.SetRemoteNodes(remoteNodes)
 	go pfcpConn.Run()
 	defer pfcpConn.Close()
+
+	// Create Sxa connection
+	sxaConn, err := core.NewPfcpConnection(config.Conf.SxaLocalAddress, config.Conf.SxaLocalNodeId, config.Conf.N3Address, bpfObjects, nil)
+	if err != nil {
+		log.Fatal().Msgf("Could not create Sxa connection: %s", err.Error())
+	}
+	sxaRemoteNodes := []core.AssociationConnector{}
+	for _, remoteNode := range config.Conf.SxaRemoteNode {
+		sxaRemoteNodes = append(remoteNodes, core.NewSxaAssociationConnector(remoteNode))
+	}
+	sxaConn.SetRemoteNodes(sxaRemoteNodes)
+	go sxaConn.Run()
+	defer sxaConn.Close()
+
+	// Create Sxb connection
+	sxbConn, err := core.NewPfcpConnection(config.Conf.SxbLocalAddress, config.Conf.SxbLocalNodeId, config.Conf.N3Address, bpfObjects, nil)
+	if err != nil {
+		log.Fatal().Msgf("Could not create Sxb connection: %s", err.Error())
+	}
+	sxbRemoteNodes := []core.AssociationConnector{}
+	for _, remoteNode := range config.Conf.SxbRemoteNode {
+		sxbRemoteNodes = append(remoteNodes, core.NewSxbAssociationConnector(remoteNode))
+	}
+	sxbConn.SetRemoteNodes(sxbRemoteNodes)
+	go sxbConn.Run()
+	defer sxbConn.Close()
 
 	ForwardPlaneStats := ebpf.UpfXdpActionStatistic{
 		BpfObjects: bpfObjects,
