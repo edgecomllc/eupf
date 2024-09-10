@@ -21,8 +21,8 @@ type UpfConfig struct {
 	SxbRemoteNode           []string `mapstructure:"sxb_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxb_node"`
 	SxaLocalAddress         string   `mapstructure:"sxa_address" validate:"hostname_port" json:"sxa_address"`
 	SxbLocalAddress         string   `mapstructure:"sxb_address" validate:"hostname_port" json:"sxb_address"`
-	SxaLocalNodeId          string   `mapstructure:"sxa_node_id" validate:"omitempty,dive,hostname|ip" json:"sxa_node_id"`
-	SxbLocalNodeId          string   `mapstructure:"sxb_node_id" validate:"omitempty,dive,hostname|ip" json:"sxb_node_id"`
+	SxaLocalNodeId          string   `mapstructure:"sxa_node_id" validate:"hostname|ip" json:"sxa_node_id"`
+	SxbLocalNodeId          string   `mapstructure:"sxb_node_id" validate:"hostname|ip" json:"sxb_node_id"`
 	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
 	MetricsAddress          string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
 	N3Address               string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
