@@ -94,6 +94,17 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				log.Error().Msgf("error extracting PDR info: %s", err.Error())
 			}
 		}
+
+		for _, urr := range req.CreateURR {
+			urrID, err := urr.URRID()
+			if err != nil {
+				log.Error().Msgf("error getting URRID: %s", err.Error())
+				continue
+			}
+			log.Info().Msgf("Received URR: %d", urrID)
+			session.URRs = append(session.URRs, urrID)
+		}
+
 		return nil
 	}()
 
@@ -160,13 +171,23 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
+
+	additionalIEs := []*ie.IE{newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRequestAccepted)}
+	for _, id := range session.URRs {
+		additionalIEs = append(additionalIEs, ie.NewUsageReportWithinSessionDeletionResponse(
+			ie.NewURRID(id),
+			ie.NewVolumeMeasurement(0x3f, 0, 0, 0, 0, 0, 0),
+		))
+	}
+
 	log.Info().Msgf("Deleting session: %d", req.SEID())
 	delete(association.Sessions, req.SEID())
 
 	conn.ReleaseResources(req.SEID())
 
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
-	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRequestAccepted)), nil
+	delResp := message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, additionalIEs...)
+	return delResp, nil
 }
 
 func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
@@ -342,6 +363,17 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 					log.Info().Msgf("Failed to remove uplink PDR: %v", err)
 				}
 			}
+		}
+
+		// TODO: Implement logic for Update URR and Remove URR
+		for _, urr := range req.CreateURR {
+			urrID, err := urr.URRID()
+			if err != nil {
+				log.Error().Msgf("error getting URRID: %s", err.Error())
+				continue
+			}
+			log.Info().Msgf("Received URR: %d", urrID)
+			session.URRs = append(session.URRs, urrID)
 		}
 
 		return nil

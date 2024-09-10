@@ -545,3 +545,45 @@ func TestUEIPInAssociationSetupResponse(t *testing.T) {
 		t.Error("UEIP is not enabled in Association Setup Response")
 	}
 }
+
+func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
+	pfcpConn, smfIP := PreparePfcpConnection(t)
+
+	estReq := message.NewSessionEstablishmentRequest(0, 0,
+		2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		ie.NewCreatePDR(
+			ie.NewPDRID(0xffff),
+		),
+		ie.NewCreateURR(
+			ie.NewURRID(0xf),
+		),
+	)
+	_, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	delReq := message.NewSessionDeletionRequest(0, 0, 2, 1, 0)
+	msg, err := HandlePfcpSessionDeletionRequest(&pfcpConn, delReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session deletion request: %s", err)
+	}
+
+	delRes := msg.(*message.SessionDeletionResponse)
+	if len(delRes.UsageReport) == 0 {
+		t.Errorf("SessionDeletionResponse doesn't contain Usage Reports")
+	}
+
+	ur := delRes.UsageReport[0]
+	urrID, _ := ur.URRID()
+	if urrID != 0xf {
+		t.Errorf("URRID not equal 0xf")
+	}
+
+	vol, _ := ur.VolumeMeasurement()
+	if vol.TotalVolume != 0 {
+		t.Errorf("TotalVolume not equal 0")
+	}
+}
