@@ -28,7 +28,7 @@ func TestDecodeDigitsFromBytes(t *testing.T) {
 
 	buffer1 := []byte{0x97, 0x89, 0x03, 0x00, 0x20, 0xf3}
 	result := DecodeDigitsFromBytes(buffer1)
-	if result != "79983000023f" {
+	if result != "79983000023" {
 		t.Errorf("error result: %s", result)
 		return
 	}
@@ -36,7 +36,7 @@ func TestDecodeDigitsFromBytes(t *testing.T) {
 
 	buffer2, _ := hex.DecodeString("52500300000020f3")
 	result = DecodeDigitsFromBytes(buffer2)
-	if result != "250530000000023f" {
+	if result != "250530000000023" {
 		t.Errorf("error result: %s", result)
 		return
 	}

@@ -47,7 +47,7 @@ func printAssociationUpdateRequest(req *message.AssociationUpdateRequest) {
 
 func GetFSEID(CPFSEID *ie.IE) uint64 {
 	if CPFSEID != nil {
-		if fseid, err := CPFSEID.FSEID(); err != nil {
+		if fseid, err := CPFSEID.FSEID(); err == nil {
 			return fseid.SEID
 		}
 	}

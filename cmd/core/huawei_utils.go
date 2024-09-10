@@ -397,5 +397,10 @@ func DecodeDigitsFromBytes(buffer []byte) string {
 		buffer[i] = lowNybble<<4 | highNybble
 	}
 
-	return hex.EncodeToString(buffer)
+	digits := hex.EncodeToString(buffer)
+	digitsLen := len(digits)
+	if digits[digitsLen-1] == 'f' {
+		return digits[:digitsLen-1]
+	}
+	return digits
 }

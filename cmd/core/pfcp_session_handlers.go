@@ -119,7 +119,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	// Send SessionEstablishmentResponse
 	estResp := message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, additionalIEs...)
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
-	log.Info().Msgf("Session Establishment Request from %s accepted.", addr)
+	log.Info().Msgf("Session Establishment Request from %s accepted. F-SEID: %#016x", addr, localSEID)
 	return estResp, nil
 }
 
