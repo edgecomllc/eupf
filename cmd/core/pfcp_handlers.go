@@ -4,6 +4,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
@@ -113,7 +114,9 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		conn.NodeAssociations[addr] = remoteNode
 
 		log.Info().Msgf("Saving new association: %+v", remoteNode)
-		go remoteNode.ScheduleHeartbeat(conn)
+		if config.Conf.HeartbeatTimeout != 0 {
+			go remoteNode.ScheduleHeartbeat(conn)
+		}
 	}
 
 	// shall send a PFCP Association Setup Response including:
@@ -203,7 +206,9 @@ func HandlePfcpAssociationSetupResponse(conn *PfcpConnection, msg message.Messag
 		conn.NodeAssociations[addr] = remoteNode
 		log.Info().Msgf("Saving new association: %+v", remoteNode)
 
-		go remoteNode.ScheduleHeartbeat(conn)
+		if config.Conf.HeartbeatTimeout != 0 {
+			go remoteNode.ScheduleHeartbeat(conn)
+		}
 	}
 
 	return nil, nil
