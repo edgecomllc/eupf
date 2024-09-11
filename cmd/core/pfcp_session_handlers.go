@@ -108,8 +108,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	conn.NodeAssociations[addr] = association
 
 	additionalIEs := []*ie.IE{
-		//newIeNodeID(conn.nodeId),
-		newIeNodeIDHuawei(conn.nodeId),
+		newIeNodeID(conn.nodeId),
 		ie.NewCause(ie.CauseRequestAccepted),
 		ie.NewFSEID(localSEID, cloneIP(conn.nodeAddrV4), nil),
 	}
@@ -167,7 +166,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	conn.ReleaseResources(req.SEID())
 
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
-	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, newIeNodeIDHuawei(conn.nodeId), ie.NewCause(ie.CauseRequestAccepted)), nil
+	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRequestAccepted)), nil
 }
 
 func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
@@ -356,7 +355,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	association.Sessions[req.SEID()] = session
 
 	additionalIEs := []*ie.IE{
-		newIeNodeIDHuawei(conn.nodeId),
+		newIeNodeID(conn.nodeId),
 		ie.NewCause(ie.CauseRequestAccepted),
 	}
 
