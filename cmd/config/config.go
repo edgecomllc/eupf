@@ -67,15 +67,12 @@ func init() {
 	pflag.String("ueippool", "10.60.0.0/24", "IP pool for UEIP feature")
 	pflag.Uint32("teidpool", 65535, "TEID pool for FTUP feature")
 	pflag.StringArray("pfcprnode", []string{}, "Address of remote PFCP node")
-<<<<<<< huawei-spgw-c-support
 	pflag.StringArray("sxanode", []string{}, "Address of remote Sxa node")
 	pflag.StringArray("sxbnode", []string{}, "Address of remote Sxb node")
 	pflag.String("sxaaddr", "127.0.0.2:8805", "Sxa Address to bind PFCP server to")
 	pflag.String("sxbaddr", "127.0.0.3:8805", "Sxb Address to bind PFCP server to")
 	pflag.String("sxanodeid", "127.0.0.2", "Sxa Server Node ID")
 	pflag.String("sxbnodeid", "127.0.0.3", "Sxb Server Node ID")
-=======
->>>>>>> main
 	pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
 	pflag.Parse()
 
@@ -86,15 +83,12 @@ func init() {
 	_ = v.BindPFlag("pfcp_address", pflag.Lookup("paddr"))
 	_ = v.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
 	_ = v.BindPFlag("pfcp_remote_node", pflag.Lookup("pfcprnode"))
-<<<<<<< huawei-spgw-c-support
 	_ = v.BindPFlag("sxa_remote_node", pflag.Lookup("sxanode"))
 	_ = v.BindPFlag("sxb_remote_node", pflag.Lookup("sxbnode"))
 	_ = v.BindPFlag("sxa_address", pflag.Lookup("sxaaddr"))
 	_ = v.BindPFlag("sxb_address", pflag.Lookup("sxbaddr"))
 	_ = v.BindPFlag("sxa_node_id", pflag.Lookup("sxanodeid"))
 	_ = v.BindPFlag("sxb_node_id", pflag.Lookup("sxbnodeid"))
-=======
->>>>>>> main
 	_ = v.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
 	_ = v.BindPFlag("metrics_address", pflag.Lookup("maddr"))
 	_ = v.BindPFlag("n3_address", pflag.Lookup("n3addr"))
