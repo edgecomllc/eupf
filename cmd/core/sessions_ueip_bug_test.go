@@ -29,6 +29,7 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 		mapOperations:    &mapOps,
 		pfcpHandlerMap:   pfcpHandlers,
 		associationMutex: &sync.Mutex{},
+		nodeAddrV4:       net.ParseIP("127.0.0.1"),
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),

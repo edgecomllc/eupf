@@ -69,6 +69,7 @@ func TestSessionOverwrite(t *testing.T) {
 		nodeId:           "test-node",
 		mapOperations:    &mapOps,
 		n3Address:        net.ParseIP("127.0.0.1"),
+		nodeAddrV4:       net.ParseIP("127.0.0.1"),
 		associationMutex: &sync.Mutex{},
 	}
 	asReq := message.NewAssociationSetupRequest(0,

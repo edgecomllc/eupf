@@ -94,6 +94,7 @@ func PreparePfcpConnection(t *testing.T) (PfcpConnection, string) {
 		mapOperations:    &mapOps,
 		pfcpHandlerMap:   pfcpHandlers,
 		n3Address:        net.ParseIP("1.2.3.4"),
+		nodeAddrV4:       net.ParseIP("127.0.0.1"),
 		associationMutex: &sync.Mutex{},
 		featuresOctets:   featuresOctets,
 	}

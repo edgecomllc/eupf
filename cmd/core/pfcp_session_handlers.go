@@ -107,9 +107,12 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	association.Sessions[localSEID] = session
 	conn.NodeAssociations[addr] = association
 
+	fakeIP := cloneIP(conn.nodeAddrV4)
+	fakeIP[3] = fakeIP[3] - 2
 	additionalIEs := []*ie.IE{
 		newIeNodeID(conn.nodeId),
 		ie.NewCause(ie.CauseRequestAccepted),
+		ie.NewFSEID(localSEID, fakeIP, nil), //FIXME
 		ie.NewFSEID(localSEID, cloneIP(conn.nodeAddrV4), nil),
 	}
 
