@@ -59,6 +59,13 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), GetFSEID(req.CPFSEID)), 0)
 
+	// for _, ie := range req.IEs {
+	// 	//FSEID uint16 = 57
+	// 	if ie.Type == 57 {
+	// 		writeLineTabbed(&sb, fmt.Sprintf("F-SEID: %#016x ", GetFSEID(ie)), 1)
+	// 	}
+	// }
+
 	for _, pdr := range req.CreatePDR {
 		sb.WriteString("  Create")
 		displayPdr(&sb, pdr)
