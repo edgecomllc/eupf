@@ -350,14 +350,14 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	if err != nil {
 		log.Info().Msgf("Rejecting Session Modification Request from: %s (failed to apply rules)", err)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
-		return message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, newIeNodeIDHuawei(conn.nodeId), ie.NewCause(ie.CauseRuleCreationModificationFailure)), nil
+		return message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRuleCreationModificationFailure)), nil
 	}
 
 	association.Sessions[req.SEID()] = session
 
 	additionalIEs := []*ie.IE{
+		newIeNodeIDHuawei(conn.nodeId),
 		ie.NewCause(ie.CauseRequestAccepted),
-		newIeNodeID(conn.nodeId),
 	}
 
 	pdrIEs := processCreatedPDRs(createdPDRs, conn.n3Address)
