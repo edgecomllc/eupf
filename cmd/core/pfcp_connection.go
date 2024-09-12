@@ -257,12 +257,16 @@ func (connector *DefaultAssociationConnector) sendAssociationSetupRequest(connec
 }
 
 type SxaAssociationConnector struct {
-	address string
+	address     string
+	s1uAddress  string
+	s5s8Address string
 }
 
-func NewSxaAssociationConnector(address string) *SxaAssociationConnector {
+func NewSxaAssociationConnector(address string, s1uAddress string, s5s8Address string) *SxaAssociationConnector {
 	return &SxaAssociationConnector{
-		address: address,
+		address:     address,
+		s1uAddress:  s1uAddress,
+		s5s8Address: s5s8Address,
 	}
 }
 
@@ -277,6 +281,18 @@ func (connector *SxaAssociationConnector) sendAssociationSetupRequest(connection
 	featuresOctets[0] = setBit(featuresOctets[0], 2)
 	featuresOctets[0] = setBit(featuresOctets[0], 6)
 	featuresOctets[0] = setBit(featuresOctets[0], 7)
+
+	s1uIP := net.ParseIP(connector.s1uAddress)
+	if s1uIP == nil {
+		log.Error().Msgf("failed to parse S1-U IP address ID: %s", connector.s1uAddress)
+		return
+	}
+
+	s5s8IP := net.ParseIP(connector.s5s8Address)
+	if s5s8IP == nil {
+		log.Error().Msgf("failed to parse S1/S8 IP address ID: %s", connector.s5s8Address)
+		return
+	}
 
 	associationAddr := connector.getAddress()
 	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
@@ -317,9 +333,9 @@ func (connector *SxaAssociationConnector) sendAssociationSetupRequest(connection
 		ie.NewVendorSpecificIE(32787, 2011, []byte{
 			0xA8, 0x00,
 			0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34,
-			connection.n3Address.To4()[0], connection.n3Address.To4()[1], connection.n3Address.To4()[2], connection.n3Address.To4()[3],
-			connection.nodeAddrV4.To4()[0], connection.nodeAddrV4.To4()[1], connection.nodeAddrV4.To4()[2], connection.nodeAddrV4.To4()[3],
-			connection.nodeAddrV4.To4()[0], connection.nodeAddrV4.To4()[1], connection.nodeAddrV4.To4()[2], connection.nodeAddrV4.To4()[3]}),
+			s1uIP.To4()[0], s1uIP.To4()[1], s1uIP.To4()[2], s1uIP.To4()[3],
+			s5s8IP.To4()[0], s5s8IP.To4()[1], s5s8IP.To4()[2], s5s8IP.To4()[3],
+			s1uIP.To4()[0], s1uIP.To4()[1], s1uIP.To4()[2], s1uIP.To4()[3]}),
 		//CHOICE
 		//	user-plane-element-weight
 		//		enterprise-id: ---- 0x7db(2011)

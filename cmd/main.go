@@ -100,14 +100,14 @@ func main() {
 	}
 	sxaRemoteNodes := []core.AssociationConnector{}
 	for _, remoteNode := range config.Conf.SxaRemoteNode {
-		sxaRemoteNodes = append(remoteNodes, core.NewSxaAssociationConnector(remoteNode))
+		sxaRemoteNodes = append(remoteNodes, core.NewSxaAssociationConnector(remoteNode, config.Conf.S1UAddress, config.Conf.S5S8Address))
 	}
 	sxaConn.SetRemoteNodes(sxaRemoteNodes)
 	go sxaConn.Run()
 	defer sxaConn.Close()
 
 	// Create Sxb connection
-	sxbConn, err := core.NewPfcpConnection(config.Conf.SxbLocalAddress, config.Conf.SxbLocalNodeId, config.Conf.S5S8Address, bpfObjects, nil)
+	sxbConn, err := core.NewPfcpConnection(config.Conf.SxbLocalAddress, config.Conf.SxbLocalNodeId, config.Conf.N3Address, bpfObjects, nil)
 	if err != nil {
 		log.Fatal().Msgf("Could not create Sxb connection: %s", err.Error())
 	}
