@@ -94,7 +94,7 @@ func main() {
 	defer pfcpConn.Close()
 
 	// Create Sxa connection
-	sxaConn, err := core.NewPfcpConnection(config.Conf.SxaLocalAddress, config.Conf.SxaLocalNodeId, config.Conf.N3Address, bpfObjects, nil)
+	sxaConn, err := core.NewPfcpConnection(config.Conf.SxaLocalAddress, config.Conf.SxaLocalNodeId, config.Conf.S1UAddress, bpfObjects, nil)
 	if err != nil {
 		log.Fatal().Msgf("Could not create Sxa connection: %s", err.Error())
 	}
@@ -107,7 +107,7 @@ func main() {
 	defer sxaConn.Close()
 
 	// Create Sxb connection
-	sxbConn, err := core.NewPfcpConnection(config.Conf.SxbLocalAddress, config.Conf.SxbLocalNodeId, config.Conf.N3Address, bpfObjects, nil)
+	sxbConn, err := core.NewPfcpConnection(config.Conf.SxbLocalAddress, config.Conf.SxbLocalNodeId, config.Conf.S5S8Address, bpfObjects, nil)
 	if err != nil {
 		log.Fatal().Msgf("Could not create Sxb connection: %s", err.Error())
 	}
