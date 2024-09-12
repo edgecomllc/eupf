@@ -119,9 +119,9 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	// Send SessionEstablishmentResponse
 	estResp := message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, additionalIEs...)
 
-	// fakeIP := cloneIP(conn.nodeAddrV4)
-	// fakeIP[3] = fakeIP[3] - 2
-	estResp.IEs = append(estResp.IEs, ie.NewFSEID(localSEID, cloneIP(conn.nodeAddrV4), nil)) //FIXME
+	fakeIP := cloneIP(conn.nodeAddrV4)
+	fakeIP[3] = fakeIP[3] - 2
+	estResp.IEs = append(estResp.IEs, ie.NewFSEID(localSEID, fakeIP, nil)) //FIXME
 	estResp.SetLength()
 
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
