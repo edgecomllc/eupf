@@ -107,13 +107,13 @@ func main() {
 	defer sxaConn.Close()
 
 	// Create Sxb connection
-	sxbConn, err := core.NewPfcpConnection(config.Conf.SxbLocalAddress, config.Conf.SxbLocalNodeId, config.Conf.N3Address, bpfObjects, nil)
+	sxbConn, err := core.NewPfcpConnection(config.Conf.SxbLocalAddress, config.Conf.SxbLocalNodeId, config.Conf.PAAddress, bpfObjects, nil)
 	if err != nil {
 		log.Fatal().Msgf("Could not create Sxb connection: %s", err.Error())
 	}
 	sxbRemoteNodes := []core.AssociationConnector{}
 	for _, remoteNode := range config.Conf.SxbRemoteNode {
-		sxbRemoteNodes = append(remoteNodes, core.NewSxbAssociationConnector(remoteNode))
+		sxbRemoteNodes = append(remoteNodes, core.NewSxbAssociationConnector(remoteNode, config.Conf.PAAddress))
 	}
 	sxbConn.SetRemoteNodes(sxbRemoteNodes)
 	go sxbConn.Run()

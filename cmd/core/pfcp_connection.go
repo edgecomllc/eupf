@@ -377,12 +377,14 @@ func (connector *SxaAssociationConnector) sendAssociationSetupRequest(connection
 }
 
 type SxbAssociationConnector struct {
-	address string
+	address   string
+	paAddress string
 }
 
-func NewSxbAssociationConnector(address string) *SxbAssociationConnector {
+func NewSxbAssociationConnector(address string, paAddress string) *SxbAssociationConnector {
 	return &SxbAssociationConnector{
-		address: address,
+		address:   address,
+		paAddress: paAddress,
 	}
 }
 
@@ -397,6 +399,12 @@ func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection
 	featuresOctets[0] = setBit(featuresOctets[0], 2)
 	featuresOctets[0] = setBit(featuresOctets[0], 6)
 	featuresOctets[0] = setBit(featuresOctets[0], 7)
+
+	paIP := net.ParseIP(connector.paAddress)
+	if paIP == nil {
+		log.Error().Msgf("failed to parse PA IP address ID: %s", connector.paAddress)
+		return
+	}
 
 	associationAddr := connector.getAddress()
 	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
@@ -423,7 +431,8 @@ func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection
 		//			uladdr2: ---- 0xa9(169)
 		//			uladdr3: ---- 0x70(112)
 		//			uladdr4: ---- 0x83(131)
-		ie.NewVendorSpecificIE(32787, 2011, []byte{0x02, 0x00, 0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34, connection.n3Address.To4()[0], connection.n3Address.To4()[1], connection.n3Address.To4()[2], connection.n3Address.To4()[3]}),
+		ie.NewVendorSpecificIE(32787, 2011, []byte{0x02, 0x00, 0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34,
+			paIP.To4()[0], paIP.To4()[1], paIP.To4()[2], paIP.To4()[3]}),
 		//CHOICE
 		//	user-plane-element-weight
 		//		enterprise-id: ---- 0x7db(2011)

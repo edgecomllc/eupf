@@ -28,6 +28,7 @@ type UpfConfig struct {
 	N3Address               string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
 	S1UAddress              string   `mapstructure:"s1u_address" validate:"ipv4" json:"s1u_address"`
 	S5S8Address             string   `mapstructure:"s5s8_address" validate:"ipv4" json:"s5s8_address"`
+	PAAddress               string   `mapstructure:"pa_address" validate:"ipv4" json:"pa_address"`
 	GtpPeer                 []string `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
 	GtpEchoInterval         uint32   `mapstructure:"gtp_echo_interval" validate:"min=1" json:"gtp_echo_interval"`
 	QerMapSize              uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
@@ -56,6 +57,7 @@ func init() {
 	pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
 	pflag.String("s1uaddr", "127.0.0.1", "Address for communication over S1-U interface")
 	pflag.String("s5s8addr", "127.0.0.1", "Address for communication over S5/S8 interface")
+	pflag.String("paaddr", "127.0.0.1", "Address for communication over PA interface")
 	pflag.StringArray("peer", []string{}, "Address of GTP peer")
 	pflag.Uint32("echo", 10, "Interval of sending echo requests in seconds")
 	pflag.Uint32("qersize", 1024, "Size of the QER ebpf map")
@@ -98,6 +100,7 @@ func init() {
 	_ = v.BindPFlag("n3_address", pflag.Lookup("n3addr"))
 	_ = v.BindPFlag("s1u_address", pflag.Lookup("s1uaddr"))
 	_ = v.BindPFlag("s5s8_address", pflag.Lookup("s5s8addr"))
+	_ = v.BindPFlag("pa_address", pflag.Lookup("paaddr"))
 	_ = v.BindPFlag("gtp_peer", pflag.Lookup("peer"))
 	_ = v.BindPFlag("gtp_echo_interval", pflag.Lookup("echo"))
 	_ = v.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
@@ -123,6 +126,7 @@ func init() {
 	v.SetDefault("n3_address", "127.0.0.1")
 	v.SetDefault("s1u_address", "127.0.0.1")
 	v.SetDefault("s5s8_address", "127.0.0.1")
+	v.SetDefault("pa_address", "127.0.0.1")
 	v.SetDefault("gtp_echo_interval", 10)
 	v.SetDefault("qer_map_size", 1024)
 	v.SetDefault("far_map_size", 1024)
