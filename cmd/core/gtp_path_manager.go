@@ -15,18 +15,16 @@ import (
 type GtpPathManager struct {
 	localAddress  string
 	peers         map[string]uint16
-	sendSequence  bool
 	checkInterval time.Duration
 	ctx           context.Context
 	cancelCtx     context.CancelFunc
 }
 
-func NewGtpPathManager(localAddress string, interval time.Duration, sendSequence bool) *GtpPathManager {
+func NewGtpPathManager(localAddress string, interval time.Duration) *GtpPathManager {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	return &GtpPathManager{
 		localAddress:  localAddress,
 		peers:         map[string]uint16{},
-		sendSequence:  sendSequence,
 		checkInterval: interval,
 		ctx:           ctx,
 		cancelCtx:     cancelCtx}
@@ -73,8 +71,9 @@ func (gtpPathManager *GtpPathManager) sendEcho(gtpPeerAddress string, seq uint16
 		&layers.GTPv1U{
 			Version:            1,
 			MessageType:        1, // GTPU_ECHO_REQUEST
+			MessageLength:      4,
 			TEID:               0,
-			SequenceNumberFlag: gtpPathManager.sendSequence,
+			SequenceNumberFlag: true,
 			SequenceNumber:     seq,
 		},
 	); err != nil {
