@@ -68,6 +68,7 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
         gtp->message_length = bpf_htons(bpf_ntohs(gtp->message_length) + 2);
         udp->len = bpf_htons(bpf_ntohs(udp->len) + 2);
         iph->tot_len = bpf_htons(bpf_ntohs(iph->tot_len) + 2);
+        iph->check = ipv4_csum(iph, sizeof(*iph));
     }
     // int result = bpf_xdp_adjust_tail(ctx->xdp_ctx, 2);
     // if (result == 0) {
