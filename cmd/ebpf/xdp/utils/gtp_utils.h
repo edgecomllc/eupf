@@ -40,6 +40,11 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx) {
     return gtp->message_type;
 }
 
+struct gtp_u_recovery {
+    __u8 type;
+    __u8 value;
+} __attribute__((packed));
+
 static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     struct ethhdr *eth = ctx->eth;
     struct iphdr *iph = ctx->ip4;
@@ -53,37 +58,22 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     swap_port(udp);
     swap_mac(eth);
 
-    upf_printk("upf: send gtp echo response [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
-
     //FIXME
     const char *data_end = (void *)(long)ctx->xdp_ctx->data_end;
-    char *data = (void *)(long)ctx->xdp_ctx->data;
-    if((const char *)(gtp + 1) <= data_end - 2)
+    struct gtp_u_recovery *recovery = (struct gtp_u_recovery *)(gtp + 1);
+    if((const char *)(recovery + 1) <= data_end)
     {
-        data = (char *)(gtp + 1);
-        (*(__u8 *)data) = 14;
-        data += 1;
-        (*(__u8 *)data) = 0;
-
+        recovery->type = 14;
+        recovery->value = 0;
         gtp->message_length = bpf_htons(bpf_ntohs(gtp->message_length) + 2);
         udp->len = bpf_htons(bpf_ntohs(udp->len) + 2);
         iph->tot_len = bpf_htons(bpf_ntohs(iph->tot_len) + 2);
         iph->check = ipv4_csum(iph, sizeof(*iph));
+        upf_printk("upf: send gtp echo response with recovery [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
     }
-    // int result = bpf_xdp_adjust_tail(ctx->xdp_ctx, 2);
-    // if (result == 0) {
-    //     const char *data_end = (void *)(long)ctx->xdp_ctx->data_end;
-    //     char *data = (void *)(long)ctx->xdp_ctx->data;
-    //     int pckt_size = (data_end - data);
-    //     if((const char *)(data + pckt_size - 2) <= data_end)
-    //     {
-    //         data = data + pckt_size - 2;
-    //         (*(__u8 *)data) = 14;
-    //         data += 1;
-    //         (*(__u8 *)data) = 0;
-    //     }
-    // }
-        
+    else {
+        upf_printk("upf: send gtp echo response [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
+    }   
     return XDP_TX;
 }
 
