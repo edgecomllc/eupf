@@ -15,14 +15,21 @@ import (
 type GtpPathManager struct {
 	localAddress  string
 	peers         map[string]uint16
+	sendSequence  bool
 	checkInterval time.Duration
 	ctx           context.Context
 	cancelCtx     context.CancelFunc
 }
 
-func NewGtpPathManager(localAddress string, interval time.Duration) *GtpPathManager {
+func NewGtpPathManager(localAddress string, interval time.Duration, sendSequence bool) *GtpPathManager {
 	ctx, cancelCtx := context.WithCancel(context.Background())
-	return &GtpPathManager{localAddress: localAddress, peers: map[string]uint16{}, checkInterval: interval, ctx: ctx, cancelCtx: cancelCtx}
+	return &GtpPathManager{
+		localAddress:  localAddress,
+		peers:         map[string]uint16{},
+		sendSequence:  sendSequence,
+		checkInterval: interval,
+		ctx:           ctx,
+		cancelCtx:     cancelCtx}
 }
 
 func (gtpPathManager *GtpPathManager) AddGtpPath(gtpPeerAddress string) {
@@ -64,11 +71,11 @@ func (gtpPathManager *GtpPathManager) sendEcho(gtpPeerAddress string, seq uint16
 	gtpEchoRequest := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(gtpEchoRequest, gopacket.SerializeOptions{},
 		&layers.GTPv1U{
-			Version:     1,
-			MessageType: 1, // GTPU_ECHO_REQUEST
-			TEID:        0,
-			//SequenceNumberFlag: true,
-			//SequenceNumber:     seq,
+			Version:            1,
+			MessageType:        1, // GTPU_ECHO_REQUEST
+			TEID:               0,
+			SequenceNumberFlag: gtpPathManager.sendSequence,
+			SequenceNumber:     seq,
 		},
 	); err != nil {
 		return 0, fmt.Errorf("serializing input packet failed: %v", err)
@@ -92,9 +99,7 @@ func (gtpPathManager *GtpPathManager) sendEcho(gtpPeerAddress string, seq uint16
 	_ = conn.SetReadDeadline(time.Now().Add(time.Second * 3))
 
 	sendTime := time.Now()
-	sendBuffer := gtpEchoRequest.Bytes()
-	sendBuffer = append(sendBuffer, []byte{0, 0, 0, 0, 0, 0}...)
-	if _, err := conn.Write(sendBuffer); err != nil {
+	if _, err := conn.Write(gtpEchoRequest.Bytes()); err != nil {
 		return 0, fmt.Errorf("can't send echo request: %v", err)
 	}
 

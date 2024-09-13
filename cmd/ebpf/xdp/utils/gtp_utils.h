@@ -40,31 +40,6 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx) {
     return gtp->message_type;
 }
 
-struct gtp_u_recovery {
-    __u8 type;
-    __u8 value;
-} __attribute__((packed));
-
-static __always_inline __u32 insert_recovery(struct gtpuhdr *gtp, const char *data_end) {
-    struct gtp_u_recovery *recovery;
-    if(gtp->s) {
-        __u16* sequence = (__u16 *)(gtp + 1);
-        if((const char *)(sequence + 1) > data_end)
-            return 0;
-
-        recovery = (struct gtp_u_recovery *)(sequence + 1);
-    } else {
-        recovery = (struct gtp_u_recovery *)(gtp + 1);
-    }
-
-    if((const char *)(recovery + 1) > data_end)
-        return 0;
-
-    recovery->type = 14;
-    recovery->value = 0;
-    return sizeof(struct gtp_u_recovery);
-}
-
 static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     struct ethhdr *eth = ctx->eth;
     struct iphdr *iph = ctx->ip4;
@@ -78,15 +53,12 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     swap_port(udp);
     swap_mac(eth);
 
-    //FIXME
+    //FIXME: Expect here that packet len will be at least 60 bytes and there will be extra room for Recovery field
     const char *data_end = (void *)(long)ctx->xdp_ctx->data_end;
     __u32 recovery_length = insert_recovery(gtp, data_end);
     if(recovery_length)
     {
         gtp->message_length = bpf_htons(bpf_ntohs(gtp->message_length) + recovery_length);
-        udp->len = bpf_htons(bpf_ntohs(udp->len) + recovery_length);
-        //iph->tot_len = bpf_htons(bpf_ntohs(iph->tot_len) + recovery_length);
-        //iph->check = ipv4_csum(iph, sizeof(*iph));
         upf_printk("upf: send gtp echo response with recovery [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
     }
     else {

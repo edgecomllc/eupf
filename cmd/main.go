@@ -145,7 +145,7 @@ func main() {
 		}
 	}()
 
-	gtpPathManager := core.NewGtpPathManager(config.Conf.N3Address+":2152", time.Duration(config.Conf.GtpEchoInterval)*time.Second)
+	gtpPathManager := core.NewGtpPathManager(config.Conf.N3Address+":2152", time.Duration(config.Conf.GtpEchoInterval)*time.Second, true)
 	for _, peer := range config.Conf.GtpPeer {
 		gtpPathManager.AddGtpPath(peer)
 	}
