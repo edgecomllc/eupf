@@ -52,7 +52,37 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     swap_ip(iph);
     swap_port(udp);
     swap_mac(eth);
+
     upf_printk("upf: send gtp echo response [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
+
+    //FIXME
+    const char *data_end = (void *)(long)ctx->xdp_ctx->data_end;
+    char *data = (void *)(long)ctx->xdp_ctx->data;
+    if((const char *)(gtp + 1) <= data_end - 2)
+    {
+        data = (char *)(gtp + 1);
+        (*(__u8 *)data) = 14;
+        data += 1;
+        (*(__u8 *)data) = 0;
+
+        gtp->message_length = bpf_htons(bpf_ntohs(gtp->message_length) + 2);
+        udp->len = bpf_htons(bpf_ntohs(udp->len) + 2);
+        iph->tot_len = bpf_htons(bpf_ntohs(iph->tot_len) + 2);
+    }
+    // int result = bpf_xdp_adjust_tail(ctx->xdp_ctx, 2);
+    // if (result == 0) {
+    //     const char *data_end = (void *)(long)ctx->xdp_ctx->data_end;
+    //     char *data = (void *)(long)ctx->xdp_ctx->data;
+    //     int pckt_size = (data_end - data);
+    //     if((const char *)(data + pckt_size - 2) <= data_end)
+    //     {
+    //         data = data + pckt_size - 2;
+    //         (*(__u8 *)data) = 14;
+    //         data += 1;
+    //         (*(__u8 *)data) = 0;
+    //     }
+    // }
+        
     return XDP_TX;
 }
 
