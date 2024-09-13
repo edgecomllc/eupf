@@ -59,6 +59,8 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     if(recovery_length)
     {
         gtp->message_length = bpf_htons(bpf_ntohs(gtp->message_length) + recovery_length);
+        udp->len = bpf_htons( bpf_ntohs(udp->len) + recovery_length);
+        iph->tot_len = bpf_htons( bpf_ntohs(iph->tot_len) + recovery_length);
         upf_printk("upf: send gtp echo response with recovery [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
     }
     else {
