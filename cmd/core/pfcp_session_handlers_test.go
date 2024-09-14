@@ -545,3 +545,142 @@ func TestUEIPInAssociationSetupResponse(t *testing.T) {
 		t.Error("UEIP is not enabled in Association Setup Response")
 	}
 }
+
+func TestHandlePfcpSessionEstablishmentRequestWithURR(t *testing.T) {
+	pfcpConn, smfIP := PreparePfcpConnection(t)
+
+	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		ie.NewCreatePDR(
+			ie.NewPDRID(0xffff),
+		),
+		ie.NewCreateURR(
+			ie.NewURRID(0xf),
+		),
+	)
+	_, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	if _, exists := pfcpConn.NodeAssociations[smfIP].Sessions[2].URRs[0xf]; !exists {
+		t.Errorf("URR wasn't stored")
+	}
+}
+
+func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
+	pfcpConn, smfIP := PreparePfcpConnection(t)
+
+	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		ie.NewCreatePDR(
+			ie.NewPDRID(0xffff),
+		),
+	)
+	_, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	modReq := message.NewSessionModificationRequest(0, 0, 2, 1, 0,
+		ie.NewCreateURR(
+			ie.NewURRID(0xf),
+		),
+	)
+	_, err = HandlePfcpSessionModificationRequest(&pfcpConn, modReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session modification request: %s", err)
+	}
+
+	if _, exists := pfcpConn.NodeAssociations[smfIP].Sessions[2].URRs[0xf]; !exists {
+		t.Errorf("URR wasn't stored")
+	}
+
+	// TODO: add case for UpdateURR
+	// modReq = message.NewSessionModificationRequest(0, 0, 2, 1, 0,
+	// 	ie.NewUpdateURR(
+	// 		ie.NewURRID(0xf),
+	// 		ie.NewMeasurementMethod(1, 1, 1),
+	// 	),
+	// )
+	// _, err = HandlePfcpSessionModificationRequest(&pfcpConn, modReq, smfIP)
+	// if err != nil {
+	// 	t.Errorf("Error handling session modification request: %s", err)
+	// }
+	// if pfcpConn.NodeAssociations[smfIP].Sessions[2].URRs[0xf].UrrInfo.MeasurementMethod != ?  {
+	// 	t.Errorf("URR wasn't updated")
+	// }
+
+	modReq = message.NewSessionModificationRequest(0, 0, 2, 1, 0,
+		ie.NewRemoveURR(
+			ie.NewURRID(0xf),
+		),
+	)
+	msg, err := HandlePfcpSessionModificationRequest(&pfcpConn, modReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session modification request: %s", err)
+	}
+
+	modResp := msg.(*message.SessionModificationResponse)
+	if len(modResp.UsageReport) == 0 {
+		t.Errorf("SessionModificationResponse doesn't contain Usage Reports")
+	}
+
+	ur := modResp.UsageReport[0]
+	urrID, _ := ur.URRID()
+	if urrID != 0xf {
+		t.Errorf("URRID not equal 0xf")
+	}
+
+	vol, _ := ur.VolumeMeasurement()
+	if vol.TotalVolume == 0 {
+		t.Errorf("TotalVolume equal 0")
+	}
+
+	if _, exists := pfcpConn.NodeAssociations[smfIP].Sessions[2].URRs[0xf]; exists {
+		t.Errorf("URR wasn't removed")
+	}
+}
+
+func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
+	pfcpConn, smfIP := PreparePfcpConnection(t)
+
+	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		ie.NewCreatePDR(
+			ie.NewPDRID(0xffff),
+		),
+		ie.NewCreateURR(
+			ie.NewURRID(0xf),
+		),
+	)
+	_, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	delReq := message.NewSessionDeletionRequest(0, 0, 2, 1, 0)
+	msg, err := HandlePfcpSessionDeletionRequest(&pfcpConn, delReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session deletion request: %s", err)
+	}
+
+	delRes := msg.(*message.SessionDeletionResponse)
+	if len(delRes.UsageReport) == 0 {
+		t.Errorf("SessionDeletionResponse doesn't contain Usage Reports")
+	}
+
+	ur := delRes.UsageReport[0]
+	urrID, _ := ur.URRID()
+	if urrID != 0xf {
+		t.Errorf("URRID not equal 0xf")
+	}
+
+	vol, _ := ur.VolumeMeasurement()
+	if vol.TotalVolume == 0 {
+		t.Errorf("TotalVolume equal 0")
+	}
+}

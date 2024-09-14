@@ -18,6 +18,7 @@ type PdrInfo struct {
 	OuterHeaderRemoval uint8
 	FarId              uint32
 	QerId              uint32
+	UrrId              uint32
 	SdfFilter          *SdfFilter
 }
 
@@ -223,6 +224,27 @@ func (bpfObjects *BpfObjects) DeleteQer(internalId uint32) error {
 	return bpfObjects.QerMap.Update(internalId, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
 }
 
+// TODO: add required fields and implement methods
+type UrrInfo struct {
+	// URRID, MeasurementMethod, TotalVolume?
+}
+
+func (bpfObjects *BpfObjects) NewUrr(urrInfo UrrInfo) (uint32, error) {
+	internalId := uint32(666)
+	log.Debug().Msgf("EBPF: Put URR: internalId=%d, urrInfo=%+v", internalId, urrInfo)
+	return internalId, nil
+}
+
+func (bpfObjects *BpfObjects) UpdateUrr(internalId uint32, urrInfo UrrInfo) error {
+	log.Debug().Msgf("EBPF: Update URR: internalId=%d, urrInfo=%+v", internalId, urrInfo)
+	return nil
+}
+
+func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) error {
+	log.Debug().Msgf("EBPF: Delete URR: internalId=%d", internalId)
+	return nil
+}
+
 type ForwardingPlaneController interface {
 	PutPdrUplink(teid uint32, pdrInfo PdrInfo) error
 	PutPdrDownlink(ipv4 net.IP, pdrInfo PdrInfo) error
@@ -239,6 +261,9 @@ type ForwardingPlaneController interface {
 	NewQer(qerInfo QerInfo) (uint32, error)
 	UpdateQer(internalId uint32, qerInfo QerInfo) error
 	DeleteQer(internalId uint32) error
+	NewUrr(urrInfo UrrInfo) (uint32, error)
+	UpdateUrr(internalId uint32, urrInfo UrrInfo) error
+	DeleteUrr(internalId uint32) error
 }
 
 func CombinePdrWithSdf(defaultPdr *IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntrypointPdrInfo {

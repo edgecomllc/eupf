@@ -77,6 +77,22 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 		}
 
+		for _, urr := range req.CreateURR {
+			urrInfo := ebpf.UrrInfo{}
+			urrId, err := urr.URRID()
+			if err != nil {
+				return fmt.Errorf("URR ID missing")
+			}
+			updateUrr(&urrInfo, urr)
+			log.Info().Msgf("Saving URR info to session: %d, %+v", urrId, urrInfo)
+			if internalId, err := mapOperations.NewUrr(urrInfo); err == nil {
+				session.NewUrr(urrId, internalId, urrInfo)
+			} else {
+				log.Info().Msgf("Can't put URR: %s", err.Error())
+				return err
+			}
+		}
+
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
@@ -94,6 +110,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				log.Error().Msgf("error extracting PDR info: %s", err.Error())
 			}
 		}
+
 		return nil
 	}()
 
@@ -140,6 +157,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseSessionContextNotFound)).Inc()
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseSessionContextNotFound)), nil
 	}
+	deletedURRs := make([]*ie.IE, 0, len(session.URRs))
 	mapOperations := conn.mapOperations
 	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
 	for _, pdrInfo := range session.PDRs {
@@ -160,13 +178,33 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
+	for id := range session.URRs {
+		deletedURRs = append(deletedURRs, ie.NewUsageReportWithinSessionDeletionResponse(
+			ie.NewURRID(id),
+			// TODO: add getting actual values from ebpf.UrrInfo
+			ie.NewVolumeMeasurement(0x3f, 1, 0, 0, 0, 0, 0),
+		))
+		if err := mapOperations.DeleteUrr(id); err != nil {
+			log.Info().Msgf("WARN: mapOperations failed to delete URR: %d, %s", id, err.Error())
+		}
+	}
+
+	additionalIEs := []*ie.IE{
+		newIeNodeID(conn.nodeId),
+		ie.NewCause(ie.CauseRequestAccepted),
+	}
+	if len(deletedURRs) != 0 {
+		additionalIEs = append(additionalIEs, deletedURRs...)
+	}
+
 	log.Info().Msgf("Deleting session: %d", req.SEID())
 	delete(association.Sessions, req.SEID())
 
 	conn.ReleaseResources(req.SEID())
 
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
-	return message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRequestAccepted)), nil
+	delResp := message.NewSessionDeletionResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, additionalIEs...)
+	return delResp, nil
 }
 
 func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
@@ -205,6 +243,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 	// #TODO: Implement rollback on error
 	createdPDRs := []SPDRInfo{}
+	removedURRs := make([]*ie.IE, 0, len(req.RemoveURR))
 	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
 
 	err := func() error {
@@ -298,6 +337,55 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 		}
 
+		for _, urr := range req.CreateURR {
+			urrInfo := ebpf.UrrInfo{}
+			urrId, err := urr.URRID()
+			if err != nil {
+				return fmt.Errorf("URR ID missing")
+			}
+			updateUrr(&urrInfo, urr)
+			log.Info().Msgf("Saving URR info to session: %d, %+v", urrId, urrInfo)
+			if internalId, err := mapOperations.NewUrr(urrInfo); err == nil {
+				session.NewUrr(urrId, internalId, urrInfo)
+			} else {
+				log.Info().Msgf("Can't put URR: %s", err.Error())
+				return err
+			}
+		}
+
+		for _, urr := range req.UpdateURR {
+			urrId, err := urr.URRID()
+			if err != nil {
+				return fmt.Errorf("URR ID missing")
+			}
+			sUrrInfo := session.GetUrr(urrId)
+			updateUrr(&sUrrInfo.UrrInfo, urr)
+			log.Info().Msgf("Updating URR ID: %d, URR Info: %+v", urrId, sUrrInfo)
+			session.UpdateUrr(urrId, sUrrInfo.UrrInfo)
+			if err := mapOperations.UpdateUrr(sUrrInfo.GlobalId, sUrrInfo.UrrInfo); err != nil {
+				log.Info().Msgf("Can't update URR: %s", err.Error())
+				return err
+			}
+		}
+
+		for _, urr := range req.RemoveURR {
+			urrId, err := urr.URRID()
+			if err != nil {
+				return fmt.Errorf("URR ID missing")
+			}
+			log.Info().Msgf("Removing URR ID: %d", urrId)
+			sUrrInfo := session.RemoveUrr(urrId)
+			removedURRs = append(removedURRs, ie.NewUsageReportWithinSessionModificationResponse(
+				ie.NewURRID(urrId),
+				// TODO: add getting actual values from ebpf.UrrInfo
+				ie.NewVolumeMeasurement(0x3f, 1, 0, 0, 0, 0, 0),
+			))
+			if err := mapOperations.DeleteUrr(sUrrInfo.GlobalId); err != nil {
+				log.Info().Msgf("Can't remove URR: %s", err.Error())
+				return err
+			}
+		}
+
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
@@ -361,6 +449,9 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 	pdrIEs := processCreatedPDRs(createdPDRs, conn.n3Address)
 	additionalIEs = append(additionalIEs, pdrIEs...)
+	if len(removedURRs) != 0 {
+		additionalIEs = append(additionalIEs, removedURRs...)
+	}
 
 	// Send SessionEstablishmentResponse
 	modResp := message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, additionalIEs...)
@@ -521,4 +612,8 @@ func GetTransportLevelMarking(far *ie.IE) (uint16, error) {
 		}
 	}
 	return 0, fmt.Errorf("no TransportLevelMarking found")
+}
+
+// TODO: add making or updating UrrInfo
+func updateUrr(urrInfo *ebpf.UrrInfo, urr *ie.IE) {
 }

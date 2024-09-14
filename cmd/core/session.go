@@ -12,6 +12,7 @@ type Session struct {
 	PDRs       map[uint32]SPDRInfo
 	FARs       map[uint32]SFarInfo
 	QERs       map[uint32]SQerInfo
+	URRs       map[uint32]SUrrInfo
 }
 
 func NewSession(localSEID uint64, remoteSEID uint64) *Session {
@@ -21,6 +22,7 @@ func NewSession(localSEID uint64, remoteSEID uint64) *Session {
 		PDRs:       map[uint32]SPDRInfo{},
 		FARs:       map[uint32]SFarInfo{},
 		QERs:       map[uint32]SQerInfo{},
+		URRs:       map[uint32]SUrrInfo{},
 	}
 }
 
@@ -40,6 +42,11 @@ type SFarInfo struct {
 
 type SQerInfo struct {
 	QerInfo  ebpf.QerInfo
+	GlobalId uint32
+}
+
+type SUrrInfo struct {
+	UrrInfo  ebpf.UrrInfo
 	GlobalId uint32
 }
 
@@ -87,6 +94,29 @@ func (s *Session) RemoveQer(id uint32) SQerInfo {
 	sQerInfo := s.QERs[id]
 	delete(s.QERs, id)
 	return sQerInfo
+}
+
+func (s *Session) NewUrr(id uint32, internalId uint32, urrInfo ebpf.UrrInfo) {
+	s.URRs[id] = SUrrInfo{
+		UrrInfo:  urrInfo,
+		GlobalId: internalId,
+	}
+}
+
+func (s *Session) UpdateUrr(id uint32, urrInfo ebpf.UrrInfo) {
+	sUrrInfo := s.URRs[id]
+	sUrrInfo.UrrInfo = urrInfo
+	s.URRs[id] = sUrrInfo
+}
+
+func (s *Session) GetUrr(id uint32) SUrrInfo {
+	return s.URRs[id]
+}
+
+func (s *Session) RemoveUrr(id uint32) SUrrInfo {
+	sUrrInfo := s.URRs[id]
+	delete(s.URRs, id)
+	return sUrrInfo
 }
 
 func (s *Session) PutPDR(id uint32, info SPDRInfo) {
