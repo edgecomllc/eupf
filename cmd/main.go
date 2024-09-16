@@ -41,7 +41,7 @@ func main() {
 		log.Error().Msgf("Logger configuring error: %s. Using '%s' level", err.Error(), zerolog.GlobalLevel().String())
 	}
 
-	if err := ebpf.IncreaseResourceLimits(); err != nil {
+	if err := ebpf.IncreaseResources(); err != nil {
 		log.Fatal().Msgf("Can't increase resource limits: %s", err.Error())
 	}
 
@@ -79,7 +79,7 @@ func main() {
 					continue
 				}
 
-				len := binary.LittleEndian.Uint16(rec.RawSample[2:2])
+				len := binary.LittleEndian.Uint16(rec.RawSample[2:4])
 
 				pack := gopacket.NewPacket(rec.RawSample[4:], layers.LayerTypeEthernet, gopacket.Default)
 				log.Debug().Msgf("Sample: len=%d, packet: %s", len, pack.Dump())
