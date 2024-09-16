@@ -37,8 +37,9 @@ struct {
 	__uint(max_entries, MAX_CPUS);
 } my_map SEC(".maps");
 
-static __always_inline void trace_packet(struct packet_context *ctx) 
+static __always_inline void trace_packet(struct packet_context *packet_ctx) 
 {
+    struct xdp_md *ctx = packet_ctx->xdp_ctx;
     __u64 flags = BPF_F_CURRENT_CPU;
     __u16 sample_size = (__u16)(ctx->data_end - ctx->data);
     int ret;
@@ -49,7 +50,7 @@ static __always_inline void trace_packet(struct packet_context *ctx)
 
     flags |= (__u64)sample_size << 32;
 
-    ret = bpf_perf_event_output(ctx->xdp_ctx, &my_map, flags, &meta, sizeof(meta));
+    ret = bpf_perf_event_output(ctx, &my_map, flags, &meta, sizeof(meta));
     if (ret)
         bpf_printk("perf_event_output failed: %d\n", ret);
 }

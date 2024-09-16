@@ -74,20 +74,25 @@ func main() {
 					return
 				}
 
+				sampleLength := len(rec.RawSample)
+				if sampleLength < 5 {
+					log.Error().Msgf(" perf sample too small: %d", sampleLength)
+				}
+
 				magic := binary.LittleEndian.Uint16(rec.RawSample[:2])
 				if magic != 0xdead {
 					continue
 				}
 
-				len := binary.LittleEndian.Uint16(rec.RawSample[2:4])
+				packetLength := binary.LittleEndian.Uint16(rec.RawSample[2:4])
 
 				pack := gopacket.NewPacket(rec.RawSample[4:], layers.LayerTypeEthernet, gopacket.Default)
-				log.Debug().Msgf("Sample: len=%d, packet: %s", len, pack.Dump())
+				log.Trace().Msgf("Sample lost=%d, remaining=%d, len=%d, packet: %s", rec.LostSamples, rec.Remaining, packetLength, pack.Dump())
 
 				w.WritePacket(gopacket.CaptureInfo{
 					Timestamp:     time.Unix(0x01020304, 0xAA*1000),
-					Length:        int(len),
-					CaptureLength: int(len),
+					Length:        int(packetLength),
+					CaptureLength: int(packetLength),
 				}, rec.RawSample[4:])
 			}
 		}()
