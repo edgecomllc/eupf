@@ -85,15 +85,18 @@ func main() {
 				}
 
 				packetLength := binary.LittleEndian.Uint16(rec.RawSample[2:4])
+				packet := rec.RawSample[4 : 4+packetLength]
 
-				pack := gopacket.NewPacket(rec.RawSample[4:], layers.LayerTypeEthernet, gopacket.Default)
+				pack := gopacket.NewPacket(packet, layers.LayerTypeEthernet, gopacket.Default)
 				log.Trace().Msgf("Sample lost=%d, remaining=%d, len=%d, packet: %s", rec.LostSamples, rec.Remaining, packetLength, pack.Dump())
 
-				w.WritePacket(gopacket.CaptureInfo{
+				if err := w.WritePacket(gopacket.CaptureInfo{
 					Timestamp:     time.Unix(0x01020304, 0xAA*1000),
 					Length:        int(packetLength),
 					CaptureLength: int(packetLength),
-				}, rec.RawSample[4:])
+				}, packet); err != nil {
+					log.Error().Msgf(" can't write perf sample to pcap dump: %s", err.Error())
+				}
 			}
 		}()
 	}
