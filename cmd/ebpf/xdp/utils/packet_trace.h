@@ -49,7 +49,7 @@ static __always_inline void trace_packet(struct packet_context *ctx)
 
     flags |= (__u64)sample_size << 32;
 
-    ret = bpf_perf_event_output(ctx, &my_map, flags, &meta, sizeof(meta));
+    ret = bpf_perf_event_output(ctx->xdp_ctx, &my_map, flags, &meta, sizeof(meta));
     if (ret)
         bpf_printk("perf_event_output failed: %d\n", ret);
 }
