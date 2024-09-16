@@ -74,12 +74,12 @@ func main() {
 					return
 				}
 
-				magic := binary.BigEndian.Uint16(rec.RawSample[:2])
+				magic := binary.LittleEndian.Uint16(rec.RawSample[:2])
 				if magic != 0xdead {
 					continue
 				}
 
-				len := binary.BigEndian.Uint16(rec.RawSample[2:2])
+				len := binary.LittleEndian.Uint16(rec.RawSample[2:2])
 
 				pack := gopacket.NewPacket(rec.RawSample[4:], layers.LayerTypeEthernet, gopacket.Default)
 				log.Debug().Msgf("Sample: len=%d, packet: %s", len, pack.Dump())
