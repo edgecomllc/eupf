@@ -483,8 +483,9 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarI
 			log.Info().Msg("WARN: No OuterHeaderCreation")
 		} else {
 			//outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
-			outerHeaderCreation, _ := HuaweiOuterHeaderCreation(forward[outerHeaderCreationIndex])
-			farInfo.OuterHeaderCreation = uint8(outerHeaderCreation.OuterHeaderCreationDescription >> 8)
+			//farInfo.OuterHeaderCreation = uint8(outerHeaderCreation.OuterHeaderCreationDescription >> 8)
+			outerHeaderCreation, _ := HuaweiOuterHeaderCreation(forward[outerHeaderCreationIndex])       //Huawei
+			farInfo.OuterHeaderCreation = uint8(1 << outerHeaderCreation.OuterHeaderCreationDescription) //Huawei
 			farInfo.Teid = outerHeaderCreation.TEID
 			if outerHeaderCreation.HasIPv4() {
 				farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
