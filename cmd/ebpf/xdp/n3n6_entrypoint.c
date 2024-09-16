@@ -493,19 +493,19 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
 
-    // __u64 flags = BPF_F_CURRENT_CPU;
-    // __u16 sample_size = (__u16)(context.data_end - context.data);
-    // int ret;
-    // struct S metadata;
+    __u64 flags = BPF_F_CURRENT_CPU;
+    __u16 sample_size = (__u16)(context.data_end - context.data);
+    int ret;
+    struct S metadata;
 
-    // metadata.cookie = 0xdead;
-    // metadata.pkt_len = min(sample_size, SAMPLE_SIZE);
+    metadata.cookie = 0xdead;
+    metadata.pkt_len = min(sample_size, SAMPLE_SIZE);
 
-    // flags |= (__u64)sample_size << 32;
+    flags |= (__u64)sample_size << 32;
 
-    // ret = bpf_perf_event_output(ctx, &my_map, flags, &metadata, sizeof(metadata));
-    // if (ret)
-    //     bpf_printk("perf_event_output failed: %d\n", ret);
+    ret = bpf_perf_event_output(ctx, &my_map, flags, &metadata, sizeof(metadata));
+    if (ret)
+        bpf_printk("perf_event_output failed: %d\n", ret);
 
     return action;
 }

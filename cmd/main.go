@@ -16,6 +16,7 @@ import (
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/cilium/ebpf/link"
+	"github.com/cilium/ebpf/perf"
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -49,6 +50,21 @@ func main() {
 		if err := bpfObjects.ResizeAllMaps(config.Conf.QerMapSize, config.Conf.FarMapSize, config.Conf.PdrMapSize); err != nil {
 			log.Fatal().Msgf("Failed to set ebpf map sizes: %s", err)
 		}
+	}
+
+	if rd, err := perf.NewReader(bpfObjects.MyMap, 4096); err == nil {
+		defer rd.Close()
+
+		go func() {
+			var rec perf.Record
+			for {
+				if err := rd.ReadInto(&rec); err != nil {
+					log.Error().Msgf(" can't read from perf map: %s", err.Error())
+					return
+				}
+				log.Debug().Msgf("Sample: %x", rec.RawSample)
+			}
+		}()
 	}
 
 	defer bpfObjects.Close()
