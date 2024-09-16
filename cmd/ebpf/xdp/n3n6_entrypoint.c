@@ -44,6 +44,21 @@
 
 #define DEFAULT_XDP_ACTION XDP_PASS
 
+#define min(x, y) ((x) < (y) ? (x) : (y))
+#define MAX_CPUS 128
+#define SAMPLE_SIZE 1024ul
+/* Metadata will be in the perf event before the packet data. */
+struct S {
+	__u16 cookie;
+	__u16 pkt_len;
+} __packed;
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+	__type(key, int);
+	__type(value, __u32);
+	__uint(max_entries, MAX_CPUS);
+} my_map SEC(".maps");
 
 static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, __u8 qfi, int teid) {
     if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, qfi, teid))
@@ -477,6 +492,20 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
 
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
+
+    // __u64 flags = BPF_F_CURRENT_CPU;
+    // __u16 sample_size = (__u16)(context.data_end - context.data);
+    // int ret;
+    // struct S metadata;
+
+    // metadata.cookie = 0xdead;
+    // metadata.pkt_len = min(sample_size, SAMPLE_SIZE);
+
+    // flags |= (__u64)sample_size << 32;
+
+    // ret = bpf_perf_event_output(ctx, &my_map, flags, &metadata, sizeof(metadata));
+    // if (ret)
+    //     bpf_printk("perf_event_output failed: %d\n", ret);
 
     return action;
 }

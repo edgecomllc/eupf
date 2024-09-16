@@ -197,8 +197,8 @@ type QerInfo struct {
 	GateStatusUL uint8
 	GateStatusDL uint8
 	Qfi          uint8
-	MaxBitrateUL uint32
-	MaxBitrateDL uint32
+	MaxBitrateUL uint64
+	MaxBitrateDL uint64
 	StartUL      uint64
 	StartDL      uint64
 }

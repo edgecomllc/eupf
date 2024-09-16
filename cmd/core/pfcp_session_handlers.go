@@ -514,11 +514,11 @@ func updateQer(qerInfo *ebpf.QerInfo, qer *ie.IE) {
 	}
 	maxBitrateDL, err := qer.MBRDL()
 	if err == nil {
-		qerInfo.MaxBitrateDL = uint32(maxBitrateDL) * 1000
+		qerInfo.MaxBitrateDL = maxBitrateDL * 1000
 	}
 	maxBitrateUL, err := qer.MBRUL()
 	if err == nil {
-		qerInfo.MaxBitrateUL = uint32(maxBitrateUL) * 1000
+		qerInfo.MaxBitrateUL = maxBitrateUL * 1000
 	}
 	qfi, err := qer.QFI()
 	if err == nil {
