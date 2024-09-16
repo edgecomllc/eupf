@@ -60,7 +60,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     const struct iphdr *ip4 = ctx->ip4;
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
     if (!pdr) {
-        upf_printk("upf: no downlink session for ip:%pI4", &ip4->daddr);
+        upf_printk("upf: [n6] no downlink session for ip:%pI4", &ip4->daddr);
         return DEFAULT_XDP_ACTION;
     }
     
@@ -70,7 +70,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     if (pdr->sdf_mode) {
         struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
         if(match_sdf_filter_ipv4(ctx, sdf)) {
-            upf_printk("Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
+            upf_printk(" [n6] Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
             far_id = pdr->sdf_rules.far_id;
             qer_id = pdr->sdf_rules.qer_id;
             //outer_header_removal = pdr->sdf_rules.outer_header_removal;
@@ -81,11 +81,11 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
 
     struct far_info *far = bpf_map_lookup_elem(&far_map, &far_id);
     if (!far) {
-        upf_printk("upf: no downlink session far for ip:%pI4 far:%d", &ip4->daddr, far_id);
+        upf_printk("upf: [n6] no downlink session far for ip:%pI4 far:%d", &ip4->daddr, far_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: downlink session for ip:%pI4  far:%d action:%d", &ip4->daddr, far_id, far->action);
+    upf_printk("upf: [n6] downlink session for ip:%pI4  far:%d action:%d", &ip4->daddr, far_id, far->action);
 
     // Only forwarding action is supported at the moment
     if (!(far->action & FAR_FORW))
@@ -97,11 +97,11 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
 
     struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &qer_id);  
     if (!qer) {
-        upf_printk("upf: no downlink session qer for ip:%pI4 qer:%d", &ip4->daddr, qer_id);
+        upf_printk("upf: [n6] no downlink session qer for ip:%pI4 qer:%d", &ip4->daddr, qer_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: qer:%d gate_status:%d mbr:%d", qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
+    upf_printk("upf: [n6] qer:%d gate_status:%d mbr:%u", qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
 
     if (qer->dl_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
@@ -115,7 +115,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     update_urr(pdr->urr1_id, 0, packet_size);
     update_urr(pdr->urr2_id, 0, packet_size);
 
-    upf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
+    upf_printk("upf: [n6] use mapping %pI4 -> teid:%u", &ip4->daddr, far->teid);
     return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
 }
 
@@ -123,7 +123,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     const struct ipv6hdr *ip6 = ctx->ip6;
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip6, &ip6->daddr);
     if (!pdr) {
-        upf_printk("upf: no downlink session for ip:%pI6c", &ip6->daddr);
+        upf_printk("upf: [n6] no downlink session for ip:%pI6c", &ip6->daddr);
         return DEFAULT_XDP_ACTION;
     }
 
@@ -133,7 +133,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     if (pdr->sdf_mode) {
         struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
         if(match_sdf_filter_ipv6(ctx, sdf)) {
-            upf_printk("Packet with source ip:%pI6c and destination ip:%pI6c matches SDF filter", &ip6->saddr, &ip6->daddr);
+            upf_printk(" [n6] Packet with source ip:%pI6c and destination ip:%pI6c matches SDF filter", &ip6->saddr, &ip6->daddr);
             far_id = pdr->sdf_rules.far_id;
             qer_id = pdr->sdf_rules.qer_id;
             //outer_header_removal = pdr->sdf_rules.outer_header_removal;
@@ -144,11 +144,11 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
 
     struct far_info *far = bpf_map_lookup_elem(&far_map, &far_id);
     if (!far) {
-        upf_printk("upf: no downlink session far for ip:%pI6c far:%d", &ip6->daddr, far_id);
+        upf_printk("upf: [n6] no downlink session far for ip:%pI6c far:%d", &ip6->daddr, far_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, far_id, far->action);
+    upf_printk("upf: [n6] downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, far_id, far->action);
 
     // Only forwarding action supported at the moment
     if (!(far->action & FAR_FORW))
@@ -160,11 +160,11 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
 
     struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &qer_id);  
     if (!qer) {
-        upf_printk("upf: no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, qer_id);
+        upf_printk("upf: [n6] no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, qer_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: qer:%d gate_status:%d mbr:%d", qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
+    upf_printk("upf: [n6] qer:%d gate_status:%d mbr:%u", qer_id, qer->dl_gate_status, qer->dl_maximum_bitrate);
 
     if (qer->dl_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
@@ -178,13 +178,13 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     update_urr(pdr->urr1_id, 0, packet_size);
     update_urr(pdr->urr2_id, 0, packet_size);
 
-    upf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
+    upf_printk("upf: [n6] use mapping %pI6c -> teid:%u", &ip6->daddr, far->teid);
     return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
 }
 
 static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx) {
     if (!ctx->gtp) {
-        upf_printk("upf: unexpected packet context. no gtp header");
+        upf_printk("upf: [n3] unexpected packet context. no gtp header");
         return DEFAULT_XDP_ACTION;
     }
 
@@ -194,7 +194,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     __u32 teid = bpf_htonl(ctx->gtp->teid);
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
     if (!pdr) {
-        upf_printk("upf: no session for teid:%d", teid);
+        upf_printk("upf: [n3] no session for teid:%u", teid);
         return DEFAULT_XDP_ACTION;
     }
 
@@ -216,23 +216,23 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
             {
                 int ip_protocol = parse_ip4(&inner_context);
                 if (-1 == ip_protocol) {
-                    upf_printk("upf: unable to parse IPv4 header");
+                    upf_printk("upf: [n3] unable to parse IPv4 header");
                     return DEFAULT_XDP_ACTION;
                 }
 
                 if( -1 == parse_l4(ip_protocol, &inner_context)) {
-                    upf_printk("upf: unable to parse L4 header");
+                    upf_printk("upf: [n3] unable to parse L4 header");
                     return DEFAULT_XDP_ACTION;
                 }
 
                 const struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
                 if(match_sdf_filter_ipv4(&inner_context, sdf)) {
-                    upf_printk("upf: sdf filter matches teid:%d", teid);
+                    upf_printk("upf: [n3] sdf filter matches teid:%u", teid);
                     far_id = pdr->sdf_rules.far_id;
                     qer_id = pdr->sdf_rules.qer_id;
                     outer_header_removal = pdr->sdf_rules.outer_header_removal;
                 } else {
-                    upf_printk("upf: sdf filter doesn't match teid:%d", teid);
+                    upf_printk("upf: [n3] sdf filter doesn't match teid:%u", teid);
                     if(pdr->sdf_mode & 1)
                         return DEFAULT_XDP_ACTION;     
                 }
@@ -242,30 +242,30 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
             {
                 int ip_protocol = parse_ip6(&inner_context);
                 if (ip_protocol == -1) {
-                    upf_printk("upf: unable to parse IPv6 header");
+                    upf_printk("upf: [n3] unable to parse IPv6 header");
                     return DEFAULT_XDP_ACTION;
                 }
 
                 if( -1 == parse_l4(ip_protocol, &inner_context)) {
-                    upf_printk("upf: unable to parse L4 header");
+                    upf_printk("upf: [n3] unable to parse L4 header");
                     return DEFAULT_XDP_ACTION;
                 }
 
                 const struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
                 if(match_sdf_filter_ipv6(&inner_context, sdf)) {
-                    upf_printk("upf: sdf filter matches teid:%d", teid);
+                    upf_printk("upf: [n3] sdf filter matches teid:%u", teid);
                     far_id = pdr->sdf_rules.far_id;
                     qer_id = pdr->sdf_rules.qer_id;
                     outer_header_removal = pdr->sdf_rules.outer_header_removal;
                 } else {
-                    upf_printk("upf: sdf filter doesn't match teid:%d", teid);
+                    upf_printk("upf: [n3] sdf filter doesn't match teid:%u", teid);
                     if(pdr->sdf_mode & 1)
                         return DEFAULT_XDP_ACTION;
                 }
                 break;
             }
             default:
-                upf_printk("upf: unsupported inner ethernet protocol: %d", eth_protocol);
+                upf_printk("upf: [n3] unsupported inner ethernet protocol: %d", eth_protocol);
                 if(pdr->sdf_mode & 1)
                     return DEFAULT_XDP_ACTION;
                 break;
@@ -277,11 +277,11 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
      */
     struct far_info *far = bpf_map_lookup_elem(&far_map, &far_id);
     if (!far) {
-        upf_printk("upf: no session far for teid:%d far:%d", teid, far_id);
+        upf_printk("upf: [n3] no session far for teid:%u far:%d", teid, far_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: far:%d action:%d outer_header_creation:%d", far_id, far->action, far->outer_header_creation);
+    upf_printk("upf: [n3] far:%d action:%d outer_header_creation:%d", far_id, far->action, far->outer_header_creation);
 
     // Only forwarding action supported at the moment
     if (!(far->action & FAR_FORW))
@@ -292,11 +292,11 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
      */
     struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &qer_id);
     if (!qer) {
-        upf_printk("upf: no session qer for teid:%d qer:%d", teid, qer_id);
+        upf_printk("upf: [n3] no session qer for teid:%u qer:%d", teid, qer_id);
         return XDP_DROP;
     }
 
-    upf_printk("upf: qer:%d gate_status:%d mbr:%d", qer_id, qer->ul_gate_status, qer->ul_maximum_bitrate);
+    upf_printk("upf: [n3] qer:%d gate_status:%d mbr:%d", qer_id, qer->ul_gate_status, qer->ul_maximum_bitrate);
 
     if (qer->ul_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
@@ -308,17 +308,17 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     update_urr(pdr->urr1_id, packet_size, 0);
     update_urr(pdr->urr2_id, packet_size, 0);
 
-    upf_printk("upf: session for teid:%d far:%d outer_header_removal:%d", teid, pdr->far_id, outer_header_removal);
+    upf_printk("upf: [n3] session for teid:%u far:%d outer_header_removal:%d", teid, pdr->far_id, outer_header_removal);
 
     // N9: Only outer header GTP/UDP/IPv4 is supported at the moment
     if (far->outer_header_creation & OHC_GTP_U_UDP_IPv4)
     {
-        upf_printk("upf: session for teid:%d -> %d remote:%pI4", teid, far->teid, &far->remoteip);
+        upf_printk("upf: [n3] session for teid:%u -> %u remote:%pI4", teid, far->teid, &far->remoteip);
         update_gtp_tunnel(ctx, far->localip, far->remoteip, 0, far->teid);
     } else if (outer_header_removal == OHR_GTP_U_UDP_IPv4) {
         long result = remove_gtp_header(ctx);
         if (result) {
-            upf_printk("upf: handle_gtp_packet: can't remove gtp header: %d", result);
+            upf_printk("upf: [n3] handle_gtp_packet: can't remove gtp header: %d", result);
             return XDP_ABORTED;
         }
     }
@@ -340,11 +340,11 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
      */
     if(ctx->ip4 && ctx->ip4->daddr == far->localip && ctx->ip4->protocol == IPPROTO_ICMP)
     {
-        upf_printk("upf: prepare icmp ping reply to request %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+        upf_printk("upf: [n3] prepare icmp ping reply to request %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
         if (-1 == prepare_icmp_echo_reply(ctx, far->localip, ctx->ip4->saddr))
             return XDP_ABORTED;
 
-        upf_printk("upf: send icmp ping reply %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+        upf_printk("upf: [n3] send icmp ping reply %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
         return handle_n6_packet_ipv4(ctx);
     }
 
