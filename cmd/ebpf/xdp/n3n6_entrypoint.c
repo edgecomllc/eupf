@@ -120,9 +120,9 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     if (qer->dl_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
 
-    // const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
-    // if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate))
-    //     return XDP_DROP;
+    const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
+    if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate))
+        return XDP_DROP;
 
     __u8 tos = far->transport_level_marking >> 8;
 
@@ -180,9 +180,9 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     if (qer->dl_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
 
-    // const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
-    // if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate))
-    //     return XDP_DROP;
+    const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
+    if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate))
+        return XDP_DROP;
 
     __u8 tos = far->transport_level_marking >> 8;
 
@@ -304,7 +304,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         return XDP_DROP;
     }
 
-    upf_printk("upf: [n3] qer:%d gate_status:%d mbr:%d", qer_id, qer->ul_gate_status, qer->ul_maximum_bitrate);
+    upf_printk("upf: [n3] qer:%d gate_status:%d mbr:%u", qer_id, qer->ul_gate_status, qer->ul_maximum_bitrate);
 
     if (qer->ul_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
@@ -494,7 +494,7 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
 
     __u64 flags = BPF_F_CURRENT_CPU;
-    __u16 sample_size = (__u16)(context.data_end - context.data);
+    __u16 sample_size = (__u16)(ctx->data_end - ctx->data);
     int ret;
     struct S metadata;
 

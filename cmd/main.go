@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"net"
 	"os"
 	"os/signal"
@@ -8,6 +9,9 @@ import (
 	"time"
 
 	"github.com/edgecomllc/eupf/cmd/core/service"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcapgo"
 
 	"github.com/edgecomllc/eupf/cmd/api/rest"
 	"github.com/edgecomllc/eupf/cmd/server"
@@ -56,13 +60,35 @@ func main() {
 		defer rd.Close()
 
 		go func() {
+			// Write a new file:
+			f, _ := os.Create("/tmp/file.pcap")
+			defer f.Close()
+
+			w := pcapgo.NewWriterNanos(f)
+			w.WriteFileHeader(65536, layers.LinkTypeEthernet) // new file, must do this.
+
 			var rec perf.Record
 			for {
 				if err := rd.ReadInto(&rec); err != nil {
 					log.Error().Msgf(" can't read from perf map: %s", err.Error())
 					return
 				}
-				log.Debug().Msgf("Sample: %x", rec.RawSample)
+
+				magic := binary.BigEndian.Uint16(rec.RawSample[:2])
+				if magic != 0xdead {
+					continue
+				}
+
+				len := binary.BigEndian.Uint16(rec.RawSample[2:2])
+
+				pack := gopacket.NewPacket(rec.RawSample[4:], layers.LayerTypeEthernet, gopacket.Default)
+				log.Debug().Msgf("Sample: len=%d, packet: %s", len, pack.Dump())
+
+				w.WritePacket(gopacket.CaptureInfo{
+					Timestamp:     time.Unix(0x01020304, 0xAA*1000),
+					Length:        int(len),
+					CaptureLength: int(len),
+				}, rec.RawSample[4:])
 			}
 		}()
 	}
