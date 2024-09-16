@@ -41,7 +41,7 @@ func main() {
 		log.Error().Msgf("Logger configuring error: %s. Using '%s' level", err.Error(), zerolog.GlobalLevel().String())
 	}
 
-	if err := ebpf.IncreaseResources(); err != nil {
+	if err := ebpf.IncreaseResourceLimits(); err != nil {
 		log.Fatal().Msgf("Can't increase resource limits: %s", err.Error())
 	}
 
