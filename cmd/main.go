@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -56,12 +57,13 @@ func main() {
 		}
 	}
 
-	if rd, err := perf.NewReader(bpfObjects.MyMap, 4096); err == nil {
+	if rd, err := perf.NewReader(bpfObjects.TraceMap, 4096); err == nil {
 		defer rd.Close()
 
 		go func() {
 			// Write a new file:
-			f, _ := os.Create("/tmp/file.pcap")
+			traceFileName := fmt.Sprintf("/tmp/%s-trace.pcap", time.Now().Format(time.RFC3339))
+			f, _ := os.Create(traceFileName)
 			defer f.Close()
 
 			w := pcapgo.NewWriterNanos(f)
@@ -75,7 +77,7 @@ func main() {
 				}
 
 				sampleLength := len(rec.RawSample)
-				if sampleLength < 5 {
+				if sampleLength < 9 {
 					log.Error().Msgf(" perf sample too small: %d", sampleLength)
 				}
 
@@ -85,15 +87,16 @@ func main() {
 				}
 
 				packetLength := binary.LittleEndian.Uint16(rec.RawSample[2:4])
-				packet := rec.RawSample[4 : 4+packetLength]
+				packetIface := binary.LittleEndian.Uint32(rec.RawSample[4:8])
+				packet := rec.RawSample[8 : 8+packetLength]
 
-				pack := gopacket.NewPacket(packet, layers.LayerTypeEthernet, gopacket.Default)
-				log.Trace().Msgf("Sample lost=%d, remaining=%d, len=%d, packet: %s", rec.LostSamples, rec.Remaining, packetLength, pack.Dump())
+				//pack := gopacket.NewPacket(packet, layers.LayerTypeEthernet, gopacket.Default)
+				//log.Trace().Msgf("Sample lost=%d, remaining=%d, len=%d, packet: %s", rec.LostSamples, rec.Remaining, packetLength, pack.Dump())
 
 				if err := w.WritePacket(gopacket.CaptureInfo{
-					Timestamp:     time.Unix(0x01020304, 0xAA*1000),
-					Length:        int(packetLength),
-					CaptureLength: int(packetLength),
+					Length:         int(packetLength),
+					CaptureLength:  int(packetLength),
+					InterfaceIndex: int(packetIface),
 				}, packet); err != nil {
 					log.Error().Msgf(" can't write perf sample to pcap dump: %s", err.Error())
 				}

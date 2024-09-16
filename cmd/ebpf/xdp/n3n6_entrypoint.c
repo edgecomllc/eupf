@@ -475,12 +475,17 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
         .counters = &statistic->upf_counters,
         .n3_n6_counter = &statistic->upf_n3_n6_counter};
 
+#define PACKET_TRACE
+#ifdef PACKET_TRACE
+    trace_packet(&context, PACKET_DIRECTION_IN);
+#endif
+
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
 
-#define PACKET_TRACE
 #ifdef PACKET_TRACE
-    trace_packet(&context);
+    if(action == XDP_TX || action == XDP_REDIRECT)
+        trace_packet(&context, PACKET_DIRECTION_OUT);
 #endif
 
     return action;

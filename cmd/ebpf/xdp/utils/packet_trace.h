@@ -21,6 +21,11 @@
 
 #include "xdp/utils/packet_context.h"
 
+enum packet_direction {
+    PACKET_DIRECTION_IN = 0,
+    PACKET_DIRECTION_OUT = 1,
+};
+
 #define min(x, y) ((x) < (y) ? (x) : (y))
 #define MAX_CPUS 128
 #define SAMPLE_SIZE 1024ul
@@ -28,6 +33,8 @@
 struct packet_trace_metadata {
 	__u16 cookie;
 	__u16 pkt_len;
+    __u32 iface;
+    //__u16 direction;
 } __packed;
 
 struct {
@@ -35,22 +42,22 @@ struct {
 	__type(key, int);
 	__type(value, __u32);
 	__uint(max_entries, MAX_CPUS);
-} my_map SEC(".maps");
+} trace_map SEC(".maps");
 
-static __always_inline void trace_packet(struct packet_context *packet_ctx) 
+static __always_inline void trace_packet(struct packet_context *packet_ctx, __u16 direction) 
 {
     struct xdp_md *ctx = packet_ctx->xdp_ctx;
     __u64 flags = BPF_F_CURRENT_CPU;
     __u16 sample_size = (__u16)(ctx->data_end - ctx->data);
-    int ret;
+    
     struct packet_trace_metadata meta;
-
     meta.cookie = 0xdead;
     meta.pkt_len = min(sample_size, SAMPLE_SIZE);
+    //meta.iface = ctx->ingress_ifindex;
+    meta.iface = direction;
 
     flags |= (__u64)sample_size << 32;
-
-    ret = bpf_perf_event_output(ctx, &my_map, flags, &meta, sizeof(meta));
+    int ret = bpf_perf_event_output(ctx, &trace_map, flags, &meta, sizeof(meta));
     if (ret)
         bpf_printk("perf_event_output failed: %d\n", ret);
 }
