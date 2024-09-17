@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/edgecomllc/eupf/cmd/config"
@@ -28,14 +29,18 @@ import (
 type BpfObjects struct {
 	IpEntrypointObjects
 
-	FarIdTracker *IdTracker
-	QerIdTracker *IdTracker
+	farIdTracker *IdTracker
+	qerIdTracker *IdTracker
+	farMutex     sync.Mutex
+	qerMutex     sync.Mutex
 }
 
 func NewBpfObjects() *BpfObjects {
 	return &BpfObjects{
-		FarIdTracker: NewIdTracker(config.Conf.FarMapSize),
-		QerIdTracker: NewIdTracker(config.Conf.QerMapSize),
+		farIdTracker: NewIdTracker(config.Conf.FarMapSize),
+		qerIdTracker: NewIdTracker(config.Conf.QerMapSize),
+		farMutex:     sync.Mutex{},
+		qerMutex:     sync.Mutex{},
 	}
 }
 
@@ -168,6 +173,30 @@ func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32
 	}
 
 	return nil
+}
+
+func (bpfObjects *BpfObjects) GetNextQER() (uint32, error) {
+	bpfObjects.qerMutex.Lock()
+	defer bpfObjects.qerMutex.Unlock()
+	return bpfObjects.qerIdTracker.GetNext()
+}
+
+func (bpfObjects *BpfObjects) GetNextFAR() (uint32, error) {
+	bpfObjects.farMutex.Lock()
+	defer bpfObjects.farMutex.Unlock()
+	return bpfObjects.farIdTracker.GetNext()
+}
+
+func (bpfObjects *BpfObjects) ReleaseQER(qerId uint32) {
+	bpfObjects.qerMutex.Lock()
+	defer bpfObjects.qerMutex.Unlock()
+	bpfObjects.qerIdTracker.Release(qerId)
+}
+
+func (bpfObjects *BpfObjects) ReleaseFAR(farId uint32) {
+	bpfObjects.farMutex.Lock()
+	defer bpfObjects.farMutex.Unlock()
+	bpfObjects.farIdTracker.Release(farId)
 }
 
 type IdTracker struct {
