@@ -242,7 +242,7 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
     // udp->check = cs;
 
     /* Update packet pointers */
-    context_set_ip4(ctx, (char *)(long)ctx->xdp_ctx->data, (const char *)(long)ctx->xdp_ctx->data_end, eth, ip, udp, gtp);
+    context_set_ip4(ctx, (char *)(long)ctx->xdp_ctx->data, (const char *)(long)ctx->xdp_ctx->data_end, eth, ip, udp, gtp, 0);
     return 0;
 }
 

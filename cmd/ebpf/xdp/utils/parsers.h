@@ -132,7 +132,7 @@ static __always_inline void swap_ip(struct iphdr *iph) {
     // ip->check = ipv4_csum(ip, sizeof(*ip));
 }
 
-static __always_inline void context_set_ip4(struct packet_context *ctx, char *data, const char *data_end, struct ethhdr *eth, struct iphdr *ip4, struct udphdr *udp, struct gtpuhdr *gtp) {
+static __always_inline void context_set_ip4(struct packet_context *ctx, char *data, const char *data_end, struct ethhdr *eth, struct iphdr *ip4, struct udphdr *udp, struct gtpuhdr *gtp, struct nshhdr *nsh) {
     ctx->data = data;
     ctx->data_end = data_end;
     ctx->eth = eth;
@@ -140,6 +140,7 @@ static __always_inline void context_set_ip4(struct packet_context *ctx, char *da
     ctx->ip6 = 0;
     ctx->udp = udp;
     ctx->gtp = gtp;
+    ctx->nsh = nsh;
 }
 
 static __always_inline void context_reset(struct packet_context *ctx, char *data, const char *data_end) {
@@ -150,6 +151,7 @@ static __always_inline void context_reset(struct packet_context *ctx, char *data
     ctx->ip6 = 0;
     ctx->udp = 0;
     ctx->gtp = 0;
+    ctx->nsh = 0;
 }
 
 

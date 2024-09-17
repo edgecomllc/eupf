@@ -1,9 +1,11 @@
 package core
 
 import (
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
@@ -570,6 +572,21 @@ func composeFarInfo(far *ie.IE, localIp net.IP, farInfo ebpf.FarInfo) (ebpf.FarI
 				log.Info().Msg("WARN: IPv6 not supported yet, ignoring")
 				return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
 			}
+		}
+		forwardingPolicyIndex := findIEindex(forward, 41) // IE Type Forwarding Policy
+		if forwardingPolicyIndex == -1 {
+			log.Info().Msg("WARN: No ForwardingPolicy")
+		} else {
+			forwardingPolicyIdentifier, _ := forward[forwardingPolicyIndex].ForwardingPolicyIdentifier()
+
+			forwardingPolicyIdentifierDecode, err := base64.StdEncoding.DecodeString(forwardingPolicyIdentifier)
+			if err == nil {
+				uint32Value, err := strconv.ParseUint(string(forwardingPolicyIdentifierDecode), 10, 32)
+				if err == nil {
+					farInfo.ForwardingPolicyIdentifier = uint32(uint32Value)
+				}
+			}
+			// TODO support pre-defined policy if forwardingPolicyIdentifier is not base64 treat it as referring to a pre-defined policy
 		}
 	}
 	transportLevelMarking, err := GetTransportLevelMarking(far)
