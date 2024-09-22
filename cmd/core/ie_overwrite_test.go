@@ -12,6 +12,7 @@ import (
 )
 
 type MapOperationsMock struct {
+	urr ebpf.UrrInfo
 }
 
 func (mapOps *MapOperationsMock) PutPdrUplink(teid uint32, pdrInfo ebpf.PdrInfo) error {
@@ -68,8 +69,8 @@ func (mapOps *MapOperationsMock) UpdateUrr(internalId uint32, urrInfo ebpf.UrrIn
 	return nil
 }
 
-func (mapOps *MapOperationsMock) DeleteUrr(internalId uint32) error {
-	return nil
+func (mapOps *MapOperationsMock) DeleteUrr(internalId uint32) (error, ebpf.UrrInfo) {
+	return nil, mapOps.urr
 }
 
 func TestSessionOverwrite(t *testing.T) {

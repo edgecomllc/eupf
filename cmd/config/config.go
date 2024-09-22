@@ -24,6 +24,7 @@ type UpfConfig struct {
 	GtpEchoInterval         uint32   `mapstructure:"gtp_echo_interval" validate:"min=1" json:"gtp_echo_interval"`
 	QerMapSize              uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
 	FarMapSize              uint32   `mapstructure:"far_map_size" validate:"min=1" json:"far_map_size"`
+	UrrMapSize              uint32   `mapstructure:"urr_map_size" validate:"min=1" json:"urr_map_size"`
 	PdrMapSize              uint32   `mapstructure:"pdr_map_size" validate:"min=1" json:"pdr_map_size"`
 	EbpfMapResize           bool     `mapstructure:"resize_ebpf_maps" json:"resize_ebpf_maps"`
 	HeartbeatRetries        uint32   `mapstructure:"heartbeat_retries" json:"heartbeat_retries"`
@@ -50,6 +51,7 @@ func init() {
 	pflag.Uint32("echo", 10, "Interval of sending echo requests in seconds")
 	pflag.Uint32("qersize", 1024, "Size of the QER ebpf map")
 	pflag.Uint32("farsize", 1024, "Size of the FAR ebpf map")
+	pflag.Uint32("urrsize", 1024, "Size of the URR ebpf map")
 	pflag.Uint32("pdrsize", 1024, "Size of the PDR ebpf map")
 	pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
 	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
@@ -78,6 +80,7 @@ func init() {
 	_ = v.BindPFlag("gtp_echo_interval", pflag.Lookup("echo"))
 	_ = v.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
 	_ = v.BindPFlag("far_map_size", pflag.Lookup("farsize"))
+	_ = v.BindPFlag("urr_map_size", pflag.Lookup("urrsize"))
 	_ = v.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
 	_ = v.BindPFlag("resize_ebpf_maps", pflag.Lookup("mapresize"))
 	_ = v.BindPFlag("heartbeat_retries", pflag.Lookup("hbretries"))
@@ -100,6 +103,7 @@ func init() {
 	v.SetDefault("gtp_echo_interval", 10)
 	v.SetDefault("qer_map_size", 1024)
 	v.SetDefault("far_map_size", 1024)
+	v.SetDefault("urr_map_size", 1024)
 	v.SetDefault("pdr_map_size", 1024)
 	v.SetDefault("resize_ebpf_maps", false)
 	v.SetDefault("heartbeat_retries", 3)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core/service"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 
 	"github.com/wmnsk/go-pfcp/ie"
@@ -73,7 +74,10 @@ func TestAssociationSetup(t *testing.T) {
 }
 
 func PreparePfcpConnection(t *testing.T) (PfcpConnection, string) {
-	mapOps := MapOperationsMock{}
+	return PreparePfcpConnectionWithMock(t, &MapOperationsMock{})
+}
+
+func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneController) (PfcpConnection, string) {
 
 	var pfcpHandlers = PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            HandlePfcpHeartbeatRequest,
@@ -91,7 +95,7 @@ func PreparePfcpConnection(t *testing.T) (PfcpConnection, string) {
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),
 		nodeId:           "test-node",
-		mapOperations:    &mapOps,
+		mapOperations:    ebpfMock,
 		pfcpHandlerMap:   pfcpHandlers,
 		n3Address:        net.ParseIP("1.2.3.4"),
 		associationMutex: &sync.Mutex{},
@@ -570,7 +574,8 @@ func TestHandlePfcpSessionEstablishmentRequestWithURR(t *testing.T) {
 }
 
 func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
-	pfcpConn, smfIP := PreparePfcpConnection(t)
+	ebpfMock := &MapOperationsMock{}
+	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock)
 
 	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
 		ie.NewNodeID("", "", "test"),
@@ -618,6 +623,9 @@ func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
 			ie.NewURRID(0xf),
 		),
 	)
+
+	ebpfMock.urr.UplinkVolume = 1234
+	ebpfMock.urr.DownlinkVolume = 5678
 	msg, err := HandlePfcpSessionModificationRequest(&pfcpConn, modReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session modification request: %s", err)
@@ -635,8 +643,28 @@ func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
 	}
 
 	vol, _ := ur.VolumeMeasurement()
-	if vol.TotalVolume == 0 {
-		t.Errorf("TotalVolume equal 0")
+	if !vol.HasTOVOL() {
+		t.Errorf("No TotalVolume")
+	}
+
+	if !vol.HasULVOL() {
+		t.Errorf("No UplinkVolume")
+	}
+
+	if !vol.HasDLVOL() {
+		t.Errorf("No DownlinkVolume")
+	}
+
+	if vol.UplinkVolume != ebpfMock.urr.UplinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.UplinkVolume)
+	}
+
+	if vol.DownlinkVolume != ebpfMock.urr.DownlinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.DownlinkVolume)
+	}
+
+	if vol.TotalVolume != ebpfMock.urr.UplinkVolume+ebpfMock.urr.DownlinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.TotalVolume)
 	}
 
 	if _, exists := pfcpConn.NodeAssociations[smfIP].Sessions[2].URRs[0xf]; exists {
@@ -645,7 +673,9 @@ func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
 }
 
 func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
-	pfcpConn, smfIP := PreparePfcpConnection(t)
+
+	ebpfMock := &MapOperationsMock{}
+	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock)
 
 	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
 		ie.NewNodeID("", "", "test"),
@@ -662,6 +692,8 @@ func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
 
+	ebpfMock.urr.UplinkVolume = 100
+	ebpfMock.urr.DownlinkVolume = 200
 	delReq := message.NewSessionDeletionRequest(0, 0, 2, 1, 0)
 	msg, err := HandlePfcpSessionDeletionRequest(&pfcpConn, delReq, smfIP)
 	if err != nil {
@@ -680,7 +712,28 @@ func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
 	}
 
 	vol, _ := ur.VolumeMeasurement()
-	if vol.TotalVolume == 0 {
-		t.Errorf("TotalVolume equal 0")
+
+	if !vol.HasTOVOL() {
+		t.Errorf("No TotalVolume")
+	}
+
+	if !vol.HasULVOL() {
+		t.Errorf("No UplinkVolume")
+	}
+
+	if !vol.HasDLVOL() {
+		t.Errorf("No DownlinkVolume")
+	}
+
+	if vol.UplinkVolume != ebpfMock.urr.UplinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.UplinkVolume)
+	}
+
+	if vol.DownlinkVolume != ebpfMock.urr.DownlinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.DownlinkVolume)
+	}
+
+	if vol.TotalVolume != ebpfMock.urr.UplinkVolume+ebpfMock.urr.DownlinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.TotalVolume)
 	}
 }
