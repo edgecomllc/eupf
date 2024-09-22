@@ -29,12 +29,12 @@ import (
 type BpfObjects struct {
 	IpEntrypointObjects
 
-
 	farIdTracker *IdTracker
 	qerIdTracker *IdTracker
-  UrrIdTracker *IdTracker
+	urrIdTracker *IdTracker
 	farMutex     sync.Mutex
 	qerMutex     sync.Mutex
+	urrMutex     sync.Mutex
 }
 
 func NewBpfObjects() *BpfObjects {
@@ -42,9 +42,10 @@ func NewBpfObjects() *BpfObjects {
 
 		farIdTracker: NewIdTracker(config.Conf.FarMapSize),
 		qerIdTracker: NewIdTracker(config.Conf.QerMapSize),
-    UrrIdTracker: NewIdTracker(config.Conf.UrrMapSize),
+		urrIdTracker: NewIdTracker(config.Conf.UrrMapSize),
 		farMutex:     sync.Mutex{},
 		qerMutex:     sync.Mutex{},
+		urrMutex:     sync.Mutex{},
 	}
 }
 
@@ -191,6 +192,12 @@ func (bpfObjects *BpfObjects) GetNextFAR() (uint32, error) {
 	return bpfObjects.farIdTracker.GetNext()
 }
 
+func (bpfObjects *BpfObjects) GetNextURR() (uint32, error) {
+	bpfObjects.urrMutex.Lock()
+	defer bpfObjects.urrMutex.Unlock()
+	return bpfObjects.urrIdTracker.GetNext()
+}
+
 func (bpfObjects *BpfObjects) ReleaseQER(qerId uint32) {
 	bpfObjects.qerMutex.Lock()
 	defer bpfObjects.qerMutex.Unlock()
@@ -201,6 +208,12 @@ func (bpfObjects *BpfObjects) ReleaseFAR(farId uint32) {
 	bpfObjects.farMutex.Lock()
 	defer bpfObjects.farMutex.Unlock()
 	bpfObjects.farIdTracker.Release(farId)
+}
+
+func (bpfObjects *BpfObjects) ReleaseURR(urrId uint32) {
+	bpfObjects.urrMutex.Lock()
+	defer bpfObjects.urrMutex.Unlock()
+	bpfObjects.urrIdTracker.Release(urrId)
 }
 
 type IdTracker struct {

@@ -232,7 +232,7 @@ type UrrInfo struct {
 }
 
 func (bpfObjects *BpfObjects) NewUrr(urrInfo UrrInfo) (uint32, error) {
-	internalId, err := bpfObjects.UrrIdTracker.GetNext()
+	internalId, err := bpfObjects.GetNextURR()
 	if err != nil {
 		return 0, err
 	}
@@ -251,7 +251,7 @@ func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) (error, UrrInfo) {
 	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrInfo)); err != nil {
 		return err, UrrInfo{}
 	}
-	bpfObjects.UrrIdTracker.Release(internalId)
+	bpfObjects.ReleaseURR(internalId)
 	if err := bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&UrrInfo{}), ebpf.UpdateExist); err != nil {
 		return err, UrrInfo{}
 	}
