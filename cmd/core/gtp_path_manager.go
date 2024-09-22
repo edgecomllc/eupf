@@ -22,12 +22,7 @@ type GtpPathManager struct {
 
 func NewGtpPathManager(localAddress string, interval time.Duration) *GtpPathManager {
 	ctx, cancelCtx := context.WithCancel(context.Background())
-	return &GtpPathManager{
-		localAddress:  localAddress,
-		peers:         map[string]uint16{},
-		checkInterval: interval,
-		ctx:           ctx,
-		cancelCtx:     cancelCtx}
+	return &GtpPathManager{localAddress: localAddress, peers: map[string]uint16{}, checkInterval: interval, ctx: ctx, cancelCtx: cancelCtx}
 }
 
 func (gtpPathManager *GtpPathManager) AddGtpPath(gtpPeerAddress string) {
@@ -69,12 +64,11 @@ func (gtpPathManager *GtpPathManager) sendEcho(gtpPeerAddress string, seq uint16
 	gtpEchoRequest := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(gtpEchoRequest, gopacket.SerializeOptions{},
 		&layers.GTPv1U{
-			Version:            1,
-			MessageType:        1, // GTPU_ECHO_REQUEST
-			MessageLength:      4,
-			TEID:               0,
-			SequenceNumberFlag: true,
-			SequenceNumber:     seq,
+			Version:     1,
+			MessageType: 1, // GTPU_ECHO_REQUEST
+			TEID:        0,
+			//SequenceNumberFlag: true,
+			//SequenceNumber:     seq,
 		},
 	); err != nil {
 		return 0, fmt.Errorf("serializing input packet failed: %v", err)
