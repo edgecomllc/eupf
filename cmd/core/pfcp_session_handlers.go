@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
@@ -178,15 +179,20 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
-	for id := range session.URRs {
+	for id, urr := range session.URRs {
+		err, urrInfo := mapOperations.DeleteUrr(id)
+		if err != nil {
+			log.Info().Msgf("WARN: mapOperations failed to delete URR: %d, %s", id, err.Error())
+			continue
+		}
+		urr.ReportSeqNumber = urr.ReportSeqNumber + 1
 		deletedURRs = append(deletedURRs, ie.NewUsageReportWithinSessionDeletionResponse(
 			ie.NewURRID(id),
-			// TODO: add getting actual values from ebpf.UrrInfo
-			ie.NewVolumeMeasurement(0x3f, 1, 0, 0, 0, 0, 0),
+			ie.NewURSEQN(urr.ReportSeqNumber),
+			ie.NewUsageReportTrigger([]uint8{0, 1 << 3, 0}...),
+			ie.NewEndTime(time.Now()),
+			ie.NewVolumeMeasurement(0x7, urrInfo.UplinkVolume+urrInfo.DownlinkVolume, urrInfo.UplinkVolume, urrInfo.DownlinkVolume, 0, 0, 0),
 		))
-		if err := mapOperations.DeleteUrr(id); err != nil {
-			log.Info().Msgf("WARN: mapOperations failed to delete URR: %d, %s", id, err.Error())
-		}
 	}
 
 	additionalIEs := []*ie.IE{
@@ -375,15 +381,21 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 			log.Info().Msgf("Removing URR ID: %d", urrId)
 			sUrrInfo := session.RemoveUrr(urrId)
+
+			err, urrInfo := mapOperations.DeleteUrr(sUrrInfo.GlobalId)
+			if err != nil {
+				log.Warn().Msgf("Can't remove URR: %s", err.Error())
+				continue
+			}
+
+			sUrrInfo.ReportSeqNumber = sUrrInfo.ReportSeqNumber + 1
 			removedURRs = append(removedURRs, ie.NewUsageReportWithinSessionModificationResponse(
 				ie.NewURRID(urrId),
-				// TODO: add getting actual values from ebpf.UrrInfo
-				ie.NewVolumeMeasurement(0x3f, 1, 0, 0, 0, 0, 0),
+				ie.NewURSEQN(sUrrInfo.ReportSeqNumber),
+				ie.NewUsageReportTrigger([]uint8{0, 1 << 3, 0}...),
+				ie.NewEndTime(time.Now()),
+				ie.NewVolumeMeasurement(0x7, urrInfo.UplinkVolume+urrInfo.DownlinkVolume, urrInfo.UplinkVolume, urrInfo.DownlinkVolume, 0, 0, 0),
 			))
-			if err := mapOperations.DeleteUrr(sUrrInfo.GlobalId); err != nil {
-				log.Info().Msgf("Can't remove URR: %s", err.Error())
-				return err
-			}
 		}
 
 		for _, pdr := range req.CreatePDR {
@@ -616,4 +628,10 @@ func GetTransportLevelMarking(far *ie.IE) (uint16, error) {
 
 // TODO: add making or updating UrrInfo
 func updateUrr(urrInfo *ebpf.UrrInfo, urr *ie.IE) {
+
+	// if urr.HasVOLUM() {
+	// }
+
+	// if volumeThreshold, err := urr.VolumeThreshold(); err == nil {
+	// }
 }

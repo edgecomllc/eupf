@@ -29,6 +29,7 @@
 #include "xdp/program_array.h"
 #include "xdp/statistics.h"
 #include "xdp/qer.h"
+#include "xdp/urr.h"
 #include "xdp/pdr.h"
 #include "xdp/sdf_filter.h"
 
@@ -111,6 +112,9 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
 
     __u8 tos = far->transport_level_marking >> 8;
 
+    update_urr(pdr->urr1_id, 0, packet_size);
+    update_urr(pdr->urr2_id, 0, packet_size);
+
     upf_printk("upf: use mapping %pI4 -> TEID:%d", &ip4->daddr, far->teid);
     return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
 }
@@ -170,6 +174,9 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
         return XDP_DROP;
 
     __u8 tos = far->transport_level_marking >> 8;
+
+    update_urr(pdr->urr1_id, 0, packet_size);
+    update_urr(pdr->urr2_id, 0, packet_size);
 
     upf_printk("upf: use mapping %pI6c -> TEID:%d", &ip6->daddr, far->teid);
     return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
@@ -297,6 +304,9 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
     if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->ul_start, qer->ul_maximum_bitrate))
         return XDP_DROP;
+
+    update_urr(pdr->urr1_id, packet_size, 0);
+    update_urr(pdr->urr2_id, packet_size, 0);
 
     upf_printk("upf: session for teid:%d far:%d outer_header_removal:%d", teid, pdr->far_id, outer_header_removal);
 

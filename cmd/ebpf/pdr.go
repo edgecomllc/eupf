@@ -18,7 +18,8 @@ type PdrInfo struct {
 	OuterHeaderRemoval uint8
 	FarId              uint32
 	QerId              uint32
-	UrrId              uint32
+	Urr1Id             uint32
+	Urr2Id             uint32
 	SdfFilter          *SdfFilter
 }
 
@@ -226,23 +227,36 @@ func (bpfObjects *BpfObjects) DeleteQer(internalId uint32) error {
 
 // TODO: add required fields and implement methods
 type UrrInfo struct {
-	// URRID, MeasurementMethod, TotalVolume?
+	UplinkVolume   uint64
+	DownlinkVolume uint64
 }
 
 func (bpfObjects *BpfObjects) NewUrr(urrInfo UrrInfo) (uint32, error) {
-	internalId := uint32(666)
+	internalId, err := bpfObjects.UrrIdTracker.GetNext()
+	if err != nil {
+		return 0, err
+	}
 	log.Debug().Msgf("EBPF: Put URR: internalId=%d, urrInfo=%+v", internalId, urrInfo)
-	return internalId, nil
+	return internalId, bpfObjects.UrrMap.Put(internalId, unsafe.Pointer(&urrInfo))
 }
 
 func (bpfObjects *BpfObjects) UpdateUrr(internalId uint32, urrInfo UrrInfo) error {
 	log.Debug().Msgf("EBPF: Update URR: internalId=%d, urrInfo=%+v", internalId, urrInfo)
-	return nil
+	return bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&urrInfo), ebpf.UpdateExist)
 }
 
-func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) error {
+func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) (error, UrrInfo) {
 	log.Debug().Msgf("EBPF: Delete URR: internalId=%d", internalId)
-	return nil
+	urrInfo := UrrInfo{}
+	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrInfo)); err != nil {
+		return err, UrrInfo{}
+	}
+	bpfObjects.UrrIdTracker.Release(internalId)
+	if err := bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&UrrInfo{}), ebpf.UpdateExist); err != nil {
+		return err, UrrInfo{}
+	}
+
+	return nil, urrInfo
 }
 
 type ForwardingPlaneController interface {
@@ -263,7 +277,7 @@ type ForwardingPlaneController interface {
 	DeleteQer(internalId uint32) error
 	NewUrr(urrInfo UrrInfo) (uint32, error)
 	UpdateUrr(internalId uint32, urrInfo UrrInfo) error
-	DeleteUrr(internalId uint32) error
+	DeleteUrr(internalId uint32) (error, UrrInfo)
 }
 
 func CombinePdrWithSdf(defaultPdr *IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntrypointPdrInfo {

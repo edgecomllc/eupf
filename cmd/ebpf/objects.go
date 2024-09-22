@@ -30,12 +30,14 @@ type BpfObjects struct {
 
 	FarIdTracker *IdTracker
 	QerIdTracker *IdTracker
+	UrrIdTracker *IdTracker
 }
 
 func NewBpfObjects() *BpfObjects {
 	return &BpfObjects{
 		FarIdTracker: NewIdTracker(config.Conf.FarMapSize),
 		QerIdTracker: NewIdTracker(config.Conf.QerMapSize),
+		UrrIdTracker: NewIdTracker(config.Conf.UrrMapSize),
 	}
 }
 
