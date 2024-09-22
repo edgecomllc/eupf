@@ -112,7 +112,7 @@ func (f *OuterHeaderCreationFields) UnmarshalBinary(b []byte) error {
 		return io.ErrUnexpectedEOF
 	}
 	f.IPv4Address = net.IP(b[offset : offset+4]).To4()
-	offset += 4
+	//offset += 4
 	return nil
 }
 

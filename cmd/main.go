@@ -67,7 +67,7 @@ func main() {
 			defer f.Close()
 
 			w := pcapgo.NewWriterNanos(f)
-			w.WriteFileHeader(65536, layers.LinkTypeEthernet) // new file, must do this.
+			_ = w.WriteFileHeader(65536, layers.LinkTypeEthernet) // new file, must do this.
 
 			var rec perf.Record
 			for {
