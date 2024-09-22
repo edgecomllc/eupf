@@ -40,6 +40,9 @@ struct
 
 static __always_inline void update_urr(__u32 urr_id, __u64 uplink_bytes, __u64 downlink_bytes)
 {
+    if(urr_id == 0) // URRID = 0 means URRID is not set
+        return;
+
     struct urr_info *urr = bpf_map_lookup_elem(&urr_map, &urr_id);  
     if (urr) {
         urr->ul += uplink_bytes;

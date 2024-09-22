@@ -223,7 +223,7 @@ type IdTracker struct {
 
 func NewIdTracker(size uint32) *IdTracker {
 	newBitmap := roaring.NewBitmap()
-	newBitmap.Flip(0, uint64(size))
+	newBitmap.Flip(1, uint64(size)) // Let's set 0 id as unusable
 
 	return &IdTracker{
 		bitmap:  newBitmap,

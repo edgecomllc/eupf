@@ -307,6 +307,8 @@ func CombinePdrWithSdf(defaultPdr *IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntryp
 	pdrToStore.SdfRules.OuterHeaderRemoval = sdfPdr.OuterHeaderRemoval
 	pdrToStore.SdfRules.FarId = sdfPdr.FarId
 	pdrToStore.SdfRules.QerId = sdfPdr.QerId
+	pdrToStore.SdfRules.Urr1Id = sdfPdr.Urr1Id
+	pdrToStore.SdfRules.Urr2Id = sdfPdr.Urr2Id
 	return pdrToStore
 }
 
@@ -315,6 +317,8 @@ func ToIpEntrypointPdrInfo(defaultPdr PdrInfo) IpEntrypointPdrInfo {
 	pdrToStore.OuterHeaderRemoval = defaultPdr.OuterHeaderRemoval
 	pdrToStore.FarId = defaultPdr.FarId
 	pdrToStore.QerId = defaultPdr.QerId
+	pdrToStore.Urr1Id = defaultPdr.Urr1Id
+	pdrToStore.Urr2Id = defaultPdr.Urr2Id
 	return pdrToStore
 }
 
