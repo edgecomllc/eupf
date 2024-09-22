@@ -296,7 +296,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         return XDP_DROP;
     }
 
-    upf_printk("upf: [n3] qer:%d gate_status:%d mbr:%d", qer_id, qer->ul_gate_status, qer->ul_maximum_bitrate);
+    upf_printk("upf: [n3] qer:%d gate_status:%d mbr:%u", qer_id, qer->ul_gate_status, qer->ul_maximum_bitrate);
 
     if (qer->ul_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
