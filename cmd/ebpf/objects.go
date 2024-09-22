@@ -29,16 +29,20 @@ import (
 type BpfObjects struct {
 	IpEntrypointObjects
 
+
 	farIdTracker *IdTracker
 	qerIdTracker *IdTracker
+  UrrIdTracker *IdTracker
 	farMutex     sync.Mutex
 	qerMutex     sync.Mutex
 }
 
 func NewBpfObjects() *BpfObjects {
 	return &BpfObjects{
+
 		farIdTracker: NewIdTracker(config.Conf.FarMapSize),
 		qerIdTracker: NewIdTracker(config.Conf.QerMapSize),
+    UrrIdTracker: NewIdTracker(config.Conf.UrrMapSize),
 		farMutex:     sync.Mutex{},
 		qerMutex:     sync.Mutex{},
 	}

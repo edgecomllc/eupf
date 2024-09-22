@@ -26,6 +26,43 @@ func NewPDRCreationContext(session *Session, resourceManager *service.ResourceMa
 	}
 }
 
+func GetURRIDs(i *ie.IE) ([]uint32, error) {
+
+	var urrs []uint32
+
+	switch i.Type {
+	case ie.CreatePDR:
+		ies, err := i.CreatePDR()
+		if err != nil {
+			return urrs, err
+		}
+		for _, x := range ies {
+			if x.Type == ie.URRID {
+				if value, err := x.URRID(); err == nil {
+					urrs = append(urrs, value)
+				}
+			}
+		}
+		return urrs, nil
+
+	case ie.UpdatePDR:
+		ies, err := i.UpdatePDR()
+		if err != nil {
+			return urrs, err
+		}
+		for _, x := range ies {
+			if x.Type == ie.URRID {
+				if value, err := x.URRID(); err == nil {
+					urrs = append(urrs, value)
+				}
+			}
+		}
+		return urrs, nil
+	default:
+		return urrs, &ie.InvalidTypeError{Type: i.Type}
+	}
+}
+
 func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error {
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
@@ -35,6 +72,16 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 	}
 	if qerid, err := pdr.QERID(); err == nil {
 		spdrInfo.PdrInfo.QerId = pdrContext.getQERID(qerid)
+	}
+
+	if urrs, err := GetURRIDs(pdr); err == nil {
+		if len(urrs) > 0 {
+			spdrInfo.PdrInfo.Urr1Id = pdrContext.getURRID(urrs[0])
+		}
+
+		if len(urrs) > 1 {
+			spdrInfo.PdrInfo.Urr2Id = pdrContext.getURRID(urrs[1])
+		}
 	}
 
 	pdi, err := pdr.PDI()
@@ -137,6 +184,10 @@ func (pdrContext *PDRCreationContext) getFARID(farid uint32) uint32 {
 
 func (pdrContext *PDRCreationContext) getQERID(qerid uint32) uint32 {
 	return pdrContext.Session.GetQer(qerid).GlobalId
+}
+
+func (pdrContext *PDRCreationContext) getURRID(urrid uint32) uint32 {
+	return pdrContext.Session.GetUrr(urrid).GlobalId
 }
 
 func (pdrContext *PDRCreationContext) getFTEID(seID uint64, pdrID uint32) (uint32, error) {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core/service"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 
 	"github.com/wmnsk/go-pfcp/ie"
@@ -73,7 +74,10 @@ func TestAssociationSetup(t *testing.T) {
 }
 
 func PreparePfcpConnection(t *testing.T) (PfcpConnection, string) {
-	mapOps := MapOperationsMock{}
+	return PreparePfcpConnectionWithMock(t, &MapOperationsMock{})
+}
+
+func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneController) (PfcpConnection, string) {
 
 	var pfcpHandlers = PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            HandlePfcpHeartbeatRequest,
@@ -91,7 +95,7 @@ func PreparePfcpConnection(t *testing.T) (PfcpConnection, string) {
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),
 		nodeId:           "test-node",
-		mapOperations:    &mapOps,
+		mapOperations:    ebpfMock,
 		pfcpHandlerMap:   pfcpHandlers,
 		n3Address:        net.ParseIP("1.2.3.4"),
 		nodeAddrV4:       net.ParseIP("127.0.0.1"),
@@ -544,5 +548,193 @@ func TestUEIPInAssociationSetupResponse(t *testing.T) {
 	ueipEnabled := asRes.UPFunctionFeatures.HasUEIP()
 	if !ueipEnabled {
 		t.Error("UEIP is not enabled in Association Setup Response")
+	}
+}
+
+func TestHandlePfcpSessionEstablishmentRequestWithURR(t *testing.T) {
+	pfcpConn, smfIP := PreparePfcpConnection(t)
+
+	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		ie.NewCreatePDR(
+			ie.NewPDRID(0xffff),
+		),
+		ie.NewCreateURR(
+			ie.NewURRID(0xf),
+		),
+	)
+	_, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	if _, exists := pfcpConn.NodeAssociations[smfIP].Sessions[2].URRs[0xf]; !exists {
+		t.Errorf("URR wasn't stored")
+	}
+}
+
+func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
+	ebpfMock := &MapOperationsMock{}
+	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock)
+
+	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		ie.NewCreatePDR(
+			ie.NewPDRID(0xffff),
+		),
+	)
+	_, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	modReq := message.NewSessionModificationRequest(0, 0, 2, 1, 0,
+		ie.NewCreateURR(
+			ie.NewURRID(0xf),
+		),
+	)
+	_, err = HandlePfcpSessionModificationRequest(&pfcpConn, modReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session modification request: %s", err)
+	}
+
+	if _, exists := pfcpConn.NodeAssociations[smfIP].Sessions[2].URRs[0xf]; !exists {
+		t.Errorf("URR wasn't stored")
+	}
+
+	// TODO: add case for UpdateURR
+	// modReq = message.NewSessionModificationRequest(0, 0, 2, 1, 0,
+	// 	ie.NewUpdateURR(
+	// 		ie.NewURRID(0xf),
+	// 		ie.NewMeasurementMethod(1, 1, 1),
+	// 	),
+	// )
+	// _, err = HandlePfcpSessionModificationRequest(&pfcpConn, modReq, smfIP)
+	// if err != nil {
+	// 	t.Errorf("Error handling session modification request: %s", err)
+	// }
+	// if pfcpConn.NodeAssociations[smfIP].Sessions[2].URRs[0xf].UrrInfo.MeasurementMethod != ?  {
+	// 	t.Errorf("URR wasn't updated")
+	// }
+
+	modReq = message.NewSessionModificationRequest(0, 0, 2, 1, 0,
+		ie.NewRemoveURR(
+			ie.NewURRID(0xf),
+		),
+	)
+
+	ebpfMock.urr.UplinkVolume = 1234
+	ebpfMock.urr.DownlinkVolume = 5678
+	msg, err := HandlePfcpSessionModificationRequest(&pfcpConn, modReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session modification request: %s", err)
+	}
+
+	modResp := msg.(*message.SessionModificationResponse)
+	if len(modResp.UsageReport) == 0 {
+		t.Errorf("SessionModificationResponse doesn't contain Usage Reports")
+	}
+
+	ur := modResp.UsageReport[0]
+	urrID, _ := ur.URRID()
+	if urrID != 0xf {
+		t.Errorf("URRID not equal 0xf")
+	}
+
+	vol, _ := ur.VolumeMeasurement()
+	if !vol.HasTOVOL() {
+		t.Errorf("No TotalVolume")
+	}
+
+	if !vol.HasULVOL() {
+		t.Errorf("No UplinkVolume")
+	}
+
+	if !vol.HasDLVOL() {
+		t.Errorf("No DownlinkVolume")
+	}
+
+	if vol.UplinkVolume != ebpfMock.urr.UplinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.UplinkVolume)
+	}
+
+	if vol.DownlinkVolume != ebpfMock.urr.DownlinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.DownlinkVolume)
+	}
+
+	if vol.TotalVolume != ebpfMock.urr.UplinkVolume+ebpfMock.urr.DownlinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.TotalVolume)
+	}
+
+	if _, exists := pfcpConn.NodeAssociations[smfIP].Sessions[2].URRs[0xf]; exists {
+		t.Errorf("URR wasn't removed")
+	}
+}
+
+func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
+
+	ebpfMock := &MapOperationsMock{}
+	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock)
+
+	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		ie.NewCreatePDR(
+			ie.NewPDRID(0xffff),
+		),
+		ie.NewCreateURR(
+			ie.NewURRID(0xf),
+		),
+	)
+	_, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	ebpfMock.urr.UplinkVolume = 100
+	ebpfMock.urr.DownlinkVolume = 200
+	delReq := message.NewSessionDeletionRequest(0, 0, 2, 1, 0)
+	msg, err := HandlePfcpSessionDeletionRequest(&pfcpConn, delReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session deletion request: %s", err)
+	}
+
+	delRes := msg.(*message.SessionDeletionResponse)
+	if len(delRes.UsageReport) == 0 {
+		t.Errorf("SessionDeletionResponse doesn't contain Usage Reports")
+	}
+
+	ur := delRes.UsageReport[0]
+	urrID, _ := ur.URRID()
+	if urrID != 0xf {
+		t.Errorf("URRID not equal 0xf")
+	}
+
+	vol, _ := ur.VolumeMeasurement()
+
+	if !vol.HasTOVOL() {
+		t.Errorf("No TotalVolume")
+	}
+
+	if !vol.HasULVOL() {
+		t.Errorf("No UplinkVolume")
+	}
+
+	if !vol.HasDLVOL() {
+		t.Errorf("No DownlinkVolume")
+	}
+
+	if vol.UplinkVolume != ebpfMock.urr.UplinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.UplinkVolume)
+	}
+
+	if vol.DownlinkVolume != ebpfMock.urr.DownlinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.DownlinkVolume)
+	}
+
+	if vol.TotalVolume != ebpfMock.urr.UplinkVolume+ebpfMock.urr.DownlinkVolume {
+		t.Errorf("TotalVolume equals %d", vol.TotalVolume)
 	}
 }
