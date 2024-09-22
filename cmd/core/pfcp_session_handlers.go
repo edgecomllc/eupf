@@ -629,8 +629,6 @@ func updateQer(qerInfo *ebpf.QerInfo, qer *ie.IE) {
 	if err == nil {
 		qerInfo.Qfi = qfi
 	}
-	qerInfo.StartUL = 0
-	qerInfo.StartDL = 0
 }
 
 func GetTransportLevelMarking(far *ie.IE) (uint16, error) {

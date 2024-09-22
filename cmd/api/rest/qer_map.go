@@ -1,15 +1,17 @@
 package rest
 
 import (
-	"github.com/edgecomllc/eupf/cmd/ebpf"
-	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
 	"unsafe"
+
+	"github.com/edgecomllc/eupf/cmd/ebpf"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // ListQerMapContent godoc
+//
 //	@Summary		List QER map content
 //	@Description	List QER map content
 //	@Tags			QER
@@ -26,6 +28,7 @@ func (h *ApiHandler) listQerMapContent(c *gin.Context) {
 }
 
 // GetQerValue godoc
+//
 //	@Summary		List QER map content
 //	@Description	List QER map content
 //	@Tags			QER
@@ -72,8 +75,6 @@ func (h *ApiHandler) setQerValue(c *gin.Context) {
 		Qfi:          qerElement.Qfi,
 		MaxBitrateUL: qerElement.MaxBitrateUL,
 		MaxBitrateDL: qerElement.MaxBitrateDL,
-		StartUL:      0,
-		StartDL:      0,
 	}
 
 	if err := h.BpfObjects.IpEntrypointObjects.QerMap.Put(uint32(qerElement.Id), unsafe.Pointer(&value)); err != nil {
