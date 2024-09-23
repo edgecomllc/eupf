@@ -247,6 +247,7 @@ func (connection *PfcpConnection) SendReports() {
 					downlink)
 
 				urr.UrrInfo = newReport
+				session.URRs[urrid] = urr
 			}
 		}
 
