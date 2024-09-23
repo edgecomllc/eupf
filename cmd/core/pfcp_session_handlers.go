@@ -186,18 +186,21 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		}
 	}
 	for id, urr := range session.URRs {
-		err, urrInfo := mapOperations.DeleteUrr(urr.GlobalId)
+		prevReport := urr.UrrInfo
+		err, newReport := mapOperations.DeleteUrr(urr.GlobalId)
 		if err != nil {
 			log.Info().Msgf("WARN: mapOperations failed to delete URR: %d, %s", id, err.Error())
 			continue
 		}
-		urr.ReportSeqNumber = urr.ReportSeqNumber + 1
+		urr.ReportSeqNumber += 1
+		uplink := newReport.UplinkVolume - prevReport.UplinkVolume
+		downlink := newReport.DownlinkVolume - prevReport.DownlinkVolume
 		deletedURRs = append(deletedURRs, ie.NewUsageReportWithinSessionDeletionResponse(
 			ie.NewURRID(id),
 			ie.NewURSEQN(urr.ReportSeqNumber),
-			ie.NewUsageReportTrigger([]uint8{0, 1 << 3, 0}...),
+			ie.NewUsageReportTrigger(0, 1<<3, 0),
 			ie.NewEndTime(time.Now()),
-			ie.NewVolumeMeasurement(0x7, urrInfo.UplinkVolume+urrInfo.DownlinkVolume, urrInfo.UplinkVolume, urrInfo.DownlinkVolume, 0, 0, 0),
+			ie.NewVolumeMeasurement(0x7, uplink+downlink, uplink, downlink, 0, 0, 0),
 		))
 	}
 
@@ -388,20 +391,22 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 			log.Info().Msgf("Removing URR ID: %d", urrId)
 			sUrrInfo := session.RemoveUrr(urrId)
-
-			err, urrInfo := mapOperations.DeleteUrr(sUrrInfo.GlobalId)
+			prevReport := sUrrInfo.UrrInfo
+			err, newReport := mapOperations.DeleteUrr(sUrrInfo.GlobalId)
 			if err != nil {
 				log.Warn().Msgf("Can't remove URR: %s", err.Error())
 				continue
 			}
 
-			sUrrInfo.ReportSeqNumber = sUrrInfo.ReportSeqNumber + 1
+			sUrrInfo.ReportSeqNumber += 1
+			uplink := newReport.UplinkVolume - prevReport.UplinkVolume
+			downlink := newReport.DownlinkVolume - prevReport.DownlinkVolume
 			removedURRs = append(removedURRs, ie.NewUsageReportWithinSessionModificationResponse(
 				ie.NewURRID(urrId),
 				ie.NewURSEQN(sUrrInfo.ReportSeqNumber),
-				ie.NewUsageReportTrigger([]uint8{0, 1 << 3, 0}...),
+				ie.NewUsageReportTrigger(0, 1<<3, 0),
 				ie.NewEndTime(time.Now()),
-				ie.NewVolumeMeasurement(0x7, urrInfo.UplinkVolume+urrInfo.DownlinkVolume, urrInfo.UplinkVolume, urrInfo.DownlinkVolume, 0, 0, 0),
+				ie.NewVolumeMeasurement(0x7, uplink+downlink, uplink, downlink, 0, 0, 0),
 			))
 		}
 

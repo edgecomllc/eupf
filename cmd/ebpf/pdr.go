@@ -292,6 +292,21 @@ func (bpfObjects *BpfObjects) UpdateUrr(internalId uint32, urrInfo UrrInfo) erro
 	return bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&urrToStore), ebpf.UpdateExist)
 }
 
+func (bpfObjects *BpfObjects) GetUrr(internalId uint32) (UrrInfo, error) {
+	log.Debug().Msgf("EBPF: Get URR: internalId=%d", internalId)
+
+	urrToStore := IpEntrypointUrrInfo{}
+	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrToStore)); err != nil {
+		return UrrInfo{}, err
+	}
+
+	urrInfo := UrrInfo{
+		UplinkVolume:   urrToStore.Ul,
+		DownlinkVolume: urrToStore.Dl,
+	}
+	return urrInfo, nil
+}
+
 func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) (error, UrrInfo) {
 	log.Debug().Msgf("EBPF: Delete URR: internalId=%d", internalId)
 
@@ -329,6 +344,7 @@ type ForwardingPlaneController interface {
 	DeleteQer(internalId uint32) error
 	NewUrr(urrInfo UrrInfo) (uint32, error)
 	UpdateUrr(internalId uint32, urrInfo UrrInfo) error
+	GetUrr(internalId uint32) (UrrInfo, error)
 	DeleteUrr(internalId uint32) (error, UrrInfo)
 }
 

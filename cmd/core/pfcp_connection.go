@@ -106,6 +106,7 @@ func (connection *PfcpConnection) SetRemoteNodes(nodes []AssociationConnector) {
 func (connection *PfcpConnection) Run() {
 
 	ticker := time.NewTicker(time.Duration(config.Conf.AssociationSetupTimeout) * time.Second)
+	reportTicker := time.NewTicker(time.Duration(60) * time.Second)
 	buf := make([]byte, 1500)
 
 	for {
@@ -114,6 +115,8 @@ func (connection *PfcpConnection) Run() {
 			connection.RefreshAssociations()
 		case associationAddr := <-connection.heartbeatFailedC:
 			connection.DeleteAssociation(associationAddr)
+		case <-reportTicker.C:
+			connection.SendReports()
 		default:
 			_ = connection.udpConn.SetReadDeadline(time.Now().Add(time.Second))
 			n, addr, err := connection.Receive(buf)
@@ -219,6 +222,63 @@ func (connection *PfcpConnection) ReleaseResources(seID uint64) {
 
 	if connection.ResourceManager.FTEIDM != nil {
 		connection.ResourceManager.FTEIDM.ReleaseTEID(seID)
+	}
+}
+
+func (connection *PfcpConnection) SendReports() {
+	for _, assocaition := range connection.NodeAssociations {
+		for _, session := range assocaition.Sessions {
+			for urrid, urr := range session.URRs {
+
+				newReport, err := connection.mapOperations.GetUrr(urr.GlobalId)
+				if err != nil {
+					continue
+				}
+
+				uplink := newReport.UplinkVolume - urr.UrrInfo.UplinkVolume
+				downlink := newReport.DownlinkVolume - urr.UrrInfo.DownlinkVolume
+
+				sequence := assocaition.NewSequenceID()
+				urr.ReportSeqNumber += 1
+				SendSessionReport(connection, session.RemoteSEID, sequence, assocaition.Addr,
+					urrid,
+					urr.ReportSeqNumber,
+					uplink,
+					downlink)
+
+				urr.UrrInfo = newReport
+			}
+		}
+
+	}
+}
+
+func SendSessionReport(conn *PfcpConnection, seid uint64, sequenceID uint32, associationAddr string,
+	urrid uint32,
+	urSeq uint32,
+	uplink uint64,
+	downlink uint64) {
+
+	additionalIEs := []*ie.IE{
+		ie.NewReportType(0, 0, 1, 0),
+		ie.NewUsageReportWithinSessionReportRequest(
+			ie.NewURRID(urrid),
+			ie.NewURSEQN(urSeq),
+			ie.NewUsageReportTrigger(1<<1, 0, 0), //Volume Threshold
+			ie.NewEndTime(time.Now()),
+			ie.NewVolumeMeasurement(0x7, uplink+downlink, uplink, downlink, 0, 0, 0),
+		),
+	}
+
+	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
+	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)
+	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
+	if err == nil {
+		if err := conn.SendMessage(sessionReport, udpAddr); err != nil {
+			log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
+		}
+	} else {
+		log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
 	}
 }
 
