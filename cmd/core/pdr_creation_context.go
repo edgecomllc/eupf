@@ -86,7 +86,8 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 
 	pdi, err := pdr.PDI()
 	if err != nil {
-		return fmt.Errorf("PDI IE is missing")
+		//return fmt.Errorf("PDI IE is missing")
+		return nil
 	}
 
 	if sdfFilter, err := pdr.SDFFilter(); err == nil {
