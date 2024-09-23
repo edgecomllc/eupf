@@ -267,6 +267,8 @@ func SendSessionReport(conn *PfcpConnection, seid uint64, sequenceID uint32, ass
 			ie.NewUsageReportTrigger(1<<1, 0, 0), //Volume Threshold
 			ie.NewEndTime(time.Now()),
 			ie.NewVolumeMeasurement(0x7, uplink+downlink, uplink, downlink, 0, 0, 0),
+			ie.NewTimeOfFirstPacket(time.Now()),
+			ie.NewTimeOfLastPacket(time.Now()),
 		),
 	}
 
