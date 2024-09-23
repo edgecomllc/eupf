@@ -173,20 +173,20 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0 /*newIeNodeID(conn.nodeId),*/, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
-	for id := range session.FARs {
-		if err := mapOperations.DeleteFar(id); err != nil {
+	for _, far := range session.FARs {
+		if err := mapOperations.DeleteFar(far.GlobalId); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0 /*newIeNodeID(conn.nodeId),*/, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
-	for id := range session.QERs {
-		if err := mapOperations.DeleteQer(id); err != nil {
+	for _, qer := range session.QERs {
+		if err := mapOperations.DeleteQer(qer.GlobalId); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0 /*newIeNodeID(conn.nodeId),*/, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
 	for id, urr := range session.URRs {
-		err, urrInfo := mapOperations.DeleteUrr(id)
+		err, urrInfo := mapOperations.DeleteUrr(urr.GlobalId)
 		if err != nil {
 			log.Info().Msgf("WARN: mapOperations failed to delete URR: %d, %s", id, err.Error())
 			continue
