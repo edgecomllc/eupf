@@ -269,6 +269,33 @@ func SendSessionReport(conn *PfcpConnection, seid uint64, sequenceID uint32, ass
 			ie.NewVolumeMeasurement(0x7, uplink+downlink, uplink, downlink, 0, 0, 0),
 			ie.NewTimeOfFirstPacket(time.Now()),
 			ie.NewTimeOfLastPacket(time.Now()),
+			// CHOICE
+			// urr-type
+			//    enterprise-id: ---- 0x7db(2011)
+			//    urr-level-type: ---- bearer(2)
+			//    urr-function-type: ---- charging(1)
+			//    urr-charging-type: ---- offlinepgw(3)
+			ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03}),
+			// CHOICE
+			// bearer-sequence
+			//    enterprise-id: ---- 0x7db(2011)
+			//    bearer-sequence-value: ---- 0x1(1)
+			ie.NewVendorSpecificIE(32843, 2011, []byte{1}),
+			// CHOICE
+			// private-stop-time
+			//    enterprise-id: ---- 0x7db(2011)
+			//    private-stop-time-value: ---- 0x000001917EEC1EEC
+			ie.NewVendorSpecificIE(34010, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
+			// CHOICE
+			// private-time-of-first-packet
+			//    enterprise-id: ---- 0x7db(2011)
+			//    time-of-first-packet-value: ---- 0x000001917EEC1BE9
+			ie.NewVendorSpecificIE(34011, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x20, 0xad}),
+			// CHOICE
+			// private-time-of-last-packet
+			//    enterprise-id: ---- 0x7db(2011)
+			//    time-of-last-packet-value: ---- 0x000001917EEC1EEC
+			ie.NewVendorSpecificIE(34012, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
 		),
 	}
 
