@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"net"
 	"os"
@@ -10,9 +9,6 @@ import (
 	"time"
 
 	"github.com/edgecomllc/eupf/cmd/core/service"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcapgo"
 
 	"github.com/edgecomllc/eupf/cmd/api/rest"
 	"github.com/edgecomllc/eupf/cmd/server"
@@ -21,8 +17,8 @@ import (
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
 	"github.com/cilium/ebpf/link"
-	"github.com/cilium/ebpf/perf"
 	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/edgecomllc/eupf/cmd/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -57,51 +53,15 @@ func main() {
 		}
 	}
 
-	if rd, err := perf.NewReader(bpfObjects.TraceMap, 4096); err == nil {
-		defer rd.Close()
+	var err error
+	traceFileName := fmt.Sprintf("dumps/%s-trace.pcap", time.Now().Format(time.RFC3339))
+	dumper, err := utils.NewPacketDumper(traceFileName, bpfObjects.TraceMap)
 
-		go func() {
-			// Write a new file:
-			traceFileName := fmt.Sprintf("/tmp/%s-trace.pcap", time.Now().Format(time.RFC3339))
-			f, _ := os.Create(traceFileName)
-			defer f.Close()
-
-			w := pcapgo.NewWriterNanos(f)
-			_ = w.WriteFileHeader(65536, layers.LinkTypeEthernet) // new file, must do this.
-
-			var rec perf.Record
-			for {
-				if err := rd.ReadInto(&rec); err != nil {
-					log.Error().Msgf(" can't read from perf map: %s", err.Error())
-					return
-				}
-
-				sampleLength := len(rec.RawSample)
-				if sampleLength < 9 {
-					log.Error().Msgf(" perf sample too small: %d", sampleLength)
-				}
-
-				magic := binary.LittleEndian.Uint16(rec.RawSample[:2])
-				if magic != 0xdead {
-					continue
-				}
-
-				packetLength := binary.LittleEndian.Uint16(rec.RawSample[2:4])
-				packetIface := binary.LittleEndian.Uint32(rec.RawSample[4:8])
-				packet := rec.RawSample[8 : 8+packetLength]
-
-				//pack := gopacket.NewPacket(packet, layers.LayerTypeEthernet, gopacket.Default)
-				//log.Trace().Msgf("Sample lost=%d, remaining=%d, len=%d, packet: %s", rec.LostSamples, rec.Remaining, packetLength, pack.Dump())
-
-				if err := w.WritePacket(gopacket.CaptureInfo{
-					Length:         int(packetLength),
-					CaptureLength:  int(packetLength),
-					InterfaceIndex: int(packetIface),
-				}, packet); err != nil {
-					log.Error().Msgf(" can't write perf sample to pcap dump: %s", err.Error())
-				}
-			}
-		}()
+	if err != nil {
+		log.Error().Msgf("Can't start dumper: %s", err.Error())
+	} else {
+		defer dumper.Close()
+		go dumper.Run()
 	}
 
 	defer bpfObjects.Close()
@@ -127,7 +87,6 @@ func main() {
 	}
 
 	log.Info().Msgf("Initialize resources: UEIP pool (CIDR: \"%s\"), TEID pool (size: %d)", config.Conf.UEIPPool, config.Conf.FTEIDPool)
-	var err error
 	resourceManager, err := service.NewResourceManager(config.Conf.UEIPPool, config.Conf.FTEIDPool)
 	if err != nil {
 		log.Error().Msgf("failed to create ResourceManager - err: %v", err)
