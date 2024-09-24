@@ -239,13 +239,15 @@ func (connection *PfcpConnection) SendReports() {
 				downlink := newReport.DownlinkVolume - urr.UrrInfo.DownlinkVolume
 
 				sequence := assocaition.NewSequenceID()
-				urr.ReportSeqNumber += 1
 				SendSessionReport(connection, session.RemoteSEID, sequence, assocaition.Addr,
 					urrid,
-					urr.ReportSeqNumber,
+					//urr.ReportSeqNumber,
+					session.URRSequence, //Huawei
 					uplink,
 					downlink)
 
+				urr.ReportSeqNumber += 1
+				session.URRSequence += 1 //Huawei !!!
 				urr.UrrInfo = newReport
 				session.URRs[urrid] = urr
 			}
