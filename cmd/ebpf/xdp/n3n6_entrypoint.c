@@ -485,7 +485,7 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
         .counters = &statistic->upf_counters,
         .n3_n6_counter = &statistic->upf_n3_n6_counter};
 
-//#define PACKET_TRACE
+#define PACKET_TRACE
 #ifdef PACKET_TRACE
     trace_packet(&context, PACKET_DIRECTION_IN);
 #endif
