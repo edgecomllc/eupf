@@ -27,7 +27,7 @@ enum packet_direction {
 };
 
 #define min(x, y) ((x) < (y) ? (x) : (y))
-#define MAX_CPUS 128
+#define MAX_CPUS 4096
 #define SAMPLE_SIZE 1024ul
 /* Metadata will be in the perf event before the packet data. */
 struct packet_trace_metadata {

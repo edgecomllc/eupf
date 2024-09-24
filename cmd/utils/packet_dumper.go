@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"
@@ -23,7 +24,10 @@ type PacketDumper struct {
 
 func NewPacketDumper(dumpPath string, praceMap *ebpf.Map) (*PacketDumper, error) {
 
-	f, _ := os.Create(dumpPath)
+	f, err := os.Create(dumpPath)
+	if err != nil {
+		return nil, fmt.Errorf("can't create pcap dump: %s", err.Error())
+	}
 
 	//w := pcapgo.NewWriterNanos(f)
 	//_ = w.WriteFileHeader(65536, layers.LinkTypeEthernet) // new file, must do this.
@@ -100,6 +104,7 @@ func (dumper *PacketDumper) Run() {
 		//log.Trace().Msgf("Sample lost=%d, remaining=%d, len=%d, packet: %s", rec.LostSamples, rec.Remaining, packetLength, pack.Dump())
 
 		if err := dumper.w.WritePacket(gopacket.CaptureInfo{
+			Timestamp:      time.Now(),
 			Length:         int(packetLength),
 			CaptureLength:  int(packetLength),
 			InterfaceIndex: int(packetIface),
