@@ -86,7 +86,8 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 
 	pdi, err := pdr.PDI()
 	if err != nil {
-		return fmt.Errorf("PDI IE is missing")
+		//return fmt.Errorf("PDI IE is missing")
+		return nil
 	}
 
 	if sdfFilter, err := pdr.SDFFilter(); err == nil {
@@ -171,7 +172,9 @@ func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations
 		}
 	}
 	if spdrInfo.Teid != 0 {
-		pdrContext.ResourceManager.FTEIDM.ReleaseTEID(pdrContext.Session.RemoteSEID)
+		if pdrContext.ResourceManager != nil {
+			pdrContext.ResourceManager.FTEIDM.ReleaseTEID(pdrContext.Session.RemoteSEID)
+		}
 	}
 	return nil
 }

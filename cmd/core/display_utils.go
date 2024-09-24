@@ -34,10 +34,38 @@ func printAssociationSetupRequest(req *message.AssociationSetupRequest) {
 	log.Info().Msg(sb.String())
 }
 
+func printAssociationUpdateRequest(req *message.AssociationUpdateRequest) {
+	var sb strings.Builder
+	sb.WriteString("\n")
+	writeLineTabbed(&sb, "Association Update Request:", 0)
+	nodeId, err := req.NodeID.NodeID()
+	if err == nil {
+		writeLineTabbed(&sb, fmt.Sprintf("Node ID: %s", nodeId), 1)
+	}
+	log.Info().Msg(sb.String())
+}
+
+func GetFSEID(CPFSEID *ie.IE) uint64 {
+	if CPFSEID != nil {
+		if fseid, err := CPFSEID.FSEID(); err == nil {
+			return fseid.SEID
+		}
+	}
+	return 0
+}
+
 func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
-	writeLineTabbed(&sb, "Session Establishment Request:", 0)
+	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), GetFSEID(req.CPFSEID)), 0)
+
+	// for _, ie := range req.IEs {
+	// 	//FSEID uint16 = 57
+	// 	if ie.Type == 57 {
+	// 		writeLineTabbed(&sb, fmt.Sprintf("F-SEID: %#016x ", GetFSEID(ie)), 1)
+	// 	}
+	// }
+
 	for _, pdr := range req.CreatePDR {
 		sb.WriteString("  Create")
 		displayPdr(&sb, pdr)
@@ -62,6 +90,17 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 		sb.WriteString("  Create")
 		displayBar(&sb, req.CreateBAR)
 	}
+
+	if imsiId := findEnterpriseSpecificIEindex(req.IEs, 32769, 2011); imsiId != -1 { // IE Huawei IMSI
+		imsiEncoded := req.IEs[imsiId].Payload
+		writeLineTabbed(&sb, fmt.Sprintf("IMSI: %s ", DecodeDigitsFromBytes(imsiEncoded)), 1)
+	}
+
+	if msisdnId := findEnterpriseSpecificIEindex(req.IEs, 32770, 2011); msisdnId != -1 { // IE Huawei MSISDN
+		msisdnEncoded := req.IEs[msisdnId].Payload
+		writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", DecodeDigitsFromBytes(msisdnEncoded)), 1)
+	}
+
 	log.Info().Msg(sb.String())
 }
 
@@ -69,7 +108,7 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 func printSessionModificationRequest(req *message.SessionModificationRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
-	writeLineTabbed(&sb, "Session Modification Request:", 0)
+	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), GetFSEID(req.CPFSEID)), 0)
 	for _, pdr := range req.CreatePDR {
 		sb.WriteString("  Create")
 		displayPdr(&sb, pdr)
@@ -163,14 +202,24 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 			writeLineTabbed(&sb, fmt.Sprintf("BAR ID: %d ", barId), 2)
 		}
 	}
+
+	if imsiId := findEnterpriseSpecificIEindex(req.IEs, 32769, 2011); imsiId != -1 { // IE Huawei IMSI
+		imsiEncoded := req.IEs[imsiId].Payload
+		writeLineTabbed(&sb, fmt.Sprintf("IMSI: %s ", DecodeDigitsFromBytes(imsiEncoded)), 1)
+	}
+
+	if msisdnId := findEnterpriseSpecificIEindex(req.IEs, 32770, 2011); msisdnId != -1 { // IE Huawei MSISDN
+		msisdnEncoded := req.IEs[msisdnId].Payload
+		writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", DecodeDigitsFromBytes(msisdnEncoded)), 1)
+	}
+
 	log.Info().Msg(sb.String())
 }
 
 func printSessionDeleteRequest(req *message.SessionDeletionRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
-	writeLineTabbed(&sb, "Session Deletion Request:", 0)
-	writeLineTabbed(&sb, fmt.Sprintf("SEID: %d", req.SEID()), 1)
+	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), 0), 0)
 }
 
 func displayBar(sb *strings.Builder, bar *ie.IE) {
@@ -254,7 +303,8 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Network Instance: %s ", networkInstance), 3)
 			}
-			outerHeaderCreation, err := forwardingParameter.OuterHeaderCreation()
+			//outerHeaderCreation, err := forwardingParameter.OuterHeaderCreation()
+			outerHeaderCreation, err := HuaweiOuterHeaderCreation(forwardingParameter)
 			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation), 3)
 			}
@@ -276,7 +326,8 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Network Instance: %s ", networkInstance), 3)
 			}
-			outerHeaderCreation, err := updateForwardingParameter.OuterHeaderCreation()
+			//outerHeaderCreation, err := updateForwardingParameter.OuterHeaderCreation()
+			outerHeaderCreation, err := HuaweiOuterHeaderCreation(updateForwardingParameter)
 			if err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation), 3)
 			}

@@ -26,6 +26,7 @@ var pfcpHandlers = PfcpHandlerMap{
 	message.MsgTypeHeartbeatResponse:           HandlePfcpHeartbeatResponse,
 	message.MsgTypeAssociationSetupRequest:     HandlePfcpAssociationSetupRequest,
 	message.MsgTypeAssociationSetupResponse:    HandlePfcpAssociationSetupResponse,
+	message.MsgTypeAssociationUpdateRequest:    HandlePfcpAssociationUpdateRequest,
 	message.MsgTypeSessionEstablishmentRequest: HandlePfcpSessionEstablishmentRequest,
 	message.MsgTypeSessionDeletionRequest:      HandlePfcpSessionDeletionRequest,
 	message.MsgTypeSessionModificationRequest:  HandlePfcpSessionModificationRequest,
@@ -105,6 +106,7 @@ func (connection *PfcpConnection) SetRemoteNodes(nodes []AssociationConnector) {
 func (connection *PfcpConnection) Run() {
 
 	ticker := time.NewTicker(time.Duration(config.Conf.AssociationSetupTimeout) * time.Second)
+	reportTicker := time.NewTicker(time.Duration(60) * time.Second)
 	buf := make([]byte, 1500)
 
 	for {
@@ -113,6 +115,8 @@ func (connection *PfcpConnection) Run() {
 			connection.RefreshAssociations()
 		case associationAddr := <-connection.heartbeatFailedC:
 			connection.DeleteAssociation(associationAddr)
+		case <-reportTicker.C:
+			connection.SendReports()
 		default:
 			_ = connection.udpConn.SetReadDeadline(time.Now().Add(time.Second))
 			n, addr, err := connection.Receive(buf)
@@ -221,6 +225,95 @@ func (connection *PfcpConnection) ReleaseResources(seID uint64) {
 	}
 }
 
+func (connection *PfcpConnection) SendReports() {
+	for _, assocaition := range connection.NodeAssociations {
+		for _, session := range assocaition.Sessions {
+			for urrid, urr := range session.URRs {
+
+				newReport, err := connection.mapOperations.GetUrr(urr.GlobalId)
+				if err != nil {
+					continue
+				}
+
+				uplink := newReport.UplinkVolume - urr.UrrInfo.UplinkVolume
+				downlink := newReport.DownlinkVolume - urr.UrrInfo.DownlinkVolume
+
+				sequence := assocaition.NewSequenceID()
+				SendSessionReport(connection, session.RemoteSEID, sequence, assocaition.Addr,
+					urrid,
+					//urr.ReportSeqNumber,
+					session.URRSequence, //Huawei
+					uplink,
+					downlink)
+
+				urr.ReportSeqNumber += 1
+				session.URRSequence += 1 //Huawei !!!
+				urr.UrrInfo = newReport
+				session.URRs[urrid] = urr
+			}
+		}
+
+	}
+}
+
+func SendSessionReport(conn *PfcpConnection, seid uint64, sequenceID uint32, associationAddr string,
+	urrid uint32,
+	urSeq uint32,
+	uplink uint64,
+	downlink uint64) {
+
+	additionalIEs := []*ie.IE{
+		ie.NewReportType(0, 0, 1, 0),
+		ie.NewUsageReportWithinSessionReportRequest(
+			ie.NewURRID(urrid),
+			ie.NewURSEQN(urSeq),
+			ie.NewUsageReportTrigger(1<<1, 0, 0), //Volume Threshold
+			ie.NewEndTime(time.Now()),
+			ie.NewVolumeMeasurement(0x7, uplink+downlink, uplink, downlink, 0, 0, 0),
+			ie.NewTimeOfFirstPacket(time.Now()),
+			ie.NewTimeOfLastPacket(time.Now()),
+			// CHOICE
+			// urr-type
+			//    enterprise-id: ---- 0x7db(2011)
+			//    urr-level-type: ---- bearer(2)
+			//    urr-function-type: ---- charging(1)
+			//    urr-charging-type: ---- offlinepgw(3)
+			ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03}),
+			// CHOICE
+			// bearer-sequence
+			//    enterprise-id: ---- 0x7db(2011)
+			//    bearer-sequence-value: ---- 0x1(1)
+			ie.NewVendorSpecificIE(32843, 2011, []byte{1}),
+			// CHOICE
+			// private-stop-time
+			//    enterprise-id: ---- 0x7db(2011)
+			//    private-stop-time-value: ---- 0x000001917EEC1EEC
+			ie.NewVendorSpecificIE(34010, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
+			// CHOICE
+			// private-time-of-first-packet
+			//    enterprise-id: ---- 0x7db(2011)
+			//    time-of-first-packet-value: ---- 0x000001917EEC1BE9
+			ie.NewVendorSpecificIE(34011, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x20, 0xad}),
+			// CHOICE
+			// private-time-of-last-packet
+			//    enterprise-id: ---- 0x7db(2011)
+			//    time-of-last-packet-value: ---- 0x000001917EEC1EEC
+			ie.NewVendorSpecificIE(34012, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
+		),
+	}
+
+	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
+	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)
+	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
+	if err == nil {
+		if err := conn.SendMessage(sessionReport, udpAddr); err != nil {
+			log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
+		}
+	} else {
+		log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
+	}
+}
+
 type DefaultAssociationConnector struct {
 	address string
 }
@@ -242,6 +335,223 @@ func (connector *DefaultAssociationConnector) sendAssociationSetupRequest(connec
 		newIeNodeID(connection.nodeId),
 		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
 		ie.NewUPFunctionFeatures(connection.featuresOctets[:]...),
+	)
+	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
+
+	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
+	if err != nil {
+		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", associationAddr, err.Error())
+		return
+	}
+	if err := connection.SendMessage(AssociationSetupRequest, udpAddr); err != nil {
+		log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
+	}
+}
+
+type SxaAssociationConnector struct {
+	address     string
+	s1uAddress  string
+	s5s8Address string
+}
+
+func NewSxaAssociationConnector(address string, s1uAddress string, s5s8Address string) *SxaAssociationConnector {
+	return &SxaAssociationConnector{
+		address:     address,
+		s1uAddress:  s1uAddress,
+		s5s8Address: s5s8Address,
+	}
+}
+
+func (connector *SxaAssociationConnector) getAddress() string {
+	return connector.address
+}
+
+func (connector *SxaAssociationConnector) sendAssociationSetupRequest(connection *PfcpConnection) {
+
+	featuresOctets := []uint8{0, 0}
+	featuresOctets[0] = setBit(featuresOctets[0], 1)
+	featuresOctets[0] = setBit(featuresOctets[0], 2)
+	featuresOctets[0] = setBit(featuresOctets[0], 6)
+	featuresOctets[0] = setBit(featuresOctets[0], 7)
+
+	s1uIP := net.ParseIP(connector.s1uAddress)
+	if s1uIP == nil {
+		log.Error().Msgf("failed to parse S1-U IP address ID: %s", connector.s1uAddress)
+		return
+	}
+
+	s5s8IP := net.ParseIP(connector.s5s8Address)
+	if s5s8IP == nil {
+		log.Error().Msgf("failed to parse S1/S8 IP address ID: %s", connector.s5s8Address)
+		return
+	}
+
+	associationAddr := connector.getAddress()
+	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
+		newIeNodeIDHuawei(connection.nodeId),
+		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
+		ie.NewUPFunctionFeatures(featuresOctets[:]...),
+		//CHOICE
+		// 	ipsuit-info
+		// 	enterprise-id: ---- 0x7db(2011)
+		// 	s11uIpv4Valid: ---- 0x1(1)
+		// 	s11uIpv6Valid: ---- 0x0(0)
+		// 	s1uIpv4Valid: ---- 0x1(1)
+		// 	s1uIpv6Valid: ---- 0x0(0)
+		// 	s5S8Ipv4Valid: ---- 0x1(1)
+		// 	s5S8Ipv6Valid: ---- 0x0(0)
+		// 	paIpv4Valid: ---- 0x0(0)
+		// 	paIpv6Valid: ---- 0x0(0)
+		// 	lock-flag: ---- 0x0(0)
+		// 	ipsuit-name: ---- 0001dgw1
+		// 	s1u-ip-address
+		// 		ipv4-address
+		// 			uladdr1: ---- 0xa(10)
+		// 			uladdr2: ---- 0xa9(169)
+		// 			uladdr3: ---- 0x70(112)
+		// 			uladdr4: ---- 0x80(128)
+		// 	s5s8s-ip-address
+		// 		ipv4-address
+		// 			uladdr1: ---- 0xa(10)
+		// 			uladdr2: ---- 0xa9(169)
+		// 			uladdr3: ---- 0x70(112)
+		// 			uladdr4: ---- 0x91(145)
+		// 	s11u-ip-address
+		// 		ipv4-address
+		// 			uladdr1: ---- 0xa(10)
+		// 			uladdr2: ---- 0xa9(169)
+		// 			uladdr3: ---- 0x70(112)
+		// 			uladdr4: ---- 0x8a(138)
+		ie.NewVendorSpecificIE(32787, 2011, []byte{
+			0xA8, 0x00,
+			0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34,
+			s1uIP.To4()[0], s1uIP.To4()[1], s1uIP.To4()[2], s1uIP.To4()[3],
+			s5s8IP.To4()[0], s5s8IP.To4()[1], s5s8IP.To4()[2], s5s8IP.To4()[3],
+			s1uIP.To4()[0], s1uIP.To4()[1], s1uIP.To4()[2], s1uIP.To4()[3]}),
+		//CHOICE
+		//	user-plane-element-weight
+		//		enterprise-id: ---- 0x7db(2011)
+		//		weight-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32803, 2011, []byte{1}),
+		//CHOICE
+		//	lock-information
+		//		enterprise-id: ---- 0x7db(2011)
+		//		lock-information-value: ---- 0x0(0)
+		ie.NewVendorSpecificIE(32806, 2011, []byte{0}),
+		//CHOICE
+		//	apn-support-mode
+		//		enterprise-id: ---- 0x7db(2011)
+		//		apn-support-mode-value: ---- 0x0(0)
+		ie.NewVendorSpecificIE(32857, 2011, []byte{0}),
+		//CHOICE
+		//	sx-uf-flag
+		//		enterprise-id: ---- 0x7db(2011)
+		//		spare: ---- 0x0(0)
+		//		nb-iot-value: ---- 0x1(1)
+		//		dual-connectivity-with-nr-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32900, 2011, []byte{3}),
+		//CHOICE
+		//	high-bandwidth
+		//		enterprise-id: ---- 0x7db(2011)
+		//		high-bandwidth-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32901, 2011, []byte{1}),
+	)
+	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
+
+	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
+	if err != nil {
+		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", associationAddr, err.Error())
+		return
+	}
+	if err := connection.SendMessage(AssociationSetupRequest, udpAddr); err != nil {
+		log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
+	}
+}
+
+type SxbAssociationConnector struct {
+	address   string
+	paAddress string
+}
+
+func NewSxbAssociationConnector(address string, paAddress string) *SxbAssociationConnector {
+	return &SxbAssociationConnector{
+		address:   address,
+		paAddress: paAddress,
+	}
+}
+
+func (connector *SxbAssociationConnector) getAddress() string {
+	return connector.address
+}
+
+func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection *PfcpConnection) {
+
+	featuresOctets := []uint8{0, 0}
+	featuresOctets[0] = setBit(featuresOctets[0], 1)
+	featuresOctets[0] = setBit(featuresOctets[0], 2)
+	featuresOctets[0] = setBit(featuresOctets[0], 6)
+	featuresOctets[0] = setBit(featuresOctets[0], 7)
+
+	paIP := net.ParseIP(connector.paAddress)
+	if paIP == nil {
+		log.Error().Msgf("failed to parse PA IP address ID: %s", connector.paAddress)
+		return
+	}
+
+	associationAddr := connector.getAddress()
+	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
+		newIeNodeIDHuawei(connection.nodeId),
+		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
+		//ie.NewUPFunctionFeatures(connection.featuresOctets[:]...),
+		ie.NewUPFunctionFeatures(featuresOctets[:]...),
+		//CHOICE
+		//	ipsuit-info
+		//	enterprise-id: ---- 0x7db(2011)
+		//	s11uIpv4Valid: ---- 0x0(0)
+		//	s11uIpv6Valid: ---- 0x0(0)
+		//	s1uIpv4Valid: ---- 0x0(0)
+		//	s1uIpv6Valid: ---- 0x0(0)
+		//	s5S8Ipv4Valid: ---- 0x0(0)
+		//	s5S8Ipv6Valid: ---- 0x0(0)
+		//	paIpv4Valid: ---- 0x1(1)
+		//	paIpv6Valid: ---- 0x0(0)
+		//	lock-flag: ---- 0x0(0)
+		//	ipsuit-name: ---- 0001dgw1
+		//	pa-ip-address
+		//		ipv4-address
+		//			uladdr1: ---- 0xa(10)
+		//			uladdr2: ---- 0xa9(169)
+		//			uladdr3: ---- 0x70(112)
+		//			uladdr4: ---- 0x83(131)
+		ie.NewVendorSpecificIE(32787, 2011, []byte{0x02, 0x00, 0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34,
+			paIP.To4()[0], paIP.To4()[1], paIP.To4()[2], paIP.To4()[3]}),
+		//CHOICE
+		//	user-plane-element-weight
+		//		enterprise-id: ---- 0x7db(2011)
+		//		weight-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32803, 2011, []byte{1}),
+		//CHOICE
+		//	lock-information
+		//		enterprise-id: ---- 0x7db(2011)
+		//		lock-information-value: ---- 0x0(0)
+		ie.NewVendorSpecificIE(32806, 2011, []byte{0}),
+		//CHOICE
+		//	apn-support-mode
+		//		enterprise-id: ---- 0x7db(2011)
+		//		apn-support-mode-value: ---- 0x0(0)
+		ie.NewVendorSpecificIE(32857, 2011, []byte{0}),
+		//CHOICE
+		//	sx-uf-flag
+		//		enterprise-id: ---- 0x7db(2011)
+		//		spare: ---- 0x0(0)
+		//		nb-iot-value: ---- 0x1(1)
+		//		dual-connectivity-with-nr-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32900, 2011, []byte{3}),
+		//CHOICE
+		//	high-bandwidth
+		//		enterprise-id: ---- 0x7db(2011)
+		//		high-bandwidth-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32901, 2011, []byte{1}),
 	)
 	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
 

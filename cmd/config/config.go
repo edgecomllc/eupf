@@ -17,9 +17,18 @@ type UpfConfig struct {
 	PfcpAddress             string   `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
 	PfcpNodeId              string   `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
 	PfcpRemoteNode          []string `mapstructure:"pfcp_remote_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
+	SxaRemoteNode           []string `mapstructure:"sxa_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxa_node"`
+	SxbRemoteNode           []string `mapstructure:"sxb_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxb_node"`
+	SxaLocalAddress         string   `mapstructure:"sxa_address" validate:"hostname_port" json:"sxa_address"`
+	SxbLocalAddress         string   `mapstructure:"sxb_address" validate:"hostname_port" json:"sxb_address"`
+	SxaLocalNodeId          string   `mapstructure:"sxa_node_id" validate:"hostname|ip" json:"sxa_node_id"`
+	SxbLocalNodeId          string   `mapstructure:"sxb_node_id" validate:"hostname|ip" json:"sxb_node_id"`
 	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
 	MetricsAddress          string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
 	N3Address               string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
+	S1UAddress              string   `mapstructure:"s1u_address" validate:"ipv4" json:"s1u_address"`
+	S5S8Address             string   `mapstructure:"s5s8_address" validate:"ipv4" json:"s5s8_address"`
+	PAAddress               string   `mapstructure:"pa_address" validate:"ipv4" json:"pa_address"`
 	GtpPeer                 []string `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
 	GtpEchoInterval         uint32   `mapstructure:"gtp_echo_interval" validate:"min=1" json:"gtp_echo_interval"`
 	QerMapSize              uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
@@ -47,6 +56,9 @@ func init() {
 	pflag.String("nodeid", "127.0.0.1", "PFCP Server Node ID")
 	pflag.String("maddr", ":9090", "Address to bind metrics server to")
 	pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
+	pflag.String("s1uaddr", "127.0.0.1", "Address for communication over S1-U interface")
+	pflag.String("s5s8addr", "127.0.0.1", "Address for communication over S5/S8 interface")
+	pflag.String("paaddr", "127.0.0.1", "Address for communication over PA interface")
 	pflag.StringArray("peer", []string{}, "Address of GTP peer")
 	pflag.Uint32("echo", 10, "Interval of sending echo requests in seconds")
 	pflag.Uint32("qersize", 1024, "Size of the QER ebpf map")
@@ -63,6 +75,12 @@ func init() {
 	pflag.String("ueippool", "10.60.0.0/24", "IP pool for UEIP feature")
 	pflag.Uint32("teidpool", 65535, "TEID pool for FTUP feature")
 	pflag.StringArray("pfcprnode", []string{}, "Address of remote PFCP node")
+	pflag.StringArray("sxanode", []string{}, "Address of remote Sxa node")
+	pflag.StringArray("sxbnode", []string{}, "Address of remote Sxb node")
+	pflag.String("sxaaddr", "127.0.0.2:8805", "Sxa Address to bind PFCP server to")
+	pflag.String("sxbaddr", "127.0.0.3:8805", "Sxb Address to bind PFCP server to")
+	pflag.String("sxanodeid", "127.0.0.2", "Sxa Server Node ID")
+	pflag.String("sxbnodeid", "127.0.0.3", "Sxb Server Node ID")
 	pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
 	pflag.Parse()
 
@@ -73,9 +91,18 @@ func init() {
 	_ = v.BindPFlag("pfcp_address", pflag.Lookup("paddr"))
 	_ = v.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
 	_ = v.BindPFlag("pfcp_remote_node", pflag.Lookup("pfcprnode"))
+	_ = v.BindPFlag("sxa_remote_node", pflag.Lookup("sxanode"))
+	_ = v.BindPFlag("sxb_remote_node", pflag.Lookup("sxbnode"))
+	_ = v.BindPFlag("sxa_address", pflag.Lookup("sxaaddr"))
+	_ = v.BindPFlag("sxb_address", pflag.Lookup("sxbaddr"))
+	_ = v.BindPFlag("sxa_node_id", pflag.Lookup("sxanodeid"))
+	_ = v.BindPFlag("sxb_node_id", pflag.Lookup("sxbnodeid"))
 	_ = v.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
 	_ = v.BindPFlag("metrics_address", pflag.Lookup("maddr"))
 	_ = v.BindPFlag("n3_address", pflag.Lookup("n3addr"))
+	_ = v.BindPFlag("s1u_address", pflag.Lookup("s1uaddr"))
+	_ = v.BindPFlag("s5s8_address", pflag.Lookup("s5s8addr"))
+	_ = v.BindPFlag("pa_address", pflag.Lookup("paaddr"))
 	_ = v.BindPFlag("gtp_peer", pflag.Lookup("peer"))
 	_ = v.BindPFlag("gtp_echo_interval", pflag.Lookup("echo"))
 	_ = v.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
@@ -100,6 +127,9 @@ func init() {
 	v.SetDefault("association_setup_timeout", 5)
 	v.SetDefault("metrics_address", ":9090")
 	v.SetDefault("n3_address", "127.0.0.1")
+	v.SetDefault("s1u_address", "127.0.0.1")
+	v.SetDefault("s5s8_address", "127.0.0.1")
+	v.SetDefault("pa_address", "127.0.0.1")
 	v.SetDefault("gtp_echo_interval", 10)
 	v.SetDefault("qer_map_size", 1024)
 	v.SetDefault("far_map_size", 1024)
