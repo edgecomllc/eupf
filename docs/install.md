@@ -35,7 +35,7 @@ Native mode is suppored in most modern clouds and VM NICs:
 - VMWare `vmxnet3`
 - SR-IOV `ixgbevf`
 
-#### Drivers supporting offloaded XDP
+#### Drivers supporting XDP offload
 
 Only Netronome NICs at the moment 
 

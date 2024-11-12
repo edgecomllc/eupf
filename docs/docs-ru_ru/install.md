@@ -35,7 +35,7 @@
 - VMWare `vmxnet3`
 - SR-IOV `ixgbevf`
 
-#### Драйверы, поддерживающие offloaded XDP
+#### Драйверы, поддерживающие XDP offload
 
 На данный момент только поддерживаются сетевые карты Netronome
 
