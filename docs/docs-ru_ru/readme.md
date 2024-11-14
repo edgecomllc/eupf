@@ -46,6 +46,7 @@ sudo docker run -d --rm --privileged \
 
    - UPF_INTERFACE_NAME=lo    *Network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
    - UPF_N3_ADDRESS=127.0.0.1 *IPv4 address for N3 interface*
+   - UPF_N9_ADDRESS=127.0.0.1 *IPv4 address for N9 interface*
    - UPF_XDP_ATTACH_MODE=generic *XDP attach mode. Generic-only at the moment*
    - UPF_API_ADDRESS=:8080    *Local host:port for serving [REST API](api.md) server*
    - UPF_PFCP_ADDRESS=:8805   *Local host:port that PFCP server will listen to*
@@ -66,7 +67,7 @@ sudo docker run -d --rm -v --privileged \
   -e UPF_INTERFACE_NAME=[eth0,n6] -e UPF_XDP_ATTACH_MODE=generic \
   -e UPF_API_ADDRESS=:8081 -e UPF_PFCP_ADDRESS=:8806 \
   -e UPF_METRICS_ADDRESS=:9091 -e UPF_PFCP_NODE_ID=10.100.50.241 \
-  -e UPF_N3_ADDRESS=10.100.50.233 \
+  -e UPF_N3_ADDRESS=10.100.50.233 -e UPF_N9_ADDRESS=10.100.50.233 \
   ghcr.io/edgecomllc/eupf:main
 ```
 

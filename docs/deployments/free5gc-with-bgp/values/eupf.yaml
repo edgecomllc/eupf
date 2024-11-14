@@ -16,6 +16,7 @@ args:
 env:
   UPF_PFCP_NODE_ID: 10.100.50.241
   UPF_N3_ADDRESS: 10.100.50.233
+  UPF_N9_ADDRESS: 10.100.50.233
 
 configMaps:
   config:

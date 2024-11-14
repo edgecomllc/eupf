@@ -43,11 +43,13 @@ configMaps:
         pfcp_address: 10.100.50.241:8805
         metrics_address: :9090
         n3_address: 10.100.50.233
+        n9_address: 10.100.50.233
         gtp_peer: [10.100.50.226:2152, 10.100.50.227:2152]
 
 env:
   UPF_PFCP_NODE_ID: 10.100.50.241  # address on n4 interface
   # UPF_N3_ADDRESS: 10.100.50.233
+  # UPF_N9_ADDRESS: 10.100.50.233
 
 volumes:
   - name: sys
