@@ -69,6 +69,10 @@ func (mapOps *MapOperationsMock) UpdateUrr(internalId uint32, urrInfo ebpf.UrrIn
 	return nil
 }
 
+func (mapOps *MapOperationsMock) GetUrr(internalId uint32) (ebpf.UrrInfo, error) {
+	return mapOps.urr, nil
+}
+
 func (mapOps *MapOperationsMock) DeleteUrr(internalId uint32) (error, ebpf.UrrInfo) {
 	return nil, mapOps.urr
 }
@@ -82,6 +86,7 @@ func TestSessionOverwrite(t *testing.T) {
 		nodeId:           "test-node",
 		mapOperations:    &mapOps,
 		n3Address:        net.ParseIP("127.0.0.1"),
+		nodeAddrV4:       net.ParseIP("127.0.0.1"),
 		associationMutex: &sync.Mutex{},
 	}
 	asReq := message.NewAssociationSetupRequest(0,

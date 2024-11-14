@@ -176,22 +176,40 @@ func (f FarInfo) MarshalJSON() ([]byte, error) {
 }
 
 func (bpfObjects *BpfObjects) NewFar(farInfo FarInfo) (uint32, error) {
-	internalId, err := bpfObjects.FarIdTracker.GetNext()
+	internalId, err := bpfObjects.GetNextFAR()
 	if err != nil {
 		return 0, err
 	}
 	log.Debug().Msgf("EBPF: Put FAR: internalId=%d, qerInfo=%+v", internalId, farInfo)
-	return internalId, bpfObjects.FarMap.Put(internalId, unsafe.Pointer(&farInfo))
+
+	farToStore := IpEntrypointFarInfo{
+		Action:                farInfo.Action,
+		OuterHeaderCreation:   farInfo.OuterHeaderCreation,
+		Teid:                  farInfo.Teid,
+		Remoteip:              farInfo.RemoteIP,
+		Localip:               farInfo.LocalIP,
+		TransportLevelMarking: farInfo.TransportLevelMarking,
+	}
+	return internalId, bpfObjects.FarMap.Put(internalId, unsafe.Pointer(&farToStore))
 }
 
 func (bpfObjects *BpfObjects) UpdateFar(internalId uint32, farInfo FarInfo) error {
 	log.Debug().Msgf("EBPF: Update FAR: internalId=%d, farInfo=%+v", internalId, farInfo)
-	return bpfObjects.FarMap.Update(internalId, unsafe.Pointer(&farInfo), ebpf.UpdateExist)
+
+	farToStore := IpEntrypointFarInfo{
+		Action:                farInfo.Action,
+		OuterHeaderCreation:   farInfo.OuterHeaderCreation,
+		Teid:                  farInfo.Teid,
+		Remoteip:              farInfo.RemoteIP,
+		Localip:               farInfo.LocalIP,
+		TransportLevelMarking: farInfo.TransportLevelMarking,
+	}
+	return bpfObjects.FarMap.Update(internalId, unsafe.Pointer(&farToStore), ebpf.UpdateExist)
 }
 
 func (bpfObjects *BpfObjects) DeleteFar(intenalId uint32) error {
 	log.Debug().Msgf("EBPF: Delete FAR: intenalId=%d", intenalId)
-	bpfObjects.FarIdTracker.Release(intenalId)
+	bpfObjects.ReleaseFAR(intenalId)
 	return bpfObjects.FarMap.Update(intenalId, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
 }
 
@@ -199,29 +217,47 @@ type QerInfo struct {
 	GateStatusUL uint8
 	GateStatusDL uint8
 	Qfi          uint8
-	MaxBitrateUL uint32
-	MaxBitrateDL uint32
-	StartUL      uint64
-	StartDL      uint64
+	MaxBitrateUL uint64
+	MaxBitrateDL uint64
 }
 
 func (bpfObjects *BpfObjects) NewQer(qerInfo QerInfo) (uint32, error) {
-	internalId, err := bpfObjects.QerIdTracker.GetNext()
+	internalId, err := bpfObjects.GetNextQER()
 	if err != nil {
 		return 0, err
 	}
 	log.Debug().Msgf("EBPF: Put QER: internalId=%d, qerInfo=%+v", internalId, qerInfo)
-	return internalId, bpfObjects.QerMap.Put(internalId, unsafe.Pointer(&qerInfo))
+
+	qerToStore := IpEntrypointQerInfo{
+		UlGateStatus:     qerInfo.GateStatusUL,
+		DlGateStatus:     qerInfo.GateStatusDL,
+		Qfi:              qerInfo.Qfi,
+		UlMaximumBitrate: qerInfo.MaxBitrateUL,
+		DlMaximumBitrate: qerInfo.MaxBitrateDL,
+		UlStart:          0,
+		DlStart:          0,
+	}
+	return internalId, bpfObjects.QerMap.Put(internalId, unsafe.Pointer(&qerToStore))
 }
 
 func (bpfObjects *BpfObjects) UpdateQer(internalId uint32, qerInfo QerInfo) error {
 	log.Debug().Msgf("EBPF: Update QER: internalId=%d, qerInfo=%+v", internalId, qerInfo)
-	return bpfObjects.QerMap.Update(internalId, unsafe.Pointer(&qerInfo), ebpf.UpdateExist)
+
+	qerToStore := IpEntrypointQerInfo{
+		UlGateStatus:     qerInfo.GateStatusUL,
+		DlGateStatus:     qerInfo.GateStatusDL,
+		Qfi:              qerInfo.Qfi,
+		UlMaximumBitrate: qerInfo.MaxBitrateUL,
+		DlMaximumBitrate: qerInfo.MaxBitrateDL,
+		UlStart:          0,
+		DlStart:          0,
+	}
+	return bpfObjects.QerMap.Update(internalId, unsafe.Pointer(&qerToStore), ebpf.UpdateExist)
 }
 
 func (bpfObjects *BpfObjects) DeleteQer(internalId uint32) error {
 	log.Debug().Msgf("EBPF: Delete QER: internalId=%d", internalId)
-	bpfObjects.QerIdTracker.Release(internalId)
+	bpfObjects.ReleaseQER(internalId)
 	return bpfObjects.QerMap.Update(internalId, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
 }
 
@@ -232,30 +268,61 @@ type UrrInfo struct {
 }
 
 func (bpfObjects *BpfObjects) NewUrr(urrInfo UrrInfo) (uint32, error) {
-	internalId, err := bpfObjects.UrrIdTracker.GetNext()
+	internalId, err := bpfObjects.GetNextURR()
 	if err != nil {
 		return 0, err
 	}
 	log.Debug().Msgf("EBPF: Put URR: internalId=%d, urrInfo=%+v", internalId, urrInfo)
-	return internalId, bpfObjects.UrrMap.Put(internalId, unsafe.Pointer(&urrInfo))
+
+	urrToStore := IpEntrypointUrrInfo{
+		Ul: urrInfo.UplinkVolume,
+		Dl: urrInfo.DownlinkVolume,
+	}
+
+	return internalId, bpfObjects.UrrMap.Put(internalId, unsafe.Pointer(&urrToStore))
 }
 
 func (bpfObjects *BpfObjects) UpdateUrr(internalId uint32, urrInfo UrrInfo) error {
 	log.Debug().Msgf("EBPF: Update URR: internalId=%d, urrInfo=%+v", internalId, urrInfo)
-	return bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&urrInfo), ebpf.UpdateExist)
+
+	urrToStore := IpEntrypointUrrInfo{
+		Ul: urrInfo.UplinkVolume,
+		Dl: urrInfo.DownlinkVolume,
+	}
+	return bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&urrToStore), ebpf.UpdateExist)
+}
+
+func (bpfObjects *BpfObjects) GetUrr(internalId uint32) (UrrInfo, error) {
+	log.Debug().Msgf("EBPF: Get URR: internalId=%d", internalId)
+
+	urrToStore := IpEntrypointUrrInfo{}
+	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrToStore)); err != nil {
+		return UrrInfo{}, err
+	}
+
+	urrInfo := UrrInfo{
+		UplinkVolume:   urrToStore.Ul,
+		DownlinkVolume: urrToStore.Dl,
+	}
+	return urrInfo, nil
 }
 
 func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) (error, UrrInfo) {
 	log.Debug().Msgf("EBPF: Delete URR: internalId=%d", internalId)
-	urrInfo := UrrInfo{}
-	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrInfo)); err != nil {
+
+	urrToStore := IpEntrypointUrrInfo{}
+	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrToStore)); err != nil {
 		return err, UrrInfo{}
 	}
-	bpfObjects.UrrIdTracker.Release(internalId)
-	if err := bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&UrrInfo{}), ebpf.UpdateExist); err != nil {
+	bpfObjects.ReleaseURR(internalId)
+	if err := bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&IpEntrypointUrrInfo{}), ebpf.UpdateExist); err != nil {
 		return err, UrrInfo{}
 	}
 
+	urrInfo := UrrInfo{
+		UplinkVolume:   urrToStore.Ul,
+		DownlinkVolume: urrToStore.Dl,
+	}
 	return nil, urrInfo
 }
 
@@ -277,6 +344,7 @@ type ForwardingPlaneController interface {
 	DeleteQer(internalId uint32) error
 	NewUrr(urrInfo UrrInfo) (uint32, error)
 	UpdateUrr(internalId uint32, urrInfo UrrInfo) error
+	GetUrr(internalId uint32) (UrrInfo, error)
 	DeleteUrr(internalId uint32) (error, UrrInfo)
 }
 
@@ -307,6 +375,8 @@ func CombinePdrWithSdf(defaultPdr *IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntryp
 	pdrToStore.SdfRules.OuterHeaderRemoval = sdfPdr.OuterHeaderRemoval
 	pdrToStore.SdfRules.FarId = sdfPdr.FarId
 	pdrToStore.SdfRules.QerId = sdfPdr.QerId
+	pdrToStore.SdfRules.Urr1Id = sdfPdr.Urr1Id
+	pdrToStore.SdfRules.Urr2Id = sdfPdr.Urr2Id
 	return pdrToStore
 }
 
@@ -315,6 +385,8 @@ func ToIpEntrypointPdrInfo(defaultPdr PdrInfo) IpEntrypointPdrInfo {
 	pdrToStore.OuterHeaderRemoval = defaultPdr.OuterHeaderRemoval
 	pdrToStore.FarId = defaultPdr.FarId
 	pdrToStore.QerId = defaultPdr.QerId
+	pdrToStore.Urr1Id = defaultPdr.Urr1Id
+	pdrToStore.Urr2Id = defaultPdr.Urr2Id
 	return pdrToStore
 }
 

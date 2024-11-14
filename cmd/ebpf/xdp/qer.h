@@ -30,8 +30,8 @@ struct qer_info {
     __u8 ul_gate_status;
     __u8 dl_gate_status;
     __u8 qfi;
-    __u32 ul_maximum_bitrate;
-    __u32 dl_maximum_bitrate;
+    __u64 ul_maximum_bitrate;
+    __u64 dl_maximum_bitrate;
     __u64 ul_start;
     __u64 dl_start;
 };
