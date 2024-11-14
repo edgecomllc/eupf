@@ -74,7 +74,7 @@ To go further, see the **[eUPF installation guide](./docs/install.md)** to learn
 
 For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**.
 
-You can find different types of implementation in the **[Implementation expamples](./docs/implementation_examples.md)**.
+You can find different types of implementation in the **[Implementation examples](./docs/implementation_examples.md)**.
 
 ## Implementation notes
 
