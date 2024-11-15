@@ -1,12 +1,12 @@
 /**
  * Copyright 2023 Edgecom LLC
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,7 +40,7 @@ enum outer_header_removal_values {
     OHR_S_TAG_C_TAG = 8,
 };
 
-// Possible optimizations: 
+// Possible optimizations:
 // 0. Store SDFs in a separate map. PDR will have only id of corresponding SDF.
 // 1. Combine SrcAddress.Type and DstAddress.Type into one __u8 field. Then to retrieve and put data will be used operators & and | .
 // 2. Put all fields into one big structure. Sort in specific order to reduce paddings inside structure.
@@ -64,7 +64,7 @@ struct pdr_info {
     struct sdf_rules sdf_rules;
 };
 
-/* ipv4 -> PDR */ 
+/* ipv4 -> PDR */
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);

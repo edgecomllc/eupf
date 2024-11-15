@@ -1,12 +1,12 @@
 /**
  * Copyright 2023 Edgecom LLC
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -63,7 +63,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
         upf_printk("upf: [n6] no downlink session for ip:%pI4", &ip4->daddr);
         return DEFAULT_XDP_ACTION;
     }
-    
+
     __u32 far_id = pdr->far_id;
     __u32 qer_id = pdr->qer_id;
     //__u8 outer_header_removal = pdr->outer_header_removal;
@@ -95,7 +95,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     if (!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
         return XDP_DROP;
 
-    struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &qer_id);  
+    struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &qer_id);
     if (!qer) {
         upf_printk("upf: [n6] no downlink session qer for ip:%pI4 qer:%d", &ip4->daddr, qer_id);
         return XDP_DROP;
@@ -158,7 +158,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     if (!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
         return XDP_DROP;
 
-    struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &qer_id);  
+    struct qer_info *qer = bpf_map_lookup_elem(&qer_map, &qer_id);
     if (!qer) {
         upf_printk("upf: [n6] no downlink session qer for ip:%pI6c qer:%d", &ip6->daddr, qer_id);
         return XDP_DROP;
@@ -201,7 +201,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     __u32 far_id = pdr->far_id;
     __u32 qer_id = pdr->qer_id;
     __u8 outer_header_removal = pdr->outer_header_removal;
-    
+
     if (pdr->sdf_mode) {
         struct packet_context inner_context = {
             .data = (char *)(long)ctx->data,
@@ -234,7 +234,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
                 } else {
                     upf_printk("upf: [n3] sdf filter doesn't match teid:%u", teid);
                     if(pdr->sdf_mode & 1)
-                        return DEFAULT_XDP_ACTION;     
+                        return DEFAULT_XDP_ACTION;
                 }
                 break;
             }
@@ -360,7 +360,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     } else {
         return XDP_ABORTED;
     }
-        
+
 }
 
 static __always_inline enum xdp_action handle_gtpu(struct packet_context *ctx) {
