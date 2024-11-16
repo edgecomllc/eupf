@@ -79,7 +79,7 @@ sudo docker run -d --rm -v --privileged \
 
 Сценарии развёртывания c Open5GS и free5GC описаны в **[Deployments](deployments/README.md)**
 
-Ссылки на различные сценарии применения указаны в **[Implementation expamples](../../docs/implementation_examples.md)**.
+Ссылки на различные сценарии применения указаны в **[Implementation examples](../../docs/implementation_examples.md)**.
 
 ## Различные варианты установки
 
