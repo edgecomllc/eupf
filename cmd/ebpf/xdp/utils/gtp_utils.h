@@ -253,4 +253,10 @@ static __always_inline void update_gtp_tunnel(struct packet_context *ctx, int sr
     ctx->ip4->daddr = dstip;
     ctx->ip4->check = 0;
     ctx->ip4->check = ipv4_csum(ctx->ip4, sizeof(*ctx->ip4));
+    ctx->udp->check = 0;
+    /* TODO: Implement UDP csum:
+     * cs = 0;
+     * ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
+     * udp->check = cs;
+     */
 }
