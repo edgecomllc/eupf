@@ -37,7 +37,7 @@ Native mode is suppored in most modern clouds and VM NICs:
 
 #### Drivers supporting XDP offload
 
-Only Netronome NICs at the moment 
+Only Netronome NICs at the moment
 
 # Deploy with docker-compose
 
@@ -141,9 +141,9 @@ In our environments, we use one node K8s cluster deployed by means of [kubespray
 kubelet_node_config_extra_args:
   allowedUnsafeSysctls:
     - "net.ipv4.ip_forward"
-``` 
+```
 </p>
-</details> 
+</details>
 
 ## UE subnets routing
 
@@ -160,9 +160,9 @@ This solution is suitable for single instance eUPF deployment.
 
 ### Use static routes
 
-To use scalable eUPF deployment (more the one eUPF replica) downlink route to specific UE have to pass the UPF with corresponding PDU-session. 
+To use scalable eUPF deployment (more the one eUPF replica) downlink route to specific UE have to pass the UPF with corresponding PDU-session.
 
-As a proof-of-concept, simple route utility is provided. The utility reads active PDU-sessions for every UPF via API and updates node's routing table. For each UE's PDU-session there is a static route via corresponding UPF.  
+As a proof-of-concept, simple route utility is provided. The utility reads active PDU-sessions for every UPF via API and updates node's routing table. For each UE's PDU-session there is a static route via corresponding UPF.
 
 
 ## Examples
@@ -233,7 +233,7 @@ sergo@edgecom:~$ sudo cat /sys/kernel/debug/tracing/trace_pipe
 ```
 
 </p>
-</details> 
+</details>
 
 ## Components logs then successfully connected:
 <details><summary>eUPF successfull connections log output (stdout)</summary>

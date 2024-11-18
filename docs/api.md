@@ -21,7 +21,7 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 
  [PUT] Example request body:
 
-    {  
+    {
       "gate_status_ul": 0,
       "gate_status_dl": 0,
       "qfi": 0,
@@ -65,7 +65,7 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 
 | Method | URL                              | Description                                                                     | Example                    |
 |--------|----------------------------------|---------------------------------------------------------------------------------|----------------------------|
-| `GET`  | `/api/v1/uplink_pdr_map/:id`     | Get Uplink PDR values by id. Returns an object of `PdrElement`                  | `/api/v1/uplink_pdr_map/1` |              
+| `GET`  | `/api/v1/uplink_pdr_map/:id`     | Get Uplink PDR values by id. Returns an object of `PdrElement`                  | `/api/v1/uplink_pdr_map/1` |
 | `PUT`  | `/api/v1/uplink_pdr_map/:id`     | Set Uplink PDR values by id. Returns a new object of `PdrElement`               | `/api/v1/uplink_pdr_map/1` |
 
  [PUT] Example request body:
@@ -109,7 +109,7 @@ To explore and test the API, you can use the Swagger API documentation. To acces
 
 - GET /swagger/index.html
 
-## API docs generation 
+## API docs generation
 (Reference documentation)[https://github.com/swaggo/gin-swagger]
 ```bash
 go install github.com/swaggo/swag/cmd/swag@v1.8.12
