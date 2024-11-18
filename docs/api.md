@@ -49,6 +49,7 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
       "pfcp_node_id": "10.100.200.14",
       "metrics_address": ":9090",
       "n3_address": "10.100.200.14",
+      "n9_address": "10.100.200.14",
       "qer_map_size": 1024,
       "far_map_size": 1024,
       "pdr_map_size": 1024,
