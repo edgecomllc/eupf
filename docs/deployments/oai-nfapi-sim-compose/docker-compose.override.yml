@@ -22,19 +22,23 @@ services:
 
 
   oai-smf:
-    image: oaisoftwarealliance/oai-smf:v1.5.1
+    image: oaisoftwarealliance/oai-smf:v2.1.0
     environment:
       - DISCOVER_UPF=no
       - USE_FQDN_DNS=no
 
   oai-gnb:
+    image: oaisoftwarealliance/oai-gnb:v2.1.0
     depends_on: !reset
       - edgecom-upf
       - oai-amf
 
+  oai-nr-ue0:
+    image: oaisoftwarealliance/oai-nr-ue:v2.1.0
+
   edgecom-upf:
     container_name: eupf
-    image: ghcr.io/edgecomllc/eupf:7086b71cb1dbc254db84c30e14fa4a68d3beb132
+    image: ghcr.io/edgecomllc/eupf:v0.6.4
     privileged: true
     command: --iface eth0 --iface eth1 --n3addr 192.168.71.134 --nodeid 192.168.71.134 --paddr 192.168.71.134:8805 --attach generic --loglvl trace --feature_ftup true --teid_pool 65535
     volumes:
@@ -106,7 +110,7 @@ services:
     ports:
       - "8081:80"
     environment:
-      - API_PORT=8080
+      - API_PORT=8880
 
 networks:
   privnet_n6:
@@ -116,3 +120,7 @@ networks:
         - subnet: 10.100.250.0/24
     driver_opts:
       com.docker.network.bridge.name: br-oainfapi-n6
+
+volumes:
+  prom_data:
+  

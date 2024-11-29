@@ -1,5 +1,5 @@
-#!/bin/bash 
-
+#!/bin/sh 
+set -x 
 terminate=0
 #_term() { 
 #  echo "Caught SIGTERM signal!" 
@@ -19,8 +19,9 @@ iptables -A FORWARD -j ACCEPT
 #ip route add 10.60.0.0/16 via `nslookup upf.free5gc.org | awk '/^Address: / { print $2 }'` dev eth0
 ip route add 10.60.0.0/16 via `nslookup upfn6.free5gc.org | awk '/^Address: / { print $2 }'`
 ip route add 12.1.1.0/24 via `nslookup upfn6.free5gc.org | awk '/^Address: / { print $2 }'`
+ip route show
 
-
+set +x
 while [ $terminate -ne 1 ]
 do
     sleep 10;
