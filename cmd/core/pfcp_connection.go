@@ -26,6 +26,7 @@ var pfcpHandlers = PfcpHandlerMap{
 	message.MsgTypeHeartbeatResponse:           HandlePfcpHeartbeatResponse,
 	message.MsgTypeAssociationSetupRequest:     HandlePfcpAssociationSetupRequest,
 	message.MsgTypeAssociationSetupResponse:    HandlePfcpAssociationSetupResponse,
+	message.MsgTypeAssociationUpdateRequest:    HandlePfcpAssociationUpdateRequest,
 	message.MsgTypeSessionEstablishmentRequest: HandlePfcpSessionEstablishmentRequest,
 	message.MsgTypeSessionDeletionRequest:      HandlePfcpSessionDeletionRequest,
 	message.MsgTypeSessionModificationRequest:  HandlePfcpSessionModificationRequest,
