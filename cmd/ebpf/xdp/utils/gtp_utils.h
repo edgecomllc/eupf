@@ -1,12 +1,12 @@
 /**
  * Copyright 2023 Edgecom LLC
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -110,7 +110,7 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
         return -1;
 
     __builtin_memcpy(new_eth, eth, sizeof(*new_eth));
-    
+
     new_eth->h_proto = eth_proto;
 
     long result = bpf_xdp_adjust_head(ctx->xdp_ctx, gtp_encap_size);
@@ -253,4 +253,10 @@ static __always_inline void update_gtp_tunnel(struct packet_context *ctx, int sr
     ctx->ip4->daddr = dstip;
     ctx->ip4->check = 0;
     ctx->ip4->check = ipv4_csum(ctx->ip4, sizeof(*ctx->ip4));
+    ctx->udp->check = 0;
+    /* TODO: Implement UDP csum:
+     * cs = 0;
+     * ipv4_l4_csum(udp, sizeof(*udp), &cs, iph);
+     * udp->check = cs;
+     */
 }

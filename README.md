@@ -74,7 +74,7 @@ To go further, see the **[eUPF installation guide](./docs/install.md)** to learn
 
 For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**.
 
-You can find different types of implementation in the **[Implementation expamples](./docs/implementation_examples.md)**.
+You can find different types of implementation in the **[Implementation examples](./docs/implementation_examples.md)**.
 
 ## Implementation notes
 
@@ -209,11 +209,11 @@ go generate -v ./cmd/...
 Sometimes during this step you may see errors like:
 ```
 running "swag": exec: "swag": executable file not found in $PATH
-``` 
+```
 
-Make sure that `swag` was successfuly installed(step 1) and path to swag binary is in the PATH environment variable. 
+Make sure that `swag` was successfuly installed(step 1) and path to swag binary is in the PATH environment variable.
 
-Usually GO Path is supposed to already be on the PATH environment variable. 
+Usually GO Path is supposed to already be on the PATH environment variable.
 Use `export PATH=$(go env GOPATH)/bin:$PATH` otherwise and repeat current step again.
 
 
