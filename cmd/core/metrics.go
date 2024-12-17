@@ -2,7 +2,6 @@ package core
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
@@ -113,25 +112,21 @@ func RegisterMetrics(stats ebpf.UpfXdpActionStatistic, conn *PfcpConnection) {
 	prometheus.MustRegister(UpfXdpRedirect)
 	prometheus.MustRegister(UpfPfcpSessions)
 	prometheus.MustRegister(UpfPfcpAssociations)
+}
 
-	// Used for getting difference between two counters to increment the prometheus counter (counters cannot be written only incremented)
-	var prevUpfCounters ebpf.UpfCounters
-	go func() {
-		time.Sleep(2 * time.Second)
-		RxPacketCounters := stats.GetUpfExtStatField()
-		UpfRx.WithLabelValues("Arp").Add(float64(RxPacketCounters.RxArp - prevUpfCounters.RxArp))
-		UpfRx.WithLabelValues("Icmp").Add(float64(RxPacketCounters.RxIcmp - prevUpfCounters.RxIcmp))
-		UpfRx.WithLabelValues("Icmp6").Add(float64(RxPacketCounters.RxIcmp6 - prevUpfCounters.RxIcmp6))
-		UpfRx.WithLabelValues("Ip4").Add(float64(RxPacketCounters.RxIp4 - prevUpfCounters.RxIp4))
-		UpfRx.WithLabelValues("Ip6").Add(float64(RxPacketCounters.RxIp6 - prevUpfCounters.RxIp6))
-		UpfRx.WithLabelValues("Tcp").Add(float64(RxPacketCounters.RxTcp - prevUpfCounters.RxTcp))
-		UpfRx.WithLabelValues("Udp").Add(float64(RxPacketCounters.RxUdp - prevUpfCounters.RxUdp))
-		UpfRx.WithLabelValues("Other").Add(float64(RxPacketCounters.RxOther - prevUpfCounters.RxOther))
-		UpfRx.WithLabelValues("GtpEcho").Add(float64(RxPacketCounters.RxGtpEcho - prevUpfCounters.RxGtpEcho))
-		UpfRx.WithLabelValues("GtpPdu").Add(float64(RxPacketCounters.RxGtpPdu - prevUpfCounters.RxGtpPdu))
-		UpfRx.WithLabelValues("GtpOther").Add(float64(RxPacketCounters.RxGtpOther - prevUpfCounters.RxGtpOther))
-		UpfRx.WithLabelValues("GtpUnexp").Add(float64(RxPacketCounters.RxGtpUnexp - prevUpfCounters.RxGtpUnexp))
+func GatherMetrics(stats ebpf.UpfXdpActionStatistic) {
+	RxPacketCounters := stats.GetUpfExtStat()
+	UpfRx.WithLabelValues("arp").Add(float64(RxPacketCounters.RxArp))
+	UpfRx.WithLabelValues("icmp").Add(float64(RxPacketCounters.RxIcmp))
+	UpfRx.WithLabelValues("icmp6").Add(float64(RxPacketCounters.RxIcmp6))
+	UpfRx.WithLabelValues("ip4").Add(float64(RxPacketCounters.RxIp4))
+	UpfRx.WithLabelValues("ip6").Add(float64(RxPacketCounters.RxIp6))
+	UpfRx.WithLabelValues("tcp").Add(float64(RxPacketCounters.RxTcp))
+	UpfRx.WithLabelValues("udp").Add(float64(RxPacketCounters.RxUdp))
+	UpfRx.WithLabelValues("other").Add(float64(RxPacketCounters.RxOther))
+	UpfRx.WithLabelValues("gtp-echo").Add(float64(RxPacketCounters.RxGtpEcho))
+	UpfRx.WithLabelValues("gtp-pdu").Add(float64(RxPacketCounters.RxGtpPdu))
+	UpfRx.WithLabelValues("gtp-other").Add(float64(RxPacketCounters.RxGtpOther))
+	UpfRx.WithLabelValues("gtp-unexp").Add(float64(RxPacketCounters.RxGtpUnexp))
 
-		prevUpfCounters = RxPacketCounters
-	}()
 }

@@ -6,6 +6,7 @@ import (
 
 type UpfXdpActionStatistic struct {
 	BpfObjects *BpfObjects
+	previous   UpfCounters
 }
 
 type UpfCounters struct {
@@ -40,6 +41,24 @@ func (current *UpfCounters) Add(new UpfCounters) {
 	current.RxGtpEcho += new.RxGtpEcho
 	current.RxGtpPdu += new.RxGtpPdu
 	current.RxGtpOther += new.RxGtpOther
+}
+
+func (current *UpfCounters) Delta(new UpfCounters) UpfCounters {
+
+	delta := UpfCounters{}
+
+	delta.RxArp = new.RxArp - current.RxArp
+	delta.RxIcmp = new.RxIcmp - current.RxIcmp
+	delta.RxIcmp6 = new.RxIcmp6 - current.RxIcmp6
+	delta.RxIp4 = new.RxIp4 - current.RxIp4
+	delta.RxIp6 = new.RxIp6 - current.RxIp6
+	delta.RxTcp = new.RxTcp - current.RxTcp
+	delta.RxUdp = new.RxUdp - current.RxUdp
+	delta.RxOther = new.RxOther - current.RxOther
+	delta.RxGtpEcho = new.RxGtpEcho - current.RxGtpEcho
+	delta.RxGtpPdu = new.RxGtpPdu - current.RxGtpPdu
+	delta.RxGtpOther = new.RxGtpOther - current.RxGtpOther
+	return delta
 }
 
 // Getters for the upf_xdp_statistic (xdp_action)
@@ -83,7 +102,7 @@ func (stat *UpfXdpActionStatistic) GetRedirect() uint64 {
 
 // Getters for the upf_ext_stat (upf_counters)
 // #TODO: Do not retrieve the whole struct each time.
-func (stat *UpfXdpActionStatistic) GetUpfExtStatField() UpfCounters {
+func (stat *UpfXdpActionStatistic) GetUpfExtStat() UpfCounters {
 
 	var statistics []IpEntrypointUpfStatistic
 	var counters UpfCounters
@@ -97,5 +116,7 @@ func (stat *UpfXdpActionStatistic) GetUpfExtStatField() UpfCounters {
 		counters.Add(statistic.UpfCounters)
 	}
 
-	return counters
+	delta := stat.previous.Delta(counters)
+	stat.previous = counters
+	return delta
 }
