@@ -115,7 +115,7 @@ func RegisterMetrics(stats ebpf.UpfXdpActionStatistic, conn *PfcpConnection) {
 }
 
 func GatherMetrics(stats ebpf.UpfXdpActionStatistic) {
-	RxPacketCounters := stats.GetUpfExtStat()
+	RxPacketCounters := stats.GetUpfExtStatDelta()
 	UpfRx.WithLabelValues("arp").Add(float64(RxPacketCounters.RxArp))
 	UpfRx.WithLabelValues("icmp").Add(float64(RxPacketCounters.RxIcmp))
 	UpfRx.WithLabelValues("icmp6").Add(float64(RxPacketCounters.RxIcmp6))

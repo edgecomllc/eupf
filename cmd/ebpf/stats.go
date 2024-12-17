@@ -101,8 +101,25 @@ func (stat *UpfXdpActionStatistic) GetRedirect() uint64 {
 }
 
 // Getters for the upf_ext_stat (upf_counters)
-// #TODO: Do not retrieve the whole struct each time.
 func (stat *UpfXdpActionStatistic) GetUpfExtStat() UpfCounters {
+
+	var statistics []IpEntrypointUpfStatistic
+	var counters UpfCounters
+	err := stat.BpfObjects.UpfExtStat.Lookup(uint32(0), &statistics)
+	if err != nil {
+		log.Info().Msg(err.Error())
+		return counters
+	}
+
+	for _, statistic := range statistics {
+		counters.Add(statistic.UpfCounters)
+	}
+
+	return counters
+}
+
+// Getters for the upf_ext_stat (upf_counters)
+func (stat *UpfXdpActionStatistic) GetUpfExtStatDelta() UpfCounters {
 
 	var statistics []IpEntrypointUpfStatistic
 	var counters UpfCounters
