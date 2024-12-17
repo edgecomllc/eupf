@@ -30,6 +30,7 @@ type PacketStats struct {
 }
 
 // DisplayXdpStatistics godoc
+//
 //	@Summary		Display XDP statistics
 //	@Description	Display XDP statistics
 //	@Tags			XDP
@@ -47,6 +48,7 @@ func (h *ApiHandler) displayXdpStatistics(c *gin.Context) {
 }
 
 // DisplayPacketStats godoc
+//
 //	@Summary		Display packet statistics
 //	@Description	Display packet statistics
 //	@Tags			Packet
@@ -54,7 +56,7 @@ func (h *ApiHandler) displayXdpStatistics(c *gin.Context) {
 //	@Success		200	{object}	PacketStats
 //	@Router			/packet_stats [get]
 func (h *ApiHandler) displayPacketStats(c *gin.Context) {
-	packets := h.ForwardPlaneStats.GetUpfExtStatField()
+	packets := h.ForwardPlaneStats.GetUpfExtStat()
 	c.IndentedJSON(http.StatusOK, PacketStats{
 		RxArp:      packets.RxArp,
 		RxIcmp:     packets.RxIcmp,
