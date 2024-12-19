@@ -40,6 +40,7 @@ type PfcpConnection struct {
 	nodeId            string
 	nodeAddrV4        net.IP
 	n3Address         net.IP
+	n9Address         net.IP
 	mapOperations     ebpf.ForwardingPlaneController
 	RecoveryTimestamp time.Time
 	featuresOctets    []uint8
@@ -55,7 +56,7 @@ func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociat
 	return nil
 }
 
-func NewPfcpConnection(addr string, nodeId string, n3Ip string, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager) (*PfcpConnection, error) {
+func NewPfcpConnection(addr string, nodeId string, n3Ip string, n9Ip string, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Warn().Msgf("Can't resolve UDP address: %s", err.Error())
@@ -71,7 +72,12 @@ func NewPfcpConnection(addr string, nodeId string, n3Ip string, mapOperations eb
 	if n3Addr == nil {
 		return nil, fmt.Errorf("failed to parse N3 IP address ID: %s", n3Ip)
 	}
-	log.Info().Msgf("Starting PFCP connection: %v with Node ID: %v and N3 address: %v", udpAddr, nodeId, n3Addr)
+	n9Addr := net.ParseIP(n9Ip)
+	if n9Addr == nil {
+		return nil, fmt.Errorf("failed to parse N9 IP address ID: %s", n9Ip)
+	}
+
+	log.Info().Msgf("Starting PFCP connection: %v with Node ID: %v, N3 address: %v, N9 address: %v", udpAddr, nodeId, n3Addr, n9Addr)
 
 	featuresOctets := []uint8{0, 0, 0}
 	featuresOctets[1] = setBit(featuresOctets[1], 0)
@@ -90,6 +96,7 @@ func NewPfcpConnection(addr string, nodeId string, n3Ip string, mapOperations eb
 		nodeId:            nodeId,
 		nodeAddrV4:        udpAddr.IP,
 		n3Address:         n3Addr,
+		n9Address:         n9Addr,
 		mapOperations:     mapOperations,
 		RecoveryTimestamp: time.Now(),
 		featuresOctets:    featuresOctets,

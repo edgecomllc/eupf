@@ -81,7 +81,9 @@ func main() {
 	}
 
 	// Create PFCP connection
-	pfcpConn, err := core.NewPfcpConnection(config.Conf.PfcpAddress, config.Conf.PfcpNodeId, config.Conf.N3Address, bpfObjects, resourceManager)
+	pfcpConn, err := core.NewPfcpConnection(config.Conf.PfcpAddress, config.Conf.PfcpNodeId,
+						config.Conf.N3Address, config.Conf.N9Address,
+						bpfObjects, resourceManager)
 	if err != nil {
 		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}
