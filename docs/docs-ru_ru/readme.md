@@ -46,6 +46,7 @@ sudo docker run -d --rm --privileged \
 
    - UPF_INTERFACE_NAME=lo    *Network interfaces handling N3 (GTP) & N6 (SGi) traffic.*
    - UPF_N3_ADDRESS=127.0.0.1 *IPv4 address for N3 interface*
+   - UPF_N9_ADDRESS=127.0.0.1 *IPv4 address for N9 interface*
    - UPF_XDP_ATTACH_MODE=generic *XDP attach mode. Generic-only at the moment*
    - UPF_API_ADDRESS=:8080    *Local host:port for serving [REST API](api.md) server*
    - UPF_PFCP_ADDRESS=:8805   *Local host:port that PFCP server will listen to*
