@@ -20,6 +20,7 @@ type UpfConfig struct {
 	AssociationSetupTimeout uint32   `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
 	MetricsAddress          string   `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
 	N3Address               string   `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
+	N9Address               string   `mapstructure:"n9_address" validate:"ipv4" json:"n9_address"`
 	GtpPeer                 []string `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
 	GtpEchoInterval         uint32   `mapstructure:"gtp_echo_interval" validate:"min=1" json:"gtp_echo_interval"`
 	QerMapSize              uint32   `mapstructure:"qer_map_size" validate:"min=1" json:"qer_map_size"`
@@ -47,6 +48,7 @@ func init() {
 	pflag.String("nodeid", "127.0.0.1", "PFCP Server Node ID")
 	pflag.String("maddr", ":9090", "Address to bind metrics server to")
 	pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
+	pflag.String("n9addr", "n3addr", "Address for communication over N9 interface")
 	pflag.StringArray("peer", []string{}, "Address of GTP peer")
 	pflag.Uint32("echo", 10, "Interval of sending echo requests in seconds")
 	pflag.Uint32("qersize", 1024, "Size of the QER ebpf map")
@@ -76,6 +78,7 @@ func init() {
 	_ = v.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
 	_ = v.BindPFlag("metrics_address", pflag.Lookup("maddr"))
 	_ = v.BindPFlag("n3_address", pflag.Lookup("n3addr"))
+	_ = v.BindPFlag("n9_address", pflag.Lookup("n9addr"))
 	_ = v.BindPFlag("gtp_peer", pflag.Lookup("peer"))
 	_ = v.BindPFlag("gtp_echo_interval", pflag.Lookup("echo"))
 	_ = v.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
@@ -100,6 +103,7 @@ func init() {
 	v.SetDefault("association_setup_timeout", 5)
 	v.SetDefault("metrics_address", ":9090")
 	v.SetDefault("n3_address", "127.0.0.1")
+	v.SetDefault("n9_address", "n3addr")
 	v.SetDefault("gtp_echo_interval", 10)
 	v.SetDefault("qer_map_size", 1024)
 	v.SetDefault("far_map_size", 1024)
@@ -144,6 +148,10 @@ func (c *UpfConfig) Validate() error {
 
 	if !c.FeatureUEIP {
 		c.UEIPPool = ""
+	}
+
+	if c.N9Address == "n3addr" {
+		c.N9Address = c.N3Address
 	}
 
 	return nil
