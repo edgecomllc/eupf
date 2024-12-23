@@ -150,6 +150,10 @@ func (c *UpfConfig) Validate() error {
 		c.UEIPPool = ""
 	}
 
+	if c.N9Address == "127.0.0.1" && c.N3Address != "127.0.0.1" {
+		c.N9Address = c.N3Address
+	}
+
 	return nil
 }
 

@@ -69,7 +69,6 @@ services:
       - UPF_METRICS_ADDRESS=:9091
       - UPF_PFCP_NODE_ID=172.21.0.100
       - UPF_N3_ADDRESS=172.21.0.100
-      - UPF_N9_ADDRESS=172.21.0.100
     ulimits:
       memlock: -1
     cap_add:

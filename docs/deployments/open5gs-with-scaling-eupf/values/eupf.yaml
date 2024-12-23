@@ -18,7 +18,6 @@ args:
 env:
   UPF_PFCP_NODE_ID: $(MY_POD_IP)
   UPF_N3_ADDRESS: $(MY_POD_IP)
-  UPF_N9_ADDRESS: $(MY_POD_IP)
 
 configMaps:
   config:

@@ -570,7 +570,7 @@ func composeFarInfo(far *ie.IE, localN3Ip net.IP, localN9Ip net.IP, farInfo ebpf
 	if err == nil {
 		outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
 		if outerHeaderCreationIndex == -1 {
-			log.Info().Msg("WARN: No OuterHeaderCreation")
+			log.Warn().Msg("No OuterHeaderCreation")
 		} else {
 			outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
 			farInfo.OuterHeaderCreation = uint8(outerHeaderCreation.OuterHeaderCreationDescription >> 8)
@@ -580,13 +580,13 @@ func composeFarInfo(far *ie.IE, localN3Ip net.IP, localN9Ip net.IP, farInfo ebpf
 				farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
 			}
 			if outerHeaderCreation.HasIPv6() {
-				log.Info().Msg("WARN: IPv6 not supported yet, ignoring")
+				log.Warn().Msg("IPv6 not supported yet, ignoring")
 				return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
 			}
 
 			destInterfaceIndex := findIEindex(forward, 42) // IE Destination Interface
 			if destInterfaceIndex == -1 {
-				log.Info().Msg("WARN: No Destination Interface IE")
+				log.Warn().Msg("No Destination Interface IE")
 			} else {
 				destInterface, _ := forward[destInterfaceIndex].DestinationInterface()
 				// OuterHeaderCreation == GTP-U/UDP/IPv4 && DestinationInterface == Core:
