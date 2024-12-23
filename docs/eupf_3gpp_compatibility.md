@@ -13,7 +13,7 @@ eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Rel
 |Overload Control      | `N` | TS 129 244: 6.2.4 Overload Control Procedure |
 |PFD Management        | `N` | TS 129 244: 6.2.5 PFCP PFD Management Procedure |
 |Association Setup     | `Y` | TS 129 244: 6.2.6 PFCP Association Setup Procedure |
-|Association Update    | `N` | TS 129 244: 6.2.7 PFCP Association Update Procedure |
+|Association Update    | `Y` | TS 129 244: 6.2.7 PFCP Association Update Procedure |
 |Association Release   | `N` | TS 129 244: 6.2.8 PFCP Association Release Procedure |
 |Node Report           | `N` | TS 129 244: 6.2.9 PFCP Node Report Procedure |
 |Session Establishment | `Y` | TS 129 244: 6.3.2 PFCP Session Establishment Procedure |
@@ -31,8 +31,8 @@ eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Rel
 | PFD Management Response        | `N` | TS 129 244: 7.4.3.2 PFCP PFD Management Response |
 | Association Setup Request      | `Y` | TS 129 244: 7.4.4.1 PFCP Association Setup Request |
 | Association Setup Response     | `Y` | TS 129 244: 7.4.4.2 PFCP Association Setup Response|
-| Association Update Request     | `N` | TS 129 244: 7.4.4.3 PFCP Association Update Request|
-| Association Update Response    | `N` | TS 129 244: 7.4.4.4 PFCP Association Update Response|
+| Association Update Request     | `Y` | TS 129 244: 7.4.4.3 PFCP Association Update Request|
+| Association Update Response    | `Y` | TS 129 244: 7.4.4.4 PFCP Association Update Response|
 | Association Release Request    | `N` | TS 129 244: 7.4.4.5 PFCP Association Release Request|
 | Association Release Response   | `N` | TS 129 244: 7.4.4.6 PFCP Association Release Response|
 | Version Not Supported Response | `N` | TS 129 244: 7.4.4.7 PFCP Version Not Supported Response|
