@@ -48,7 +48,7 @@ func init() {
 	pflag.String("nodeid", "127.0.0.1", "PFCP Server Node ID")
 	pflag.String("maddr", ":9090", "Address to bind metrics server to")
 	pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
-	pflag.String("n9addr", "127.0.0.1", "Address for communication over N9 interface")
+	pflag.String("n9addr", "n3addr", "Address for communication over N9 interface")
 	pflag.StringArray("peer", []string{}, "Address of GTP peer")
 	pflag.Uint32("echo", 10, "Interval of sending echo requests in seconds")
 	pflag.Uint32("qersize", 1024, "Size of the QER ebpf map")
@@ -103,7 +103,7 @@ func init() {
 	v.SetDefault("association_setup_timeout", 5)
 	v.SetDefault("metrics_address", ":9090")
 	v.SetDefault("n3_address", "127.0.0.1")
-	v.SetDefault("n9_address", "127.0.0.1")
+	v.SetDefault("n9_address", "n3addr")
 	v.SetDefault("gtp_echo_interval", 10)
 	v.SetDefault("qer_map_size", 1024)
 	v.SetDefault("far_map_size", 1024)
@@ -150,7 +150,7 @@ func (c *UpfConfig) Validate() error {
 		c.UEIPPool = ""
 	}
 
-	if c.N9Address == "127.0.0.1" && c.N3Address != "127.0.0.1" {
+	if c.N9Address == "n3addr" {
 		c.N9Address = c.N3Address
 	}
 
