@@ -44,11 +44,31 @@ However, if we disable offloading, the checksum is calculated immediately on ipe
 
 1. pull all docker images
 
-docker-compose pull
+`make pull`
 
-2. start services
+2. start infra services (like mongodb)
 
-docker-compose up -d
+`make infra`
+
+3. start eUPF
+
+`make eupf`
+
+4. start core
+
+`make core`
+
+5. start gNB (this runs multiple instances of gNB, check parameter `scale` in command)
+
+`make gnb`
+
+6. start UERANSim device works with open5gs UPF
+
+`make ue1`
+
+7. start UERANSim device works with eUPF
+
+`make ue2`
 
 # run iperf tests
 

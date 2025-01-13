@@ -1,0 +1,14 @@
+logger:
+  level: info
+parameter: {}
+
+sbi:
+  server:
+    no_tls: true
+  client:
+    no_tls: true
+
+nrf:
+  sbi:
+    - dev: "eth0"
+      port: 7777
