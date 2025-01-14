@@ -119,6 +119,10 @@ func init() {
 	v.SetDefault("ueip_pool", "10.60.0.0/24")
 	v.SetDefault("teid_pool", 65535)
 
+	if v.GetString("n9_address") == "n3addr" {
+		v.Set("n9_address", v.GetString("n3_address"))
+	}
+
 	v.SetConfigFile(*configPath)
 
 	v.SetEnvPrefix("upf")
@@ -148,10 +152,6 @@ func (c *UpfConfig) Validate() error {
 
 	if !c.FeatureUEIP {
 		c.UEIPPool = ""
-	}
-
-	if c.N9Address == "n3addr" {
-		c.N9Address = c.N3Address
 	}
 
 	return nil
