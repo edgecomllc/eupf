@@ -21,3 +21,6 @@ cmd/docs
 log.html
 output.xml
 report.html
+
+# Other
+.DS_Store
