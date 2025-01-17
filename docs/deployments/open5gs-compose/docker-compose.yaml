@@ -45,7 +45,7 @@ services:
       start_period: 10s
 
   eupf:
-    image: eupf:main
+    image: ghcr.io/edgecomllc/eupf:0.4.1
     privileged: true
     volumes:
       - /sys/fs/bpf:/sys/fs/bpf
@@ -67,7 +67,7 @@ services:
       - SYS_ADMIN
     networks:
       open5gs-main:
-        ipv4_address: 172.20.0.100
+        #        ipv4_address: 172.20.0.100
     sysctls:
       - net.ipv4.conf.all.forwarding=1
 
@@ -80,7 +80,8 @@ services:
       - /bin/sh
       - -c
       - |
-        ip ro add 10.46.0.0/16 via 172.20.0.100
+        #ip ro add 10.46.0.0/16 via 172.20.0.100
+        ip ro add 10.46.0.0/16 via eupf
         echo "done"
         tail -f /dev/null
 
@@ -101,15 +102,6 @@ services:
       - -c
       - |
         open5gs-dbctl add_ue_with_slice 999700000000001 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 111111
-        open5gs-dbctl add_ue_with_slice 999700000000002 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 111111
-        open5gs-dbctl add_ue_with_slice 999700000000003 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
-        open5gs-dbctl add_ue_with_slice 999700000000004 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
-        open5gs-dbctl add_ue_with_slice 999700000000005 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
-        open5gs-dbctl add_ue_with_slice 999700000000006 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
-        open5gs-dbctl add_ue_with_slice 999700000000007 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
-        open5gs-dbctl add_ue_with_slice 999700000000008 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
-        open5gs-dbctl add_ue_with_slice 999700000000009 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
-        open5gs-dbctl add_ue_with_slice 999700000000010 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 222222
         tail -f /dev/null
     environment:
       <<: *open5gs_svc_envs
@@ -185,31 +177,31 @@ services:
     environment:
       <<: *open5gs_svc_envs
 
-  upf:
-    <<: *open5gs_svc_image
-    volumes:
-      - .deploy/docker/upf.yaml:/opt/open5gs/etc/open5gs/upf.yaml
-    privileged: true
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    sysctls:
-      - net.ipv4.conf.all.forwarding=1
-    entrypoint: ""
-    command:
-      - /bin/bash
-      - -c
-      - |
-        ip tuntap add name ogstun mode tun
-        ip link set ogstun up
-        echo "Setting IP 10.45.0.1/16 to device ogstun"
-        ip addr add 10.45.0.1/16 dev ogstun;
-        sysctl -w net.ipv4.ip_forward=1;
-        echo "Enable NAT for 10.45.0.1/16 and device ogstun"
-        iptables -t nat -A POSTROUTING -s 10.45.0.1/16 ! -o ogstun -j MASQUERADE;
-
-        open5gs-upfd
+        #  upf:
+        #    <<: *open5gs_svc_image
+        #    volumes:
+        #      - .deploy/docker/upf.yaml:/opt/open5gs/etc/open5gs/upf.yaml
+        #    privileged: true
+        #    cap_add:
+        #      - NET_ADMIN
+        #    devices:
+        #      - /dev/net/tun:/dev/net/tun
+        #    sysctls:
+        #      - net.ipv4.conf.all.forwarding=1
+        #    entrypoint: ""
+        #    command:
+        #      - /bin/bash
+        #      - -c
+        #      - |
+        #        ip tuntap add name ogstun mode tun
+        #        ip link set ogstun up
+        #        echo "Setting IP 10.45.0.1/16 to device ogstun"
+        #        ip addr add 10.45.0.1/16 dev ogstun;
+        #        sysctl -w net.ipv4.ip_forward=1;
+        #        echo "Enable NAT for 10.45.0.1/16 and device ogstun"
+        #        iptables -t nat -A POSTROUTING -s 10.45.0.1/16 ! -o ogstun -j MASQUERADE;
+        #
+        #        open5gs-upfd
 
   gnb:
     <<: *gnb_service
@@ -236,4 +228,8 @@ services:
 
 networks:
   open5gs-main:
-    external: true
+    #    external: true
+    #    ipam:
+    #      driver: default
+    #      config:
+    #        - subnet: 172.20.0.0/24
