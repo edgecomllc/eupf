@@ -95,29 +95,7 @@ func init() {
 	_ = v.BindPFlag("ueip_pool", pflag.Lookup("ueippool"))
 	_ = v.BindPFlag("teid_pool", pflag.Lookup("teidpool"))
 
-	v.SetDefault("interface_name", "lo")
-	v.SetDefault("xdp_attach_mode", "generic")
-	v.SetDefault("api_address", ":8080")
-	v.SetDefault("pfcp_address", "127.0.0.1:8805")
-	v.SetDefault("pfcp_node_id", "127.0.0.1")
-	v.SetDefault("association_setup_timeout", 5)
-	v.SetDefault("metrics_address", ":9090")
-	v.SetDefault("n3_address", "127.0.0.1")
-	v.SetDefault("n9_address", "n3addr")
-	v.SetDefault("gtp_echo_interval", 10)
-	v.SetDefault("qer_map_size", 1024)
-	v.SetDefault("far_map_size", 1024)
-	v.SetDefault("urr_map_size", 1024)
-	v.SetDefault("pdr_map_size", 1024)
-	v.SetDefault("resize_ebpf_maps", false)
-	v.SetDefault("heartbeat_retries", 3)
-	v.SetDefault("heartbeat_interval", 5)
-	v.SetDefault("heartbeat_timeout", 5)
-	v.SetDefault("logging_level", "info")
-	v.SetDefault("feature_ueip", false)
-	v.SetDefault("feature_ftup", false)
-	v.SetDefault("ueip_pool", "10.60.0.0/24")
-	v.SetDefault("teid_pool", 65535)
+	v.SetDefault("n9_address", v.GetString("n3_address"))
 
 	v.SetConfigFile(*configPath)
 
@@ -148,10 +126,6 @@ func (c *UpfConfig) Validate() error {
 
 	if !c.FeatureUEIP {
 		c.UEIPPool = ""
-	}
-
-	if c.N9Address == "n3addr" {
-		c.N9Address = c.N3Address
 	}
 
 	return nil
