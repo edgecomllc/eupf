@@ -1,0 +1,57 @@
+logger:
+  level: info
+
+parameter: {}
+
+global:
+# max:
+#   ue: 1024 # The number of UE can be increased depending on memory size.
+#    peer: 64
+
+smf:
+  sbi:
+    server:
+    - dev: "eth0"
+      port: 7777
+    client:
+      nrf:
+      - uri: http://open5gs-nrf-sbi:7777
+  pfcp:
+    server:
+    - dev: "eth0"
+      port: 8805
+    client:
+      upf:
+      - address: eupf
+  gtpc:
+    server:
+    - dev: "eth0"
+      port: 2123
+  gtpu:
+    server:
+    - dev: "eth0"
+      port: 2152
+  session:
+    - subnet: 10.46.0.0/16
+      gateway: 10.46.0.1 
+      dnn: internet
+    - subnet: 2001:db88:cafe::/48
+      gateway: 2001:db88:cafe::1
+      dnn: internet
+  dns:
+    - 8.8.8.8
+    - 8.8.4.4
+    - 2001:4860:4860::8888
+    - 2001:4860:4860::8844
+  mtu: 1400
+  info:
+    - s_nssai:
+        - sst: 1
+          sd: 111111
+          dnn:
+            - internet
+      tai:
+        - plmn_id:
+            mcc: 999
+            mnc: 70
+          tac: 1

@@ -2,34 +2,29 @@ logger:
   level: info
 parameter: {}
 
-sbi:
-  server:
-    no_tls: true
-  client:
-    no_tls: true
+global:
+  max:
+#   ue: 1024 # The number of UE can be increased depending on memory size.
+#    peer: 64
 
 nssf:
   sbi:
-    - dev: "eth0"
+    server:
+    - dev: eth0
       port: 7777
-  nsi:
-    - name: open5gs-nrf-sbi
-      port: 7777
-      s_nssai:
-        sst: "1"
-        sd: "0x111111"
-    - name: open5gs-nrf-sbi
-      port: 7777
-      s_nssai:
-        sst: "1"
-        sd: "0x222222"
-    - name: open5gs-nrf-sbi
-      port: 7777
-      s_nssai:
-        sst: "1"
-        sd: "0x333333"
-
-nrf:
-  sbi:
-    - name: open5gs-nrf-sbi
-      port: 7777
+    client:
+      nrf:
+        - uri: http://open5gs-nrf-sbi:7777
+      nsi:
+      - uri: http://open5gs-nrf-sbi:7777
+        s_nssai:
+          sst: "1"
+          sd: "0x111111"
+      - uri: http://open5gs-nrf-sbi:7777 
+        s_nssai:
+          sst: "1"
+          sd: "0x222222"
+      - uri: http://open5gs-nrf-sbi:7777    
+        s_nssai:
+          sst: "1"
+          sd: "0x333333"
