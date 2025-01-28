@@ -1,0 +1,35 @@
+logger:
+  level: info
+parameter: {}
+
+sbi:
+  server:
+    no_tls: true
+  client:
+    no_tls: true
+
+nssf:
+  sbi:
+    - dev: "eth0"
+      port: 7777
+  nsi:
+    - name: open5gs-nrf-sbi
+      port: 7777
+      s_nssai:
+        sst: "1"
+        sd: "0x111111"
+    - name: open5gs-nrf-sbi
+      port: 7777
+      s_nssai:
+        sst: "1"
+        sd: "0x222222"
+    - name: open5gs-nrf-sbi
+      port: 7777
+      s_nssai:
+        sst: "1"
+        sd: "0x333333"
+
+nrf:
+  sbi:
+    - name: open5gs-nrf-sbi
+      port: 7777

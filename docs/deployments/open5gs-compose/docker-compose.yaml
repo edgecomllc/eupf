@@ -1,0 +1,309 @@
+version: '3.8'
+
+x-container-defaults: &container_defaults
+  restart: unless-stopped
+  networks:
+    - open5gs-main
+
+x-open5gs-svc-image: &open5gs_svc_image
+  image: docker.io/gradiant/open5gs:2.7.2
+  <<: *container_defaults
+
+x-open5gs-svc-envs: &open5gs_svc_envs
+  DB_URI: mongodb://mongodb/open5gs
+
+x-gnb-svc: &gnb_service
+  image: docker.io/gradiant/ueransim:3.2.6
+  <<: *container_defaults
+  environment:
+    - MCC=999
+    - MNC=70
+    - TAC=001
+    - SST=1
+    - SD=0x111111
+    - N2_IFACE=eth0
+    - N3_IFACE=eth0
+    - RADIO_IFACE=eth0
+    - AMF_HOSTNAME=amf
+  command: gnb
+
+services:
+
+  mongodb:
+    image: mongo:5.0.10-focal
+    <<: *container_defaults
+    ports:
+      - ${MONGO_EXT_PORT}:27017
+    volumes:
+      - ${DOCKER_SHARED_DIR}/mongodb:/data/db
+      - .deploy/docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo 127.0.0.1:27017/test --quiet
+      interval: 2s
+      timeout: 2s
+      retries: 5
+      start_period: 2s
+
+  nrf:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-nrfd
+    volumes:
+      - .deploy/docker/nrf.yaml:/opt/open5gs/etc/open5gs/nrf.yaml
+    networks:
+      open5gs-main:
+        aliases:
+          - open5gs-nrf-sbi
+    healthcheck:
+      test: curl --http2-prior-knowledge http://nrf:7777/nnrf-nfm/v1/nf-instances || exit 1
+      interval: 2s
+      timeout: 2s
+      retries: 5
+      start_period: 2s
+
+  amf:
+    <<: *open5gs_svc_image
+    depends_on:
+      nrf:
+        condition: service_healthy
+    command:
+      - open5gs-amfd
+    volumes:
+      - .deploy/docker/amf.yaml:/opt/open5gs/etc/open5gs/amf.yaml
+
+  ausf:
+    <<: *open5gs_svc_image
+    depends_on:
+      nrf:
+        condition: service_healthy
+    command:
+      - open5gs-ausfd
+    volumes:
+      - .deploy/docker/ausf.yaml:/opt/open5gs/etc/open5gs/ausf.yaml
+
+  bsf:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-bsfd
+    volumes:
+      - .deploy/docker/bsf.yaml:/opt/open5gs/etc/open5gs/bsf.yaml
+
+
+  nssf:
+    <<: *open5gs_svc_image
+    depends_on:
+      nrf:
+        condition: service_healthy
+    command:
+      - open5gs-nssfd
+    volumes:
+      - .deploy/docker/nssf.yaml:/opt/open5gs/etc/open5gs/nssf.yaml
+
+  pcf:
+    <<: *open5gs_svc_image
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      nrf:
+        condition: service_healthy
+    command:
+      - open5gs-pcfd
+    volumes:
+      - .deploy/docker/pcf.yaml:/opt/open5gs/etc/open5gs/pcf.yaml
+    environment:
+      <<: *open5gs_svc_envs
+
+  smf:
+    <<: *open5gs_svc_image
+    depends_on:
+      nrf:
+        condition: service_healthy
+    command:
+      - open5gs-smfd
+    volumes:
+      - .deploy/docker/smf.yaml:/opt/open5gs/etc/open5gs/smf.yaml
+
+  udm:
+    <<: *open5gs_svc_image
+    depends_on:
+      nrf:
+        condition: service_healthy
+    command:
+      - open5gs-udmd
+    volumes:
+      - .deploy/docker/udm.yaml:/opt/open5gs/etc/open5gs/udm.yaml
+
+  udr:
+    <<: *open5gs_svc_image
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      nrf:
+        condition: service_healthy
+    command:
+      - open5gs-udrd
+    volumes:
+      - .deploy/docker/udr.yaml:/opt/open5gs/etc/open5gs/udr.yaml
+    environment:
+      <<: *open5gs_svc_envs
+
+        #  upf:
+        #    <<: *open5gs_svc_image
+        #    volumes:
+        #      - .deploy/docker/upf.yaml:/opt/open5gs/etc/open5gs/upf.yaml
+        #    privileged: true
+        #    cap_add:
+        #      - NET_ADMIN
+        #    devices:
+        #      - /dev/net/tun:/dev/net/tun
+        #    sysctls:
+        #      - net.ipv4.conf.all.forwarding=1
+        #    entrypoint: ""
+        #    command:
+        #      - /bin/bash
+        #      - -c
+        #      - |
+        #        ip tuntap add name ogstun mode tun
+        #        ip link set ogstun up
+        #        echo "Setting IP 10.45.0.1/16 to device ogstun"
+        #        ip addr add 10.45.0.1/16 dev ogstun;
+        #        sysctl -w net.ipv4.ip_forward=1;
+        #        echo "Enable NAT for 10.45.0.1/16 and device ogstun"
+        #        iptables -t nat -A POSTROUTING -s 10.45.0.1/16 ! -o ogstun -j MASQUERADE;
+        #
+        #        open5gs-upfd
+
+  eupf:
+    image: ghcr.io/edgecomllc/eupf:0.4.1
+    privileged: true
+    volumes:
+      - /sys/fs/bpf:/sys/fs/bpf
+    environment:
+      GIN_MODE: release
+      UPF_INTERFACE_NAME: eth0
+      UPF_XDP_ATTACH_MODE: generic
+      UPF_API_ADDRESS: ":8081"
+      UPF_PFCP_ADDRESS: ":8805"
+      UPF_METRICS_ADDRESS: ":9091"
+      UPF_PFCP_NODE_ID: "172.20.0.100"
+      UPF_N3_ADDRESS: "172.20.0.100"
+      UPF_N9_ADDRESS: "172.20.0.100"
+      UPF_LOGGING_LEVEL: info
+    entrypoint: ""
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apk add iproute2
+        echo "1200 n6if" >> /etc/iproute2/rt_tables
+        ip rule add from 10.46.0.0/16 table n6if
+        ip route add default via `nslookup nat | awk '/^Address: / { print $2 }'` dev eth0 table n6if
+        /app/bin/eupf
+    ulimits:
+      memlock: -1
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    networks:
+      open5gs-main:
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+
+  nat:
+    image: wbitt/network-multitool:alpine-minimal
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+    cap_add:
+      - NET_ADMIN
+    networks:
+      open5gs-main:
+    entrypoint: ""
+    command:
+      - /bin/sh
+      - -c
+      - |
+        iptables -t nat -A POSTROUTING -s 10.46.0.1/16 -o eth0 -j MASQUERADE
+        iptables -A FORWARD -j ACCEPT
+        ip route add 10.46.0.0/16 via `nslookup eupf | awk '/^Address: / { print $2 }'` dev eth0
+        tail -f /dev/null
+
+  populate:
+    image: docker.io/gradiant/open5gs-dbctl:0.10.3
+    networks:
+      - open5gs-main
+    entrypoint: ""
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    command:
+      - /bin/bash
+      - -c
+      - |
+        open5gs-dbctl add_ue_with_slice 999700000000001 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 111111
+        exit 0
+        #tail -f /dev/null
+    environment:
+      <<: *open5gs_svc_envs
+
+  webui:
+    image: docker.io/gradiant/open5gs-webui:2.7.2
+    <<: *container_defaults
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    ports:
+      - ${WEBUI_EXT_PORT}:3000
+    environment:
+      <<: *open5gs_svc_envs
+
+
+  gnb:
+    image: docker.io/gradiant/ueransim:3.2.6
+    <<: *container_defaults
+    depends_on:
+      - amf
+    environment:
+      - MCC=999
+      - MNC=70
+      - TAC=001
+      - SST=1
+      - SD=0x111111
+      - N2_IFACE=eth0
+      - N3_IFACE=eth0
+      - RADIO_IFACE=eth0
+      - AMF_HOSTNAME=amf
+    command: gnb
+    healthcheck:
+      test: "nr-cli UERANSIM-gnb-999-70-16 -e status | grep -q 'is-ngap-up: true'"
+      interval: 2s
+      timeout: 2s
+      retries: 5
+      start_period: 2s
+
+  ue:
+    image: docker.io/gradiant/ueransim:3.2.6
+    <<: *container_defaults
+    depends_on:
+      populate:
+        condition: service_completed_successfully
+      gnb:
+        condition: service_healthy
+    environment:
+      - MCC=999
+      - MNC=70
+      - MSISDN=0000000001
+      - KEY=465B5CE8B199B49FAA5F0A2EE238A6BC
+      - OP=E8ED289DEBA952E4283B54E88E6183CA
+      - OP_TYPE=OPC
+      - APN=internet
+      - SST=1
+      - SD=0x111111
+      - GNB_HOSTNAME=gnb
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    command: "ue -n 1"
+
+networks:
+  open5gs-main:

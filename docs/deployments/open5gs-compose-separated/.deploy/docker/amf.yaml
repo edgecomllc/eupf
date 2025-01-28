@@ -11,27 +11,16 @@ sbi:
   client:
     no_tls: true
 
-global:
-# max:
-#   ue: 1024 # The number of UE can be increased depending on memory size.
-#    peer: 64
-
 amf:
   sbi:
-    server:
-    - dev: eth0
+    - dev: "eth0"
       port: 7777
-    client:
-      nrf:
-        - uri: http://open5gs-nrf-sbi:7777
   ngap:
-    server:
     - dev: "eth0"
       port: 38412
   metrics:
-    server:
-    - dev: "eth0"
-      port: 9090
+    addr: 0.0.0.0
+    port: 9090
   guami:
     - amf_id:
         region: 2
@@ -59,12 +48,12 @@ amf:
   network_name:
     full: Gradiant
   amf_name: open5gs-amf
-  time:
-    #    t3502:
-    #      value: 720   # 12 minutes * 60 = 720 seconds
-    t3512:
-      value: 540 # 9 minutes * 60 = 540 seconds
 
   security:
     integrity_order : [ NIA2, NIA1, NIA0 ]
     ciphering_order : [ NEA0, NEA1, NEA2 ]
+
+nrf:
+  sbi:
+    - name: open5gs-nrf-sbi
+      port: 7777
