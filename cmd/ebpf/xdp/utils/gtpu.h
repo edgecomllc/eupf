@@ -74,3 +74,28 @@ struct gtp_hdr_ext_pdu_session_container {
     __u8 spare2 : 1;    
     __u8 next_ext;
 } __attribute__((packed));
+
+struct gtp_u_recovery {
+    __u8 type;
+    __u8 value;
+} __attribute__((packed));
+
+static __always_inline __u32 insert_recovery(struct gtpuhdr *gtp, const char *data_end) {
+    struct gtp_u_recovery *recovery;
+    if (gtp->e || gtp->s || gtp->pn) {
+        struct gtp_hdr_ext* ext_hdr = (struct gtp_hdr_ext *)(gtp + 1);
+        if((const char *)(ext_hdr + 1) > data_end)
+            return 0;
+
+        recovery = (struct gtp_u_recovery *)(ext_hdr + 1);
+    } else {
+        recovery = (struct gtp_u_recovery *)(gtp + 1);
+    }
+
+    if((const char *)(recovery + 1) > data_end)
+        return 0;
+
+    recovery->type = 14;
+    recovery->value = 0;
+    return sizeof(struct gtp_u_recovery);
+}
