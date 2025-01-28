@@ -2,9 +2,10 @@ package ebpf
 
 import (
 	"fmt"
+	"unsafe"
+
 	"github.com/cilium/ebpf"
 	"golang.org/x/sys/unix"
-	"unsafe"
 )
 
 // IncreaseResourceLimits https://prototype-kernel.readthedocs.io/en/latest/bpf/troubleshooting.html#memory-ulimits
@@ -65,8 +66,8 @@ type QerMapElement struct {
 	GateStatusUL uint8  `json:"gate_status_ul"`
 	GateStatusDL uint8  `json:"gate_status_dl"`
 	Qfi          uint8  `json:"qfi"`
-	MaxBitrateUL uint32 `json:"max_bitrate_ul"`
-	MaxBitrateDL uint32 `json:"max_bitrate_dl"`
+	MaxBitrateUL uint64 `json:"max_bitrate_ul"`
+	MaxBitrateDL uint64 `json:"max_bitrate_dl"`
 }
 
 func ListQerMapContents(m *ebpf.Map) ([]QerMapElement, error) {

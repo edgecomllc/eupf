@@ -26,6 +26,7 @@
 
 #include "xdp/utils/packet_context.h"
 #include "xdp/utils/trace.h"
+#include "xdp/utils/csum.h"
 
 #define ETH_P_IPV6_BE	0xDD86
 #define ETH_P_IP_BE 	0x0008
@@ -130,6 +131,21 @@ static __always_inline void swap_ip(struct iphdr *iph) {
 
     /* Don't need to recalc csum in case of ip swap */
     // ip->check = ipv4_csum(ip, sizeof(*ip));
+}
+
+static __always_inline void update_tos_ipv4(struct iphdr *ip, __u8 tos) {
+    if(!tos)
+        return;
+    __u16 old = *(__u16*)ip;
+    ip->tos = tos;
+    ipv4_csum_replace(&ip->check, old, *(__u16*)ip);
+}
+
+static __always_inline void update_tos_ipv6(struct ipv6hdr *ip6, __u8 tos) {
+    if(!tos)
+        return;
+    ip6->flow_lbl[0] |= tos & 0xF;
+    ip6->priority = tos >> 4;
 }
 
 static __always_inline void context_set_ip4(struct packet_context *ctx, char *data, const char *data_end, struct ethhdr *eth, struct iphdr *ip4, struct udphdr *udp, struct gtpuhdr *gtp) {

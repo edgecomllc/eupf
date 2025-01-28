@@ -159,9 +159,9 @@ static __always_inline void fill_udp_header(struct udphdr *udp, int port, int le
     udp->check = 0;
 }
 
-static __always_inline void fill_gtp_header(struct gtpuhdr *gtp, int teid, int len) {
+static __always_inline void fill_gtp_header(struct gtpuhdr *gtp, int extention, int teid, int len) {
     *(__u8 *)gtp = GTP_FLAGS;
-    gtp->e = 1;
+    gtp->e = extention;
     gtp->message_type = GTPU_G_PDU;
     gtp->message_length = bpf_htons(len);
     gtp->teid = bpf_htonl(teid);
@@ -184,9 +184,16 @@ static __always_inline void fill_gtp_ext_header_psc(struct gtp_hdr_ext_pdu_sessi
 }
 
 static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx, int saddr, int daddr, __u8 tos, __u8 qfi, int teid) {
+
+#define NO_GTP_EXTENTION
+#ifdef NO_GTP_EXTENTION 
+    static const size_t gtp_full_hdr_size = sizeof(struct gtpuhdr);
+    static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_size;
+#else
     static const size_t gtp_ext_hdr_size = sizeof(struct gtp_hdr_ext) + sizeof(struct gtp_hdr_ext_pdu_session_container);
     static const size_t gtp_full_hdr_size = sizeof(struct gtpuhdr) + gtp_ext_hdr_size;
     static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_size;
+#endif
 
     // int ip_packet_len = (ctx->xdp_ctx->data_end - ctx->xdp_ctx->data) - sizeof(*eth);
     int ip_packet_len = 0;
@@ -231,7 +238,10 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
     if ((const char *)(gtp + 1) > data_end)
         return -1;
 
-    fill_gtp_header(gtp, teid, gtp_ext_hdr_size + ip_packet_len);
+#ifdef NO_GTP_EXTENTION 
+    fill_gtp_header(gtp, 0, teid, ip_packet_len);
+#else
+    fill_gtp_header(gtp, 1, teid, gtp_ext_hdr_size + ip_packet_len);
 
     /* Add the GTP ext header */
     struct gtp_hdr_ext *gtp_ext = (struct gtp_hdr_ext *)(gtp + 1);
@@ -246,6 +256,7 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
         return -1;
 
     fill_gtp_ext_header_psc(gtp_psc, qfi, PDU_SESSION_CONTAINER_PDU_TYPE_DL_PSU);
+#endif
 
     ip->check = ipv4_csum(ip, sizeof(*ip));
 

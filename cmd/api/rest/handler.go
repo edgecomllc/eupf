@@ -26,12 +26,12 @@ import (
 
 type ApiHandler struct {
 	BpfObjects        *ebpf.BpfObjects
-	PfcpSrv           *core.PfcpConnection
+	PfcpSrv           []*core.PfcpConnection
 	ForwardPlaneStats *ebpf.UpfXdpActionStatistic
 	Cfg               *config.UpfConfig
 }
 
-func NewApiHandler(bpfObjects *ebpf.BpfObjects, pfcpSrv *core.PfcpConnection, forwardPlaneStats *ebpf.UpfXdpActionStatistic, cfg *config.UpfConfig) *ApiHandler {
+func NewApiHandler(bpfObjects *ebpf.BpfObjects, pfcpSrv []*core.PfcpConnection, forwardPlaneStats *ebpf.UpfXdpActionStatistic, cfg *config.UpfConfig) *ApiHandler {
 	return &ApiHandler{
 		BpfObjects:        bpfObjects,
 		PfcpSrv:           pfcpSrv,

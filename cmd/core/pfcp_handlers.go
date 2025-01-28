@@ -35,7 +35,6 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 		UpfMessageRxLatency.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
 		// Now assumption that all handlers will return a message to send is not true.
 		if outgoingMsg != nil {
-			PfcpMessageTx.WithLabelValues(outgoingMsg.MessageTypeName()).Inc()
 			return conn.SendMessage(outgoingMsg, addr)
 		}
 		return nil
@@ -132,6 +131,74 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	return asres, nil
 }
 
+// Huawei association update request
+//         ipHeader
+//            sourceAddressType: ---- ipv4(4)
+//            sourceAddress
+//               ipv4-Address
+//                  uladdr1: ---- 0xa(10)
+//                  uladdr2: ---- 0xa9(169)
+//                  uladdr3: ---- 0x70(112)
+//                  uladdr4: ---- 0x8c(140)
+//            destinationAddressType: ---- ipv4(4)
+//            destinationAddress
+//               ipv4-Address
+//                  uladdr1: ---- 0xa(10)
+//                  uladdr2: ---- 0xa9(169)
+//                  uladdr3: ---- 0x1a(26)
+//                  uladdr4: ---- 0x82(130)
+//            trcUDPHdr
+//               sourcePort: ---- 0x2265(8805)
+//               destinationPort: ---- 0x2265(8805)
+//            pfcpMsg
+//               pfcpMsgV1
+//                  spare-1: ---- 0x0(0)
+//                  spare-2: ---- 0x0(0)
+//                  spare-3: ---- 0x0(0)
+//                  mp-flag: ---- 0x0(0)
+//                  s-flag: ---- 0x0(0)
+//                  message-type: ---- sx-association-update-request(7)
+//                  message-body
+//                     sequence-number: ---- 0x1c(28)
+//                     spare-msgbody2: ---- 0x0(0)
+//                     message-data
+//                        sx-association-update-request
+//                           CHOICE
+//                              nodeid
+//                                 spare: ---- 0x0(0)
+//                                 node-id-type: ---- ipv4-address(0)
+//                                 node-id-value
+//                                    ipv4-address
+//                                       uladdr1: ---- 0xa(10)
+//                                       uladdr2: ---- 0xa9(169)
+//                                       uladdr3: ---- 0x70(112)
+//                                       uladdr4: ---- 0x8c(140)
+//                           CHOICE
+//                              ip-section-msg-code
+//                                 enterprise-id: ---- 0x7db(2011)
+//                                 ip-section-msg-code: ---- 0x0(0)
+//                           CHOICE
+//                              ip-section-vpn-name
+//                                 enterprise-id: ---- 0x7db(2011)
+//                                 ip-section-vpn-name: ---- Gi
+//                           CHOICE
+//                              ip-section-number
+//                                 enterprise-id: ---- 0x7db(2011)
+//                                 ip-section-number: ---- 0x1(1)
+//                           CHOICE
+//                              ip-section
+//                                 enterprise-id: ---- 0x7db(2011)
+//                                 ip-section-list
+//                                    Ip-Section-addr-and-mask-length
+//                                       spare: ---- 0x0(0)
+//                                       ip-section-AddrType: ---- 0x0(0)
+//                                       ipv4-address
+//                                          uladdr1: ---- 0x64(100)
+//                                          uladdr2: ---- 0x59(89)
+//                                          uladdr3: ---- 0x80(128)
+//                                          uladdr4: ---- 0x0(0)
+//                                       mask-length: ---- 0x17(23)
+
 func HandlePfcpAssociationUpdateRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	asreq := msg.(*message.AssociationUpdateRequest)
 	log.Info().Msgf("Got Association Update Request from: %s", addr)
@@ -170,7 +237,8 @@ func HandlePfcpAssociationUpdateRequest(conn *PfcpConnection, msg message.Messag
 
 	// shall send a PFCP Association Update Response including:
 	asres := message.NewAssociationUpdateResponse(asreq.SequenceNumber,
-		newIeNodeID(conn.nodeId),             // its Node ID;
+		//newIeNodeID(conn.nodeId),             // its Node ID;
+		newIeNodeIDHuawei(conn.nodeId),
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
 	)
 

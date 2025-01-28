@@ -53,7 +53,7 @@ func StartMetrics(addr string) error {
 	return err
 }
 
-func RegisterMetrics(stats ebpf.UpfXdpActionStatistic, conn *PfcpConnection) {
+func RegisterMetrics(stats ebpf.UpfXdpActionStatistic, conn []*PfcpConnection) {
 	// Metrics for the upf_xdp_statistic (xdp_action)
 	UpfXdpAborted = prometheus.NewCounterFunc(prometheus.CounterOpts{
 		Name: "upf_xdp_aborted",
@@ -94,14 +94,22 @@ func RegisterMetrics(stats ebpf.UpfXdpActionStatistic, conn *PfcpConnection) {
 		Name: "upf_pfcp_sessions",
 		Help: "The current number of PFCP sessions",
 	}, func() float64 {
-		return float64(conn.GetSessionCount())
+		sum := float64(0)
+		for _, c := range conn {
+			sum += float64(c.GetSessionCount())
+		}
+		return float64(sum)
 	})
 
 	UpfPfcpAssociations = prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 		Name: "upf_pfcp_associations",
 		Help: "The current number of PFCP associations",
 	}, func() float64 {
-		return float64(conn.GetAssiciationCount())
+		sum := float64(0)
+		for _, c := range conn {
+			sum += float64(c.GetAssiciationCount())
+		}
+		return float64(sum)
 	})
 
 	// Register metrics

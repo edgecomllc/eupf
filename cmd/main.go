@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/cilium/ebpf/link"
 	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/edgecomllc/eupf/cmd/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -51,6 +53,17 @@ func main() {
 		}
 	}
 
+	var err error
+	traceFileName := fmt.Sprintf("dumps/%s-trace.pcap", time.Now().Format(time.RFC3339))
+	dumper, err := utils.NewPacketDumper(traceFileName, bpfObjects.TraceMap)
+
+	if err != nil {
+		log.Error().Msgf("Can't start dumper: %s", err.Error())
+	} else {
+		defer dumper.Close()
+		go dumper.Run()
+	}
+
 	defer bpfObjects.Close()
 
 	for _, ifaceName := range config.Conf.InterfaceName {
@@ -74,7 +87,6 @@ func main() {
 	}
 
 	log.Info().Msgf("Initialize resources: UEIP pool (CIDR: \"%s\"), TEID pool (size: %d)", config.Conf.UEIPPool, config.Conf.FTEIDPool)
-	var err error
 	resourceManager, err := service.NewResourceManager(config.Conf.UEIPPool, config.Conf.FTEIDPool)
 	if err != nil {
 		log.Error().Msgf("failed to create ResourceManager - err: %v", err)
@@ -82,12 +94,11 @@ func main() {
 
 	// Create PFCP connection
 	pfcpConn, err := core.NewPfcpConnection(config.Conf.PfcpAddress, config.Conf.PfcpNodeId,
-						config.Conf.N3Address, config.Conf.N9Address,
-						bpfObjects, resourceManager)
+		config.Conf.N3Address, config.Conf.N9Address,
+		bpfObjects, resourceManager)
 	if err != nil {
 		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}
-
 	remoteNodes := []core.AssociationConnector{}
 	for _, remoteNode := range config.Conf.PfcpRemoteNode {
 		remoteNodes = append(remoteNodes, core.NewDefaultAssociationConnector(remoteNode))
@@ -96,11 +107,37 @@ func main() {
 	go pfcpConn.Run()
 	defer pfcpConn.Close()
 
+	// Create Sxa connection
+	sxaConn, err := core.NewPfcpConnection(config.Conf.SxaLocalAddress, config.Conf.SxaLocalNodeId, config.Conf.S1UAddress, config.Conf.S5S8Address, bpfObjects, nil)
+	if err != nil {
+		log.Fatal().Msgf("Could not create Sxa connection: %s", err.Error())
+	}
+	sxaRemoteNodes := []core.AssociationConnector{}
+	for _, remoteNode := range config.Conf.SxaRemoteNode {
+		sxaRemoteNodes = append(remoteNodes, core.NewSxaAssociationConnector(remoteNode, config.Conf.S1UAddress, config.Conf.S5S8Address))
+	}
+	sxaConn.SetRemoteNodes(sxaRemoteNodes)
+	go sxaConn.Run()
+	defer sxaConn.Close()
+
+	// Create Sxb connection
+	sxbConn, err := core.NewPfcpConnection(config.Conf.SxbLocalAddress, config.Conf.SxbLocalNodeId, config.Conf.PAAddress, config.Conf.PAAddress, bpfObjects, nil)
+	if err != nil {
+		log.Fatal().Msgf("Could not create Sxb connection: %s", err.Error())
+	}
+	sxbRemoteNodes := []core.AssociationConnector{}
+	for _, remoteNode := range config.Conf.SxbRemoteNode {
+		sxbRemoteNodes = append(remoteNodes, core.NewSxbAssociationConnector(remoteNode, config.Conf.PAAddress))
+	}
+	sxbConn.SetRemoteNodes(sxbRemoteNodes)
+	go sxbConn.Run()
+	defer sxbConn.Close()
+
 	ForwardPlaneStats := ebpf.UpfXdpActionStatistic{
 		BpfObjects: bpfObjects,
 	}
 
-	h := rest.NewApiHandler(bpfObjects, pfcpConn, &ForwardPlaneStats, &config.Conf)
+	h := rest.NewApiHandler(bpfObjects, []*core.PfcpConnection{pfcpConn, sxaConn, sxbConn}, &ForwardPlaneStats, &config.Conf)
 
 	engine := h.InitRoutes()
 	metricsEngine := h.InitMetricsRoute()

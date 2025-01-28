@@ -36,6 +36,7 @@
 #include "xdp/utils/common.h"
 #include "xdp/utils/trace.h"
 #include "xdp/utils/packet_context.h"
+#include "xdp/utils/packet_trace.h"
 #include "xdp/utils/parsers.h"
 #include "xdp/utils/csum.h"
 #include "xdp/utils/gtp_utils.h"
@@ -44,7 +45,6 @@
 
 
 #define DEFAULT_XDP_ACTION XDP_PASS
-
 
 static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, __u8 qfi, int teid) {
     if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, qfi, teid))
@@ -110,7 +110,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate))
         return XDP_DROP;
 
-    __u8 tos = far->transport_level_marking >> 8;
+    __u8 tos = qer->dscp ? qer->dscp : far->transport_level_marking >> 8;
 
     update_urr(pdr->urr1_id, 0, packet_size);
     update_urr(pdr->urr2_id, 0, packet_size);
@@ -173,7 +173,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate))
         return XDP_DROP;
 
-    __u8 tos = far->transport_level_marking >> 8;
+    __u8 tos = qer->dscp ? qer->dscp : far->transport_level_marking >> 8;
 
     update_urr(pdr->urr1_id, 0, packet_size);
     update_urr(pdr->urr2_id, 0, packet_size);
@@ -301,7 +301,8 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     if (qer->ul_gate_status != GATE_STATUS_OPEN)
         return XDP_DROP;
 
-    const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
+    const __u64 packet_size = bpf_ntohs(ctx->gtp->message_length);
+    //const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
     if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->ul_start, qer->ul_maximum_bitrate))
         return XDP_DROP;
 
@@ -310,6 +311,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
 
     upf_printk("upf: [n3] session for teid:%u far:%d outer_header_removal:%d", teid, pdr->far_id, outer_header_removal);
 
+    __u8 tos = qer->dscp ? qer->dscp : far->transport_level_marking >> 8;
     // N9: Only outer header GTP/UDP/IPv4 is supported at the moment
     if (far->outer_header_creation & OHC_GTP_U_UDP_IPv4)
     {
@@ -353,9 +355,11 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
      */
     if (ctx->ip4) {
         increment_counter(ctx->n3_n6_counter, tx_n6);
+        update_tos_ipv4(ctx->ip4, tos);
         return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
     } else if (ctx->ip6) {
         increment_counter(ctx->n3_n6_counter, tx_n6);
+        update_tos_ipv6(ctx->ip6, tos);
         return route_ipv6(ctx->xdp_ctx, ctx->eth, ctx->ip6);
     } else {
         return XDP_ABORTED;
@@ -485,8 +489,18 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
         .counters = &statistic->upf_counters,
         .n3_n6_counter = &statistic->upf_n3_n6_counter};
 
+#define PACKET_TRACE
+#ifdef PACKET_TRACE
+    trace_packet(&context, PACKET_DIRECTION_IN);
+#endif
+
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
+
+#ifdef PACKET_TRACE
+    if(action == XDP_TX || action == XDP_REDIRECT)
+        trace_packet(&context, PACKET_DIRECTION_OUT);
+#endif
 
     return action;
 }

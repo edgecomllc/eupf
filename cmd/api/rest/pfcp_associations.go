@@ -1,40 +1,42 @@
 package rest
 
 import (
+	"maps"
 	"net/http"
 
+	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/gin-gonic/gin"
 )
 
-type NodeAssociationNoSession struct {
-	ID            string
-	Addr          string
-	NextSessionID uint64
+type NodeAssociationDescription struct {
+	ID   string
+	Addr string
 }
 
-type NodeAssociationMapNoSession map[string]NodeAssociationNoSession
-
 // ListPfcpAssociations godoc
+//
 //	@Summary		List PFCP associations
 //	@Description	List PFCP associations
 //	@Tags			PFCP
 //	@Produce		json
-//	@Success		200	{object}	NodeAssociationMapNoSession
+//	@Success		200	{object}	NodeAssociationDescription
 //	@Router			/pfcp_associations [get]
 func (h *ApiHandler) listPfcpAssociations(c *gin.Context) {
 
-	nodeAssociationsNoSession := make(NodeAssociationMapNoSession)
-	for k, v := range h.PfcpSrv.NodeAssociations {
-		nodeAssociationsNoSession[k] = NodeAssociationNoSession{
-			ID:            v.ID,
-			Addr:          v.Addr,
-			NextSessionID: v.NextSessionID,
+	nodeAssociationsList := []NodeAssociationDescription{}
+
+	for _, c := range h.PfcpSrv {
+		for _, v := range c.NodeAssociations {
+			nodeAssociationsList = append(nodeAssociationsList, NodeAssociationDescription{
+				ID:   v.ID,
+				Addr: v.Addr})
 		}
 	}
-	c.IndentedJSON(http.StatusOK, nodeAssociationsNoSession)
+	c.IndentedJSON(http.StatusOK, nodeAssociationsList)
 }
 
 // ListPfcpAssociationsFull godoc
+//
 //	@Summary		List PFCP associations
 //	@Description	List PFCP associations
 //	@Tags			PFCP
@@ -42,5 +44,11 @@ func (h *ApiHandler) listPfcpAssociations(c *gin.Context) {
 //	@Success		200	{object}	map[string]core.NodeAssociation
 //	@Router			/pfcp_associations/full [get]
 func (h *ApiHandler) listPfcpAssociationsFull(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, h.PfcpSrv.NodeAssociations)
+
+	associations := map[string]*core.NodeAssociation{}
+	for _, c := range h.PfcpSrv {
+		maps.Copy(associations, c.NodeAssociations)
+	}
+
+	c.IndentedJSON(http.StatusOK, associations)
 }

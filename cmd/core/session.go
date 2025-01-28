@@ -7,12 +7,13 @@ import (
 )
 
 type Session struct {
-	LocalSEID  uint64
-	RemoteSEID uint64
-	PDRs       map[uint32]SPDRInfo
-	FARs       map[uint32]SFarInfo
-	QERs       map[uint32]SQerInfo
-	URRs       map[uint32]SUrrInfo
+	LocalSEID   uint64
+	RemoteSEID  uint64
+	PDRs        map[uint32]SPDRInfo
+	FARs        map[uint32]SFarInfo
+	QERs        map[uint32]SQerInfo
+	URRs        map[uint32]SUrrInfo
+	URRSequence uint32
 }
 
 func NewSession(localSEID uint64, remoteSEID uint64) *Session {

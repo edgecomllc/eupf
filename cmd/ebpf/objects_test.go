@@ -171,9 +171,9 @@ func testGtpWithPDRBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) 
 		return 0, fmt.Errorf("serializing input packet failed: %v", err)
 	}
 
-	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
-	far := FarInfo{Action: 2, OuterHeaderCreation: 1, RemoteIP: 1, LocalIP: 2, Teid: 2, TransportLevelMarking: 0}
-	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 0, MaxBitrateUL: 1000000, MaxBitrateDL: 100000, StartUL: 0, StartDL: 0}
+	pdr := IpEntrypointPdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
+	far := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
+	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 0, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
 
 	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&far)); err != nil {
 		return 0, fmt.Errorf("benchmark run failed: %v", err)
@@ -296,9 +296,9 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 	}
 
 	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
-	farForward := FarInfo{Action: 2, OuterHeaderCreation: 1, RemoteIP: 1, LocalIP: 2, Teid: 2, TransportLevelMarking: 0}
-	farDrop := FarInfo{Action: 1, OuterHeaderCreation: 1, RemoteIP: 1, LocalIP: 2, Teid: 2, TransportLevelMarking: 0}
-	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 0, MaxBitrateUL: 1000000, MaxBitrateDL: 100000, StartUL: 0, StartDL: 0}
+	farForward := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
+	farDrop := IpEntrypointFarInfo{Action: 1, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
+	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 0, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
 
 	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farForward)); err != nil {
 		return fmt.Errorf("can't set FAR: %v", err)
@@ -367,14 +367,14 @@ func testGtpExtHeader(bpfObjects *BpfObjects) error {
 	}
 
 	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
-	farForward := FarInfo{
+	farForward := IpEntrypointFarInfo{
 		Action:                2,
 		OuterHeaderCreation:   1,
-		RemoteIP:              binary.LittleEndian.Uint32(net.IP{10, 3, 0, 10}),
-		LocalIP:               binary.LittleEndian.Uint32(net.IP{10, 3, 0, 20}),
+		Remoteip:              binary.LittleEndian.Uint32(net.IP{10, 3, 0, 10}),
+		Localip:               binary.LittleEndian.Uint32(net.IP{10, 3, 0, 20}),
 		Teid:                  teid,
 		TransportLevelMarking: 0}
-	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 5, MaxBitrateUL: 1000000, MaxBitrateDL: 100000, StartUL: 0, StartDL: 0}
+	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 5, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
 
 	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farForward)); err != nil {
 		return fmt.Errorf("can't set FAR: %v", err)
