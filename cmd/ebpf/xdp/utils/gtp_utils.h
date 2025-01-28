@@ -52,7 +52,22 @@ static __always_inline __u32 handle_echo_request(struct packet_context *ctx) {
     swap_ip(iph);
     swap_port(udp);
     swap_mac(eth);
-    upf_printk("upf: send gtp echo response [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
+    
+    //FIXME: Expect here that packet len will be at least 60 bytes and there will be extra room for Recovery field
+    const char *data_end = (void *)(long)ctx->xdp_ctx->data_end;
+    __u32 recovery_length = insert_recovery(gtp, data_end);
+    if(recovery_length)
+    {
+        gtp->message_length = bpf_htons(bpf_ntohs(gtp->message_length) + recovery_length);
+        udp->len = bpf_htons( bpf_ntohs(udp->len) + recovery_length);
+        iph->tot_len = bpf_htons( bpf_ntohs(iph->tot_len) + recovery_length);
+        iph->check = 0;
+        iph->check = ipv4_csum(iph, sizeof(*iph));
+        upf_printk("upf: send gtp echo response with recovery [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
+    }
+    else {
+        upf_printk("upf: send gtp echo response [ %pI4 -> %pI4 ]", &iph->saddr, &iph->daddr);
+    }
     return XDP_TX;
 }
 
