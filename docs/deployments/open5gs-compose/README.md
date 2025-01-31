@@ -1,65 +1,38 @@
 # open5gs-compose
 
-# install docker, docker-compose
+This deployment starts Open5gs 5G mobile core with eUPF and UERANSIM using docker-compose. 
+
+## 1. Install docker, docker-compose
 
 https://docs.docker.com/engine/install/
 
-# configure docker daemon for disable iptables
+## 2. Start services
 
-https://docs.docker.com/network/packet-filtering-firewalls/#prevent-docker-from-manipulating-iptables
+Run `docker-compose up -d`
 
-# create network for containers
+## 3. Verify environment up and running
+
+Run `docker-compose logs ue` and check UE logs.
+
+If UE have successfully connected you'll see message like below:
 
 ```
-docker network create \
-    --driver=bridge \
-    --subnet=172.20.0.0/24 \
-    --gateway=172.20.0.1 \
-    -o "com.docker.network.bridge.name"="br-open5gs-main" \
-    open5gs-main
-sudo ethtool -K br-open5gs-main tx off
+[2025-01-31 15:09:30.550] [app] [info] Connection setup for PDU session[1] is successful, TUN interface[uesimtun0, 10.46.0.2] is up.
 ```
 
-<details><summary><i> Here we turn off tx offload to avoid TCP checksum error in internal packets for iperf tests.</summary>
-<p>
+## 4. Test UE connectivity
 
-Apparently, checksum offloading is enabled by default and the kernel postpones csum calculation until the last moment, expecting csum to be calculated in the driver when the packet is sent. But we have a virtual environment and the packet eventually goes to the GTP tunnel on UPF. Obviously, this is the reason why csum is not calculated correctly.
+Fall into UE container `docker-compose exec ue bash`.
 
-However, if we disable offloading, the checksum is calculated immediately on iperf and everything works.
-</p>
-</details> 
+And use `uesimtun0` interface to send packets via it:
 
-<!---
-# configure firewall
+```
+# ping -I uesimtun0 8.8.8.8 
+PING 8.8.8.8 (8.8.8.8) from 10.46.0.2 uesimtun0: 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=58 time=15.2 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=58 time=15.2 ms
+...
 
-`bash fw.sh`
---><br>
-# To run multiple iperf servers, use this command
-
-`sudo apt install iperf3`
-
-`for i in $(seq 5201 5208); do (iperf3 -s -p $i &) ; done`
-
-# start Open5GS
-
-1. pull all docker images
-
-docker-compose pull
-
-2. start services
-
-docker-compose up -d
-
-# run iperf tests
-
-1. run iperf test in every UERANSim containers
-
-`make test`
-
-when test ended, you can see reports in directory `.deploy/docker/local-data/iperf`
-
-# stop and remove all containers
-
-`make clean`
-
-`docker network rm open5gs-main`
+curl --interface uesimtun0 -vv http://google.com
+...
+```
