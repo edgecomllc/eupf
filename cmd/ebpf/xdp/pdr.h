@@ -22,7 +22,7 @@
 
 #include "xdp/sdf_filter.h"
 
-#define PDR_MAP_UPLINK_SIZE 1024
+#define PDR_MAP_TEID_IPV4_SIZE 1024
 #define PDR_MAP_DOWNLINK_IPV4_SIZE 1024
 #define PDR_MAP_DOWNLINK_IPV6_SIZE 1024
 #define FAR_MAP_SIZE 1024
@@ -89,8 +89,8 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, __u32);
     __type(value, struct pdr_info);
-    __uint(max_entries, PDR_MAP_UPLINK_SIZE);
-} pdr_map_uplink_ip4 SEC(".maps");
+    __uint(max_entries, PDR_MAP_TEID_IPV4_SIZE);
+} pdr_map_teid_ip4 SEC(".maps");
 
 enum far_action_mask {
     FAR_DROP = 0x01,

@@ -26,7 +26,7 @@ func (h *ApiHandler) getUplinkPdrValue(c *gin.Context) {
 	}
 
 	var value ebpf.PdrInfo
-	if err = h.BpfObjects.IpEntrypointObjects.PdrMapUplinkIp4.Lookup(uint32(id), unsafe.Pointer(&value)); err != nil {
+	if err = h.BpfObjects.IpEntrypointObjects.PdrMapTeidIp4.Lookup(uint32(id), unsafe.Pointer(&value)); err != nil {
 		log.Printf("Error reading map: %s", err.Error())
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -55,7 +55,7 @@ func (h *ApiHandler) setUplinkPdrValue(c *gin.Context) {
 		QerId:              pdrElement.QerId,
 	}
 
-	if err := h.BpfObjects.IpEntrypointObjects.PdrMapUplinkIp4.Put(uint32(pdrElement.Id), unsafe.Pointer(&value)); err != nil {
+	if err := h.BpfObjects.IpEntrypointObjects.PdrMapTeidIp4.Put(uint32(pdrElement.Id), unsafe.Pointer(&value)); err != nil {
 		log.Printf("Error writting map: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
