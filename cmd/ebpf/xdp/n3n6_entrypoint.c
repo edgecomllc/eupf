@@ -70,7 +70,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     if (pdr->sdf_mode) {
         struct sdf_filter *sdf1 = &pdr->sdf_rules.sdf_filter1;
         struct sdf_filter *sdf2 = &pdr->sdf_rules.sdf_filter2;
-        if(match_sdf_filter_ipv4(ctx, sdf2)) {
+        if(match_sdf_filter_ipv4(ctx, sdf1)) {
             upf_printk(" [n6] Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter1", &ip4->saddr, &ip4->daddr);
             far_id = pdr->sdf_rules.far_id;
             qer_id = pdr->sdf_rules.qer_id;
