@@ -68,13 +68,20 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     __u32 qer_id = pdr->qer_id;
     //__u8 outer_header_removal = pdr->outer_header_removal;
     if (pdr->sdf_mode) {
-        struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
-        if(match_sdf_filter_ipv4(ctx, sdf)) {
-            upf_printk(" [n6] Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter", &ip4->saddr, &ip4->daddr);
+        struct sdf_filter *sdf1 = &pdr->sdf_rules.sdf_filter1;
+        struct sdf_filter *sdf2 = &pdr->sdf_rules.sdf_filter2;
+        if(match_sdf_filter_ipv4(ctx, sdf2)) {
+            upf_printk(" [n6] Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter1", &ip4->saddr, &ip4->daddr);
             far_id = pdr->sdf_rules.far_id;
             qer_id = pdr->sdf_rules.qer_id;
             //outer_header_removal = pdr->sdf_rules.outer_header_removal;
-        } else if(pdr->sdf_mode & 1) {
+        } else if(match_sdf_filter_ipv4(ctx, sdf2)) {
+            upf_printk(" [n6] Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter2", &ip4->saddr, &ip4->daddr);
+            far_id = pdr->sdf_rules.far_id;
+            qer_id = pdr->sdf_rules.qer_id;
+            //outer_header_removal = pdr->sdf_rules.outer_header_removal;
+        } 
+        else if(pdr->sdf_mode & 1) {
             return DEFAULT_XDP_ACTION;
         }
     }
@@ -131,13 +138,20 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     __u32 qer_id = pdr->qer_id;
     //__u8 outer_header_removal = pdr->outer_header_removal;
     if (pdr->sdf_mode) {
-        struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
-        if(match_sdf_filter_ipv6(ctx, sdf)) {
-            upf_printk(" [n6] Packet with source ip:%pI6c and destination ip:%pI6c matches SDF filter", &ip6->saddr, &ip6->daddr);
+        struct sdf_filter *sdf1 = &pdr->sdf_rules.sdf_filter1;
+        struct sdf_filter *sdf2 = &pdr->sdf_rules.sdf_filter2;
+        if(match_sdf_filter_ipv6(ctx, sdf1)) {
+            upf_printk(" [n6] Packet with source ip:%pI6c and destination ip:%pI6c matches SDF filter1", &ip6->saddr, &ip6->daddr);
             far_id = pdr->sdf_rules.far_id;
             qer_id = pdr->sdf_rules.qer_id;
             //outer_header_removal = pdr->sdf_rules.outer_header_removal;
-        } else if(pdr->sdf_mode & 1) {
+        } else if(match_sdf_filter_ipv6(ctx, sdf2)) {
+            upf_printk(" [n6] Packet with source ip:%pI6c and destination ip:%pI6c matches SDF filter2", &ip6->saddr, &ip6->daddr);
+            far_id = pdr->sdf_rules.far_id;
+            qer_id = pdr->sdf_rules.qer_id;
+            //outer_header_removal = pdr->sdf_rules.outer_header_removal;
+        } 
+        else if(pdr->sdf_mode & 1) {
             return DEFAULT_XDP_ACTION;
         }
     }
@@ -225,13 +239,20 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
                     return DEFAULT_XDP_ACTION;
                 }
 
-                const struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
-                if(match_sdf_filter_ipv4(&inner_context, sdf)) {
-                    upf_printk("upf: [n3] sdf filter matches teid:%u", teid);
+                const struct sdf_filter *sdf1 = &pdr->sdf_rules.sdf_filter1;
+                const struct sdf_filter *sdf2 = &pdr->sdf_rules.sdf_filter2;
+                if(match_sdf_filter_ipv4(&inner_context, sdf1)) {
+                    upf_printk("upf: [n3] sdf1 filter matches teid:%u", teid);
                     far_id = pdr->sdf_rules.far_id;
                     qer_id = pdr->sdf_rules.qer_id;
                     outer_header_removal = pdr->sdf_rules.outer_header_removal;
-                } else {
+                } else if(match_sdf_filter_ipv4(&inner_context, sdf2)) {
+                    upf_printk("upf: [n3] sdf2 filter matches teid:%u", teid);
+                    far_id = pdr->sdf_rules.far_id;
+                    qer_id = pdr->sdf_rules.qer_id;
+                    outer_header_removal = pdr->sdf_rules.outer_header_removal;
+                } 
+                else {
                     upf_printk("upf: [n3] sdf filter doesn't match teid:%u", teid);
                     if(pdr->sdf_mode & 1)
                         return DEFAULT_XDP_ACTION;
@@ -251,13 +272,20 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
                     return DEFAULT_XDP_ACTION;
                 }
 
-                const struct sdf_filter *sdf = &pdr->sdf_rules.sdf_filter;
-                if(match_sdf_filter_ipv6(&inner_context, sdf)) {
-                    upf_printk("upf: [n3] sdf filter matches teid:%u", teid);
+                const struct sdf_filter *sdf1 = &pdr->sdf_rules.sdf_filter1;
+                const struct sdf_filter *sdf2 = &pdr->sdf_rules.sdf_filter2;
+                if(match_sdf_filter_ipv6(&inner_context, sdf1)) {
+                    upf_printk("upf: [n3] sdf1 filter matches teid:%u", teid);
                     far_id = pdr->sdf_rules.far_id;
                     qer_id = pdr->sdf_rules.qer_id;
                     outer_header_removal = pdr->sdf_rules.outer_header_removal;
-                } else {
+                } else if(match_sdf_filter_ipv6(&inner_context, sdf2)) {
+                    upf_printk("upf: [n3] sdf2 filter matches teid:%u", teid);
+                    far_id = pdr->sdf_rules.far_id;
+                    qer_id = pdr->sdf_rules.qer_id;
+                    outer_header_removal = pdr->sdf_rules.outer_header_removal;
+                } 
+                else {
                     upf_printk("upf: [n3] sdf filter doesn't match teid:%u", teid);
                     if(pdr->sdf_mode & 1)
                         return DEFAULT_XDP_ACTION;

@@ -11,7 +11,7 @@ import (
 )
 
 func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
-	re := regexp.MustCompile(`^permit out (icmp|ip|tcp|udp|\d+) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to (assigned|any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
+	re := regexp.MustCompile(`^permit (out|in) (icmp|ip|tcp|udp|\d+) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to (assigned|any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
 
 	sdfInfo := ebpf.SdfFilter{}
 	var err error
@@ -22,35 +22,35 @@ func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
 		return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: bad formatting. Should be compatible with regexp: %s", re.String())
 	}
 
-	if sdfInfo.Protocol, err = ParseProtocol(match[1]); err != nil {
+	if sdfInfo.Protocol, err = ParseProtocol(match[2]); err != nil {
 		return ebpf.SdfFilter{}, err
 	}
-	if match[2] == "any" {
-		if match[3] != "" {
+	if match[3] == "any" {
+		if match[4] != "" {
 			return ebpf.SdfFilter{}, fmt.Errorf("<any> keyword should not be used with </mask>")
 		}
 		sdfInfo.SrcAddress = ebpf.IpWMask{Type: 0}
 	} else {
-		if sdfInfo.SrcAddress, err = ParseCidrIp(match[2], match[3]); err != nil {
+		if sdfInfo.SrcAddress, err = ParseCidrIp(match[3], match[4]); err != nil {
 			return ebpf.SdfFilter{}, err
 		}
 	}
 	sdfInfo.SrcPortRange = ebpf.PortRange{LowerBound: 0, UpperBound: 65535}
-	if match[4] != "" {
-		if sdfInfo.SrcPortRange, err = ParsePortRange(match[4]); err != nil {
+	if match[5] != "" {
+		if sdfInfo.SrcPortRange, err = ParsePortRange(match[5]); err != nil {
 			return ebpf.SdfFilter{}, err
 		}
 	}
-	if match[5] == "assigned" || match[5] == "any" {
+	if match[6] == "assigned" || match[6] == "any" {
 		sdfInfo.DstAddress = ebpf.IpWMask{Type: 0}
 	} else {
-		if sdfInfo.DstAddress, err = ParseCidrIp(match[5], match[6]); err != nil {
+		if sdfInfo.DstAddress, err = ParseCidrIp(match[6], match[7]); err != nil {
 			return ebpf.SdfFilter{}, err
 		}
 	}
 	sdfInfo.DstPortRange = ebpf.PortRange{LowerBound: 0, UpperBound: 65535}
-	if match[7] != "" {
-		if sdfInfo.DstPortRange, err = ParsePortRange(match[7]); err != nil {
+	if match[8] != "" {
+		if sdfInfo.DstPortRange, err = ParsePortRange(match[8]); err != nil {
 			return ebpf.SdfFilter{}, err
 		}
 	}
@@ -59,9 +59,17 @@ func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
 }
 
 func ParseProtocol(protocol string) (uint8, error) {
-	if protocol == "58" {
+	switch protocol {
+	case "58":
 		protocol = "icmp6"
+	case "1":
+		protocol = "icmp"
+	case "17":
+		protocol = "udp"
+	case "6":
+		protocol = "tcp"
 	}
+
 	protocolMap := map[string]uint8{
 		"icmp":  0,
 		"ip":    1,
@@ -73,7 +81,7 @@ func ParseProtocol(protocol string) (uint8, error) {
 	if ok {
 		return number, nil
 	} else {
-		return 0, fmt.Errorf("Unsupported protocol.")
+		return 0, fmt.Errorf("SDF filter: unsupported protocol %s", protocol)
 	}
 }
 

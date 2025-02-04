@@ -90,16 +90,34 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 		return nil
 	}
 
-	if sdfFilter, err := pdr.SDFFilter(); err == nil {
-		if sdfFilter.FlowDescription == "" {
-			log.Warn().Msgf("SDFFilter is empty")
-		} else if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
-			spdrInfo.PdrInfo.SdfFilter = &sdfFilterParsed
-		} else {
-			log.Error().Msgf("SDFFilter err: %v", err)
-			return err
+	for _, x := range pdi {
+		if x.Type == ie.SDFFilter {
+			if sdfFilter, err := x.SDFFilter(); err == nil {
+				if sdfFilter.FlowDescription == "" {
+					log.Warn().Msgf("SDFFilter is empty")
+				} else if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
+					if spdrInfo.PdrInfo.SdfFilter == nil {
+						spdrInfo.PdrInfo.SdfFilter = make([]ebpf.SdfFilter, 0, 2)
+					}
+					spdrInfo.PdrInfo.SdfFilter = append(spdrInfo.PdrInfo.SdfFilter, sdfFilterParsed)
+				} else {
+					log.Error().Msgf("SDFFilter err: %v", err)
+					return err
+				}
+			}
 		}
 	}
+
+	// if sdfFilter, err := pdr.SDFFilter(); err == nil {
+	// 	if sdfFilter.FlowDescription == "" {
+	// 		log.Warn().Msgf("SDFFilter is empty")
+	// 	} else if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
+	// 		spdrInfo.PdrInfo.SdfFilter = &sdfFilterParsed
+	// 	} else {
+	// 		log.Error().Msgf("SDFFilter err: %v", err)
+	// 		return err
+	// 	}
+	// }
 
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
@@ -155,27 +173,36 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 }
 
 func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
+
+	//FIXME: Assume that PDR with SDF filter will never been deleting last
+	if spdrInfo.PdrInfo.SdfFilter != nil {
+		return nil
+	}
+
 	if spdrInfo.Ipv4 != nil {
 		if err := mapOperations.DeletePdrDownlink(spdrInfo.Ipv4); err != nil {
-			return fmt.Errorf("Can't delete IPv4 PDR: %s", err.Error())
+			//return fmt.Errorf("can't delete IPv4 PDR: %s", err.Error())
+			log.Warn().Msgf("can't delete IPv4 PDR: %s", err.Error())
 		}
 	} else if spdrInfo.Ipv6 != nil {
 		if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
-			return fmt.Errorf("Can't delete IPv6 PDR: %s", err.Error())
+			//return fmt.Errorf("can't delete IPv6 PDR: %s", err.Error())
+			log.Warn().Msgf("can't delete IPv6 PDR: %s", err.Error())
 		}
-	} else {
+	} else if spdrInfo.Teid > 0 {
 		if _, ok := pdrContext.TEIDCache[uint8(spdrInfo.Teid)]; !ok {
 			if err := mapOperations.DeletePdrUplink(spdrInfo.Teid); err != nil {
-				return fmt.Errorf("Can't delete GTP PDR: %s", err.Error())
+				//return fmt.Errorf("can't delete GTP PDR: %s", err.Error())
+				log.Warn().Msgf("can't delete GTP PDR: %s", err.Error())
 			}
 			pdrContext.TEIDCache[uint8(spdrInfo.Teid)] = 0
 		}
-	}
-	if spdrInfo.Teid != 0 {
+
 		if pdrContext.ResourceManager != nil {
 			pdrContext.ResourceManager.FTEIDM.ReleaseTEID(pdrContext.Session.RemoteSEID)
 		}
 	}
+
 	return nil
 }
 

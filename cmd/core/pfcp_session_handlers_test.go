@@ -262,13 +262,13 @@ func TestSdfFilterStoreValid(t *testing.T) {
 
 	// Check that SDF filter is stored inside session
 	pdrInfo := pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[2].PdrInfo
-	err = CheckSdfFilterEquality(pdrInfo.SdfFilter, fd)
+	err = CheckSdfFilterEquality(&pdrInfo.SdfFilter[0], fd)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
 	pdrInfo = pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[2].PdrInfo
-	err = CheckSdfFilterEquality(pdrInfo.SdfFilter, fd)
+	err = CheckSdfFilterEquality(&pdrInfo.SdfFilter[0], fd)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -312,6 +312,81 @@ func TestSdfFilterStoreInvalid(t *testing.T) {
 	if pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[2].PdrInfo.SdfFilter != nil {
 		t.Errorf("Bad SDF shouldn't be stored")
 	}
+}
+
+func TestSeveralSdfFiltersSupport(t *testing.T) {
+
+	pfcpConn, smfIP := PreparePfcpConnection(t)
+	SendDefaulMappingPdrs(t, &pfcpConn, smfIP)
+
+	ip1, _ := net.ResolveIPAddr("ip", "1.1.1.1")
+
+	fd1 := SdfFilterTestStruct{
+		FlowDescription: "permit out 17 from 10.169.247.161/32 13033 to 10.169.145.130/32 1235",
+		Protocol:        3,
+		SrcType:         1,
+		SrcAddress:      "10.169.247.161",
+		SrcMask:         "ffffffff",
+		SrcPortLower:    13033,
+		SrcPortUpper:    13033,
+		DstType:         1,
+		DstAddress:      "10.169.145.130",
+		DstMask:         "ffffffff",
+		DstPortLower:    1235,
+		DstPortUpper:    1235}
+
+	fd2 := SdfFilterTestStruct{
+		FlowDescription: "permit out 17 from 10.169.247.161/32 13034 to 10.169.145.130/32 1236",
+		Protocol:        3,
+		SrcType:         1,
+		SrcAddress:      "10.169.247.161",
+		SrcMask:         "ffffffff",
+		SrcPortLower:    13034,
+		SrcPortUpper:    13034,
+		DstType:         1,
+		DstAddress:      "10.169.145.130",
+		DstMask:         "ffffffff",
+		DstPortLower:    1236,
+		DstPortUpper:    1236}
+
+	// Request with bad/unsuported SDF
+	seReq1 := message.NewSessionModificationRequest(0, 0,
+		2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		ie.NewCreatePDR(
+			ie.NewPDRID(2),
+			ie.NewPDI(
+				ie.NewSourceInterface(ie.SrcInterfaceCore),
+				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+				ie.NewSDFFilter(fd1.FlowDescription, "", "", "", 0),
+				ie.NewSDFFilter(fd2.FlowDescription, "", "", "", 0),
+			),
+		),
+	)
+
+	var err error
+	_, err = HandlePfcpSessionModificationRequest(&pfcpConn, seReq1, smfIP)
+	if err != nil {
+		t.Errorf("No error should appear while handling session establishment request. PDR with bad SDF should be skipped?")
+	}
+
+	sdfFilterList := pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[2].PdrInfo.SdfFilter
+	// Check that session PDR wasn't stored? Now it is, just without SDF.
+	if sdfFilterList == nil || len(sdfFilterList) != 2 {
+		t.Errorf("SDF Filter have to be stored")
+	}
+
+	err = CheckSdfFilterEquality(&sdfFilterList[0], fd1)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	err = CheckSdfFilterEquality(&sdfFilterList[1], fd2)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
 }
 
 func TestFTUPInAssociationSetupResponse(t *testing.T) {

@@ -321,7 +321,8 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 		SrcPortRange: PortRange{LowerBound: 0, UpperBound: 65535},
 		DstPortRange: PortRange{LowerBound: 0, UpperBound: 65535},
 	}
-	pdr.SdfFilter = &sdf
+	pdr.SdfFilter = make([]SdfFilter, 1)
+	pdr.SdfFilter = append(pdr.SdfFilter, sdf)
 	pdr.FarId = 2
 	if err := bpfObjects.PutPdrUplink(teid, pdr); err != nil {
 		return fmt.Errorf("can't set uplink PDR: %v", err)

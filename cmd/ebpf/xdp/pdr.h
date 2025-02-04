@@ -46,7 +46,8 @@ enum outer_header_removal_values {
 // 2. Put all fields into one big structure. Sort in specific order to reduce paddings inside structure.
 
 struct sdf_rules {
-    struct sdf_filter sdf_filter;
+    struct sdf_filter sdf_filter1;
+    struct sdf_filter sdf_filter2;
     __u8 outer_header_removal;
     __u32 far_id;
     __u32 qer_id;

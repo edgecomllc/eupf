@@ -30,6 +30,12 @@ func TestSdfFilterParseValid(t *testing.T) {
 		{FlowDescription: "permit out ip from any to any", Protocol: 1,
 			SrcType: 0, SrcAddress: "<nil>", SrcMask: "<nil>", SrcPortLower: 0, SrcPortUpper: 65535,
 			DstType: 0, DstAddress: "<nil>", DstMask: "<nil>", DstPortLower: 0, DstPortUpper: 65535},
+		{FlowDescription: "permit in 17 from 10.169.145.130/32 1235 to 10.169.247.161/32 13033", Protocol: 3,
+			SrcType: 1, SrcAddress: "10.169.145.130", SrcMask: "ffffffff", SrcPortLower: 1235, SrcPortUpper: 1235,
+			DstType: 1, DstAddress: "10.169.247.161", DstMask: "ffffffff", DstPortLower: 13033, DstPortUpper: 13033},
+		{FlowDescription: "permit out 17 from 10.169.247.161/32 13033 to 10.169.145.130/32 1235", Protocol: 3,
+			SrcType: 1, SrcAddress: "10.169.247.161", SrcMask: "ffffffff", SrcPortLower: 13033, SrcPortUpper: 13033,
+			DstType: 1, DstAddress: "10.169.145.130", DstMask: "ffffffff", DstPortLower: 1235, DstPortUpper: 1235},
 	}
 
 	for i := 0; i < len(fds); i++ {
@@ -47,7 +53,7 @@ func TestSdfFilterParseInvalid(t *testing.T) {
 	fds := [...]string{
 		// Unsupported (deny, in, option)
 		"deny out ip from 10.62.0.1 to 8.8.8.8/32",
-		"permit in tcp from 1.1.1.1/20 80 to 100.1.2.3 9121-10202",
+		//"permit in tcp from 1.1.1.1/20 80 to 100.1.2.3 9121-10202",
 		"permit out udp from 2001:db8:3333:4444:CCCC:DDDD:EEEE:FFFF 8080-8081 to 2001:0db8::42/30 option 2confidential",
 		// Bad format
 		"permit out icmp ? from any 4-5 to ::1234:5678/2 2",
