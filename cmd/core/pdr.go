@@ -10,20 +10,24 @@ import (
 
 const flagPresentIPv4 = 2
 
-func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
+func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
 	if spdrInfo.Ipv4 != nil {
 		if err := mapOperations.PutPdrDownlink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-			log.Info().Msgf("Can't apply IPv4 PDR: %s", err.Error())
+			log.Error().Err(err).Msg("Can't apply IPv4 PDR")
+			return err
 		}
 	} else if spdrInfo.Ipv6 != nil {
 		if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
-			log.Info().Msgf("Can't apply IPv6 PDR: %s", err.Error())
+			log.Error().Err(err).Msg("Can't apply IPv6 PDR")
+			return err
 		}
 	} else {
 		if err := mapOperations.PutPdrUplink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
-			log.Info().Msgf("Can't apply GTP PDR: %s", err.Error())
+			log.Error().Err(err).Msg("Can't apply GTP PDR")
+			return err
 		}
 	}
+	return nil
 }
 
 func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) []*ie.IE {
