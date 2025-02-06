@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"net"
+	"regexp"
 	"sync"
 	"time"
 
@@ -47,13 +48,7 @@ type PfcpConnection struct {
 	ResourceManager   *service.ResourceManager
 	heartbeatFailedC  chan string
 	nodes             []AssociationConnector
-}
-
-func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
-	if assoc, ok := connection.NodeAssociations[assocAddr]; ok {
-		return assoc
-	}
-	return nil
+	neValidator       *NeValidator
 }
 
 func NewPfcpConnection(addr string, nodeId string, n3Ip string, n9Ip string, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager) (*PfcpConnection, error) {
@@ -88,6 +83,11 @@ func NewPfcpConnection(addr string, nodeId string, n3Ip string, n9Ip string, map
 		featuresOctets[2] = setBit(featuresOctets[2], 2)
 	}
 
+	validator, err := NewNeValidator(config.Conf.AllowedApns, config.Conf.DeniedApns)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init network instance validator: %s", err.Error())
+	}
+
 	return &PfcpConnection{
 		udpConn:           udpConn,
 		pfcpHandlerMap:    pfcpHandlers,
@@ -103,7 +103,19 @@ func NewPfcpConnection(addr string, nodeId string, n3Ip string, n9Ip string, map
 		ResourceManager:   resourceManager,
 		heartbeatFailedC:  make(chan string),
 		nodes:             []AssociationConnector{},
+		neValidator:       validator,
 	}, nil
+}
+
+func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
+	if assoc, ok := connection.NodeAssociations[assocAddr]; ok {
+		return assoc
+	}
+	return nil
+}
+
+func (c *PfcpConnection) ValidateNetworkInstance(networkInstance string) bool {
+	return c.neValidator.Validate(networkInstance)
 }
 
 func (connection *PfcpConnection) SetRemoteNodes(nodes []AssociationConnector) {
@@ -603,4 +615,36 @@ func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection
 	if err := connection.SendMessage(AssociationSetupRequest, udpAddr); err != nil {
 		log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
 	}
+}
+
+type NeValidator struct {
+	reAllowed *regexp.Regexp
+	reDenied  *regexp.Regexp
+}
+
+func NewNeValidator(allowed string, denied string) (*NeValidator, error) {
+
+	reAllowed, err := regexp.Compile(allowed)
+	if err != nil {
+		return nil, fmt.Errorf("network instance validator allowed pattern is invalid: %w", err)
+	}
+
+	reDenied, err := regexp.Compile(denied)
+	if err != nil {
+		return nil, fmt.Errorf("network instance validator denied pattern is invalid: %w", err)
+	}
+
+	return &NeValidator{reAllowed: reAllowed, reDenied: reDenied}, nil
+}
+
+func (v *NeValidator) IsNeAllowed(networkInstance string) bool {
+	return len(v.reAllowed.String()) == 0 || v.reAllowed.MatchString(networkInstance)
+}
+
+func (v *NeValidator) IsNeDenied(networkInstance string) bool {
+	return len(v.reDenied.String()) > 0 && v.reDenied.MatchString(networkInstance)
+}
+
+func (v *NeValidator) Validate(networkInstance string) bool {
+	return v.IsNeAllowed(networkInstance) && !v.IsNeDenied(networkInstance)
 }

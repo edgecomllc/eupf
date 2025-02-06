@@ -18,6 +18,21 @@ import (
 var errMandatoryIeMissing = fmt.Errorf("mandatory IE missing")
 var errNoEstablishedAssociation = fmt.Errorf("no established association")
 
+func getNetworkInstances(req *message.SessionEstablishmentRequest) []string {
+	networkInstances := []string{}
+	for _, pdr := range req.CreatePDR {
+		if pdi, err := pdr.PDI(); err == nil {
+			for _, x := range pdi {
+				if ne, err := x.NetworkInstance(); err == nil {
+					networkInstances = append(networkInstances, ne)
+				}
+			}
+		}
+
+	}
+	return networkInstances
+}
+
 func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Info().Msgf("Got Session Establishment Request from: %s.", addr)
@@ -41,6 +56,17 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
+
+	// While rollback is still missing
+	networkInstances := getNetworkInstances(req)
+	for _, ne := range networkInstances {
+		if !conn.ValidateNetworkInstance(ne) {
+			log.Trace().Msgf("Rejecting Session Establishment Request from: %s (Not allowed network instance)", addr)
+			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
+			return message.NewSessionEstablishmentResponse(0, 0, 0, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRuleCreationModificationFailure)), nil
+		}
+	}
+
 	createdPDRs := []SPDRInfo{}
 	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
 

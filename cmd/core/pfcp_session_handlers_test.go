@@ -74,10 +74,15 @@ func TestAssociationSetup(t *testing.T) {
 }
 
 func PreparePfcpConnection(t *testing.T) (PfcpConnection, string) {
-	return PreparePfcpConnectionWithMock(t, &MapOperationsMock{})
+	config := config.UpfConfig{}
+	return PreparePfcpConnectionWithMock(t, &MapOperationsMock{}, config)
 }
 
-func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneController) (PfcpConnection, string) {
+func PreparePfcpConnectionWithConfig(t *testing.T, config config.UpfConfig) (PfcpConnection, string) {
+	return PreparePfcpConnectionWithMock(t, &MapOperationsMock{}, config)
+}
+
+func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneController, config config.UpfConfig) (PfcpConnection, string) {
 
 	var pfcpHandlers = PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            HandlePfcpHeartbeatRequest,
@@ -92,6 +97,9 @@ func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneCo
 	featuresOctets[2] = setBit(featuresOctets[2], 2)
 
 	smfIP := "127.0.0.1"
+
+	validator, _ := NewNeValidator(config.AllowedApns, config.DeniedApns)
+
 	pfcpConn := PfcpConnection{
 		NodeAssociations: make(map[string]*NodeAssociation),
 		nodeId:           "test-node",
@@ -101,6 +109,7 @@ func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneCo
 		nodeAddrV4:       net.ParseIP("127.0.0.1"),
 		associationMutex: &sync.Mutex{},
 		featuresOctets:   featuresOctets,
+		neValidator:      validator,
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
@@ -651,7 +660,7 @@ func TestHandlePfcpSessionEstablishmentRequestWithURR(t *testing.T) {
 
 func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
 	ebpfMock := &MapOperationsMock{}
-	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock)
+	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock, config.UpfConfig{})
 
 	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
 		ie.NewNodeID("", "", "test"),
@@ -751,7 +760,7 @@ func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
 func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
 
 	ebpfMock := &MapOperationsMock{}
-	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock)
+	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock, config.UpfConfig{})
 
 	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
 		ie.NewNodeID("", "", "test"),
@@ -812,4 +821,70 @@ func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
 	if vol.TotalVolume != ebpfMock.urr.UplinkVolume+ebpfMock.urr.DownlinkVolume {
 		t.Errorf("TotalVolume equals %d", vol.TotalVolume)
 	}
+}
+
+func TestHandlePfcpSessionEstablishmentRequestWithNotAllowedAPN(t *testing.T) {
+	config := config.UpfConfig{
+		AllowedApns: "^(ims|internet1)$",
+		DeniedApns:  "",
+	}
+	pfcpConn, smfIP := PreparePfcpConnectionWithConfig(t, config)
+
+	{
+		estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
+			ie.NewNodeID("", "", "test"),
+			ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+			ie.NewCreatePDR(
+				ie.NewPDRID(0xffff),
+				ie.NewPDI(
+					ie.NewSourceInterface(ie.SrcInterfaceCore),
+					ie.NewNetworkInstance("internet"),
+					ie.NewUEIPAddress(2, "1.2.3.4", "", 0, 0),
+				),
+			),
+		)
+		msg, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+		if err != nil {
+			t.Errorf("Error handling session establishment request: %s", err)
+		}
+
+		response := msg.(*message.SessionEstablishmentResponse)
+		cause, err := response.Cause.Cause()
+		if err == nil {
+			if cause != ie.CauseRuleCreationModificationFailure {
+				t.Errorf("Wrong response cause code")
+			}
+		} else {
+			t.Errorf("No response casuse code: %s", err)
+		}
+	}
+	{
+		estReqWithAllowed := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
+			ie.NewNodeID("", "", "test"),
+			ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+			ie.NewCreatePDR(
+				ie.NewPDRID(0xffff),
+				ie.NewPDI(
+					ie.NewSourceInterface(ie.SrcInterfaceCore),
+					ie.NewNetworkInstance("internet1"),
+					ie.NewUEIPAddress(2, "1.2.3.4", "", 0, 0),
+				),
+			),
+		)
+		msg, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReqWithAllowed, smfIP)
+		if err != nil {
+			t.Errorf("Error handling session establishment request: %s", err)
+		}
+
+		response := msg.(*message.SessionEstablishmentResponse)
+		cause, err := response.Cause.Cause()
+		if err == nil {
+			if cause != ie.CauseRequestAccepted {
+				t.Errorf("Wrong response cause code")
+			}
+		} else {
+			t.Errorf("No response casuse code: %s", err)
+		}
+	}
+
 }

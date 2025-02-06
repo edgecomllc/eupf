@@ -90,6 +90,10 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 		return nil
 	}
 
+	if ne, err := pdr.NetworkInstance(); err == nil {
+		spdrInfo.NetworkInstance = ne
+	}
+
 	for _, x := range pdi {
 		if x.Type == ie.SDFFilter {
 			if sdfFilter, err := x.SDFFilter(); err == nil {
@@ -107,17 +111,6 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 			}
 		}
 	}
-
-	// if sdfFilter, err := pdr.SDFFilter(); err == nil {
-	// 	if sdfFilter.FlowDescription == "" {
-	// 		log.Warn().Msgf("SDFFilter is empty")
-	// 	} else if sdfFilterParsed, err := ParseSdfFilter(sdfFilter.FlowDescription); err == nil {
-	// 		spdrInfo.PdrInfo.SdfFilter = &sdfFilterParsed
-	// 	} else {
-	// 		log.Error().Msgf("SDFFilter err: %v", err)
-	// 		return err
-	// 	}
-	// }
 
 	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
 		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {

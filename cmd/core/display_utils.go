@@ -59,13 +59,6 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), GetFSEID(req.CPFSEID)), 0)
 
-	// for _, ie := range req.IEs {
-	// 	//FSEID uint16 = 57
-	// 	if ie.Type == 57 {
-	// 		writeLineTabbed(&sb, fmt.Sprintf("F-SEID: %#016x ", GetFSEID(ie)), 1)
-	// 	}
-	// }
-
 	for _, pdr := range req.CreatePDR {
 		sb.WriteString("  Create")
 		displayPdr(&sb, pdr)
@@ -244,20 +237,16 @@ func displayUrr(sb *strings.Builder, urr *ie.IE) {
 	urrId, _ := urr.URRID()
 	sb.WriteString(fmt.Sprintf("URR ID: %d \n", urrId))
 
-	measurementMethod, err := urr.MeasurementMethod()
-	if err == nil {
+	if measurementMethod, err := urr.MeasurementMethod(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Measurement Method: %d ", measurementMethod), 2)
 	}
-	volumeThreshold, err := urr.VolumeThreshold()
-	if err == nil {
+	if volumeThreshold, err := urr.VolumeThreshold(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Volume Threshold: %+v ", volumeThreshold), 2)
 	}
-	timeThreshold, err := urr.TimeThreshold()
-	if err == nil {
+	if timeThreshold, err := urr.TimeThreshold(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Time Threshold: %f s", timeThreshold.Seconds()), 2)
 	}
-	monitoringTime, err := urr.MonitoringTime()
-	if err == nil {
+	if monitoringTime, err := urr.MonitoringTime(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Monitoring Time: %s ", monitoringTime.Format(time.RFC3339)), 2)
 	}
 }
@@ -266,30 +255,23 @@ func displayQer(sb *strings.Builder, qer *ie.IE) {
 	qerId, _ := qer.QERID()
 	sb.WriteString(fmt.Sprintf("QER ID: %d \n", qerId))
 
-	gateStatusDL, err := qer.GateStatusDL()
-	if err == nil {
+	if gateStatusDL, err := qer.GateStatusDL(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Gate Status DL: %d ", gateStatusDL), 2)
 	}
-	gateStatusUL, err := qer.GateStatusUL()
-	if err == nil {
+	if gateStatusUL, err := qer.GateStatusUL(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Gate Status UL: %d ", gateStatusUL), 2)
 	}
-	maxBitrateDL, err := qer.MBRDL()
-	if err == nil {
+	if maxBitrateDL, err := qer.MBRDL(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Max Bitrate DL: %d ", uint32(maxBitrateDL)), 2)
 	}
-	maxBitrateUL, err := qer.MBRUL()
-	if err == nil {
+	if maxBitrateUL, err := qer.MBRUL(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Max Bitrate UL: %d ", uint32(maxBitrateUL)), 2)
 	}
-	qfi, err := qer.QFI()
-	if err == nil {
+	if qfi, err := qer.QFI(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("QFI: %d ", qfi), 2)
-	} else {
-		if qciId := findEnterpriseSpecificIEindex(qer.ChildIEs, 32785, 2011); qciId != -1 { // IE Huawei QCI
-			qfi := qer.ChildIEs[qciId].Payload[0]
-			writeLineTabbed(sb, fmt.Sprintf("Huawei QFI: %d ", qfi), 2)
-		}
+	} else if qciId := findEnterpriseSpecificIEindex(qer.ChildIEs, 32785, 2011); qciId != -1 { // IE Huawei QCI
+		qfi := qer.ChildIEs[qciId].Payload[0]
+		writeLineTabbed(sb, fmt.Sprintf("Huawei QFI: %d ", qfi), 2)
 	}
 }
 
@@ -382,8 +364,7 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 	// No method to get several IEs in go-pfcp. So go through all child IEs
 	for _, x := range pdr.ChildIEs {
 		if x.Type == ie.QERID {
-			qerid, err := x.QERID()
-			if err == nil {
+			if qerid, err := x.QERID(); err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("QER ID: %d ", qerid), 2)
 			}
 		}
@@ -398,34 +379,33 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 	}
 
 	if pdi, err := pdr.PDI(); err == nil {
-		srcIfacePdiId := findIEindex(pdi, 20) // IE Type source interface
-		srcInterface, _ := pdi[srcIfacePdiId].SourceInterface()
-		writeLineTabbed(sb, fmt.Sprintf("Source Interface: %d ", srcInterface), 2)
-
-		if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
-			if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-				writeLineTabbed(sb, fmt.Sprintf("TEID: %d ", fteid.TEID), 2)
-				writeLineTabbed(sb, fmt.Sprintf("Ipv4: %+v ", fteid.IPv4Address), 2)
-				writeLineTabbed(sb, fmt.Sprintf("Ipv6: %+v ", fteid.IPv6Address), 2)
-			}
-		}
-
-		if ueipPdiId := findIEindex(pdi, 93); ueipPdiId != -1 { // IE Type UE IP Address
-			if ueIp, _ := pdi[ueipPdiId].UEIPAddress(); ueIp != nil {
-				if ueIp.IPv4Address != nil {
-					writeLineTabbed(sb, fmt.Sprintf("UE IPv4 Address: %s ", ueIp.IPv4Address), 2)
+		for _, x := range pdi {
+			switch x.Type {
+			case 20: // IE Type source interface
+				srcInterface, _ := x.SourceInterface()
+				writeLineTabbed(sb, fmt.Sprintf("Source Interface: %d ", srcInterface), 2)
+			case 21: // IE Type F-TEID
+				if fteid, err := x.FTEID(); err == nil {
+					writeLineTabbed(sb, fmt.Sprintf("F-TEID: TEID: %d, IPv4: %+v, IPv6: %+v ", fteid.TEID, fteid.IPv4Address, fteid.IPv6Address), 2)
 				}
-				if ueIp.IPv6Address != nil {
-					writeLineTabbed(sb, fmt.Sprintf("UE IPv6 Address: %s ", ueIp.IPv6Address), 2)
+			case 93: // IE Type UE IP Address
+				if ueIp, _ := x.UEIPAddress(); ueIp != nil {
+					if ueIp != nil && ueIp.IPv4Address != nil {
+						writeLineTabbed(sb, fmt.Sprintf("UE IPv4 Address: %s ", ueIp.IPv4Address), 2)
+					}
+					if ueIp != nil && ueIp.IPv6Address != nil {
+						writeLineTabbed(sb, fmt.Sprintf("UE IPv6 Address: %s ", ueIp.IPv6Address), 2)
+					}
 				}
-			} else {
-				log.Info().Msgf("ueIp is nil. ueipPdiId: %d", ueipPdiId)
-			}
-		}
+			case 22: // IE Type Network Instance
+				if ne, err := x.NetworkInstance(); err == nil {
+					writeLineTabbed(sb, fmt.Sprintf("Network Instance: %s ", ne), 2)
+				}
 
-		if sdfFilterId := findIEindex(pdi, 23); sdfFilterId != -1 { // IE Type SDF Filter
-			if sdfFilter, err := pdi[sdfFilterId].SDFFilter(); err == nil {
-				writeLineTabbed(sb, fmt.Sprintf("SDF Filter: %s ", sdfFilter.FlowDescription), 2)
+			case 23: // IE Type SDF Filter
+				if sdfFilter, err := x.SDFFilter(); err == nil {
+					writeLineTabbed(sb, fmt.Sprintf("SDF Filter: %s ", sdfFilter.FlowDescription), 2)
+				}
 			}
 		}
 	}

@@ -47,6 +47,8 @@ type UpfConfig struct {
 	FeatureUEIP             bool           `mapstructure:"feature_ueip" json:"feature_ueip"`
 	FeatureFTUP             bool           `mapstructure:"feature_ftup" json:"feature_ftup"`
 	Qci2DscpMapping         map[string]int `mapstructure:"qci_dscp_mapping" json:"qci_dscp_mapping"`
+	AllowedApns             string         `mapstructure:"allowed_apns" json:"allowed_apns"`
+	DeniedApns              string         `mapstructure:"denied_apns" json:"denied_apns"`
 }
 
 func init() {
@@ -87,6 +89,8 @@ func init() {
 	pflag.String("sxbnodeid", "127.0.0.3", "Sxb Server Node ID")
 	pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
 	pflag.StringToInt("qdmap", map[string]int{}, "QCI to DSCP binding")
+	pflag.String("aapns", ".*", "Allowed APNs mask")
+	pflag.String("dapns", "", "Denied APNs mask")
 	pflag.Parse()
 
 	// Bind flag errors only when flag is nil, and we ignore empty cli args
@@ -125,6 +129,8 @@ func init() {
 	_ = v.BindPFlag("ueip_pool", pflag.Lookup("ueippool"))
 	_ = v.BindPFlag("teid_pool", pflag.Lookup("teidpool"))
 	_ = v.BindPFlag("qci_dscp_mapping", pflag.Lookup("qdmap"))
+	_ = v.BindPFlag("allowed_apns", pflag.Lookup("aapns"))
+	_ = v.BindPFlag("denied_apns", pflag.Lookup("dapns"))
 
 	v.SetDefault("n9_address", v.GetString("n3_address"))
 
