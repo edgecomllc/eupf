@@ -21,3 +21,10 @@ cmd/docs
 log.html
 output.xml
 report.html
+
+# MacOS
+.DS_Store
+Dockerfile.arm64
+
+# Devcontainer
+.devcontainer/

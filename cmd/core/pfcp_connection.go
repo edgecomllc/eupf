@@ -9,10 +9,10 @@ import (
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core/service"
-
+	"github.com/edgecomllc/eupf/cmd/core/tracing"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
-	"github.com/rs/zerolog/log"
 
+	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -49,9 +49,17 @@ type PfcpConnection struct {
 	heartbeatFailedC  chan string
 	nodes             []AssociationConnector
 	neValidator       *NeValidator
+	tracingStorage    tracing.TraceRecordStorage
 }
 
-func NewPfcpConnection(addr string, nodeId string, n3Ip string, n9Ip string, mapOperations ebpf.ForwardingPlaneController, resourceManager *service.ResourceManager) (*PfcpConnection, error) {
+func NewPfcpConnection(
+	addr string,
+	nodeId string,
+	n3Ip string,
+	n9Ip string,
+	mapOperations ebpf.ForwardingPlaneController,
+	resourceManager *service.ResourceManager,
+) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		log.Warn().Msgf("Can't resolve UDP address: %s", err.Error())
@@ -104,6 +112,7 @@ func NewPfcpConnection(addr string, nodeId string, n3Ip string, n9Ip string, map
 		heartbeatFailedC:  make(chan string),
 		nodes:             []AssociationConnector{},
 		neValidator:       validator,
+		tracingStorage:    tracing.NewSimpleTraceRecordStorage(),
 	}, nil
 }
 
@@ -283,6 +292,82 @@ func (connection *PfcpConnection) SendReports() {
 			}
 		}
 
+	}
+}
+
+func (connection *PfcpConnection) GetConnAddr() string {
+	return connection.nodeAddrV4.String()
+}
+
+func (connection *PfcpConnection) GetAllTracingRecords() ([]tracing.TraceRecord, error) {
+	return connection.tracingStorage.GetTraceRecords()
+}
+
+func (connection *PfcpConnection) GetTracingRecordByImsi(imsi string) (tracing.TraceRecord, error) {
+	return connection.tracingStorage.GetTraceRecordByImsi(imsi)
+}
+
+func (connection *PfcpConnection) GetTracingRecordByMsisdn(msisdn string) (tracing.TraceRecord, error) {
+	return connection.tracingStorage.GetTraceRecordByMsisdn(msisdn)
+}
+
+func (connection *PfcpConnection) NeedSessionTrace(imsi, msisdn string) bool {
+	if imsi != "" {
+		if _, err := connection.tracingStorage.GetTraceRecordByImsi(imsi); err == nil {
+			return true
+		}
+	}
+
+	if msisdn != "" {
+		if _, err := connection.tracingStorage.GetTraceRecordByMsisdn(msisdn); err == nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (connection *PfcpConnection) EnableTracingByImsi(imsi string) error {
+	storage := connection.tracingStorage
+
+	if err := storage.AddTraceRecordByImsi(imsi); err != nil {
+		return fmt.Errorf("error adding tracing record: %w", err)
+	}
+
+	return nil
+}
+
+func (connection *PfcpConnection) EnableTracingByMsisdn(msisdn string) error {
+	storage := connection.tracingStorage
+
+	if err := storage.AddTraceRecordByMsisdn(msisdn); err != nil {
+		return fmt.Errorf("error adding tracing record: %w", err)
+	}
+
+	return nil
+}
+
+func (connection *PfcpConnection) DisableTracing() ([]tracing.TraceRecord, error) {
+	return connection.tracingStorage.DeleteTraceRecords()
+}
+
+func (connection *PfcpConnection) DisableTracingByImsi(imsi string) (tracing.TraceRecord, error) {
+	storage := connection.tracingStorage
+
+	if trace, err := storage.DeleteTraceRecordByImsi(imsi); err == nil {
+		return trace, nil
+	} else {
+		return tracing.TraceRecord{}, fmt.Errorf("error deleting tracing record: %w", err)
+	}
+}
+
+func (connection *PfcpConnection) DisableTracingByMsisdn(msisdn string) (tracing.TraceRecord, error) {
+	storage := connection.tracingStorage
+
+	if trace, err := storage.DeleteTraceRecordByMsisdn(msisdn); err == nil {
+		return trace, nil
+	} else {
+		return tracing.TraceRecord{}, fmt.Errorf("error deleting tracing record: %w", err)
 	}
 }
 

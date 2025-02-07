@@ -8,6 +8,7 @@ import (
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core/service"
+	"github.com/edgecomllc/eupf/cmd/core/tracing"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 
@@ -886,5 +887,44 @@ func TestHandlePfcpSessionEstablishmentRequestWithNotAllowedAPN(t *testing.T) {
 			t.Errorf("No response casuse code: %s", err)
 		}
 	}
+}
 
+func TestHandlePfcpSessionEstablishmentRequestWithTrace(t *testing.T) {
+
+	ebpfMock := &MapOperationsMock{}
+	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock, config.UpfConfig{})
+	pfcpConn.tracingStorage = tracing.NewSimpleTraceRecordStorage()
+
+	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
+		ie.NewNodeID("", "", "test"),
+		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
+		ie.NewCreatePDR(
+			ie.NewPDRID(0xffff),
+			ie.NewPDI(
+				ie.NewSourceInterface(ie.SrcInterfaceCore),
+				ie.NewNetworkInstance("internet1"),
+				ie.NewUEIPAddress(2, "1.2.3.4", "", 0, 0),
+			),
+		),
+		ie.NewVendorSpecificIE(32769, 2011, []byte{0x52, 0x50, 0x03, 0x00, 0x00, 0x00, 0x20, 0xf3}),
+	)
+	_, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	if ebpfMock.downlinkPDR.TraceFlag {
+		t.Errorf("unexpected trace enabled")
+	}
+
+	pfcpConn.EnableTracingByImsi("250530000000023")
+	estReq.SetSEID(estReq.SEID() + 1)
+	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	if err != nil {
+		t.Errorf("Error handling session establishment request: %s", err)
+	}
+
+	if !ebpfMock.downlinkPDR.TraceFlag {
+		t.Errorf("unexpected trace disabled")
+	}
 }

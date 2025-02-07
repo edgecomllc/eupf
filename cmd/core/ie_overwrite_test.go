@@ -12,13 +12,17 @@ import (
 )
 
 type MapOperationsMock struct {
-	urr ebpf.UrrInfo
+	uplinkPDR   ebpf.PdrInfo
+	downlinkPDR ebpf.PdrInfo
+	urr         ebpf.UrrInfo
 }
 
 func (mapOps *MapOperationsMock) PutPdrUplink(teid uint32, pdrInfo ebpf.PdrInfo) error {
+	mapOps.uplinkPDR = pdrInfo
 	return nil
 }
 func (mapOps *MapOperationsMock) PutPdrDownlink(ipv4 net.IP, pdrInfo ebpf.PdrInfo) error {
+	mapOps.downlinkPDR = pdrInfo
 	return nil
 }
 func (mapOps *MapOperationsMock) UpdatePdrUplink(teid uint32, pdrInfo ebpf.PdrInfo) error {

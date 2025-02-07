@@ -24,6 +24,7 @@
 enum packet_direction {
     PACKET_DIRECTION_IN = 0,
     PACKET_DIRECTION_OUT = 1,
+    PACKET_DIRECTION_BLOCKED = 2,
 };
 
 #define min(x, y) ((x) < (y) ? (x) : (y))

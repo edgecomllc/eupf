@@ -9,6 +9,8 @@ import (
 type Session struct {
 	LocalSEID   uint64
 	RemoteSEID  uint64
+	IMSI        string
+	MSISDN      string
 	PDRs        map[uint32]SPDRInfo
 	FARs        map[uint32]SFarInfo
 	QERs        map[uint32]SQerInfo
@@ -16,10 +18,12 @@ type Session struct {
 	URRSequence uint32
 }
 
-func NewSession(localSEID uint64, remoteSEID uint64) *Session {
+func NewSession(localSEID, remoteSEID uint64, IMSI, MSISDN string) *Session {
 	return &Session{
 		LocalSEID:  localSEID,
 		RemoteSEID: remoteSEID,
+		IMSI:       IMSI,
+		MSISDN:     MSISDN,
 		PDRs:       map[uint32]SPDRInfo{},
 		FARs:       map[uint32]SFarInfo{},
 		QERs:       map[uint32]SQerInfo{},
@@ -134,4 +138,12 @@ func (s *Session) RemovePDR(id uint32) SPDRInfo {
 	sPdrInfo := s.PDRs[id]
 	delete(s.PDRs, id)
 	return sPdrInfo
+}
+
+func (s *Session) GetSessionImsi() string {
+	return s.IMSI
+}
+
+func (s *Session) GetSessionMsisdn() string {
+	return s.MSISDN
 }

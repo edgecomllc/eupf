@@ -62,6 +62,7 @@ struct pdr_info {
     __u32 urr2_id;
     __u8 outer_header_removal;
     __u8 sdf_mode; // 0 - no sdf, 1 - sdf only, 2 - sdf + default
+    __u8 trace_flag;
     struct sdf_rules sdf_rules;
 };
 

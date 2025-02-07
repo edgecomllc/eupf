@@ -104,6 +104,15 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 | `GET`  | `/api/v1/pfcp_associations/full` | Lists the full PFCP associations. Returns an object of `NodeAssociationMap`     | `/api/v1/pfcp_associations/full` |
 | `GET`  | `/api/v1/pfcp_sessions`          | Lists the PFCP sessions content. Returns a list of `Session`                    | `/api/v1/pfcp_sessions`          |
 
+#### - Subscriber tracing
+
+| Method   | URL                            | Description                                                                                                                     | Example                                            |
+|----------|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------|
+| `GET`    | `/api/v1/subscriber_trace`   | Lists subscribers for trace. Returns a list of `Subscriber` (defined in storage/tracing/storage.go)                             | `/api/v1/subscriber_trace`                       |
+| `POST`   | `/api/v1/subscriber_trace`   | Set subscriber for tracing by its IMSI or MSISDN. Repeated request for already existed subscriber is not considered as an error | `/api/v1/subscriber_trace?imsi=255018600005299`  |
+| `DELETE` | `/api/v1/subscriber_trace`   | Delete subscriber from tracing by its IMSI or MSISDN. Delete all subscribers if not params are provided           | `/api/v1/subscriber_trace?msisdn=88095983595`    |
+
+
 ## Swagger API Documentation
 
 To explore and test the API, you can use the Swagger API documentation. To access the Swagger UI, navigate to the following endpoint in your browser:

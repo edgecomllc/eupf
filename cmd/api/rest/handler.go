@@ -5,9 +5,8 @@ import (
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
-
-	_ "github.com/edgecomllc/eupf/cmd/docs"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -31,7 +30,12 @@ type ApiHandler struct {
 	Cfg               *config.UpfConfig
 }
 
-func NewApiHandler(bpfObjects *ebpf.BpfObjects, pfcpSrv []*core.PfcpConnection, forwardPlaneStats *ebpf.UpfXdpActionStatistic, cfg *config.UpfConfig) *ApiHandler {
+func NewApiHandler(
+	bpfObjects *ebpf.BpfObjects,
+	pfcpSrv []*core.PfcpConnection,
+	forwardPlaneStats *ebpf.UpfXdpActionStatistic,
+	cfg *config.UpfConfig,
+) *ApiHandler {
 	return &ApiHandler{
 		BpfObjects:        bpfObjects,
 		PfcpSrv:           pfcpSrv,
@@ -100,6 +104,13 @@ func (h *ApiHandler) initDefaultRoutes(group *gin.RouterGroup) {
 	{
 		//sessions.GET("", ListPfcpSessions(pfcpSrv))
 		sessions.GET("", h.listPfcpSessionsFiltered)
+	}
+
+	subscriberTracing := group.Group("subscriber_trace")
+	{
+		subscriberTracing.GET("", h.listTraces)
+		subscriberTracing.POST("", h.startTrace)
+		subscriberTracing.DELETE("", h.stopTrace)
 	}
 }
 

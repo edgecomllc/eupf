@@ -56,13 +56,17 @@ static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context 
 
 
 
-static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
+static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_context *ctx) {
     const struct iphdr *ip4 = ctx->ip4;
     struct pdr_info *pdr = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
     if (!pdr) {
         upf_printk("upf: [n6] no downlink session for ip:%pI4", &ip4->daddr);
         return DEFAULT_XDP_ACTION;
     }
+
+    upf_printk("upf: [n6] downlink session for ip:%pI4 trace:%d", &ip4->daddr, pdr->trace_flag);
+    if(pdr->trace_flag)
+        trace_packet(ctx, PACKET_DIRECTION_IN);
 
     __u32 far_id = pdr->far_id;
     __u32 qer_id = pdr->qer_id;
@@ -123,7 +127,12 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     update_urr(pdr->urr2_id, 0, packet_size);
 
     upf_printk("upf: [n6] use mapping %pI4 -> teid:%u", &ip4->daddr, far->teid);
-    return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
+    enum xdp_action action = send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
+
+    if(pdr->trace_flag && (action == XDP_TX || action == XDP_REDIRECT))
+        trace_packet(ctx, PACKET_DIRECTION_OUT);
+
+    return action;
 }
 
 static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_context *ctx) {
@@ -133,6 +142,10 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
         upf_printk("upf: [n6] no downlink session for ip:%pI6c", &ip6->daddr);
         return DEFAULT_XDP_ACTION;
     }
+    
+    upf_printk("upf: [n6] downlink session for ip:%pI6c trace:%d", &ip6->daddr, pdr->trace_flag);
+    if(pdr->trace_flag)
+        trace_packet(ctx, PACKET_DIRECTION_IN);
 
     __u32 far_id = pdr->far_id;
     __u32 qer_id = pdr->qer_id;
@@ -193,7 +206,12 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     update_urr(pdr->urr2_id, 0, packet_size);
 
     upf_printk("upf: [n6] use mapping %pI6c -> teid:%u", &ip6->daddr, far->teid);
-    return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
+    enum xdp_action action = send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
+
+    if(pdr->trace_flag && (action == XDP_TX || action == XDP_REDIRECT))
+        trace_packet(ctx, PACKET_DIRECTION_OUT);
+
+    return action;
 }
 
 static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx) {
@@ -211,6 +229,10 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         upf_printk("upf: [n3] no session for teid:%u", teid);
         return DEFAULT_XDP_ACTION;
     }
+
+    upf_printk("upf: [n3] teid:%u trace:%d", teid, pdr->trace_flag);
+    if(pdr->trace_flag)
+        trace_packet(ctx, PACKET_DIRECTION_IN);
 
     __u32 far_id = pdr->far_id;
     __u32 qer_id = pdr->qer_id;
@@ -381,17 +403,21 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     /*
      *   Step 4: Route packet finally
      */
+     enum xdp_action action = XDP_ABORTED;
     if (ctx->ip4) {
         increment_counter(ctx->n3_n6_counter, tx_n6);
         update_tos_ipv4(ctx->ip4, tos);
-        return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+        action = route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
     } else if (ctx->ip6) {
         increment_counter(ctx->n3_n6_counter, tx_n6);
         update_tos_ipv6(ctx->ip6, tos);
-        return route_ipv6(ctx->xdp_ctx, ctx->eth, ctx->ip6);
-    } else {
-        return XDP_ABORTED;
+        action = route_ipv6(ctx->xdp_ctx, ctx->eth, ctx->ip6);
     }
+
+    if(pdr->trace_flag && (action == XDP_TX || action == XDP_REDIRECT))
+        trace_packet(ctx, PACKET_DIRECTION_OUT);
+
+    return action;
 
 }
 
@@ -517,17 +543,13 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
         .counters = &statistic->upf_counters,
         .n3_n6_counter = &statistic->upf_n3_n6_counter};
 
-#define PACKET_TRACE
-#ifdef PACKET_TRACE
-    trace_packet(&context, PACKET_DIRECTION_IN);
-#endif
-
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
 
+#define PACKET_TRACE
 #ifdef PACKET_TRACE
-    if(action == XDP_TX || action == XDP_REDIRECT)
-        trace_packet(&context, PACKET_DIRECTION_OUT);
+    if(action != XDP_TX && action != XDP_REDIRECT) // write all packets
+        trace_packet(&context, PACKET_DIRECTION_BLOCKED);
 #endif
 
     return action;

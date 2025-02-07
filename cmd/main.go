@@ -8,17 +8,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/edgecomllc/eupf/cmd/core/service"
-
 	"github.com/edgecomllc/eupf/cmd/api/rest"
-	"github.com/edgecomllc/eupf/cmd/server"
-
+	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
+	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
+	"github.com/edgecomllc/eupf/cmd/server"
+	"github.com/edgecomllc/eupf/cmd/utils"
 
 	"github.com/cilium/ebpf/link"
-	"github.com/edgecomllc/eupf/cmd/config"
-	"github.com/edgecomllc/eupf/cmd/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -93,9 +91,15 @@ func main() {
 	}
 
 	// Create PFCP connection
-	pfcpConn, err := core.NewPfcpConnection(config.Conf.PfcpAddress, config.Conf.PfcpNodeId,
-		config.Conf.N3Address, config.Conf.N9Address,
-		bpfObjects, resourceManager)
+	pfcpConn, err := core.NewPfcpConnection(
+		config.Conf.PfcpAddress,
+		config.Conf.PfcpNodeId,
+		config.Conf.N3Address,
+		config.Conf.N9Address,
+		bpfObjects,
+		resourceManager,
+	)
+
 	if err != nil {
 		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}
@@ -108,7 +112,15 @@ func main() {
 	defer pfcpConn.Close()
 
 	// Create Sxa connection
-	sxaConn, err := core.NewPfcpConnection(config.Conf.SxaLocalAddress, config.Conf.SxaLocalNodeId, config.Conf.S1UAddress, config.Conf.S5S8Address, bpfObjects, nil)
+	sxaConn, err := core.NewPfcpConnection(
+		config.Conf.SxaLocalAddress,
+		config.Conf.SxaLocalNodeId,
+		config.Conf.S1UAddress,
+		config.Conf.S5S8Address,
+		bpfObjects,
+		nil,
+	)
+
 	if err != nil {
 		log.Fatal().Msgf("Could not create Sxa connection: %s", err.Error())
 	}
@@ -121,7 +133,15 @@ func main() {
 	defer sxaConn.Close()
 
 	// Create Sxb connection
-	sxbConn, err := core.NewPfcpConnection(config.Conf.SxbLocalAddress, config.Conf.SxbLocalNodeId, config.Conf.PAAddress, config.Conf.PAAddress, bpfObjects, nil)
+	sxbConn, err := core.NewPfcpConnection(
+		config.Conf.SxbLocalAddress,
+		config.Conf.SxbLocalNodeId,
+		config.Conf.PAAddress,
+		config.Conf.PAAddress,
+		bpfObjects,
+		nil,
+	)
+
 	if err != nil {
 		log.Fatal().Msgf("Could not create Sxb connection: %s", err.Error())
 	}
@@ -137,7 +157,12 @@ func main() {
 		BpfObjects: bpfObjects,
 	}
 
-	h := rest.NewApiHandler(bpfObjects, []*core.PfcpConnection{pfcpConn, sxaConn, sxbConn}, &ForwardPlaneStats, &config.Conf)
+	h := rest.NewApiHandler(
+		bpfObjects,
+		[]*core.PfcpConnection{pfcpConn, sxaConn, sxbConn},
+		&ForwardPlaneStats,
+		&config.Conf,
+	)
 
 	engine := h.InitRoutes()
 	metricsEngine := h.InitMetricsRoute()

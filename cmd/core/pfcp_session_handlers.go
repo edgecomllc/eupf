@@ -52,7 +52,8 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	localSEID := association.NewLocalSEID()
 
-	session := NewSession(localSEID, remoteSEID.SEID)
+	imsi, msisdn := getSubscriberData(req.IEs)
+	session := NewSession(localSEID, remoteSEID.SEID, imsi, msisdn)
 
 	printSessionEstablishmentRequest(req)
 	// #TODO: Implement rollback on error
@@ -121,6 +122,9 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 		}
 
+		// obtain tracing flag from storage by IMSI or MSISDN
+		isTraced := conn.NeedSessionTrace(imsi, msisdn)
+
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
@@ -128,7 +132,10 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				continue
 			}
 
-			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
+			spdrInfo := SPDRInfo{
+				PdrID:   uint32(pdrId),
+				PdrInfo: ebpf.PdrInfo{TraceFlag: isTraced},
+			}
 
 			if err := pdrContext.extractPDR(pdr, &spdrInfo); err == nil {
 				session.PutPDR(spdrInfo.PdrID, spdrInfo)
@@ -301,8 +308,9 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		}
 	}
 
-	printSessionModificationRequest(req)
+	imsi, msisdn := getSubscriberData(req.IEs)
 
+	printSessionModificationRequest(req)
 	// #TODO: Implement rollback on error
 	createdPDRs := []SPDRInfo{}
 	removedURRs := make([]*ie.IE, 0, len(req.RemoveURR))
@@ -456,6 +464,9 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			))
 		}
 
+		// obtain tracing flag from storage by IMSI or MSISDN
+		isTraced := conn.NeedSessionTrace(imsi, msisdn)
+
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
@@ -464,7 +475,10 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				continue
 			}
 
-			spdrInfo := SPDRInfo{PdrID: uint32(pdrId)}
+			spdrInfo := SPDRInfo{
+				PdrID:   uint32(pdrId),
+				PdrInfo: ebpf.PdrInfo{TraceFlag: isTraced},
+			}
 
 			if err := pdrContext.extractPDR(pdr, &spdrInfo); err == nil {
 				session.PutPDR(spdrInfo.PdrID, spdrInfo)
@@ -482,6 +496,8 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			spdrInfo := session.GetPDR(pdrId)
+			spdrInfo.PdrInfo.TraceFlag = isTraced
+
 			if err := pdrContext.extractPDR(pdr, &spdrInfo); err == nil {
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
@@ -725,4 +741,22 @@ func updateUrr(urrInfo *ebpf.UrrInfo, urr *ie.IE) {
 		}
 	}
 
+}
+
+func getSubscriberData(ieArr []*ie.IE) (string, string) {
+	var imsi, msisdn string
+
+	imsiIdx := findEnterpriseSpecificIEindex(ieArr, 32769, 2011) // IE Huawei IMSI
+	if imsiIdx != -1 {
+		imsiEncoded := ieArr[imsiIdx].Payload
+		imsi = DecodeDigitsFromBytes(imsiEncoded)
+	}
+
+	msisdnIdx := findEnterpriseSpecificIEindex(ieArr, 32770, 2011) // IE Huawei MSISDN
+	if msisdnIdx != -1 {
+		msisdnEncoded := ieArr[msisdnIdx].Payload
+		msisdn = DecodeDigitsFromBytes(msisdnEncoded)
+	}
+
+	return imsi, msisdn
 }

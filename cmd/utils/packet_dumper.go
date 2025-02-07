@@ -17,12 +17,12 @@ import (
 )
 
 type PacketDumper struct {
-	praceMap *ebpf.Map
+	traceMap *ebpf.Map
 	f        *os.File
 	w        *pcapgo.NgWriter
 }
 
-func NewPacketDumper(dumpPath string, praceMap *ebpf.Map) (*PacketDumper, error) {
+func NewPacketDumper(dumpPath string, traceMap *ebpf.Map) (*PacketDumper, error) {
 
 	f, err := os.Create(dumpPath)
 	if err != nil {
@@ -59,8 +59,19 @@ func NewPacketDumper(dumpPath string, praceMap *ebpf.Map) (*PacketDumper, error)
 		return nil, fmt.Errorf("can't add out ng pcap interface:: %s", err.Error())
 	}
 
+	_, err = w.AddInterface(pcapgo.NgInterface{
+		Name:                "drop",
+		OS:                  runtime.GOOS,
+		SnapLength:          0, //unlimited
+		TimestampResolution: 9,
+		LinkType:            layers.LinkTypeEthernet})
+	if err != nil {
+		f.Close()
+		return nil, fmt.Errorf("can't add drop ng pcap interface:: %s", err.Error())
+	}
+
 	return &PacketDumper{
-		praceMap: praceMap,
+		traceMap: traceMap,
 		f:        f,
 		w:        w,
 	}, nil
@@ -68,7 +79,7 @@ func NewPacketDumper(dumpPath string, praceMap *ebpf.Map) (*PacketDumper, error)
 
 func (dumper *PacketDumper) Run() {
 
-	rd, err := perf.NewReader(dumper.praceMap, 4096)
+	rd, err := perf.NewReader(dumper.traceMap, 4096)
 	if err != nil {
 		log.Error().Msgf(" can't create perf reader: %s", err.Error())
 		return
