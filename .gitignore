@@ -6,6 +6,9 @@ settings.json
 .vscode/
 bin
 
+gtp_packet.pcap
+interactive_console_output.xml
+
 # Pytest cache
 __pycache__/
 .pytest_cache/
@@ -21,3 +24,7 @@ cmd/docs
 log.html
 output.xml
 report.html
+
+hs_err_*.log
+replay_*.log
+*venv/*

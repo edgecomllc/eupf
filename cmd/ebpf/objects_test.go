@@ -193,10 +193,13 @@ func testGtpWithPDRBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) 
 	return duration.Nanoseconds(), nil
 }
 
-func testGtpEcho(bpfObjects *BpfObjects) error {
+func testGtpEcho(t *testing.T, bpfObjects *BpfObjects) error {
+	t.Helper()
 
 	packetArp := gopacket.NewSerializeBuffer()
-	if err := gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
+	if err := gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{
+		FixLengths: true,
+	},
 		&layers.Ethernet{
 			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
 			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
@@ -232,6 +235,10 @@ func testGtpEcho(bpfObjects *BpfObjects) error {
 	}
 
 	response := gopacket.NewPacket(bufOut, layers.LayerTypeEthernet, gopacket.Default)
+
+	t.Logf("response: %v", response)
+	t.Logf("gtpLayer: %v", response.Layer(layers.LayerTypeGTPv1U))
+
 	if gtpLayer := response.Layer(layers.LayerTypeGTPv1U); gtpLayer != nil {
 		gtp, _ := gtpLayer.(*layers.GTPv1U)
 
@@ -339,12 +346,15 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 	return nil
 }
 
-func testGtpExtHeader(bpfObjects *BpfObjects) error {
+func testGtpExtHeader(t *testing.T, bpfObjects *BpfObjects) error {
+	t.Helper()
 
 	teid := uint32(2)
 
 	packet := gopacket.NewSerializeBuffer()
-	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
+	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{
+		FixLengths: true,
+	},
 		&layers.Ethernet{
 			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
 			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
@@ -386,6 +396,8 @@ func testGtpExtHeader(bpfObjects *BpfObjects) error {
 	if err := bpfObjects.PutPdrDownlink(net.IP{10, 60, 0, 1}, pdr); err != nil {
 		return fmt.Errorf("can't set downlink PDR: %v", err)
 	}
+
+	t.Logf("package %v", packet)
 
 	bpfRet, bufOut, err := bpfObjects.UpfIpEntrypointFunc.Test(packet.Bytes())
 	if err != nil {
@@ -453,7 +465,7 @@ func TestEntrypoint(t *testing.T) {
 	})
 
 	t.Run("GTP-U Echo test", func(t *testing.T) {
-		err := testGtpEcho(bpfObjects)
+		err := testGtpEcho(t, bpfObjects)
 		if err != nil {
 			t.Fatalf("test failed: %s", err)
 		}
@@ -467,7 +479,7 @@ func TestEntrypoint(t *testing.T) {
 	})
 
 	t.Run("GTP Extention Header test", func(t *testing.T) {
-		err := testGtpExtHeader(bpfObjects)
+		err := testGtpExtHeader(t, bpfObjects)
 		if err != nil {
 			t.Fatalf("test failed: %s", err)
 		}
