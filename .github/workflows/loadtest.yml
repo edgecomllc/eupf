@@ -12,19 +12,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v1
-      
-      - name: Install robotframework libraries
-        run: sudo pip install robotframework robotframework-requests robotframework-run-keyword-async python-can
 
-      - name: Install robotframework-scapylibrary fork
-        run: sudo pip install git+https://github.com/kade-ddnkv/robotframework-ScapyLibrary@master
+      - name: Install robotframework libraries
+        run: sudo pip install robotframework==7.1 robotframework-requests
+
+      - name: Install Scapy
+        run: sudo pip install scapy
 
       - name: Raw UPF Presetup
         uses: ./.github/actions/raw-upf-presetup
         id: raw-upf-presetup
 
       - name: Install tcpreplay
-        run: sudo apt install tcpreplay
+        run: sudo apt install -y tcpreplay
 
       - name: Build
         run: go build -v -o bin/eupf ./cmd
@@ -32,8 +32,19 @@ jobs:
       - name: Run eUPF and sleep
         run: sudo ./bin/eupf &
 
+      - name: Debug show lib versions
+        run: sudo pip freeze
+
       - name: Run robot Loadtest
         run: sudo robot -v TCPREPLAY_LIMIT:2000000 -v TCPREPLAY_THREADS:8 ./robot/Loadtest.robot
+
+      - name: Display Robot Framework logs if test fails
+        if: failure() && steps.test-app.outcome != 'success'
+        run: |
+          echo "Robot Framework logs:"
+          cat /home/runner/work/eupf-dev/eupf-dev/output.xml
+          cat /home/runner/work/eupf-dev/eupf-dev/log.html
+          cat /home/runner/work/eupf-dev/eupf-dev/report.html
 
       - name: Stop eUPF
         run: sudo killall eupf

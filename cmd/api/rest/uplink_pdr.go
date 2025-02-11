@@ -40,10 +40,12 @@ func (h *ApiHandler) getUplinkPdrValue(c *gin.Context) {
 	})
 }
 
+// todo: duplicate param <id>
 func (h *ApiHandler) setUplinkPdrValue(c *gin.Context) {
 	var pdrElement PdrElement
 	if err := c.BindJSON(&pdrElement); err != nil {
 		log.Printf("Parsing request body error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

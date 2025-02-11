@@ -63,6 +63,7 @@ func (h *ApiHandler) setQerValue(c *gin.Context) {
 	var qerElement ebpf.QerMapElement
 	if err := c.BindJSON(&qerElement); err != nil {
 		log.Printf("Parsing request body error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
