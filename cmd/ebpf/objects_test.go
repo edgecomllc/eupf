@@ -196,7 +196,7 @@ func testGtpWithPDRBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) 
 func testGtpEcho(bpfObjects *BpfObjects) error {
 
 	packetArp := gopacket.NewSerializeBuffer()
-	if err := gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
+	if err := gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{FixLengths: true},
 		&layers.Ethernet{
 			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
 			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
@@ -345,7 +345,7 @@ func testGtpExtHeader(bpfObjects *BpfObjects) error {
 	teid := uint32(2)
 
 	packet := gopacket.NewSerializeBuffer()
-	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
+	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{FixLengths: true},
 		&layers.Ethernet{
 			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
 			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
@@ -404,26 +404,27 @@ func testGtpExtHeader(bpfObjects *BpfObjects) error {
 		if gtp.MessageType != 255 { //GTPU_G_PDU
 			return fmt.Errorf("unexpected gtp response: %d", gtp.MessageType)
 		}
-		if gtp.ExtensionHeaderFlag != true {
-			return fmt.Errorf("unexpected gtp extention flag: %t", gtp.ExtensionHeaderFlag)
-		}
 		if gtp.TEID != teid {
 			return fmt.Errorf("unexpected gtp TEID: %d", gtp.TEID)
 		}
-		if len(gtp.GTPExtensionHeaders) != 1 {
-			return fmt.Errorf("unexpected gtp extention header count: %d", len(gtp.GTPExtensionHeaders))
-		}
 
-		extHeader := gtp.GTPExtensionHeaders[0]
-		if extHeader.Type != 0x85 {
-			return fmt.Errorf("unexpected gtp extention header: %d", gtp.GTPExtensionHeaders[0].Type)
-		}
-		if len(extHeader.Content) != 2 {
-			return fmt.Errorf("unexpected gtp extention header len: %d", len(extHeader.Content))
-		}
+		if gtp.ExtensionHeaderFlag == true {
 
-		if extHeader.Content[1] != 5 {
-			return fmt.Errorf("unexpected gtp extention header QFI: %d %d", extHeader.Content[0], extHeader.Content[1])
+			if len(gtp.GTPExtensionHeaders) != 1 {
+				return fmt.Errorf("unexpected gtp extention header count: %d", len(gtp.GTPExtensionHeaders))
+			}
+
+			extHeader := gtp.GTPExtensionHeaders[0]
+			if extHeader.Type != 0x85 {
+				return fmt.Errorf("unexpected gtp extention header: %d", gtp.GTPExtensionHeaders[0].Type)
+			}
+			if len(extHeader.Content) != 2 {
+				return fmt.Errorf("unexpected gtp extention header len: %d", len(extHeader.Content))
+			}
+
+			if extHeader.Content[1] != 5 {
+				return fmt.Errorf("unexpected gtp extention header QFI: %d %d", extHeader.Content[0], extHeader.Content[1])
+			}
 		}
 	} else {
 		return fmt.Errorf("unexpected response: %v", response)

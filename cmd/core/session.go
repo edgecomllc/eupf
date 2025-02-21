@@ -16,9 +16,10 @@ type Session struct {
 	QERs        map[uint32]SQerInfo
 	URRs        map[uint32]SUrrInfo
 	URRSequence uint32
+	Traced      bool
 }
 
-func NewSession(localSEID, remoteSEID uint64, IMSI, MSISDN string) *Session {
+func NewSession(localSEID, remoteSEID uint64, IMSI, MSISDN string, traced bool) *Session {
 	return &Session{
 		LocalSEID:  localSEID,
 		RemoteSEID: remoteSEID,
@@ -28,6 +29,7 @@ func NewSession(localSEID, remoteSEID uint64, IMSI, MSISDN string) *Session {
 		FARs:       map[uint32]SFarInfo{},
 		QERs:       map[uint32]SQerInfo{},
 		URRs:       map[uint32]SUrrInfo{},
+		Traced:     traced,
 	}
 }
 
@@ -146,4 +148,8 @@ func (s *Session) GetSessionImsi() string {
 
 func (s *Session) GetSessionMsisdn() string {
 	return s.MSISDN
+}
+
+func (s *Session) IsSessionTraced() bool {
+	return s.Traced
 }

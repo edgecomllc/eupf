@@ -2,6 +2,7 @@ package core
 
 import (
 	"net"
+	"net/netip"
 	"sync"
 	"testing"
 	"time"
@@ -29,13 +30,13 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 		mapOperations:    &mapOps,
 		pfcpHandlerMap:   pfcpHandlers,
 		associationMutex: &sync.Mutex{},
-		nodeAddrV4:       net.ParseIP("127.0.0.1"),
+		nodeAddrV4:       netip.MustParseAddrPort("127.0.0.1:8085"),
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
 		ie.NewRecoveryTimeStamp(time.Now()),
 	)
-	response, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
+	response, _, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling association setup request: %s", err)
 	}
@@ -95,13 +96,13 @@ func TestSessionUEIpOverwrite(t *testing.T) {
 	)
 
 	// Send first request
-	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq1, smfIP)
+	_, _, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq1, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
 
 	// Send second request
-	_, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq2, smfIP)
+	_, _, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq2, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}

@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"regexp"
 	"sync"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/edgecomllc/eupf/cmd/core/tracing"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
+	"github.com/edgecomllc/eupf/cmd/utils"
 
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
@@ -39,7 +41,7 @@ type PfcpConnection struct {
 	associationMutex  *sync.Mutex
 	NodeAssociations  map[string]*NodeAssociation
 	nodeId            string
-	nodeAddrV4        net.IP
+	nodeAddrV4        netip.AddrPort
 	n3Address         net.IP
 	n9Address         net.IP
 	mapOperations     ebpf.ForwardingPlaneController
@@ -50,6 +52,7 @@ type PfcpConnection struct {
 	nodes             []AssociationConnector
 	neValidator       *NeValidator
 	tracingStorage    tracing.TraceRecordStorage
+	dumper            utils.Dumper
 }
 
 func NewPfcpConnection(
@@ -59,6 +62,7 @@ func NewPfcpConnection(
 	n9Ip string,
 	mapOperations ebpf.ForwardingPlaneController,
 	resourceManager *service.ResourceManager,
+	dumper utils.Dumper,
 ) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
@@ -102,7 +106,7 @@ func NewPfcpConnection(
 		associationMutex:  &sync.Mutex{},
 		NodeAssociations:  map[string]*NodeAssociation{},
 		nodeId:            nodeId,
-		nodeAddrV4:        udpAddr.IP,
+		nodeAddrV4:        udpAddr.AddrPort(),
 		n3Address:         n3Addr,
 		n9Address:         n9Addr,
 		mapOperations:     mapOperations,
@@ -113,6 +117,7 @@ func NewPfcpConnection(
 		nodes:             []AssociationConnector{},
 		neValidator:       validator,
 		tracingStorage:    tracing.NewSimpleTraceRecordStorage(),
+		dumper:            dumper,
 	}, nil
 }
 
@@ -171,8 +176,7 @@ func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, e
 }
 
 func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
-	err := connection.pfcpHandlerMap.Handle(connection, b, addr)
-	if err != nil {
+	if err := connection.pfcpHandlerMap.Handle(connection, b, addr); err != nil {
 		log.Warn().Msgf("Error handling PFCP message: %s", err.Error())
 	}
 }
@@ -180,12 +184,18 @@ func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
 func (connection *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error) {
 	return connection.udpConn.WriteTo(b, addr)
 }
-
 func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDPAddr) error {
+	return connection.SendMessageWithTrace(msg, addr, false)
+}
+
+func (connection *PfcpConnection) SendMessageWithTrace(msg message.Message, addr *net.UDPAddr, trace bool) error {
 	responseBytes := make([]byte, msg.MarshalLen())
 	if err := msg.MarshalTo(responseBytes); err != nil {
 		log.Warn().Msg(err.Error())
 		return err
+	}
+	if trace {
+		connection.TraceMessage(responseBytes, addr, false)
 	}
 	if _, err := connection.Send(responseBytes, addr); err != nil {
 		log.Warn().Msg(err.Error())
@@ -193,6 +203,14 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 	}
 	PfcpMessageTx.WithLabelValues(msg.MessageTypeName()).Inc()
 	return nil
+}
+
+func (connection *PfcpConnection) TraceMessage(b []byte, addr *net.UDPAddr, rx bool) {
+	if rx {
+		connection.dumper.DumpRawIn(addr.AddrPort(), connection.nodeAddrV4, b)
+	} else {
+		connection.dumper.DumpRawOut(addr.AddrPort(), connection.nodeAddrV4, b)
+	}
 }
 
 func (connection *PfcpConnection) RefreshAssociations() {
@@ -276,6 +294,7 @@ func (connection *PfcpConnection) SendReports() {
 					continue
 				}
 
+				traced := session.IsSessionTraced()
 				sequence := assocaition.NewSequenceID()
 				urr.ReportSeqNumber += 1
 				session.URRSequence += 1 //Huawei !!!
@@ -284,7 +303,8 @@ func (connection *PfcpConnection) SendReports() {
 					//urr.ReportSeqNumber,
 					session.URRSequence, //Huawei
 					uplink,
-					downlink)
+					downlink,
+					traced)
 
 				urr.UrrInfo.UplinkVolume = newReport.UplinkVolume
 				urr.UrrInfo.DownlinkVolume = newReport.DownlinkVolume
@@ -375,7 +395,8 @@ func SendSessionReport(conn *PfcpConnection, seid uint64, sequenceID uint32, ass
 	urrid uint32,
 	urSeq uint32,
 	uplink uint64,
-	downlink uint64) {
+	downlink uint64,
+	traced bool) {
 
 	additionalIEs := []*ie.IE{
 		ie.NewReportType(0, 0, 1, 0),
@@ -421,7 +442,7 @@ func SendSessionReport(conn *PfcpConnection, seid uint64, sequenceID uint32, ass
 	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err == nil {
-		if err := conn.SendMessage(sessionReport, udpAddr); err != nil {
+		if err := conn.SendMessageWithTrace(sessionReport, udpAddr, traced); err != nil {
 			log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
 		}
 	} else {
@@ -480,7 +501,7 @@ func (connector *DefaultAssociationConnector) sendAssociationSetupRequest(connec
 		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", associationAddr, err.Error())
 		return
 	}
-	if err := connection.SendMessage(AssociationSetupRequest, udpAddr); err != nil {
+	if err := connection.SendMessageWithTrace(AssociationSetupRequest, udpAddr, true); err != nil {
 		log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
 	}
 }
@@ -600,7 +621,7 @@ func (connector *SxaAssociationConnector) sendAssociationSetupRequest(connection
 		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", associationAddr, err.Error())
 		return
 	}
-	if err := connection.SendMessage(AssociationSetupRequest, udpAddr); err != nil {
+	if err := connection.SendMessageWithTrace(AssociationSetupRequest, udpAddr, true); err != nil {
 		log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
 	}
 }
@@ -697,7 +718,7 @@ func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection
 		log.Error().Msgf("Failed to resolve udp address from PFCP peer address %s. Error: %s\n", associationAddr, err.Error())
 		return
 	}
-	if err := connection.SendMessage(AssociationSetupRequest, udpAddr); err != nil {
+	if err := connection.SendMessageWithTrace(AssociationSetupRequest, udpAddr, true); err != nil {
 		log.Info().Msgf("Failed to send Association Setup Request: %s\n", err.Error())
 	}
 }

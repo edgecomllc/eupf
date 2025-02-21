@@ -53,13 +53,13 @@ func main() {
 
 	var err error
 	traceFileName := fmt.Sprintf("dumps/%s-trace.pcap", time.Now().Format(time.RFC3339))
-	dumper, err := utils.NewPacketDumper(traceFileName, bpfObjects.TraceMap)
-
+	dumper, err := utils.NewPacketDumper(traceFileName)
 	if err != nil {
 		log.Error().Msgf("Can't start dumper: %s", err.Error())
 	} else {
-		defer dumper.Close()
-		go dumper.Run()
+		defer dumper.Close(false)
+		go dumper.ReadTraceMap(bpfObjects.TraceMap)
+		go dumper.Write()
 	}
 
 	defer bpfObjects.Close()
@@ -98,6 +98,7 @@ func main() {
 		config.Conf.N9Address,
 		bpfObjects,
 		resourceManager,
+		dumper,
 	)
 
 	if err != nil {
@@ -119,6 +120,7 @@ func main() {
 		config.Conf.S5S8Address,
 		bpfObjects,
 		nil,
+		dumper,
 	)
 
 	if err != nil {
@@ -140,6 +142,7 @@ func main() {
 		config.Conf.PAAddress,
 		bpfObjects,
 		nil,
+		dumper,
 	)
 
 	if err != nil {

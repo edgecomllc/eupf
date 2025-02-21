@@ -10,7 +10,7 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type PfcpFunc func(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error)
+type PfcpFunc func(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error)
 
 type PfcpHandlerMap map[uint8]PfcpFunc
 
@@ -26,16 +26,19 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 		startTime := time.Now()
 		// TODO: Trim port as a workaround for NAT changing the port. Explore proper solutions.
 		stringIpAddr := addr.IP.String()
-		outgoingMsg, err := handler(conn, incomingMsg, stringIpAddr)
+		outgoingMsg, trace, err := handler(conn, incomingMsg, stringIpAddr)
 		if err != nil {
 			log.Warn().Msgf("Error handling PFCP message: %s", err.Error())
 			return err
+		}
+		if trace {
+			conn.TraceMessage(buf, addr, true)
 		}
 		duration := time.Since(startTime)
 		UpfMessageRxLatency.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
 		// Now assumption that all handlers will return a message to send is not true.
 		if outgoingMsg != nil {
-			return conn.SendMessage(outgoingMsg, addr)
+			return conn.SendMessageWithTrace(outgoingMsg, addr, trace)
 		}
 		return nil
 	} else {
@@ -50,7 +53,7 @@ func setBit(n uint8, pos uint) uint8 {
 }
 
 // https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/16.04.00_60/ts_129244v160400p.pdf page 95
-func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
+func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
 	asreq := msg.(*message.AssociationSetupRequest)
 	log.Info().Msgf("Got Association Setup Request from: %s", addr)
 	if asreq.NodeID == nil {
@@ -61,7 +64,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
-		return asres, nil
+		return asres, true, nil
 	}
 	printAssociationSetupRequest(asreq)
 	// Get NodeID
@@ -72,7 +75,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEIncorrect),
 		)
-		return asres, nil
+		return asres, true, nil
 	}
 
 	// Recovery Time Stamp
@@ -82,7 +85,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
-		return asres, nil
+		return asres, true, nil
 	}
 	_, err = asreq.RecoveryTimeStamp.RecoveryTimeStamp()
 	if err != nil {
@@ -91,7 +94,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 		asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEIncorrect),
 		)
-		return asres, nil
+		return asres, true, nil
 	}
 
 	// If the PFCP Association Setup Request contains a Node ID for which a PFCP association was already established
@@ -128,7 +131,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 
 	// Send AssociationSetupResponse
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
-	return asres, nil
+	return asres, true, nil
 }
 
 // Huawei association update request
@@ -199,7 +202,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 //                                          uladdr4: ---- 0x0(0)
 //                                       mask-length: ---- 0x17(23)
 
-func HandlePfcpAssociationUpdateRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
+func HandlePfcpAssociationUpdateRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
 	asreq := msg.(*message.AssociationUpdateRequest)
 	log.Info().Msgf("Got Association Update Request from: %s", addr)
 	if asreq.NodeID == nil {
@@ -210,7 +213,7 @@ func HandlePfcpAssociationUpdateRequest(conn *PfcpConnection, msg message.Messag
 		asres := message.NewAssociationUpdateResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEMissing),
 		)
-		return asres, nil
+		return asres, true, nil
 	}
 	printAssociationUpdateRequest(asreq)
 	// Get NodeID
@@ -221,7 +224,7 @@ func HandlePfcpAssociationUpdateRequest(conn *PfcpConnection, msg message.Messag
 		asres := message.NewAssociationUpdateResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseMandatoryIEIncorrect),
 		)
-		return asres, nil
+		return asres, true, nil
 	}
 
 	conn.associationMutex.Lock()
@@ -232,7 +235,7 @@ func HandlePfcpAssociationUpdateRequest(conn *PfcpConnection, msg message.Messag
 		asres := message.NewAssociationUpdateResponse(asreq.SequenceNumber,
 			ie.NewCause(ie.CauseNoEstablishedPFCPAssociation),
 		)
-		return asres, nil
+		return asres, true, nil
 	}
 
 	// shall send a PFCP Association Update Response including:
@@ -244,7 +247,7 @@ func HandlePfcpAssociationUpdateRequest(conn *PfcpConnection, msg message.Messag
 
 	// Send AssociationUpdateResponse
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
-	return asres, nil
+	return asres, true, nil
 }
 
 func newIeNodeID(nodeID string) *ie.IE {
@@ -258,7 +261,7 @@ func newIeNodeID(nodeID string) *ie.IE {
 	return ie.NewNodeID("", "", nodeID)
 }
 
-func HandlePfcpAssociationSetupResponse(conn *PfcpConnection, msg message.Message, addr string) (message.Message, error) {
+func HandlePfcpAssociationSetupResponse(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
 	asres := msg.(*message.AssociationSetupResponse)
 	log.Info().Msgf("Got Association Setup Response from: %s", addr)
 
@@ -266,44 +269,44 @@ func HandlePfcpAssociationSetupResponse(conn *PfcpConnection, msg message.Messag
 	if asres.NodeID == nil {
 		log.Warn().Msgf("Got Association Setup Response without NodeID from: %s", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
-		return nil, nil
+		return nil, true, nil
 	}
 	remoteNodeID, err := asres.NodeID.NodeID()
 	if err != nil {
 		log.Warn().Msgf("Got Association Setup Response with invalid NodeID from: %s", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEIncorrect)).Inc()
-		return nil, err
+		return nil, true, err
 	}
 
 	// Cause
 	if asres.Cause == nil {
 		log.Warn().Msgf("Got Association Setup Response without Cause from: %s", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
-		return nil, nil
+		return nil, true, nil
 	}
 	cause, err := asres.Cause.Cause()
 	if err != nil {
 		log.Warn().Msgf("Got Association Setup Response with invalid Cause from: %s", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEIncorrect)).Inc()
-		return nil, err
+		return nil, true, err
 	}
 	if cause != ie.CauseRequestAccepted {
 		log.Warn().Msgf("Got Association Setup Response with rejection in cause from: %s. Cause value: %s", addr, causeToString(cause))
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(cause)).Inc()
-		return nil, nil
+		return nil, true, nil
 	}
 
 	// CP Function Features
 	if asres.CPFunctionFeatures == nil {
 		log.Warn().Msgf("Got Association Setup Response without CPFunctionFeatures from: %s", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseConditionalIEMissing)).Inc()
-		return nil, nil
+		return nil, true, nil
 	}
 	cpFunctionFeatures, err := asres.CPFunctionFeatures.CPFunctionFeatures()
 	if err != nil {
 		log.Warn().Msgf("Got Association Setup Response with invalid CPFunctionFeatures from: %s. CPFunctionFeatures: %b", addr, cpFunctionFeatures)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseConditionalIEMissing)).Inc()
-		return nil, err
+		return nil, true, err
 	}
 	log.Info().Msgf("Got Association Setup Response with CPFunctionFeatures from: %s. CPFunctionFeatures: %b", addr, cpFunctionFeatures)
 
@@ -326,5 +329,5 @@ func HandlePfcpAssociationSetupResponse(conn *PfcpConnection, msg message.Messag
 		}
 	}
 
-	return nil, nil
+	return nil, true, nil
 }
