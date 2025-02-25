@@ -552,12 +552,17 @@ func TestUEIPInAssociationSetupResponse(t *testing.T) {
 
 func TestHandlePfcpSessionEstablishmentRequestWithURR(t *testing.T) {
 	pfcpConn, smfIP := PreparePfcpConnection(t)
+	ip1, _ := net.ResolveIPAddr("ip", "1.1.1.1")
 
 	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
 		ie.NewNodeID("", "", "test"),
 		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
 		ie.NewCreatePDR(
 			ie.NewPDRID(0xffff),
+			ie.NewPDI(
+				ie.NewSourceInterface(ie.SrcInterfaceCore),
+				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+			),
 		),
 		ie.NewCreateURR(
 			ie.NewURRID(0xf),
@@ -576,12 +581,17 @@ func TestHandlePfcpSessionEstablishmentRequestWithURR(t *testing.T) {
 func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
 	ebpfMock := &MapOperationsMock{}
 	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock)
+	ip1, _ := net.ResolveIPAddr("ip", "1.1.1.1")
 
 	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
 		ie.NewNodeID("", "", "test"),
 		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
 		ie.NewCreatePDR(
 			ie.NewPDRID(0xffff),
+			ie.NewPDI(
+				ie.NewSourceInterface(ie.SrcInterfaceCore),
+				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+			),
 		),
 	)
 	_, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
@@ -676,12 +686,17 @@ func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
 
 	ebpfMock := &MapOperationsMock{}
 	pfcpConn, smfIP := PreparePfcpConnectionWithMock(t, ebpfMock)
+	ip1, _ := net.ResolveIPAddr("ip", "1.1.1.1")
 
 	estReq := message.NewSessionEstablishmentRequest(0, 0, 2, 1, 0,
 		ie.NewNodeID("", "", "test"),
 		ie.NewFSEID(1, net.ParseIP(smfIP), nil),
 		ie.NewCreatePDR(
 			ie.NewPDRID(0xffff),
+			ie.NewPDI(
+				ie.NewSourceInterface(ie.SrcInterfaceCore),
+				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+			),
 		),
 		ie.NewCreateURR(
 			ie.NewURRID(0xf),
