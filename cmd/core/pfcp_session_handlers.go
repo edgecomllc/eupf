@@ -15,6 +15,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+const huaweiMode = false // todo: swap to config
+
 var errMandatoryIeMissing = fmt.Errorf("mandatory IE missing")
 var errNoEstablishedAssociation = fmt.Errorf("no established association")
 
@@ -655,10 +657,37 @@ func composeFarInfo(far *ie.IE, localN3Ip net.IP, localN9Ip net.IP, farInfo ebpf
 		if outerHeaderCreationIndex == -1 {
 			log.Warn().Msg("No OuterHeaderCreation")
 		} else {
-			//outerHeaderCreation, _ := forward[outerHeaderCreationIndex].OuterHeaderCreation()
-			//farInfo.OuterHeaderCreation = uint8(outerHeaderCreation.OuterHeaderCreationDescription >> 8)
-			outerHeaderCreation, _ := HuaweiOuterHeaderCreation(forward[outerHeaderCreationIndex])       //Huawei
-			farInfo.OuterHeaderCreation = uint8(1 << outerHeaderCreation.OuterHeaderCreationDescription) //Huawei
+			var outerHeaderCreation *ie.OuterHeaderCreationFields
+
+			if huaweiMode {
+				huaweiOuterHeaderCreation, err := HuaweiOuterHeaderCreation(forward[outerHeaderCreationIndex]) //Huawei
+				if err != nil {
+					log.Error().Msgf("Error creating OuterHeaderCreation: %s", err.Error())
+					return ebpf.FarInfo{}, err
+				}
+
+				outerHeaderCreation = &ie.OuterHeaderCreationFields{
+					OuterHeaderCreationDescription: huaweiOuterHeaderCreation.OuterHeaderCreationDescription,
+					TEID:                           huaweiOuterHeaderCreation.TEID,
+					IPv4Address:                    huaweiOuterHeaderCreation.IPv4Address,
+					IPv6Address:                    huaweiOuterHeaderCreation.IPv6Address,
+					PortNumber:                     huaweiOuterHeaderCreation.PortNumber,
+					CTag:                           huaweiOuterHeaderCreation.CTag,
+					STag:                           huaweiOuterHeaderCreation.STag,
+				}
+
+				farInfo.OuterHeaderCreation = uint8(1 << outerHeaderCreation.OuterHeaderCreationDescription) //Huawei
+			} else {
+				outerHeaderCreation, err = forward[outerHeaderCreationIndex].OuterHeaderCreation()
+				if err != nil {
+					log.Error().Msgf("Error creating OuterHeaderCreation: %s", err.Error())
+
+					return ebpf.FarInfo{}, err
+				}
+
+				farInfo.OuterHeaderCreation = uint8(outerHeaderCreation.OuterHeaderCreationDescription >> 8)
+			}
+
 			farInfo.Teid = outerHeaderCreation.TEID
 			if outerHeaderCreation.HasIPv4() {
 				farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
