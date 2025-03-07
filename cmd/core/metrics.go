@@ -26,13 +26,13 @@ var (
 		Help: "The total number of received PFCP messages with cause code",
 	}, []string{"message_name", "cause_code"})
 
-	UpfXdpAborted       prometheus.CounterFunc
-	UpfXdpDrop          prometheus.CounterFunc
-	UpfXdpPass          prometheus.CounterFunc
-	UpfXdpTx            prometheus.CounterFunc
-	UpfXdpRedirect      prometheus.CounterFunc
-	UpfPfcpSessions     prometheus.GaugeFunc
-	UpfPfcpAssociations prometheus.GaugeFunc
+	UpfXdpAborted            prometheus.CounterFunc
+	UpfXdpDrop               prometheus.CounterFunc
+	UpfXdpPass               prometheus.CounterFunc
+	UpfXdpTx                 prometheus.CounterFunc
+	UpfXdpRedirect           prometheus.CounterFunc
+	UpfPfcpSessions          prometheus.GaugeFunc
+	UpfPfcpAssociationsTotal prometheus.GaugeFunc
 
 	UpfRx = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "upf_rx",
@@ -45,6 +45,11 @@ var (
 		Help:       "Duration of the PFCP message processing",
 		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 	}, []string{"message_type"})
+
+	UpfPfcpAssociations = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "upf_pfcp_associations",
+		Help: "The current status of PFCP associations",
+	}, []string{"node_id"})
 )
 
 func StartMetrics(addr string) error {
@@ -101,8 +106,8 @@ func RegisterMetrics(stats ebpf.UpfXdpActionStatistic, conn []*PfcpConnection) {
 		return float64(sum)
 	})
 
-	UpfPfcpAssociations = prometheus.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "upf_pfcp_associations",
+	UpfPfcpAssociationsTotal = prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "upf_pfcp_associations_total",
 		Help: "The current number of PFCP associations",
 	}, func() float64 {
 		sum := float64(0)
@@ -119,7 +124,7 @@ func RegisterMetrics(stats ebpf.UpfXdpActionStatistic, conn []*PfcpConnection) {
 	prometheus.MustRegister(UpfXdpTx)
 	prometheus.MustRegister(UpfXdpRedirect)
 	prometheus.MustRegister(UpfPfcpSessions)
-	prometheus.MustRegister(UpfPfcpAssociations)
+	prometheus.MustRegister(UpfPfcpAssociationsTotal)
 }
 
 func GatherMetrics(stats ebpf.UpfXdpActionStatistic) {

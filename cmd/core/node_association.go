@@ -23,6 +23,7 @@ type NodeAssociation struct {
 }
 
 func NewNodeAssociation(remoteNodeID string, addr string) *NodeAssociation {
+	UpfPfcpAssociations.WithLabelValues(remoteNodeID).Set(1)
 	return &NodeAssociation{
 		ID:               remoteNodeID,
 		Addr:             addr,
@@ -61,6 +62,7 @@ func (association *NodeAssociation) ScheduleHeartbeat(conn *PfcpConnection) {
 			failedHeartbeats++
 			if failedHeartbeats >= config.Conf.HeartbeatRetries {
 				log.Warn().Msgf("the number of unanswered heartbeats has reached the limit, association deleted: %s", association.Addr)
+				UpfPfcpAssociations.WithLabelValues(association.ID).Set(0)
 				conn.heartbeatFailedC <- association.Addr
 				return
 			}
