@@ -24,7 +24,7 @@ func (h *ApiHandler) listPfcpSessionsFiltered(c *gin.Context) {
 	sTeid := c.Query("teid")
 	if sIp == "" && sTeid == "" {
 		var sessions []core.Session
-		for _, c := range h.PfcpSrv {
+		for _, c := range h.GetPFCPSrv() {
 			newSessions := GetAllSessions(&c.NodeAssociations)
 			sessions = append(sessions, newSessions...)
 		}
@@ -34,7 +34,7 @@ func (h *ApiHandler) listPfcpSessionsFiltered(c *gin.Context) {
 
 	if sIp != "" {
 		if ip := net.ParseIP(sIp); ip != nil {
-			for _, c := range h.PfcpSrv {
+			for _, c := range h.GetPFCPSrv() {
 				if session := FilterSessionsByIP(&c.NodeAssociations, ip); session != nil {
 					sessions = append(sessions, *session) // Append session by IP match
 				}
@@ -46,7 +46,7 @@ func (h *ApiHandler) listPfcpSessionsFiltered(c *gin.Context) {
 
 	if sTeid != "" {
 		if teid, err := strconv.Atoi(sTeid); err == nil {
-			for _, c := range h.PfcpSrv {
+			for _, c := range h.GetPFCPSrv() {
 				if session := FilterSessionsByTeid(&c.NodeAssociations, uint32(teid)); session != nil {
 					sessions = append(sessions, *session) // Append session by TEID match
 				}

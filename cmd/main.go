@@ -2,18 +2,18 @@ package main
 
 import (
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/api/rest"
+	"github.com/edgecomllc/eupf/cmd/server"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/edgecomllc/eupf/cmd/api/rest"
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
-	"github.com/edgecomllc/eupf/cmd/server"
 	"github.com/edgecomllc/eupf/cmd/utils"
 
 	"github.com/cilium/ebpf/link"
@@ -64,6 +64,7 @@ func main() {
 
 	defer bpfObjects.Close()
 
+	links := make([]link.Link, 0, len(config.Conf.InterfaceName))
 	for _, ifaceName := range config.Conf.InterfaceName {
 		iface, err := net.InterfaceByName(ifaceName)
 		if err != nil {
@@ -74,15 +75,25 @@ func main() {
 		l, err := link.AttachXDP(link.XDPOptions{
 			Program:   bpfObjects.UpfIpEntrypointFunc,
 			Interface: iface.Index,
-			Flags:     StringToXDPAttachMode(config.Conf.XDPAttachMode),
+			Flags:     core.StringToXDPAttachMode(config.Conf.XDPAttachMode),
 		})
 		if err != nil {
 			log.Fatal().Msgf("Could not attach XDP program: %s", err.Error())
 		}
-		defer l.Close()
+
+		links = append(links, l)
 
 		log.Info().Msgf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	}
+
+	defer func() {
+		for _, l := range links {
+			err := l.Close()
+			if err != nil {
+				log.Error().Msgf("error closing link: %s", err.Error())
+			}
+		}
+	}()
 
 	log.Info().Msgf("Initialize resources: UEIP pool (CIDR: \"%s\"), TEID pool (size: %d)", config.Conf.UEIPPool, config.Conf.FTEIDPool)
 	resourceManager, err := service.NewResourceManager(config.Conf.UEIPPool, config.Conf.FTEIDPool)
@@ -156,15 +167,28 @@ func main() {
 	go sxbConn.Run()
 	defer sxbConn.Close()
 
+	gtpPathManager := core.NewGtpPathManager(config.Conf.N3Address+core.GTPPortStr, time.Duration(config.Conf.GtpEchoInterval)*time.Second)
+	for _, peer := range config.Conf.GtpPeer {
+		gtpPathManager.AddGtpPath(peer)
+	}
+	gtpPathManager.Run()
+	defer gtpPathManager.Stop()
+
 	ForwardPlaneStats := ebpf.UpfXdpActionStatistic{
 		BpfObjects: bpfObjects,
 	}
 
 	h := rest.NewApiHandler(
 		bpfObjects,
-		[]*core.PfcpConnection{pfcpConn, sxaConn, sxbConn},
+		map[string]*core.PfcpConnection{
+			core.N4PFCPKeyName:  pfcpConn,
+			core.SxaPFCPKeyName: sxaConn,
+			core.SxbPFCPKeyName: sxbConn,
+		},
 		&ForwardPlaneStats,
 		&config.Conf,
+		&links,
+		gtpPathManager,
 	)
 
 	engine := h.InitRoutes()
@@ -187,13 +211,6 @@ func main() {
 		}
 	}()
 
-	gtpPathManager := core.NewGtpPathManager(config.Conf.N3Address+":2152", time.Duration(config.Conf.GtpEchoInterval)*time.Second)
-	for _, peer := range config.Conf.GtpPeer {
-		gtpPathManager.AddGtpPath(peer)
-	}
-	gtpPathManager.Run()
-	defer gtpPathManager.Stop()
-
 	// Print the contents of the BPF hash map (source IP address -> packet count).
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
@@ -211,18 +228,5 @@ func main() {
 			log.Info().Msgf("Received signal, exiting program..")
 			return
 		}
-	}
-}
-
-func StringToXDPAttachMode(Mode string) link.XDPAttachFlags {
-	switch Mode {
-	case "generic":
-		return link.XDPGenericMode
-	case "native":
-		return link.XDPDriverMode
-	case "offload":
-		return link.XDPOffloadMode
-	default:
-		return link.XDPGenericMode
 	}
 }

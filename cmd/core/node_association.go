@@ -20,6 +20,7 @@ type NodeAssociation struct {
 	HeartbeatsActive bool
 	sync.Mutex       `json:"-"`
 	// AssociationStart time.Time // Held until propper failure detection is implemented
+	HeartbeatTimeout *time.Timer
 }
 
 func NewNodeAssociation(remoteNodeID string, addr string) *NodeAssociation {
@@ -56,9 +57,9 @@ func (association *NodeAssociation) ScheduleHeartbeat(conn *PfcpConnection) {
 		sequence := association.NewSequenceID()
 		SendHeartbeatRequest(conn, sequence, association.Addr)
 
-		heartbeatTimeout := time.NewTimer(time.Duration(config.Conf.HeartbeatTimeout) * time.Second)
+		association.HeartbeatTimeout = time.NewTimer(time.Duration(config.Conf.HeartbeatTimeout) * time.Second)
 		select {
-		case <-heartbeatTimeout.C:
+		case <-association.HeartbeatTimeout.C:
 			failedHeartbeats++
 			if failedHeartbeats >= config.Conf.HeartbeatRetries {
 				log.Warn().Msgf("the number of unanswered heartbeats has reached the limit, association deleted: %s", association.Addr)
@@ -68,7 +69,7 @@ func (association *NodeAssociation) ScheduleHeartbeat(conn *PfcpConnection) {
 			}
 		case seq := <-association.HeartbeatChannel:
 			if sequence == seq {
-				heartbeatTimeout.Stop()
+				association.HeartbeatTimeout.Stop()
 				failedHeartbeats = 0
 				<-time.After(time.Duration(config.Conf.HeartbeatInterval) * time.Second)
 			}

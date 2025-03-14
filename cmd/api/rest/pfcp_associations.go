@@ -25,7 +25,7 @@ func (h *ApiHandler) listPfcpAssociations(c *gin.Context) {
 
 	nodeAssociationsList := []NodeAssociationDescription{}
 
-	for _, c := range h.PfcpSrv {
+	for _, c := range h.GetPFCPSrv() {
 		for _, v := range c.NodeAssociations {
 			nodeAssociationsList = append(nodeAssociationsList, NodeAssociationDescription{
 				ID:   v.ID,
@@ -46,7 +46,7 @@ func (h *ApiHandler) listPfcpAssociations(c *gin.Context) {
 func (h *ApiHandler) listPfcpAssociationsFull(c *gin.Context) {
 
 	associations := map[string]*core.NodeAssociation{}
-	for _, c := range h.PfcpSrv {
+	for _, c := range h.GetPFCPSrv() {
 		maps.Copy(associations, c.NodeAssociations)
 	}
 

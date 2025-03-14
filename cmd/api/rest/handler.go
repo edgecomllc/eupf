@@ -1,11 +1,11 @@
 package rest
 
 import (
-	"net/http"
-
+	"github.com/cilium/ebpf/link"
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
+	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,23 +25,33 @@ import (
 
 type ApiHandler struct {
 	BpfObjects        *ebpf.BpfObjects
-	PfcpSrv           []*core.PfcpConnection
+	pfcpSrv           map[string]*core.PfcpConnection
 	ForwardPlaneStats *ebpf.UpfXdpActionStatistic
 	Cfg               *config.UpfConfig
+	Links             *[]link.Link
+	GtpPathManager    *core.GtpPathManager
 }
 
 func NewApiHandler(
 	bpfObjects *ebpf.BpfObjects,
-	pfcpSrv []*core.PfcpConnection,
+	pfcpSrv map[string]*core.PfcpConnection,
 	forwardPlaneStats *ebpf.UpfXdpActionStatistic,
 	cfg *config.UpfConfig,
+	links *[]link.Link,
+	gtpPathManager *core.GtpPathManager,
 ) *ApiHandler {
 	return &ApiHandler{
 		BpfObjects:        bpfObjects,
-		PfcpSrv:           pfcpSrv,
+		pfcpSrv:           pfcpSrv,
 		ForwardPlaneStats: forwardPlaneStats,
 		Cfg:               cfg,
+		Links:             links,
+		GtpPathManager:    gtpPathManager,
 	}
+}
+
+func (h *ApiHandler) GetPFCPSrv() map[string]*core.PfcpConnection {
+	return h.pfcpSrv
 }
 
 func (h *ApiHandler) InitRoutes() *gin.Engine {
@@ -72,7 +82,14 @@ func (h *ApiHandler) initDefaultRoutes(group *gin.RouterGroup) {
 	config := group.Group("config")
 	{
 		config.GET("", h.displayConfig)
-		config.POST("", h.editConfig)
+		config.POST("/logging_level", h.editLoggingLevelConfig)
+		config.POST("/dataplane_ebpf", h.editDataPlaneConfig)
+		config.POST("/dataplane_addresses", h.editDataPlaneAddressesConfig)
+		config.POST("/pfcp_n4", h.editPFCPN4Config)
+		config.POST("/pfcp_sxa", h.editPFCPSxaConfig)
+		config.POST("/pfcp_sxb", h.editPFCPSxbConfig)
+		config.POST("/pfcp_timers", h.editPFCPTimersConfig)
+		config.POST("/gtp_path", h.editGTPPathConfig)
 	}
 
 	pdrMap := group.Group("uplink_pdr_map")
@@ -115,7 +132,14 @@ func (h *ApiHandler) initDefaultRoutes(group *gin.RouterGroup) {
 }
 
 func (h *ApiHandler) InitMetricsRoute() *gin.Engine {
-	core.RegisterMetrics(*h.ForwardPlaneStats, h.PfcpSrv)
+	pfcpSrv := h.GetPFCPSrv()
+	conns := make([]*core.PfcpConnection, 0, len(pfcpSrv))
+
+	for _, conn := range pfcpSrv {
+		conns = append(conns, conn)
+	}
+
+	core.RegisterMetrics(*h.ForwardPlaneStats, conns)
 
 	router := gin.Default()
 	config := cors.DefaultConfig()

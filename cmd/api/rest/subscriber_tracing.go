@@ -35,7 +35,7 @@ func (h *ApiHandler) listTraces(c *gin.Context) {
 	}
 
 	var subsList []tracing.TraceRecord
-	for _, conn := range h.PfcpSrv {
+	for _, conn := range h.GetPFCPSrv() {
 		if imsi != "" {
 			if s, err := conn.GetTracingRecordByImsi(imsi); err == nil {
 				subsList = append(subsList, s)
@@ -72,7 +72,7 @@ func (h *ApiHandler) startTrace(c *gin.Context) {
 		return
 	}
 
-	for _, conn := range h.PfcpSrv {
+	for _, conn := range h.GetPFCPSrv() {
 		if imsi != "" {
 			_ = conn.EnableTracingByImsi(imsi)
 		}
@@ -95,7 +95,7 @@ func (h *ApiHandler) stopTrace(c *gin.Context) {
 	}
 
 	var subsList []tracing.TraceRecord
-	for _, conn := range h.PfcpSrv {
+	for _, conn := range h.GetPFCPSrv() {
 		if imsi != "" {
 			if s, err := conn.DisableTracingByImsi(imsi); err == nil {
 				subsList = append(subsList, s)

@@ -18,6 +18,8 @@ type GtpPathManager struct {
 	checkInterval time.Duration
 	ctx           context.Context
 	cancelCtx     context.CancelFunc
+
+	ticker *time.Ticker
 }
 
 func NewGtpPathManager(localAddress string, interval time.Duration) *GtpPathManager {
@@ -35,16 +37,40 @@ func (gtpPathManager *GtpPathManager) AddGtpPath(gtpPeerAddress string) {
 	gtpPathManager.peers[gtpPeerAddress] = 0
 }
 
+func (gtpPathManager *GtpPathManager) UpdateGtpPath(gtpPeerAddresses []string) {
+	newPeers := make(map[string]uint16, len(gtpPeerAddresses))
+
+	for _, peerAddress := range gtpPeerAddresses {
+		if _, ok := gtpPathManager.peers[peerAddress]; !ok {
+			newPeers[peerAddress] = gtpPathManager.peers[peerAddress]
+		} else {
+			newPeers[peerAddress] = 0
+		}
+	}
+
+	gtpPathManager.peers = newPeers
+}
+
+func (gtpPathManager *GtpPathManager) UpdateCheckTicker(newTicker *time.Ticker) {
+	gtpPathManager.ticker = newTicker
+}
+
+func (gtpPathManager *GtpPathManager) UpdateLocalAddress(newLocalAddress string) {
+	gtpPathManager.localAddress = newLocalAddress
+}
+
 func (gtpPathManager *GtpPathManager) Run() {
 	go func() {
-		ticker := time.NewTicker(gtpPathManager.checkInterval)
-		defer ticker.Stop()
+		gtpPathManager.ticker = time.NewTicker(gtpPathManager.checkInterval)
+
+		defer gtpPathManager.ticker.Stop()
 		for {
 			select {
 			case <-gtpPathManager.ctx.Done():
 				// The context is over, stop processing results
 				return
-			case <-ticker.C:
+			case <-gtpPathManager.ticker.C:
+				log.Debug().Msg("gpt path manage trigger")
 				for peer, sequenceNumber := range gtpPathManager.peers {
 					log.Trace().Msgf("Send GTP Echo request to %s, seq %d", peer, sequenceNumber)
 					elapseTime, err := gtpPathManager.sendEcho(peer, sequenceNumber)

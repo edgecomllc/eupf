@@ -36,23 +36,24 @@ var pfcpHandlers = PfcpHandlerMap{
 }
 
 type PfcpConnection struct {
-	udpConn           *net.UDPConn
-	pfcpHandlerMap    PfcpHandlerMap
-	associationMutex  *sync.Mutex
-	NodeAssociations  map[string]*NodeAssociation
-	nodeId            string
-	nodeAddrV4        netip.AddrPort
-	n3Address         net.IP
-	n9Address         net.IP
-	mapOperations     ebpf.ForwardingPlaneController
-	RecoveryTimestamp time.Time
-	featuresOctets    []uint8
-	ResourceManager   *service.ResourceManager
-	heartbeatFailedC  chan string
-	nodes             []AssociationConnector
-	neValidator       *NeValidator
-	tracingStorage    tracing.TraceRecordStorage
-	dumper            utils.Dumper
+	udpConn                *net.UDPConn
+	pfcpHandlerMap         PfcpHandlerMap
+	associationMutex       *sync.Mutex
+	NodeAssociations       map[string]*NodeAssociation
+	nodeId                 string
+	nodeAddrV4             netip.AddrPort
+	n3Address              net.IP
+	n9Address              net.IP
+	mapOperations          ebpf.ForwardingPlaneController
+	RecoveryTimestamp      time.Time
+	featuresOctets         []uint8
+	ResourceManager        *service.ResourceManager
+	heartbeatFailedC       chan string
+	nodes                  []AssociationConnector
+	neValidator            *NeValidator
+	tracingStorage         tracing.TraceRecordStorage
+	dumper                 utils.Dumper
+	AssociationSetupTicker *time.Ticker
 }
 
 func NewPfcpConnection(
@@ -121,6 +122,73 @@ func NewPfcpConnection(
 	}, nil
 }
 
+func (connection *PfcpConnection) Update(
+	pfcpAddress string,
+	pfcpNodeId string,
+	pfcpRemoteNodes []string,
+) error {
+	if connection.udpConn.LocalAddr().String() != pfcpAddress {
+		udpAddr, err := net.ResolveUDPAddr("udp", pfcpAddress)
+		if err != nil {
+			log.Warn().Msgf("Can't resolve UDP address: %s", err.Error())
+			return err
+		}
+
+		newUdpConn, err := net.ListenUDP("udp", udpAddr)
+		if err != nil {
+			log.Warn().Msgf("Can't listen UDP address: %s", err.Error())
+			return err
+		}
+
+		log.Info().Msgf("Starting new PFCP connection: %v", udpAddr)
+
+		oldUDPConn := connection.udpConn
+		connection.udpConn = newUdpConn
+		connection.nodeId = pfcpNodeId
+
+		err = oldUDPConn.Close()
+		if err != nil {
+			log.Error().Msgf("Can't close old UDP connection: %s", err.Error())
+		}
+
+		log.Info().Msgf("Delete old PFCP connection: %v", udpAddr)
+	}
+
+	return nil
+}
+
+func (connection *PfcpConnection) GetLocalAddr() string {
+	return connection.udpConn.LocalAddr().String()
+}
+
+func (connection *PfcpConnection) UpdateN3Address(n3addr net.IP) {
+	connection.n3Address = n3addr
+}
+
+func (connection *PfcpConnection) UpdateN9Address(n9addr net.IP) {
+	connection.n9Address = n9addr
+}
+
+func (connection *PfcpConnection) GetN3Addr() string {
+	return connection.n3Address.String()
+}
+
+func (connection *PfcpConnection) GetN9Addr() string {
+	return connection.n9Address.String()
+}
+
+func (connection *PfcpConnection) GetMapOperations() ebpf.ForwardingPlaneController {
+	return connection.mapOperations
+}
+
+func (connection *PfcpConnection) GetResourceManager() *service.ResourceManager {
+	return connection.ResourceManager
+}
+
+func (connection *PfcpConnection) GetDumper() utils.Dumper {
+	return connection.dumper
+}
+
 func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociation {
 	if assoc, ok := connection.NodeAssociations[assocAddr]; ok {
 		return assoc
@@ -128,8 +196,8 @@ func (connection *PfcpConnection) GetAssociation(assocAddr string) *NodeAssociat
 	return nil
 }
 
-func (c *PfcpConnection) ValidateNetworkInstance(networkInstance string) bool {
-	return c.neValidator.Validate(networkInstance)
+func (connection *PfcpConnection) ValidateNetworkInstance(networkInstance string) bool {
+	return connection.neValidator.Validate(networkInstance)
 }
 
 func (connection *PfcpConnection) SetRemoteNodes(nodes []AssociationConnector) {
@@ -137,14 +205,14 @@ func (connection *PfcpConnection) SetRemoteNodes(nodes []AssociationConnector) {
 }
 
 func (connection *PfcpConnection) Run() {
-
-	ticker := time.NewTicker(time.Duration(config.Conf.AssociationSetupTimeout) * time.Second)
+	connection.AssociationSetupTicker = time.NewTicker(time.Duration(config.Conf.AssociationSetupTimeout) * time.Second)
 	reportTicker := time.NewTicker(time.Duration(60) * time.Second)
 	buf := make([]byte, 1500)
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-connection.AssociationSetupTicker.C:
+			log.Debug().Msgf("pfcp address: %s", connection.GetLocalAddr())
 			connection.RefreshAssociations()
 		case associationAddr := <-connection.heartbeatFailedC:
 			connection.DeleteAssociation(associationAddr)
@@ -168,7 +236,10 @@ func (connection *PfcpConnection) Run() {
 }
 
 func (connection *PfcpConnection) Close() {
-	connection.udpConn.Close()
+	err := connection.udpConn.Close()
+	if err != nil {
+		log.Error().Msgf("Error closing UDP socket: %s", err.Error())
+	}
 }
 
 func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, err error) {
