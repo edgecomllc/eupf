@@ -1,0 +1,115 @@
+
+services:
+  sgwu:
+    image: ghcr.io/edgecomllc/eupf-dev:63b691fb66baa5ca3739457fbedecdee59d4c82a
+    privileged: true
+    volumes:
+      - /sys/fs/bpf:/sys/fs/bpf
+      - ./dumps:/dumps
+    environment:
+      GIN_MODE: release
+      UPF_INTERFACE_NAME: eth0
+      UPF_XDP_ATTACH_MODE: generic
+      UPF_API_ADDRESS: ":8081"
+      UPF_PFCP_ADDRESS: "localhost:8805"
+      UPF_SXA_ADDRESS: "sgwu:8805"
+      UPF_SXA_REMOTE_NODE: sgwc
+      UPF_S1U_ADDRESS: ${SGWU_IP}
+      UPF_S5S8_ADDRESS: ${SGWU_IP}
+      UPF_METRICS_ADDRESS: ":9091"
+      UPF_PFCP_NODE_ID: "172.20.0.100"
+      UPF_N9_ADDRESS: ${SGWU_IP}
+      UPF_GTP_PEER: ${SRS_ENB_IP}:2152
+      UPF_LOGGING_LEVEL: debug
+    entrypoint: ""
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apk add iproute2
+        apk add tcpdump
+        echo "1200 n6if" >> /etc/iproute2/rt_tables
+        ip rule add from 10.167.71.192/26 table n6if
+        ip route add default via `nslookup nat | awk '/^Address: / { print $2 }'` dev eth0 table n6if
+        /app/bin/eupf
+    ulimits:
+      memlock: -1
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    networks:
+      core4g:
+        ipv4_address: ${SGWU_IP}
+    expose:
+      - "2152/udp"
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+
+
+
+  upf:
+    image: ghcr.io/edgecomllc/eupf-dev:63b691fb66baa5ca3739457fbedecdee59d4c82a
+    privileged: true
+    volumes:
+      - /sys/fs/bpf:/sys/fs/bpf
+      - ./dumps:/dumps
+    environment:
+      GIN_MODE: release
+      UPF_INTERFACE_NAME: eth0
+      UPF_XDP_ATTACH_MODE: generic
+      UPF_API_ADDRESS: ":8081"
+      UPF_PFCP_ADDRESS: "localhost:8805"
+      UPF_SXB_ADDRESS: "${UPF_IP}:8806"
+      UPF_SXB_REMOTE_NODE: smf
+      UPF_METRICS_ADDRESS: ":9091"
+      UPF_PA_ADDRESS: ${UPF_IP}
+      UPF_N9_ADDRESS: ${UPF_IP}
+      UPF_PFCP_NODE_ID: "172.20.0.100"
+      UPF_N3_ADDRESS: "172.20.0.100"
+      UPF_LOGGING_LEVEL: debug
+    entrypoint: ""
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apk add iproute2
+        apk add tcpdump
+        echo "1200 n6if" >> /etc/iproute2/rt_tables
+        ip rule add from 10.167.71.192/26 table n6if
+        ip route add default via `nslookup nat | awk '/^Address: / { print $2 }'` dev eth0 table n6if
+        /app/bin/eupf
+    ulimits:
+      memlock: -1
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    networks:
+      core4g:
+        ipv4_address: ${UPF_IP}
+    expose:
+      - "2152/udp"
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+
+
+
+  nat:
+    image: wbitt/network-multitool:alpine-minimal
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+    cap_add:
+      - NET_ADMIN
+    networks:
+      core4g:
+    entrypoint: ""
+    command:
+      - /bin/sh
+      - -c
+      - |
+        iptables -t nat -A POSTROUTING -s 10.167.71.192/26 -o eth0 -j MASQUERADE
+        iptables -A FORWARD -j ACCEPT
+        ip route add 10.167.71.192/26 via `nslookup upf | awk '/^Address: / { print $2 }'` dev eth0
+        tail -f /dev/null
+
+
+
