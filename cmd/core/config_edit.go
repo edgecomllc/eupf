@@ -3,13 +3,14 @@ package core
 import (
 	"errors"
 	"fmt"
+	"net"
+	"strings"
+	"time"
+
 	"github.com/cilium/ebpf/link"
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
-	"net"
-	"strings"
-	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -172,21 +173,33 @@ func UpdatePFCPConnections(
 	case N4PFCPKeyName:
 		remotePFCPNodes := make([]AssociationConnector, 0, len(remoteNodes))
 		for _, remoteNode := range remoteNodes {
-			remotePFCPNodes = append(remotePFCPNodes, NewDefaultAssociationConnector(remoteNode))
+			connector, err := NewDefaultAssociationConnector(remoteNode)
+			if err != nil {
+				return fmt.Errorf("failed to create default association connector: %w", err)
+			}
+			remotePFCPNodes = append(remotePFCPNodes, connector)
 		}
 
 		conn.SetRemoteNodes(remotePFCPNodes)
 	case SxaPFCPKeyName:
 		remotePFCPNodes := make([]AssociationConnector, 0, len(remoteNodes))
 		for _, remoteNode := range remoteNodes {
-			remotePFCPNodes = append(remotePFCPNodes, NewSxaAssociationConnector(remoteNode, config.Conf.S1UAddress, config.Conf.S5S8Address))
+			connector, err := NewSxaAssociationConnector(remoteNode, config.Conf.S1UAddress, config.Conf.S5S8Address)
+			if err != nil {
+				return fmt.Errorf("failed to create sxa association connector: %w", err)
+			}
+			remotePFCPNodes = append(remotePFCPNodes, connector)
 		}
 
 		conn.SetRemoteNodes(remotePFCPNodes)
 	case SxbPFCPKeyName:
 		remotePFCPNodes := make([]AssociationConnector, 0, len(remoteNodes))
 		for _, remoteNode := range remoteNodes {
-			remotePFCPNodes = append(remotePFCPNodes, NewSxbAssociationConnector(remoteNode, config.Conf.PAAddress))
+			connector, err := NewSxbAssociationConnector(remoteNode, config.Conf.PAAddress)
+			if err != nil {
+				return fmt.Errorf("failed to create sxb association connector: %w", err)
+			}
+			remotePFCPNodes = append(remotePFCPNodes, connector)
 		}
 
 		conn.SetRemoteNodes(remotePFCPNodes)

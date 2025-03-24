@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/api/rest"
-	"github.com/edgecomllc/eupf/cmd/server"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/edgecomllc/eupf/cmd/api/rest"
+	"github.com/edgecomllc/eupf/cmd/server"
 
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
@@ -117,7 +118,12 @@ func main() {
 	}
 	remoteNodes := []core.AssociationConnector{}
 	for _, remoteNode := range config.Conf.PfcpRemoteNode {
-		remoteNodes = append(remoteNodes, core.NewDefaultAssociationConnector(remoteNode))
+		connector, err := core.NewDefaultAssociationConnector(remoteNode)
+		if err != nil {
+			log.Warn().Msgf("failed to create default association connector: %v", err)
+			continue
+		}
+		remoteNodes = append(remoteNodes, connector)
 	}
 	pfcpConn.SetRemoteNodes(remoteNodes)
 	go pfcpConn.Run()
@@ -139,7 +145,12 @@ func main() {
 	}
 	sxaRemoteNodes := []core.AssociationConnector{}
 	for _, remoteNode := range config.Conf.SxaRemoteNode {
-		sxaRemoteNodes = append(remoteNodes, core.NewSxaAssociationConnector(remoteNode, config.Conf.S1UAddress, config.Conf.S5S8Address))
+		connector, err := core.NewSxaAssociationConnector(remoteNode, config.Conf.S1UAddress, config.Conf.S5S8Address)
+		if err != nil {
+			log.Warn().Msgf("failed to create sxa association connector: %v", err)
+			continue
+		}
+		sxaRemoteNodes = append(remoteNodes, connector)
 	}
 	sxaConn.SetRemoteNodes(sxaRemoteNodes)
 	go sxaConn.Run()
@@ -161,7 +172,12 @@ func main() {
 	}
 	sxbRemoteNodes := []core.AssociationConnector{}
 	for _, remoteNode := range config.Conf.SxbRemoteNode {
-		sxbRemoteNodes = append(remoteNodes, core.NewSxbAssociationConnector(remoteNode, config.Conf.PAAddress))
+		connector, err := core.NewSxbAssociationConnector(remoteNode, config.Conf.PAAddress)
+		if err != nil {
+			log.Warn().Msgf("failed to create sxb association connector: %v", err)
+			continue
+		}
+		sxbRemoteNodes = append(remoteNodes, connector)
 	}
 	sxbConn.SetRemoteNodes(sxbRemoteNodes)
 	go sxbConn.Run()

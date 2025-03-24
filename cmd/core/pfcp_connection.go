@@ -547,10 +547,15 @@ type DefaultAssociationConnector struct {
 	address string
 }
 
-func NewDefaultAssociationConnector(address string) *DefaultAssociationConnector {
-	return &DefaultAssociationConnector{
-		address: address,
+func NewDefaultAssociationConnector(address string) (*DefaultAssociationConnector, error) {
+	resolvedAddr, err := net.ResolveIPAddr("ip", address)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve remote node address %s: %w", address, err)
 	}
+
+	return &DefaultAssociationConnector{
+		address: resolvedAddr.String(),
+	}, nil
 }
 
 func (connector *DefaultAssociationConnector) getAddress() string {
@@ -583,12 +588,17 @@ type SxaAssociationConnector struct {
 	s5s8Address string
 }
 
-func NewSxaAssociationConnector(address string, s1uAddress string, s5s8Address string) *SxaAssociationConnector {
+func NewSxaAssociationConnector(address string, s1uAddress string, s5s8Address string) (*SxaAssociationConnector, error) {
+	resolvedAddr, err := net.ResolveIPAddr("ip", address)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve remote node address %s: %w", address, err)
+	}
+
 	return &SxaAssociationConnector{
-		address:     address,
+		address:     resolvedAddr.String(),
 		s1uAddress:  s1uAddress,
 		s5s8Address: s5s8Address,
-	}
+	}, nil
 }
 
 func (connector *SxaAssociationConnector) getAddress() string {
@@ -702,11 +712,16 @@ type SxbAssociationConnector struct {
 	paAddress string
 }
 
-func NewSxbAssociationConnector(address string, paAddress string) *SxbAssociationConnector {
-	return &SxbAssociationConnector{
-		address:   address,
-		paAddress: paAddress,
+func NewSxbAssociationConnector(address string, paAddress string) (*SxbAssociationConnector, error) {
+	resolvedAddr, err := net.ResolveIPAddr("ip", address)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve remote node address %s: %w", address, err)
 	}
+
+	return &SxbAssociationConnector{
+		address:   resolvedAddr.String(),
+		paAddress: paAddress,
+	}, nil
 }
 
 func (connector *SxbAssociationConnector) getAddress() string {
