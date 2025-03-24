@@ -1,0 +1,12 @@
+db_uri: mongodb://mongodb/open5gs
+logger:
+#  file:
+#    path: @localstatedir@/log/open5gs/pcrf.log
+  level: info   # fatal|error|warn|info(default)|debug|trace
+
+global:
+  max:
+    ue: 32  # The number of UE can be increased depending on memory size.
+#    peer: 64
+pcrf:
+  freeDiameter: /opt/open5gs/etc/diameter/pcrf/pcrf.conf

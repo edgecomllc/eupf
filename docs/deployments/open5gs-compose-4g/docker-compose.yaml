@@ -1,0 +1,238 @@
+version: '3.8'
+
+x-container-defaults: &container_defaults
+  restart: unless-stopped
+  # networks:
+  #   - open5gs-main
+
+x-open5gs-svc-image: &open5gs_svc_image
+  image: docker.io/gradiant/open5gs:2.7.1
+  <<: *container_defaults
+
+x-open5gs-svc-envs: &open5gs_svc_envs
+  DB_URI: mongodb://mongodb/open5gs
+
+services:
+
+  mongodb:
+    image: mongo:5.0.10-focal
+    <<: *container_defaults
+    ports:
+      - ${MONGO_EXT_PORT}:27017
+    volumes:
+      - ${DOCKER_SHARED_DIR}/mongodb:/data/db
+      - .deploy/docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo 127.0.0.1:27017/test --quiet
+      interval: 2s
+      timeout: 2s
+      retries: 5
+      start_period: 2s
+    networks:
+      core4g:
+
+  mme:
+    <<: *open5gs_svc_image
+    privileged: true
+    command: open5gs-mmed
+    healthcheck:
+      test: ["CMD-SHELL", "apt update && apt install -y ethtool && ethtool --offload eth0 tx off"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 36412:36412/sctp
+      - 2123:2123/udp
+      - 9091:9090/tcp
+    volumes:
+      - .deploy/docker/mme.yaml:/opt/open5gs/etc/open5gs/mme.yaml
+      - .deploy/docker/diameter/mme:/opt/open5gs/etc/diameter/mme
+    networks:
+      core4g:
+        ipv4_address: ${MME_IP}
+
+
+
+  pcrf:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-pcrfd
+    volumes:
+      - .deploy/docker/pcrf.yaml:/opt/open5gs/etc/open5gs/pcrf.yaml
+      - .deploy/docker/diameter/pcrf:/opt/open5gs/etc/diameter/pcrf
+    environment:
+      <<: *open5gs_svc_envs
+    networks:
+      core4g:
+
+
+
+  hss:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-hssd
+    volumes:
+      - .deploy/docker/hss.yaml:/opt/open5gs/etc/open5gs/hss.yaml
+      - .deploy/docker/diameter/hss:/opt/open5gs/etc/diameter/hss
+    environment:
+      <<: *open5gs_svc_envs
+    networks:
+      core4g:
+
+
+
+  sgwc:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-sgwcd
+    volumes:
+      - .deploy/docker/sgwc.yaml:/opt/open5gs/etc/open5gs/sgwc.yaml
+    networks:
+      core4g:
+
+
+
+  sgwu:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-sgwud
+    ports:
+      - 2152:2152/udp
+    volumes:
+      - .deploy/docker/sgwu.yaml:/opt/open5gs/etc/open5gs/sgwu.yaml
+    networks:
+      core4g:
+
+  smf:
+    <<: *open5gs_svc_image
+    command:
+      - open5gs-smfd
+    ports:
+      - 9092:9090/tcp
+    volumes:
+      - .deploy/docker/smf.yaml:/opt/open5gs/etc/open5gs/smf.yaml
+      - .deploy/docker/diameter/smf:/opt/open5gs/etc/diameter/smf
+    networks:
+      core4g:
+
+
+
+  upf:
+    <<: *open5gs_svc_image
+    ports:
+      - 9093:9090/tcp
+    volumes:
+      - .deploy/docker/upf.yaml:/opt/open5gs/etc/open5gs/upf.yaml
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+    entrypoint: ""
+    command:
+      - /bin/bash
+      - -c
+      - |
+        ip tuntap add name ogstun mode tun
+        ip link set ogstun up
+        echo "Setting IP 10.167.71.193/26 to device ogstun"
+        ip addr add 10.167.71.193/26 dev ogstun;
+        sysctl -w net.ipv4.ip_forward=1;
+        echo "Enable NAT for 10.167.71.193/26 and device ogstun"
+        iptables -t nat -A POSTROUTING -s 10.167.71.193/26 ! -o ogstun -j MASQUERADE;
+
+        open5gs-upfd
+    networks:
+      core4g:
+
+
+  webui:
+    image: gradiant/open5gs-webui:2.7.1
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    ports:
+      - ${WEBUI_EXT_PORT}:9999
+    environment:
+      <<: *open5gs_svc_envs
+    networks:
+      core4g:
+
+  populate:
+    image: docker.io/gradiant/open5gs-dbctl:0.10.3
+    entrypoint: ""
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    command:
+      - /bin/bash
+      - -c
+      - |
+        #open5gs-dbctl add_ue_with_apn 999991234567896 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet
+        open5gs-dbctl add_ue_with_apn ${UE1_IMSI} ${UE1_KI} ${UE1_OP} internet
+        #exit 0
+        tail -f /dev/null
+    environment:
+      <<: *open5gs_svc_envs
+    networks:
+      core4g:
+
+  srsenb_zmq:
+    build: ./srslte
+    container_name: srsenb_zmq
+    stdin_open: true
+    tty: true
+    privileged: true
+    volumes:
+      - ./srslte:/mnt/srslte
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - .env
+    environment:
+      - COMPONENT_NAME=enb_zmq
+    expose:
+      - "36412/sctp"
+      - "2152/udp"
+      - "2000/tcp"
+      - "2001/tcp"
+    networks:
+      core4g:
+        ipv4_address: ${SRS_ENB_IP}
+
+
+  srsue_zmq:
+    build: ./srslte
+    container_name: srsue_zmq
+    stdin_open: true
+    tty: true
+    cap_add:
+      - NET_ADMIN
+    privileged: true
+    volumes:
+      - ./srslte:/mnt/srslte
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - .env
+    environment:
+      - COMPONENT_NAME=ue_zmq
+    expose:
+      - "2000/tcp"
+      - "2001/tcp"
+    networks:
+      core4g:
+        ipv4_address: ${SRS_UE_IP}
+
+
+networks:
+  core4g: # here we set the network name
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet:  10.103.0.1/16
+

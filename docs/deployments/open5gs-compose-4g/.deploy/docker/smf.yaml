@@ -1,0 +1,49 @@
+logger:
+#  file:
+#    path: @localstatedir@/log/open5gs/smf.log
+  level: info   # fatal|error|warn|info(default)|debug|trace
+
+global:
+  max:
+    ue: 32  # The number of UE can be increased depending on memory size.
+#    peer: 64
+
+smf:
+#  sbi:
+#    server:
+#      - address: 0.0.0.0
+#        port: 7777
+#    client:
+##      nrf:
+##        - uri: http://127.0.0.10:7777
+#      scp:
+#        - uri: http://127.0.0.200:7777
+  pfcp:
+    server:
+      - address: smf
+    client:
+      upf:
+        - address: upf
+  gtpc:
+    server:
+      - address: smf
+  gtpu:
+    server:
+      - address: smf
+  metrics:
+    server:
+      - address: 0.0.0.0
+        port: 9090
+  session:
+    - subnet: 10.167.71.192/26
+      gateway: 10.167.71.193
+  dns:
+    - 10.167.225.4
+    - 10.167.225.4
+  mtu: 1400
+#  p-cscf:
+#    - 127.0.0.1
+#    - ::1
+#  ctf:
+#    enabled: auto   # auto(default)|yes|no
+  freeDiameter: /opt/open5gs/etc/diameter/smf/smf.conf

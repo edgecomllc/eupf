@@ -1,0 +1,27 @@
+logger:
+#  file:
+#    path: @localstatedir@/log/open5gs/upf.log
+  level: info   # fatal|error|warn|info(default)|debug|trace
+
+global:
+  max:
+    ue: 32  # The number of UE can be increased depending on memory size.
+#    peer: 64
+
+upf:
+  pfcp:
+    server:
+      - address: upf
+    client:
+#      smf:     #  UPF PFCP Client try to associate SMF PFCP Server
+#        - address: 127.0.0.4
+  gtpu:
+    server:
+      - address: upf
+  session:
+    - subnet: 10.167.71.192/26
+      gateway: 10.167.71.193
+  metrics:
+    server:
+      - address: 0.0.0.0
+        port: 9090
