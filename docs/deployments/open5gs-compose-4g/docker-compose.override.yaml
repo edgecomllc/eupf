@@ -59,7 +59,7 @@ services:
       UPF_XDP_ATTACH_MODE: generic
       UPF_API_ADDRESS: ":8081"
       UPF_PFCP_ADDRESS: "localhost:8805"
-      UPF_SXB_ADDRESS: "${UPF_IP}:8806"
+      UPF_SXB_ADDRESS: "upf:8806"
       UPF_SXB_REMOTE_NODE: smf
       UPF_METRICS_ADDRESS: ":9091"
       UPF_PA_ADDRESS: ${UPF_IP}
