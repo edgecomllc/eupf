@@ -11,6 +11,11 @@ import (
 const flagPresentIPv4 = 2
 
 func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
+	if spdrInfo.PCCInfo != nil {
+		// todo: process pcc rule
+		return
+	}
+
 	if spdrInfo.Ipv4 != nil {
 		if err := mapOperations.PutPdrDownlink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
 			log.Info().Msgf("Can't apply IPv4 PDR: %s", err.Error())

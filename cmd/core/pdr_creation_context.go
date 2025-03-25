@@ -64,6 +64,22 @@ func GetURRIDs(i *ie.IE) ([]uint32, error) {
 }
 
 func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error {
+	if ruleName, err := pdr.ActivatePredefinedRules(); err == nil {
+		if spdrInfo.PCCInfo == nil {
+			spdrInfo.PCCInfo = &PCCInfo{
+				PCCName: ruleName,
+			}
+		} else {
+			spdrInfo.PCCInfo.PCCName = ruleName
+		}
+	}
+
+	if ruleName, err := pdr.DeactivatePredefinedRules(); err == nil {
+		if spdrInfo.PCCInfo != nil && spdrInfo.PCCInfo.PCCName == ruleName {
+			spdrInfo.PCCInfo = nil
+		}
+	}
+
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		spdrInfo.PdrInfo.OuterHeaderRemoval = outerHeaderRemoval
 	}
@@ -166,6 +182,11 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 }
 
 func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
+	if spdrInfo.PCCInfo != nil {
+		// todo: process pcc rule
+		return nil
+	}
+
 
 	//FIXME: Assume that PDR with SDF filter will never been deleting last
 	if spdrInfo.PdrInfo.SdfFilter != nil {
@@ -179,8 +200,7 @@ func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations
 		}
 	} else if spdrInfo.Ipv6 != nil {
 		if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
-			//return fmt.Errorf("can't delete IPv6 PDR: %s", err.Error())
-			log.Warn().Msgf("can't delete IPv6 PDR: %s", err.Error())
+			return fmt.Errorf("Can't delete IPv6 PDR: %s", err.Error())
 		}
 	} else if spdrInfo.Teid > 0 {
 		if _, ok := pdrContext.TEIDCache[uint8(spdrInfo.Teid)]; !ok {

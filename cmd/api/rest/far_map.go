@@ -50,6 +50,7 @@ func (h *ApiHandler) setFarValue(c *gin.Context) {
 	var farElement FarMapElement
 	if err := c.BindJSON(&farElement); err != nil {
 		log.Printf("Parsing request body error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -9,10 +9,11 @@ import (
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
-	"golang.org/x/exp/slices"
 )
 
 const huaweiMode = false // todo: swap to config
@@ -502,7 +503,19 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			spdrInfo := session.GetPDR(pdrId)
 			spdrInfo.PdrInfo.TraceFlag = isTraced
 
+			spdrInfoOld := spdrInfo
+
 			if err := pdrContext.extractPDR(pdr, &spdrInfo); err == nil {
+				if spdrInfoOld.PCCInfo != nil && spdrInfo.PCCInfo == nil {
+					if err := pdrContext.deletePDR(spdrInfoOld, mapOperations); err != nil {
+						log.Info().Msgf("Failed to remove uplink PDR: %v", err)
+					}
+
+					continue
+				} else if spdrInfoOld.PCCInfo != nil {
+					continue
+				}
+
 				session.PutPDR(uint32(pdrId), spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 			} else {
@@ -755,7 +768,6 @@ func GetTransportLevelMarking(far *ie.IE) (uint16, error) {
 	return 0, fmt.Errorf("no TransportLevelMarking found")
 }
 
-// TODO: add making or updating UrrInfo
 func updateUrr(urrInfo *ebpf.UrrInfo, urr *ie.IE) {
 
 	if urr.HasVOLUM() {

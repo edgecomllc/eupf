@@ -41,6 +41,14 @@ type SPDRInfo struct {
 	Ipv6            net.IP
 	NetworkInstance string
 	Allocated       bool
+	PCCInfo   *PCCInfo
+}
+
+type PCCInfo struct {
+	PCCName string
+	//SDFFilter ebpf.SdfFilter
+	//FAR       ebpf.FarInfo
+	//QER       ebpf.QerInfo
 }
 
 type SFarInfo struct {

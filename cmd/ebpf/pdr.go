@@ -336,11 +336,11 @@ func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) (error, UrrInfo) {
 type ForwardingPlaneController interface {
 	PutPdrUplink(teid uint32, pdrInfo PdrInfo) error
 	PutPdrDownlink(ipv4 net.IP, pdrInfo PdrInfo) error
+	PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error
 	UpdatePdrUplink(teid uint32, pdrInfo PdrInfo) error
 	UpdatePdrDownlink(ipv4 net.IP, pdrInfo PdrInfo) error
 	DeletePdrUplink(teid uint32) error
 	DeletePdrDownlink(ipv4 net.IP) error
-	PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error
 	UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error
 	DeleteDownlinkPdrIp6(ipv6 net.IP) error
 	NewFar(farInfo FarInfo) (uint32, error)
@@ -431,6 +431,14 @@ func ToIpEntrypointPdrInfo(defaultPdr PdrInfo) IpEntrypointPdrInfo {
 		pdrToStore.TraceFlag = 0
 	}
 	return pdrToStore
+}
+
+func FromIpEntrypointPdrInfo(storedPdr IpEntrypointPdrInfo) PdrInfo {
+	var pdrInfo PdrInfo
+	pdrInfo.OuterHeaderRemoval = storedPdr.OuterHeaderRemoval
+	pdrInfo.FarId = storedPdr.FarId
+	pdrInfo.QerId = storedPdr.QerId
+	return pdrInfo
 }
 
 func Copy16Ip[T ~[]byte](arr T) [16]byte {
