@@ -82,6 +82,18 @@ func (mapOps *MapOperationsMock) DeleteUrr(internalId uint32) (error, ebpf.UrrIn
 	return nil, mapOps.urr
 }
 
+func (mapOps *MapOperationsMock) GetPdrDownlink(ipv4 net.IP) (*ebpf.PdrInfo, error) {
+	return nil, nil
+}
+
+func (mapOps *MapOperationsMock) GetPdrUplink(teid uint32) (*ebpf.PdrInfo, error) {
+	return nil, nil
+}
+
+func (mapOps *MapOperationsMock) GetDownlinkPdrIp6(ipv6 net.IP) (*ebpf.PdrInfo, error) {
+	return nil, nil
+}
+
 func TestSessionOverwrite(t *testing.T) {
 
 	mapOps := MapOperationsMock{}

@@ -1,0 +1,13 @@
+pcc_rules:
+  - pcc_name: "block_icmp"
+    sdf_filter: "permit out ip from 192.168.1.100/32 to any"
+    far:
+      action: 2
+      outer_header_creation: 0
+      teid: 0
+      remote_ip: 0
+      transport_level_marking: 0
+    qer:
+      qfi: 9
+      max_bitrate_ul: 100000
+      max_bitrate_dl: 100000

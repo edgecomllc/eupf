@@ -6,6 +6,8 @@ import (
 	"net"
 	"time"
 
+	"reflect"
+
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
@@ -126,6 +128,8 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 		}
 
+		sdfFilters := make([]ebpf.SdfFilter, 0)
+
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
@@ -139,6 +143,27 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 			}
 
 			if err := pdrContext.extractPDR(pdr, &spdrInfo); err == nil {
+				if spdrInfo.PCCInfo != nil {
+					rule, ok := conn.PCCRules[spdrInfo.PCCInfo.PCCName]
+					if !ok {
+						log.Warn().
+							Str("pcc rule name", spdrInfo.PCCInfo.PCCName).
+							Uint16("pdrID", pdrId).
+							Str("request address", addr).
+							Msgf("PCC rule not found")
+
+						continue
+					}
+
+					spdrInfo.PCCInfo = &rule
+					sdfFilters = append(sdfFilters, spdrInfo.PCCInfo.SDFFilter)
+					log.Debug().
+						Str("pcc rule name", spdrInfo.PCCInfo.PCCName).
+						Uint16("pdrID", pdrId).
+						Str("request address", addr).
+						Msgf("PCC rule found: %+v", spdrInfo.PCCInfo)
+				}
+
 				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 				createdPDRs = append(createdPDRs, spdrInfo)
@@ -146,6 +171,8 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				log.Error().Msgf("error extracting PDR info: %s", err.Error())
 			}
 		}
+
+		applySdfFiltersToSession(session, sdfFilters, mapOperations)
 
 		return nil
 	}()
@@ -205,6 +232,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 	deletedURRs := make([]*ie.IE, 0, len(session.URRs))
 	mapOperations := conn.mapOperations
 	pdrContext := NewPDRCreationContext(session, conn.ResourceManager)
+
 	for _, pdrInfo := range session.PDRs {
 		if err := pdrContext.deletePDR(pdrInfo, mapOperations); err != nil {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
@@ -472,6 +500,8 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		// obtain tracing flag from storage by IMSI or MSISDN
 		isTraced := conn.NeedSessionTrace(imsi, msisdn)
 
+		sdfFilters := make([]ebpf.SdfFilter, 0)
+
 		for _, pdr := range req.CreatePDR {
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
@@ -486,6 +516,27 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 
 			if err := pdrContext.extractPDR(pdr, &spdrInfo); err == nil {
+				if spdrInfo.PCCInfo != nil {
+					rule, ok := conn.PCCRules[spdrInfo.PCCInfo.PCCName]
+					if !ok {
+						log.Warn().
+							Str("pcc rule name", spdrInfo.PCCInfo.PCCName).
+							Uint16("pdrID", pdrId).
+							Str("request address", addr).
+							Msgf("PCC rule not found")
+
+						continue
+					}
+
+					spdrInfo.PCCInfo = &rule
+					sdfFilters = append(sdfFilters, spdrInfo.PCCInfo.SDFFilter)
+					log.Debug().
+						Str("pcc rule name", spdrInfo.PCCInfo.PCCName).
+						Uint16("pdrID", pdrId).
+						Str("request address", addr).
+						Msgf("PCC rule found: %+v", spdrInfo.PCCInfo)
+				}
+
 				session.PutPDR(spdrInfo.PdrID, spdrInfo)
 				applyPDR(spdrInfo, mapOperations)
 				createdPDRs = append(createdPDRs, spdrInfo)
@@ -493,6 +544,11 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				log.Info().Msgf("Error extracting PDR info: %s", err.Error())
 			}
 		}
+
+		applySdfFiltersToSession(session, sdfFilters, mapOperations)
+
+		delSDFFilters := make([]ebpf.SdfFilter, 0)
+		sdfFilters = make([]ebpf.SdfFilter, 0)
 
 		for _, pdr := range req.UpdatePDR {
 			pdrId, err := pdr.PDRID()
@@ -511,7 +567,28 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 						log.Info().Msgf("Failed to remove uplink PDR: %v", err)
 					}
 
+					delSDFFilters = append(delSDFFilters, spdrInfoOld.PCCInfo.SDFFilter)
+
 					continue
+				} else if spdrInfoOld.PCCInfo == nil && spdrInfo.PCCInfo != nil {
+					rule, ok := conn.PCCRules[spdrInfo.PCCInfo.PCCName]
+					if !ok {
+						log.Warn().
+							Str("pcc rule name", spdrInfo.PCCInfo.PCCName).
+							Uint16("pdrID", pdrId).
+							Str("request address", addr).
+							Msgf("PCC rule not found")
+
+						continue
+					}
+
+					spdrInfo.PCCInfo = &rule
+					sdfFilters = append(sdfFilters, spdrInfo.PCCInfo.SDFFilter)
+					log.Debug().
+						Str("pcc rule name", spdrInfo.PCCInfo.PCCName).
+						Uint16("pdrID", pdrId).
+						Str("request address", addr).
+						Msgf("PCC rule found: %+v", spdrInfo.PCCInfo)
 				} else if spdrInfoOld.PCCInfo != nil {
 					continue
 				}
@@ -522,6 +599,9 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				log.Info().Msgf("Error extracting PDR info: %s", err.Error())
 			}
 		}
+
+		removeSdfFiltersFromSession(session, delSDFFilters, mapOperations)
+		applySdfFiltersToSession(session, sdfFilters, mapOperations)
 
 		for _, pdr := range req.RemovePDR {
 			pdrId, _ := pdr.PDRID()
@@ -560,6 +640,92 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 	modResp := message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, additionalIEs...)
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
 	return modResp, traced, nil
+}
+
+func applySdfFiltersToSession(session *Session, sdfFilters []ebpf.SdfFilter, mapOps ebpf.ForwardingPlaneController) {
+	if len(sdfFilters) == 0 {
+		return
+	}
+
+	for _, spdrInfo := range session.PDRs {
+		log.Info().Msgf("Applying SDF Filters: %+v", spdrInfo)
+		if spdrInfo.PCCInfo != nil || (spdrInfo.Teid == 0 && spdrInfo.Ipv4 == nil && spdrInfo.Ipv6 == nil) {
+			continue
+		}
+
+		if spdrInfo.PdrInfo.SdfFilter == nil {
+			spdrInfo.PdrInfo.SdfFilter = make([]ebpf.SdfFilter, 0)
+		}
+
+		for _, filter := range sdfFilters {
+			if len(spdrInfo.PdrInfo.SdfFilter) >= 2 {
+				log.Warn().Uint32("pdrID", spdrInfo.PdrID).Msg("sdfFilter is full")
+				break
+			}
+			spdrInfo.PdrInfo.SdfFilter = append(spdrInfo.PdrInfo.SdfFilter, filter)
+		}
+
+		session.PutPDR(spdrInfo.PdrID, spdrInfo)
+		updatePdrInMap(spdrInfo, mapOps)
+	}
+}
+
+func removeSdfFiltersFromSession(session *Session, delFilters []ebpf.SdfFilter, mapOps ebpf.ForwardingPlaneController) {
+	if len(delFilters) == 0 {
+		return
+	}
+
+	filterSet := make(map[string]struct{})
+	for _, filter := range delFilters {
+		filterSet[serializeSdfFilter(filter)] = struct{}{}
+	}
+
+	for _, spdrInfo := range session.PDRs {
+		if spdrInfo.PCCInfo != nil ||
+			(spdrInfo.Teid == 0 && spdrInfo.Ipv4 == nil && spdrInfo.Ipv6 == nil) ||
+			spdrInfo.PdrInfo.SdfFilter == nil {
+			continue
+		}
+
+		newFilters := make([]ebpf.SdfFilter, 0)
+		for _, existing := range spdrInfo.PdrInfo.SdfFilter {
+			if _, found := filterSet[serializeSdfFilter(existing)]; !found {
+				newFilters = append(newFilters, existing)
+			}
+		}
+
+		spdrInfo.PdrInfo.SdfFilter = newFilters
+		session.PutPDR(spdrInfo.PdrID, spdrInfo)
+		updatePdrInMap(spdrInfo, mapOps)
+	}
+}
+
+func updatePdrInMap(spdrInfo SPDRInfo, mapOps ebpf.ForwardingPlaneController) {
+	switch {
+	case spdrInfo.Ipv4 != nil:
+		if err := mapOps.UpdatePdrDownlink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+			log.Info().Msgf("Can't update IPv4 PDR: %s", err)
+		}
+	case spdrInfo.Ipv6 != nil:
+		if err := mapOps.UpdateDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
+			log.Info().Msgf("Can't update IPv6 PDR: %s", err)
+		}
+	case spdrInfo.Teid > 0:
+		if err := mapOps.UpdatePdrUplink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
+			log.Info().Msgf("Can't update GTP PDR: %s", err)
+		}
+	}
+}
+
+func serializeSdfFilter(filter ebpf.SdfFilter) string {
+	t := reflect.TypeOf(filter)
+	v := reflect.ValueOf(filter)
+
+	result := ""
+	for i := 0; i < t.NumField(); i++ {
+		result += fmt.Sprintf("%v|", v.Field(i).Interface())
+	}
+	return result
 }
 
 func convertErrorToIeCause(err error) *ie.IE {

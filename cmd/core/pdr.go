@@ -12,7 +12,6 @@ const flagPresentIPv4 = 2
 
 func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 	if spdrInfo.PCCInfo != nil {
-		// todo: process pcc rule
 		return
 	}
 

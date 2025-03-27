@@ -65,6 +65,8 @@ func GetURRIDs(i *ie.IE) ([]uint32, error) {
 
 func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error {
 	if ruleName, err := pdr.ActivatePredefinedRules(); err == nil {
+		log.Info().Msgf("find activate pcc rule with name: %s", ruleName)
+
 		if spdrInfo.PCCInfo == nil {
 			spdrInfo.PCCInfo = &PCCInfo{
 				PCCName: ruleName,
@@ -75,6 +77,8 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 	}
 
 	if ruleName, err := pdr.DeactivatePredefinedRules(); err == nil {
+		log.Info().Msgf("find deactivate pcc rule with name: %s", ruleName)
+
 		if spdrInfo.PCCInfo != nil && spdrInfo.PCCInfo.PCCName == ruleName {
 			spdrInfo.PCCInfo = nil
 		}
@@ -186,7 +190,6 @@ func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations
 		// todo: process pcc rule
 		return nil
 	}
-
 
 	//FIXME: Assume that PDR with SDF filter will never been deleting last
 	if spdrInfo.PdrInfo.SdfFilter != nil {

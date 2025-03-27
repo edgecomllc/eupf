@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/edgecomllc/eupf/cmd/config"
 	"log"
 	"net"
 	"regexp"
@@ -11,7 +12,7 @@ import (
 )
 
 func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
-	re := regexp.MustCompile(`^permit (out|in) (icmp|ip|tcp|udp|\d+) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to (assigned|any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
+	re := config.SDFFilterRegex
 
 	sdfInfo := ebpf.SdfFilter{}
 	var err error

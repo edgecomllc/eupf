@@ -2,8 +2,12 @@ package config
 
 import (
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"strconv"
+
+	"github.com/rs/zerolog/log"
+
+	"reflect"
+	"regexp"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/pflag"
@@ -11,9 +15,41 @@ import (
 )
 
 var (
-	v              = viper.GetViper()
-	configPathName = "./config.yml"
+	commonConfigPathName = "./config.yml"
+	pccConfigPathName    = "./pcc.yaml"
+	validate             *validator.Validate
+	commonConfigV        = viper.New()
+	pccConfigV           = viper.New()
+	SDFFilterRegex       = regexp.MustCompile(`^permit (out|in) (icmp|ip|tcp|udp|\d+) from (any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))? to (assigned|any|[\d.]+|[\da-fA-F:]+)(?:/(\d+))?(?: (\d+|\d+-\d+))?$`)
 )
+
+type PCCRulesConfig struct {
+	PccRules []PccRule `mapstructure:"pcc_rules" json:"pcc_rules" validate:"dive"`
+}
+
+// PccRule describes the structure of the pcc rule representation
+type PccRule struct {
+	PccName   string `mapstructure:"pcc_name" validate:"required"`
+	SdfFilter string `mapstructure:"sdf_filter" validate:"required,sdfFilter"`
+	Far       Far    `mapstructure:"far"`
+	Qer       Qer    `mapstructure:"qer"`
+}
+
+// Far Forwarding Action Rule in the pcc config view
+type Far struct {
+	Action                uint8  `mapstructure:"action" validate:"required"`
+	OuterHeaderCreation   uint8  `mapstructure:"outer_header_creation"`
+	Teid                  uint32 `mapstructure:"teid"`
+	RemoteIP              uint32 `mapstructure:"remote_ip"`
+	TransportLevelMarking uint16 `mapstructure:"transport_level_marking"`
+}
+
+// Qer QoS Enforcement Rule in the pcc config view
+type Qer struct {
+	Qfi          uint8  `mapstructure:"qfi" validate:"min=1,max=255"`
+	MaxBitrateUl uint32 `mapstructure:"max_bitrate_ul"`
+	MaxBitrateDl uint32 `mapstructure:"max_bitrate_dl"`
+}
 
 type UpfConfig struct {
 	InterfaceName           []string       `mapstructure:"interface_name" json:"interface_name"`
@@ -56,110 +92,137 @@ type UpfConfig struct {
 }
 
 func init() {
-	var configPath = pflag.String("config", configPathName, "Path to config file")
+	defineFlags()
+	initValidator()
+	initCommonConfig()
+	initPccConfig()
+}
+
+func defineFlags() {
+	// PCC flags
+	pflag.String("pcc-config", pccConfigPathName, "Path to PCC config file")
+
+	// Common flags
+	pflag.String("config", commonConfigPathName, "Path to config file")
+	// pflags defaults are ignored in this setup
+	pflag.StringArray("iface", []string{}, "Interface list to bind XDP program to")
+	pflag.String("attach", "generic", "XDP attach mode")
+	pflag.String("aaddr", ":8080", "Address to bind api server to")
+	pflag.String("paddr", "127.0.0.1:8805", "Address to bind PFCP server to")
+	pflag.String("nodeid", "127.0.0.1", "PFCP Server Node ID")
+	pflag.String("maddr", ":9090", "Address to bind metrics server to")
+	pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
+	pflag.String("n9addr", "n3addr", "Address for communication over N9 interface")
+	pflag.String("s1uaddr", "127.0.0.1", "Address for communication over S1-U interface")
+	pflag.String("s5s8addr", "127.0.0.1", "Address for communication over S5/S8 interface")
+	pflag.String("paaddr", "127.0.0.1", "Address for communication over PA interface")
+	pflag.StringArray("peer", []string{}, "Address of GTP peer")
+	pflag.Uint32("echo", 10, "Interval of sending echo requests in seconds")
+	pflag.Uint32("qersize", 1024, "Size of the QER ebpf map")
+	pflag.Uint32("farsize", 1024, "Size of the FAR ebpf map")
+	pflag.Uint32("urrsize", 1024, "Size of the URR ebpf map")
+	pflag.Uint32("pdrsize", 1024, "Size of the PDR ebpf map")
+	pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
+	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
+	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
+	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
+	pflag.String("loglvl", "info", "Logging level")
+	pflag.Bool("ueip", false, "Enable or disable UEIP feature")
+	pflag.Bool("ftup", false, "Enable or disable FTUP feature")
+	pflag.String("ueippool", "10.60.0.0/24", "IP pool for UEIP feature")
+	pflag.Uint32("teidpool", 65535, "TEID pool for FTUP feature")
+	pflag.StringArray("pfcprnode", []string{}, "Address of remote PFCP node")
+	pflag.StringArray("sxanode", []string{}, "Address of remote Sxa node")
+	pflag.StringArray("sxbnode", []string{}, "Address of remote Sxb node")
+	pflag.String("sxaaddr", "127.0.0.2:8805", "Sxa Address to bind PFCP server to")
+	pflag.String("sxbaddr", "127.0.0.3:8805", "Sxb Address to bind PFCP server to")
+	pflag.String("sxanodeid", "127.0.0.2", "Sxa Server Node ID")
+	pflag.String("sxbnodeid", "127.0.0.3", "Sxb Server Node ID")
+	pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
+	pflag.StringToInt("qdmap", map[string]int{}, "QCI to DSCP binding")
+	pflag.String("aapns", ".*", "Allowed APNs mask")
+	pflag.String("dapns", "", "Denied APNs mask")
+
 	pflag.Parse()
+}
 
-	v.SetDefault("n9_address", v.GetString("n3_address"))
+func initPccConfig() {
+	configPath := pflag.Lookup("pcc-config").Value.String()
 
-	v.SetConfigFile(*configPath)
+	pccConfigV.SetConfigFile(configPath)
+	pccConfigV.SetEnvPrefix("pcc")
+	pccConfigV.AutomaticEnv()
 
-	log.Info().Msgf("All settings from Viper: %+v", v.AllSettings())
-
-	if err := v.ReadInConfig(); err != nil {
+	if err := pccConfigV.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Config file not found; ignore error if desired
-			log.Info().Msgf("Config file not found. Using defaults")
+			log.Print("PCC config file not found. Using defaults")
 		} else {
-			// Config file was found but another error was produced
-			log.Info().Msgf("Unable to read config file: %v. Using defaults", err)
+			log.Printf("Unable to read PCC config file: %v", err)
 		}
-
-		pflag.StringArray("iface", []string{}, "Interface list to bind XDP program to")
-		pflag.String("attach", "generic", "XDP attach mode")
-		pflag.String("aaddr", ":8080", "Address to bind api server to")
-		pflag.String("paddr", "127.0.0.1:8805", "Address to bind PFCP server to")
-		pflag.String("nodeid", "127.0.0.1", "PFCP Server Node ID")
-		pflag.String("maddr", ":9090", "Address to bind metrics server to")
-		pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
-		pflag.String("n9addr", "n3addr", "Address for communication over N9 interface")
-		pflag.String("s1uaddr", "127.0.0.1", "Address for communication over S1-U interface")
-		pflag.String("s5s8addr", "127.0.0.1", "Address for communication over S5/S8 interface")
-		pflag.String("paaddr", "127.0.0.1", "Address for communication over PA interface")
-		pflag.StringArray("peer", []string{}, "Address of GTP peer")
-		pflag.Uint32("echo", 10, "Interval of sending echo requests in seconds")
-		pflag.Uint32("qersize", 1024, "Size of the QER ebpf map")
-		pflag.Uint32("farsize", 1024, "Size of the FAR ebpf map")
-		pflag.Uint32("urrsize", 1024, "Size of the URR ebpf map")
-		pflag.Uint32("pdrsize", 1024, "Size of the PDR ebpf map")
-		pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
-		pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
-		pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
-		pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
-		pflag.String("loglvl", "info", "Logging level")
-		pflag.Bool("ueip", false, "Enable or disable UEIP feature")
-		pflag.Bool("ftup", false, "Enable or disable FTUP feature")
-		pflag.String("ueippool", "10.60.0.0/24", "IP pool for UEIP feature")
-		pflag.Uint32("teidpool", 65535, "TEID pool for FTUP feature")
-		pflag.StringArray("pfcprnode", []string{}, "Address of remote PFCP node")
-		pflag.StringArray("sxanode", []string{}, "Address of remote Sxa node")
-		pflag.StringArray("sxbnode", []string{}, "Address of remote Sxb node")
-		pflag.String("sxaaddr", "127.0.0.2:8805", "Sxa Address to bind PFCP server to")
-		pflag.String("sxbaddr", "127.0.0.3:8805", "Sxb Address to bind PFCP server to")
-		pflag.String("sxanodeid", "127.0.0.2", "Sxa Server Node ID")
-		pflag.String("sxbnodeid", "127.0.0.3", "Sxb Server Node ID")
-		pflag.Uint32("astimeout", 5, "Association setup timeout in seconds")
-		pflag.StringToInt("qdmap", map[string]int{}, "QCI to DSCP binding")
-		pflag.String("aapns", ".*", "Allowed APNs mask")
-		pflag.String("dapns", "", "Denied APNs mask")
-		pflag.Parse()
-
-		// Bind flag errors only when flag is nil, and we ignore empty cli args
-		_ = v.BindPFlag("interface_name", pflag.Lookup("iface"))
-		_ = v.BindPFlag("xdp_attach_mode", pflag.Lookup("attach"))
-		_ = v.BindPFlag("api_address", pflag.Lookup("aaddr"))
-		_ = v.BindPFlag("pfcp_address", pflag.Lookup("paddr"))
-		_ = v.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
-		_ = v.BindPFlag("pfcp_remote_node", pflag.Lookup("pfcprnode"))
-		_ = v.BindPFlag("sxa_remote_node", pflag.Lookup("sxanode"))
-		_ = v.BindPFlag("sxb_remote_node", pflag.Lookup("sxbnode"))
-		_ = v.BindPFlag("sxa_address", pflag.Lookup("sxaaddr"))
-		_ = v.BindPFlag("sxb_address", pflag.Lookup("sxbaddr"))
-		_ = v.BindPFlag("sxa_node_id", pflag.Lookup("sxanodeid"))
-		_ = v.BindPFlag("sxb_node_id", pflag.Lookup("sxbnodeid"))
-		_ = v.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
-		_ = v.BindPFlag("metrics_address", pflag.Lookup("maddr"))
-		_ = v.BindPFlag("n3_address", pflag.Lookup("n3addr"))
-		_ = v.BindPFlag("n9_address", pflag.Lookup("n9addr"))
-		_ = v.BindPFlag("s1u_address", pflag.Lookup("s1uaddr"))
-		_ = v.BindPFlag("s5s8_address", pflag.Lookup("s5s8addr"))
-		_ = v.BindPFlag("pa_address", pflag.Lookup("paaddr"))
-		_ = v.BindPFlag("gtp_peer", pflag.Lookup("peer"))
-		_ = v.BindPFlag("gtp_echo_interval", pflag.Lookup("echo"))
-		_ = v.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
-		_ = v.BindPFlag("far_map_size", pflag.Lookup("farsize"))
-		_ = v.BindPFlag("urr_map_size", pflag.Lookup("urrsize"))
-		_ = v.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
-		_ = v.BindPFlag("resize_ebpf_maps", pflag.Lookup("mapresize"))
-		_ = v.BindPFlag("heartbeat_retries", pflag.Lookup("hbretries"))
-		_ = v.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
-		_ = v.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
-		_ = v.BindPFlag("logging_level", pflag.Lookup("loglvl"))
-		_ = v.BindPFlag("feature_ueip", pflag.Lookup("ueip"))
-		_ = v.BindPFlag("feature_ftup", pflag.Lookup("ftup"))
-		_ = v.BindPFlag("ueip_pool", pflag.Lookup("ueippool"))
-		_ = v.BindPFlag("teid_pool", pflag.Lookup("teidpool"))
-		_ = v.BindPFlag("qci_dscp_mapping", pflag.Lookup("qdmap"))
-		_ = v.BindPFlag("allowed_apns", pflag.Lookup("aapns"))
-		_ = v.BindPFlag("denied_apns", pflag.Lookup("dapns"))
-
-		v.SetEnvPrefix("upf")
-		v.AutomaticEnv()
-	} else {
-		log.Info().Msgf("Config read from file: %+v", v.AllSettings())
 	}
 
-	log.Info().Msgf("Startup config: %+v", v.AllSettings())
-	log.Info().Msgf("Config path: %s", v.ConfigFileUsed())
+	log.Printf("Startup PCC config: %+v", pccConfigV.AllSettings())
+}
+
+func initCommonConfig() {
+	configPath := pflag.Lookup("config").Value.String()
+	// Bind flag errors only when flag is nil, and we ignore empty cli args
+	_ = commonConfigV.BindPFlag("interface_name", pflag.Lookup("iface"))
+	_ = commonConfigV.BindPFlag("xdp_attach_mode", pflag.Lookup("attach"))
+	_ = commonConfigV.BindPFlag("api_address", pflag.Lookup("aaddr"))
+	_ = commonConfigV.BindPFlag("pfcp_address", pflag.Lookup("paddr"))
+	_ = commonConfigV.BindPFlag("pfcp_node_id", pflag.Lookup("nodeid"))
+	_ = commonConfigV.BindPFlag("pfcp_remote_node", pflag.Lookup("pfcprnode"))
+	_ = commonConfigV.BindPFlag("sxa_remote_node", pflag.Lookup("sxanode"))
+	_ = commonConfigV.BindPFlag("sxb_remote_node", pflag.Lookup("sxbnode"))
+	_ = commonConfigV.BindPFlag("sxa_address", pflag.Lookup("sxaaddr"))
+	_ = commonConfigV.BindPFlag("sxb_address", pflag.Lookup("sxbaddr"))
+	_ = commonConfigV.BindPFlag("sxa_node_id", pflag.Lookup("sxanodeid"))
+	_ = commonConfigV.BindPFlag("sxb_node_id", pflag.Lookup("sxbnodeid"))
+	_ = commonConfigV.BindPFlag("association_setup_timeout", pflag.Lookup("astimeout"))
+	_ = commonConfigV.BindPFlag("metrics_address", pflag.Lookup("maddr"))
+	_ = commonConfigV.BindPFlag("n3_address", pflag.Lookup("n3addr"))
+	_ = commonConfigV.BindPFlag("n9_address", pflag.Lookup("n9addr"))
+	_ = commonConfigV.BindPFlag("s1u_address", pflag.Lookup("s1uaddr"))
+	_ = commonConfigV.BindPFlag("s5s8_address", pflag.Lookup("s5s8addr"))
+	_ = commonConfigV.BindPFlag("pa_address", pflag.Lookup("paaddr"))
+	_ = commonConfigV.BindPFlag("gtp_peer", pflag.Lookup("peer"))
+	_ = commonConfigV.BindPFlag("gtp_echo_interval", pflag.Lookup("echo"))
+	_ = commonConfigV.BindPFlag("qer_map_size", pflag.Lookup("qersize"))
+	_ = commonConfigV.BindPFlag("far_map_size", pflag.Lookup("farsize"))
+	_ = commonConfigV.BindPFlag("urr_map_size", pflag.Lookup("urrsize"))
+	_ = commonConfigV.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
+	_ = commonConfigV.BindPFlag("resize_ebpf_maps", pflag.Lookup("mapresize"))
+	_ = commonConfigV.BindPFlag("heartbeat_retries", pflag.Lookup("hbretries"))
+	_ = commonConfigV.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
+	_ = commonConfigV.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
+	_ = commonConfigV.BindPFlag("logging_level", pflag.Lookup("loglvl"))
+	_ = commonConfigV.BindPFlag("feature_ueip", pflag.Lookup("ueip"))
+	_ = commonConfigV.BindPFlag("feature_ftup", pflag.Lookup("ftup"))
+	_ = commonConfigV.BindPFlag("ueip_pool", pflag.Lookup("ueippool"))
+	_ = commonConfigV.BindPFlag("teid_pool", pflag.Lookup("teidpool"))
+	_ = commonConfigV.BindPFlag("qci_dscp_mapping", pflag.Lookup("qdmap"))
+	_ = commonConfigV.BindPFlag("allowed_apns", pflag.Lookup("aapns"))
+	_ = commonConfigV.BindPFlag("denied_apns", pflag.Lookup("dapns"))
+
+	commonConfigV.SetDefault("n9_address", commonConfigV.GetString("n3_address"))
+
+	commonConfigV.SetConfigFile(configPath)
+
+	commonConfigV.SetEnvPrefix("upf")
+	commonConfigV.AutomaticEnv()
+
+	if err := commonConfigV.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found; ignore error if desired
+			log.Print("Config file not found. Using defaults")
+		} else {
+			// Config file was found but another error was produced
+			log.Printf("Unable to read config file: %s commonConfigV. Using defaults", err)
+		}
+	}
+
+	log.Printf("Startup config: %+v", commonConfigV.AllSettings())
 }
 
 func (c *UpfConfig) GetDscpMarkByQci(qci uint8) uint8 {
@@ -185,18 +248,48 @@ func (c *UpfConfig) Validate() error {
 
 // Unmarshal data from config file
 func (c *UpfConfig) Unmarshal() error {
-	return v.UnmarshalExact(c)
+	return commonConfigV.UnmarshalExact(c)
+}
+
+func validateSdfFilter(fl validator.FieldLevel) bool {
+	if fl.Field().Type() != reflect.TypeOf("") {
+		return false
+	}
+
+	return SDFFilterRegex.MatchString(fl.Field().String())
+}
+
+func initValidator() {
+	validate = validator.New()
+
+	err := validate.RegisterValidation("sdfFilter", validateSdfFilter)
+	if err != nil {
+		log.Error().Msgf("error register sdfFilter validator: %v", err)
+	}
+}
+
+func (pcr *PCCRulesConfig) Validate() error {
+	if err := validate.Struct(pcr); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Unmarshal data from config file
+func (pcr *PCCRulesConfig) Unmarshal() error {
+	return pccConfigV.UnmarshalExact(pcr)
 }
 
 func (c *UpfConfig) UpdateFile(params map[string]interface{}) error {
 	for key, value := range params {
-		v.Set(key, value)
+		commonConfigV.Set(key, value)
 	}
 
-	if err := v.WriteConfigAs(configPathName); err != nil {
+	if err := commonConfigV.WriteConfigAs(commonConfigPathName); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
-	log.Info().Msgf("Config file updated successfully: %s", configPathName)
+	log.Info().Msgf("Config file updated successfully: %s", commonConfigPathName)
 	return nil
 }

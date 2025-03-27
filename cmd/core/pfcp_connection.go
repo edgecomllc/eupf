@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"net/netip"
 	"regexp"
@@ -54,6 +55,7 @@ type PfcpConnection struct {
 	tracingStorage         tracing.TraceRecordStorage
 	dumper                 utils.Dumper
 	AssociationSetupTicker *time.Ticker
+	PCCRules               map[string]PCCInfo
 }
 
 func NewPfcpConnection(
@@ -119,6 +121,7 @@ func NewPfcpConnection(
 		neValidator:       validator,
 		tracingStorage:    tracing.NewSimpleTraceRecordStorage(),
 		dumper:            dumper,
+		PCCRules:          buildPCCRuleMap(),
 	}, nil
 }
 
@@ -200,6 +203,43 @@ func (connection *PfcpConnection) ValidateNetworkInstance(networkInstance string
 	return connection.neValidator.Validate(networkInstance)
 }
 
+func buildPCCRuleMap() map[string]PCCInfo {
+	pccRules := make(map[string]PCCInfo)
+	for i := range config.PCCConf.PccRules {
+		sdfFilter, err := ParseSdfFilter(config.PCCConf.PccRules[i].SdfFilter)
+		if err != nil {
+			log.Error().Msgf("Error parsing SDF filter: %s", err.Error())
+
+			continue
+		}
+
+		pccRules[config.PCCConf.PccRules[i].PccName] = PCCInfo{
+			PCCName:   config.PCCConf.PccRules[i].PccName,
+			SDFFilter: sdfFilter,
+			FAR: ebpf.FarInfo{
+				Action:                config.PCCConf.PccRules[i].Far.Action,
+				OuterHeaderCreation:   config.PCCConf.PccRules[i].Far.OuterHeaderCreation,
+				Teid:                  config.PCCConf.PccRules[i].Far.Teid,
+				RemoteIP:              config.PCCConf.PccRules[i].Far.RemoteIP,
+				LocalIP:               math.MaxUint32, // change on processing
+				TransportLevelMarking: config.PCCConf.PccRules[i].Far.TransportLevelMarking,
+			},
+			QER: ebpf.QerInfo{
+				GateStatusDL: 0,
+				GateStatusUL: 0,
+				Qfi:          config.PCCConf.PccRules[i].Qer.Qfi,
+				MaxBitrateDL: uint64(config.PCCConf.PccRules[i].Qer.MaxBitrateDl),
+				MaxBitrateUL: uint64(config.PCCConf.PccRules[i].Qer.MaxBitrateUl),
+			},
+		}
+	}
+
+	log.Info().Msgf("loaded pcc rules map %+v", config.PCCConf.PccRules)
+	log.Info().Msgf("create pcc rules map %+v", pccRules)
+
+	return pccRules
+}
+
 func (connection *PfcpConnection) SetRemoteNodes(nodes []AssociationConnector) {
 	connection.nodes = nodes
 }
@@ -255,6 +295,7 @@ func (connection *PfcpConnection) Handle(b []byte, addr *net.UDPAddr) {
 func (connection *PfcpConnection) Send(b []byte, addr *net.UDPAddr) (int, error) {
 	return connection.udpConn.WriteTo(b, addr)
 }
+
 func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDPAddr) error {
 	return connection.SendMessageWithTrace(msg, addr, false)
 }
