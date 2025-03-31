@@ -125,8 +125,8 @@ static /*__always_inline*/ __u8 match_sdf_filter_ipv6(const struct packet_contex
         packet_dst_port = bpf_ntohs(ctx->tcp->dest); //TODO: convert port in golang part
     }
     
-    __u128 sdf_src_ip = bpf_htonl(sdf->src_addr.ip);
-    __u128 sdf_dst_ip = bpf_htonl(sdf->dst_addr.ip);
+    __u128 sdf_src_ip = bpf_htonlll(sdf->src_addr.ip);
+    __u128 sdf_dst_ip = bpf_htonlll(sdf->dst_addr.ip);
     upf_printk("SDF: filter protocol: %u", sdf->protocol);
     upf_printk("SDF: filter source ip: %pI6c, destination ip: %pI6c",  &sdf_src_ip,  &sdf_dst_ip);
     upf_printk("SDF: filter source port lower bound: %u, source port upper bound: %u", sdf->src_port.lower_bound, sdf->src_port.upper_bound);
