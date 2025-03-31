@@ -22,10 +22,10 @@
 
 #include "xdp/sdf_filter.h"
 
-#define PDR_MAP_UPLINK_SIZE 1024
-#define PDR_MAP_DOWNLINK_IPV4_SIZE 1024
-#define PDR_MAP_DOWNLINK_IPV6_SIZE 1024
+#define PDR_MAP_SIZE 1024
 #define FAR_MAP_SIZE 1024
+#define SDF_LIST_SIZE 10
+#define URR_LIST_SIZE 3
 
 
 enum outer_header_removal_values {
@@ -45,25 +45,23 @@ enum outer_header_removal_values {
 // 1. Combine SrcAddress.Type and DstAddress.Type into one __u8 field. Then to retrieve and put data will be used operators & and | .
 // 2. Put all fields into one big structure. Sort in specific order to reduce paddings inside structure.
 
-struct sdf_rules {
-    struct sdf_filter sdf_filter1;
-    struct sdf_filter sdf_filter2;
-    __u8 outer_header_removal;
+struct pdr {
     __u32 far_id;
     __u32 qer_id;
-    __u32 urr1_id;
-    __u32 urr2_id;
+    __u32 urr_id[URR_LIST_SIZE];
+    __u8 outer_header_removal;
+};
+
+struct sdf_rule {
+    struct sdf_filter sdf_filter;
+    struct pdr pdr;
 };
 
 struct pdr_info {
-    __u32 far_id;
-    __u32 qer_id;
-    __u32 urr1_id;
-    __u32 urr2_id;
-    __u8 outer_header_removal;
-    __u8 sdf_mode; // 0 - no sdf, 1 - sdf only, 2 - sdf + default
     __u8 trace_flag;
-    struct sdf_rules sdf_rules;
+    __u8 sdf_mode; // 0 - no sdf, 1 - sdf only, 2 - sdf + default
+    struct pdr default_pdr;
+    struct sdf_rule dedicated_pdrs[SDF_LIST_SIZE];
 };
 
 /* ipv4 -> PDR */
@@ -72,7 +70,7 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, __u32);
     __type(value, struct pdr_info);
-    __uint(max_entries, PDR_MAP_DOWNLINK_IPV4_SIZE);
+    __uint(max_entries, PDR_MAP_SIZE);
 } pdr_map_downlink_ip4 SEC(".maps");
 
 /* ipv6 -> PDR */
@@ -81,7 +79,7 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, struct in6_addr);
     __type(value, struct pdr_info);
-    __uint(max_entries, PDR_MAP_DOWNLINK_IPV6_SIZE);
+    __uint(max_entries, PDR_MAP_SIZE);
 } pdr_map_downlink_ip6 SEC(".maps");
 
 
@@ -91,7 +89,7 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, __u32);
     __type(value, struct pdr_info);
-    __uint(max_entries, PDR_MAP_UPLINK_SIZE);
+    __uint(max_entries, PDR_MAP_SIZE);
 } pdr_map_uplink_ip4 SEC(".maps");
 
 enum far_action_mask {

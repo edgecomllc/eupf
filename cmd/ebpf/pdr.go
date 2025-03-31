@@ -359,9 +359,9 @@ func CombinePdrWithSdf(defaultPdr *IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntryp
 	var pdrToStore IpEntrypointPdrInfo
 	// Default mapping options.
 	if defaultPdr != nil {
-		pdrToStore.OuterHeaderRemoval = defaultPdr.OuterHeaderRemoval
-		pdrToStore.FarId = defaultPdr.FarId
-		pdrToStore.QerId = defaultPdr.QerId
+		pdrToStore.DefaultPdr.OuterHeaderRemoval = defaultPdr.DefaultPdr.OuterHeaderRemoval
+		pdrToStore.DefaultPdr.FarId = defaultPdr.DefaultPdr.FarId
+		pdrToStore.DefaultPdr.QerId = defaultPdr.DefaultPdr.QerId
 		pdrToStore.TraceFlag = defaultPdr.TraceFlag
 		pdrToStore.SdfMode = 2
 
@@ -374,57 +374,39 @@ func CombinePdrWithSdf(defaultPdr *IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntryp
 		pdrToStore.SdfMode = 1
 	}
 
-	if len(sdfPdr.SdfFilter) > 0 {
-		// SDF mapping options.
-		pdrToStore.SdfRules.OuterHeaderRemoval = sdfPdr.OuterHeaderRemoval
-		pdrToStore.SdfRules.FarId = sdfPdr.FarId
-		pdrToStore.SdfRules.QerId = sdfPdr.QerId
-		pdrToStore.SdfRules.Urr1Id = sdfPdr.Urr1Id
-		pdrToStore.SdfRules.Urr2Id = sdfPdr.Urr2Id
+	for sdfIdx := 0; sdfIdx < len(sdfPdr.SdfFilter) && sdfIdx < len(pdrToStore.DedicatedPdrs); sdfIdx++ {
 
-		sdfFilterSource := &sdfPdr.SdfFilter[0]
-		sdfFilterTarget := &pdrToStore.SdfRules.SdfFilter1
+		sdfFilterSource := &sdfPdr.SdfFilter[sdfIdx]
+		sdfFilterTarget := &pdrToStore.DedicatedPdrs[sdfIdx]
 
-		sdfFilterTarget.Protocol = sdfFilterSource.Protocol
-		sdfFilterTarget.SrcAddr.Type = sdfFilterSource.SrcAddress.Type
-		sdfFilterTarget.SrcAddr.Ip = Copy16Ip(sdfFilterSource.SrcAddress.Ip)
-		sdfFilterTarget.SrcAddr.Mask = Copy16Ip(sdfFilterSource.SrcAddress.Mask)
-		sdfFilterTarget.SrcPort.LowerBound = sdfFilterSource.SrcPortRange.LowerBound
-		sdfFilterTarget.SrcPort.UpperBound = sdfFilterSource.SrcPortRange.UpperBound
-		sdfFilterTarget.DstAddr.Type = sdfFilterSource.DstAddress.Type
-		sdfFilterTarget.DstAddr.Ip = Copy16Ip(sdfFilterSource.DstAddress.Ip)
-		sdfFilterTarget.DstAddr.Mask = Copy16Ip(sdfFilterSource.DstAddress.Mask)
-		sdfFilterTarget.DstPort.LowerBound = sdfFilterSource.DstPortRange.LowerBound
-		sdfFilterTarget.DstPort.UpperBound = sdfFilterSource.DstPortRange.UpperBound
+		sdfFilterTarget.Pdr.OuterHeaderRemoval = sdfPdr.OuterHeaderRemoval
+		sdfFilterTarget.Pdr.FarId = sdfPdr.FarId
+		sdfFilterTarget.Pdr.QerId = sdfPdr.QerId
+		sdfFilterTarget.Pdr.UrrId[0] = sdfPdr.Urr1Id
+		sdfFilterTarget.Pdr.UrrId[1] = sdfPdr.Urr2Id
 
-		if len(sdfPdr.SdfFilter) > 1 {
-			// SDF mapping options.
-			sdfFilterSource := &sdfPdr.SdfFilter[1]
-			sdfFilterTarget := &pdrToStore.SdfRules.SdfFilter2
-
-			sdfFilterTarget.Protocol = sdfFilterSource.Protocol
-			sdfFilterTarget.SrcAddr.Type = sdfFilterSource.SrcAddress.Type
-			sdfFilterTarget.SrcAddr.Ip = Copy16Ip(sdfFilterSource.SrcAddress.Ip)
-			sdfFilterTarget.SrcAddr.Mask = Copy16Ip(sdfFilterSource.SrcAddress.Mask)
-			sdfFilterTarget.SrcPort.LowerBound = sdfFilterSource.SrcPortRange.LowerBound
-			sdfFilterTarget.SrcPort.UpperBound = sdfFilterSource.SrcPortRange.UpperBound
-			sdfFilterTarget.DstAddr.Type = sdfFilterSource.DstAddress.Type
-			sdfFilterTarget.DstAddr.Ip = Copy16Ip(sdfFilterSource.DstAddress.Ip)
-			sdfFilterTarget.DstAddr.Mask = Copy16Ip(sdfFilterSource.DstAddress.Mask)
-			sdfFilterTarget.DstPort.LowerBound = sdfFilterSource.DstPortRange.LowerBound
-			sdfFilterTarget.DstPort.UpperBound = sdfFilterSource.DstPortRange.UpperBound
-		}
+		sdfFilterTarget.SdfFilter.Protocol = sdfFilterSource.Protocol
+		sdfFilterTarget.SdfFilter.SrcAddr.Type = sdfFilterSource.SrcAddress.Type
+		sdfFilterTarget.SdfFilter.SrcAddr.Ip = Copy16Ip(sdfFilterSource.SrcAddress.Ip)
+		sdfFilterTarget.SdfFilter.SrcAddr.Mask = Copy16Ip(sdfFilterSource.SrcAddress.Mask)
+		sdfFilterTarget.SdfFilter.SrcPort.LowerBound = sdfFilterSource.SrcPortRange.LowerBound
+		sdfFilterTarget.SdfFilter.SrcPort.UpperBound = sdfFilterSource.SrcPortRange.UpperBound
+		sdfFilterTarget.SdfFilter.DstAddr.Type = sdfFilterSource.DstAddress.Type
+		sdfFilterTarget.SdfFilter.DstAddr.Ip = Copy16Ip(sdfFilterSource.DstAddress.Ip)
+		sdfFilterTarget.SdfFilter.DstAddr.Mask = Copy16Ip(sdfFilterSource.DstAddress.Mask)
+		sdfFilterTarget.SdfFilter.DstPort.LowerBound = sdfFilterSource.DstPortRange.LowerBound
+		sdfFilterTarget.SdfFilter.DstPort.UpperBound = sdfFilterSource.DstPortRange.UpperBound
 	}
 	return pdrToStore
 }
 
 func ToIpEntrypointPdrInfo(defaultPdr PdrInfo) IpEntrypointPdrInfo {
 	var pdrToStore IpEntrypointPdrInfo
-	pdrToStore.OuterHeaderRemoval = defaultPdr.OuterHeaderRemoval
-	pdrToStore.FarId = defaultPdr.FarId
-	pdrToStore.QerId = defaultPdr.QerId
-	pdrToStore.Urr1Id = defaultPdr.Urr1Id
-	pdrToStore.Urr2Id = defaultPdr.Urr2Id
+	pdrToStore.DefaultPdr.OuterHeaderRemoval = defaultPdr.OuterHeaderRemoval
+	pdrToStore.DefaultPdr.FarId = defaultPdr.FarId
+	pdrToStore.DefaultPdr.QerId = defaultPdr.QerId
+	pdrToStore.DefaultPdr.UrrId[0] = defaultPdr.Urr1Id
+	pdrToStore.DefaultPdr.UrrId[1] = defaultPdr.Urr2Id
 	if defaultPdr.TraceFlag {
 		pdrToStore.TraceFlag = 1
 	} else {
@@ -433,13 +415,13 @@ func ToIpEntrypointPdrInfo(defaultPdr PdrInfo) IpEntrypointPdrInfo {
 	return pdrToStore
 }
 
-func FromIpEntrypointPdrInfo(storedPdr IpEntrypointPdrInfo) PdrInfo {
-	var pdrInfo PdrInfo
-	pdrInfo.OuterHeaderRemoval = storedPdr.OuterHeaderRemoval
-	pdrInfo.FarId = storedPdr.FarId
-	pdrInfo.QerId = storedPdr.QerId
-	return pdrInfo
-}
+// func FromIpEntrypointPdrInfo(storedPdr IpEntrypointPdrInfo) PdrInfo {
+// 	var pdrInfo PdrInfo
+// 	pdrInfo.OuterHeaderRemoval = storedPdr.OuterHeaderRemoval
+// 	pdrInfo.FarId = storedPdr.FarId
+// 	pdrInfo.QerId = storedPdr.QerId
+// 	return pdrInfo
+// }
 
 func Copy16Ip[T ~[]byte](arr T) [16]byte {
 	const Ipv4len = 4

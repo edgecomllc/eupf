@@ -171,7 +171,10 @@ func testGtpWithPDRBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) 
 		return 0, fmt.Errorf("serializing input packet failed: %v", err)
 	}
 
-	pdr := IpEntrypointPdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
+	pdr := IpEntrypointPdrInfo{}
+	pdr.DefaultPdr.OuterHeaderRemoval = 0
+	pdr.DefaultPdr.FarId = 1
+	pdr.DefaultPdr.QerId = 1
 	far := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
 	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 0, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
 

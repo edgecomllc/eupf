@@ -65,7 +65,7 @@ static __always_inline __u8 get_sdf_protocol(__u8 ip_protocol) {
     }
 }
 
-static __always_inline __u8 match_sdf_filter_ipv4(const struct packet_context *ctx, const struct sdf_filter *sdf) {
+static /*__always_inline*/ __u8 match_sdf_filter_ipv4(const struct packet_context *ctx, const struct sdf_filter *sdf) {
     if(!ctx || !ctx->ip4 || !sdf)
         return 0;
 
@@ -110,7 +110,7 @@ static __always_inline __u8 match_sdf_filter_ipv4(const struct packet_context *c
     return 1;
 }
 
-static __always_inline __u8 match_sdf_filter_ipv6(const struct packet_context *ctx, const struct sdf_filter *sdf) {
+static /*__always_inline*/ __u8 match_sdf_filter_ipv6(const struct packet_context *ctx, const struct sdf_filter *sdf) {
     const struct ipv6hdr *ipv6 = ctx->ip6;  
     __u8 packet_protocol = get_sdf_protocol(ipv6->nexthdr);
     __u128 packet_src_ip_128 = *((__u128*)ipv6->saddr.s6_addr);
