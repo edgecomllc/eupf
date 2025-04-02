@@ -116,6 +116,7 @@ struct far_info {
     __u32 teid;
     __u32 remoteip;
     __u32 localip;
+    __u8 trigger;  // only for DL
     /* first octet DSCP value in the Type-of-Service, second octet shall contain the ToS/Traffic Class mask field, which shall be set to "0xFC". */
     __u16 transport_level_marking;
 };

@@ -157,6 +157,7 @@ type FarInfo struct {
 	Teid                  uint32
 	RemoteIP              uint32
 	LocalIP               uint32
+	Trigger               uint8 // trigger for applying the FAR // todo maxim: change to ringbuffer
 	TransportLevelMarking uint16
 }
 
@@ -193,6 +194,27 @@ func (bpfObjects *BpfObjects) NewFar(farInfo FarInfo) (uint32, error) {
 		TransportLevelMarking: farInfo.TransportLevelMarking,
 	}
 	return internalId, bpfObjects.FarMap.Put(internalId, unsafe.Pointer(&farToStore))
+}
+
+func (bpfObjects *BpfObjects) GetFar(internalId uint32) (FarInfo, error) {
+	log.Debug().Msgf("EBPF: Get FAR: internalId=%d", internalId)
+
+	urrToStore := IpEntrypointFarInfo{}
+	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrToStore)); err != nil {
+		return FarInfo{}, err
+	}
+
+	farInfo := FarInfo{
+		Action:                urrToStore.Action,
+		OuterHeaderCreation:   urrToStore.OuterHeaderCreation,
+		Teid:                  urrToStore.Teid,
+		RemoteIP:              urrToStore.Remoteip,
+		LocalIP:               urrToStore.Localip,
+		Trigger:               urrToStore.Trigger,
+		TransportLevelMarking: urrToStore.TransportLevelMarking,
+	}
+
+	return farInfo, nil
 }
 
 func (bpfObjects *BpfObjects) UpdateFar(internalId uint32, farInfo FarInfo) error {
@@ -344,6 +366,7 @@ type ForwardingPlaneController interface {
 	UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error
 	DeleteDownlinkPdrIp6(ipv6 net.IP) error
 	NewFar(farInfo FarInfo) (uint32, error)
+	GetFar(internalId uint32) (FarInfo, error)
 	UpdateFar(internalId uint32, farInfo FarInfo) error
 	DeleteFar(internalId uint32) error
 	NewQer(qerInfo QerInfo) (uint32, error)
@@ -415,13 +438,13 @@ func ToIpEntrypointPdrInfo(defaultPdr PdrInfo) IpEntrypointPdrInfo {
 	return pdrToStore
 }
 
-// func FromIpEntrypointPdrInfo(storedPdr IpEntrypointPdrInfo) PdrInfo {
-// 	var pdrInfo PdrInfo
-// 	pdrInfo.OuterHeaderRemoval = storedPdr.OuterHeaderRemoval
-// 	pdrInfo.FarId = storedPdr.FarId
-// 	pdrInfo.QerId = storedPdr.QerId
-// 	return pdrInfo
-// }
+//func FromIpEntrypointPdrInfo(storedPdr IpEntrypointPdrInfo) PdrInfo {
+//	var pdrInfo PdrInfo
+//	pdrInfo.OuterHeaderRemoval = storedPdr.OuterHeaderRemoval
+//	pdrInfo.FarId = storedPdr.FarId
+//	pdrInfo.QerId = storedPdr.QerId
+//	return pdrInfo
+//}
 
 func Copy16Ip[T ~[]byte](arr T) [16]byte {
 	const Ipv4len = 4

@@ -56,6 +56,7 @@ type PfcpConnection struct {
 	dumper                 utils.Dumper
 	AssociationSetupTicker *time.Ticker
 	PCCRules               map[string]PCCInfo
+	PCCRulesNameLinkURRID  map[uint32][]string
 }
 
 func NewPfcpConnection(
@@ -103,25 +104,28 @@ func NewPfcpConnection(
 		return nil, fmt.Errorf("failed to init network instance validator: %s", err.Error())
 	}
 
+	pccRule, pccRulesNameLinkURRID := buildPCCRuleMap()
+
 	return &PfcpConnection{
-		udpConn:           udpConn,
-		pfcpHandlerMap:    pfcpHandlers,
-		associationMutex:  &sync.Mutex{},
-		NodeAssociations:  map[string]*NodeAssociation{},
-		nodeId:            nodeId,
-		nodeAddrV4:        udpAddr.AddrPort(),
-		n3Address:         n3Addr,
-		n9Address:         n9Addr,
-		mapOperations:     mapOperations,
-		RecoveryTimestamp: time.Now(),
-		featuresOctets:    featuresOctets,
-		ResourceManager:   resourceManager,
-		heartbeatFailedC:  make(chan string),
-		nodes:             []AssociationConnector{},
-		neValidator:       validator,
-		tracingStorage:    tracing.NewSimpleTraceRecordStorage(),
-		dumper:            dumper,
-		PCCRules:          buildPCCRuleMap(),
+		udpConn:               udpConn,
+		pfcpHandlerMap:        pfcpHandlers,
+		associationMutex:      &sync.Mutex{},
+		NodeAssociations:      map[string]*NodeAssociation{},
+		nodeId:                nodeId,
+		nodeAddrV4:            udpAddr.AddrPort(),
+		n3Address:             n3Addr,
+		n9Address:             n9Addr,
+		mapOperations:         mapOperations,
+		RecoveryTimestamp:     time.Now(),
+		featuresOctets:        featuresOctets,
+		ResourceManager:       resourceManager,
+		heartbeatFailedC:      make(chan string),
+		nodes:                 []AssociationConnector{},
+		neValidator:           validator,
+		tracingStorage:        tracing.NewSimpleTraceRecordStorage(),
+		dumper:                dumper,
+		PCCRules:              pccRule,
+		PCCRulesNameLinkURRID: pccRulesNameLinkURRID,
 	}, nil
 }
 
@@ -203,8 +207,10 @@ func (connection *PfcpConnection) ValidateNetworkInstance(networkInstance string
 	return connection.neValidator.Validate(networkInstance)
 }
 
-func buildPCCRuleMap() map[string]PCCInfo {
+func buildPCCRuleMap() (map[string]PCCInfo, map[uint32][]string) {
 	pccRules := make(map[string]PCCInfo)
+	pccRulesURRLinks := make(map[uint32][]string)
+
 	for i := range config.PCCConf.PccRules {
 		sdfFilter, err := ParseSdfFilter(config.PCCConf.PccRules[i].SdfFilter)
 		if err != nil {
@@ -213,9 +219,15 @@ func buildPCCRuleMap() map[string]PCCInfo {
 			continue
 		}
 
+		pccRulesURRLinks[config.PCCConf.PccRules[i].Urr.Urrid] = append(
+			pccRulesURRLinks[config.PCCConf.PccRules[i].Urr.Urrid],
+			config.PCCConf.PccRules[i].PccName,
+		)
+
 		pccRules[config.PCCConf.PccRules[i].PccName] = PCCInfo{
-			PCCName:   config.PCCConf.PccRules[i].PccName,
-			SDFFilter: sdfFilter,
+			PCCName:      config.PCCConf.PccRules[i].PccName,
+			SDFFilter:    sdfFilter,
+			RawSDFFilter: config.PCCConf.PccRules[i].SdfFilter,
 			FAR: ebpf.FarInfo{
 				Action:                config.PCCConf.PccRules[i].Far.Action,
 				OuterHeaderCreation:   config.PCCConf.PccRules[i].Far.OuterHeaderCreation,
@@ -237,7 +249,7 @@ func buildPCCRuleMap() map[string]PCCInfo {
 	log.Info().Msgf("loaded pcc rules map %+v", config.PCCConf.PccRules)
 	log.Info().Msgf("create pcc rules map %+v", pccRules)
 
-	return pccRules
+	return pccRules, pccRulesURRLinks
 }
 
 func (connection *PfcpConnection) SetRemoteNodes(nodes []AssociationConnector) {
@@ -387,11 +399,6 @@ func (connection *PfcpConnection) ReleaseResources(seID uint64) {
 func (connection *PfcpConnection) SendReports() {
 	for _, assocaition := range connection.NodeAssociations {
 		for _, session := range assocaition.Sessions {
-			// for _, far := range session.FARs {
-			// 	if far.FarInfo.Action == 12 {
-
-			// 	}
-			// }
 			for urrid, urr := range session.URRs {
 
 				newReport, err := connection.mapOperations.GetUrr(urr.GlobalId)
@@ -402,7 +409,58 @@ func (connection *PfcpConnection) SendReports() {
 				uplink := newReport.UplinkVolume - urr.UrrInfo.UplinkVolume
 				downlink := newReport.DownlinkVolume - urr.UrrInfo.DownlinkVolume
 
-				if urr.UrrInfo.VolumeThreshold == 0 || urr.UrrInfo.VolumeThreshold > uplink+downlink {
+				ies := make([]*ie.IE, 0)
+
+				if pccRuleNames, ok := connection.PCCRulesNameLinkURRID[urrid]; ok && uplink+downlink > 0 {
+					if len(pccRuleNames) > 1 {
+						log.Error().Uint32("urrID", urrid).Msgf("number of pcc rules referring to urrid is greater than 1")
+
+						continue
+					}
+
+					pccRule, ok := connection.PCCRules[pccRuleNames[0]]
+					if !ok {
+						log.Error().Uint32("urrID", urrid).Str("pccRule", pccRuleNames[0]).Msgf("pcc rule not found")
+					}
+
+					if pccRule.RawSDFFilter != "" {
+						ies = append(ies, ie.NewVendorSpecificIE(36017, 2011, []byte(pccRule.RawSDFFilter)))
+					} else {
+						log.Warn().Uint32("urrID", urrid).Msgf("pcc rule not found")
+					}
+				} else if !(urr.UrrInfo.VolumeThreshold == 0 || urr.UrrInfo.VolumeThreshold > uplink+downlink) {
+					// CHOICE
+					// urr-type
+					//    enterprise-id: ---- 0x7db(2011)
+					//    urr-level-type: ---- bearer(2)
+					//    urr-function-type: ---- charging(1)
+					//    urr-charging-type: ---- offlinepgw(3)
+					ies = append(ies, ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03}))
+
+					// CHOICE
+					// bearer-sequence
+					//    enterprise-id: ---- 0x7db(2011)
+					//    bearer-sequence-value: ---- 0x1(1)
+					ies = append(ies, ie.NewVendorSpecificIE(32843, 2011, []byte{1}))
+
+					// CHOICE
+					// private-stop-time
+					//    enterprise-id: ---- 0x7db(2011)
+					//    private-stop-time-value: ---- 0x000001917EEC1EEC
+					ies = append(ies, ie.NewVendorSpecificIE(34010, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}))
+
+					// CHOICE
+					// private-time-of-first-packet
+					//    enterprise-id: ---- 0x7db(2011)
+					//    time-of-first-packet-value: ---- 0x000001917EEC1BE9
+					ies = append(ies, ie.NewVendorSpecificIE(34011, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x20, 0xad}))
+
+					// CHOICE
+					// private-time-of-last-packet
+					//    enterprise-id: ---- 0x7db(2011)
+					//    time-of-last-packet-value: ---- 0x000001917EEC1EEC
+					ies = append(ies, ie.NewVendorSpecificIE(34012, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}))
+				} else {
 					continue
 				}
 
@@ -410,17 +468,59 @@ func (connection *PfcpConnection) SendReports() {
 				sequence := assocaition.NewSequenceID()
 				urr.ReportSeqNumber += 1
 				session.URRSequence += 1 //Huawei !!!
+
 				SendSessionReport(connection, session.RemoteSEID, sequence, assocaition.Addr,
 					urrid,
 					//urr.ReportSeqNumber,
 					session.URRSequence, //Huawei
 					uplink,
 					downlink,
-					traced)
+					traced,
+					ies...,
+				)
 
 				urr.UrrInfo.UplinkVolume = newReport.UplinkVolume
 				urr.UrrInfo.DownlinkVolume = newReport.DownlinkVolume
 				session.URRs[urrid] = urr
+			}
+
+			for pdrID, pdr := range session.PDRs {
+				far, ok := session.FARs[pdr.PdrInfo.FarId]
+				if !ok {
+					log.Debug().Msgf("far in session not found")
+
+					continue
+				}
+
+				if far.FarInfo.Action != 0x08 { // todo maxim: const
+					continue
+				}
+
+				log.Debug().Uint32("farID", far.GlobalId).Msg("far is FAR_NOCP")
+
+				currentFar, err := connection.mapOperations.GetFar(far.GlobalId)
+				if err != nil {
+					continue
+				}
+
+				if currentFar.Trigger == 1 {
+					currentFar.Trigger = 2
+					err := connection.mapOperations.UpdateFar(far.GlobalId, currentFar)
+					if err != nil {
+						log.Warn().Uint32("farID", far.GlobalId).Msgf("can`t update far")
+
+						continue
+					}
+
+					traced := session.IsSessionTraced()
+					sequence := assocaition.NewSequenceID()
+					session.URRSequence += 1
+
+					SendDownlinkNotificationReport(connection, session.RemoteSEID, sequence, assocaition.Addr,
+						pdrID,
+						traced,
+					)
+				}
 			}
 		}
 
@@ -508,7 +608,9 @@ func SendSessionReport(conn *PfcpConnection, seid uint64, sequenceID uint32, ass
 	urSeq uint32,
 	uplink uint64,
 	downlink uint64,
-	traced bool) {
+	traced bool,
+	vendorSpecificIEs ...*ie.IE,
+) {
 
 	additionalIEs := []*ie.IE{
 		ie.NewReportType(0, 0, 1, 0),
@@ -520,35 +622,10 @@ func SendSessionReport(conn *PfcpConnection, seid uint64, sequenceID uint32, ass
 			ie.NewVolumeMeasurement(0x6, 0, uplink, downlink, 0, 0, 0),
 			ie.NewTimeOfFirstPacket(time.Now()),
 			ie.NewTimeOfLastPacket(time.Now()),
-			// CHOICE
-			// urr-type
-			//    enterprise-id: ---- 0x7db(2011)
-			//    urr-level-type: ---- bearer(2)
-			//    urr-function-type: ---- charging(1)
-			//    urr-charging-type: ---- offlinepgw(3)
-			ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03}),
-			// CHOICE
-			// bearer-sequence
-			//    enterprise-id: ---- 0x7db(2011)
-			//    bearer-sequence-value: ---- 0x1(1)
-			ie.NewVendorSpecificIE(32843, 2011, []byte{1}),
-			// CHOICE
-			// private-stop-time
-			//    enterprise-id: ---- 0x7db(2011)
-			//    private-stop-time-value: ---- 0x000001917EEC1EEC
-			ie.NewVendorSpecificIE(34010, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
-			// CHOICE
-			// private-time-of-first-packet
-			//    enterprise-id: ---- 0x7db(2011)
-			//    time-of-first-packet-value: ---- 0x000001917EEC1BE9
-			ie.NewVendorSpecificIE(34011, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x20, 0xad}),
-			// CHOICE
-			// private-time-of-last-packet
-			//    enterprise-id: ---- 0x7db(2011)
-			//    time-of-last-packet-value: ---- 0x000001917EEC1EEC
-			ie.NewVendorSpecificIE(34012, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
 		),
 	}
+
+	additionalIEs = append(additionalIEs, vendorSpecificIEs...)
 
 	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
 	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)
@@ -562,27 +639,41 @@ func SendSessionReport(conn *PfcpConnection, seid uint64, sequenceID uint32, ass
 	}
 }
 
-// func SendDownlinkNotificationReport(conn *PfcpConnection, seid uint64, sequenceID uint32, associationAddr string,
-// 	pdrid uint16) {
+func SendDownlinkNotificationReport(
+	conn *PfcpConnection,
+	seid uint64,
+	sequenceID uint32,
+	associationAddr string,
+	pdrID uint32,
+	traced bool,
+	vendorSpecificIEs ...*ie.IE,
+) {
+	if pdrID > math.MaxUint16 {
+		log.Warn().Msgf("PDR ID too large (%d)", pdrID)
 
-// 	additionalIEs := []*ie.IE{
-// 		ie.NewReportType(0, 0, 0, 1),
-// 		ie.NewDownlinkDataReport(
-// 			ie.NewPDRID(pdrid),
-// 		),
-// 	}
+		return
+	}
 
-// 	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
-// 	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)
-// 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
-// 	if err == nil {
-// 		if err := conn.SendMessage(sessionReport, udpAddr); err != nil {
-// 			log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
-// 		}
-// 	} else {
-// 		log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
-// 	}
-// }
+	additionalIEs := []*ie.IE{
+		ie.NewReportType(0, 0, 0, 1),
+		ie.NewDownlinkDataReport(
+			ie.NewPDRID(uint16(pdrID)),
+		),
+	}
+
+	additionalIEs = append(additionalIEs, vendorSpecificIEs...)
+
+	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
+	log.Debug().Msgf("Sent DLDR Session Report Request to: %s", associationAddr)
+	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
+	if err == nil {
+		if err := conn.SendMessageWithTrace(sessionReport, udpAddr, traced); err != nil {
+			log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
+		}
+	} else {
+		log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
+	}
+}
 
 type DefaultAssociationConnector struct {
 	address string

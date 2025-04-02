@@ -16,6 +16,7 @@ type MapOperationsMock struct {
 	uplinkPDR   ebpf.PdrInfo
 	downlinkPDR ebpf.PdrInfo
 	urr         ebpf.UrrInfo
+	far         ebpf.FarInfo
 }
 
 func (mapOps *MapOperationsMock) PutPdrUplink(teid uint32, pdrInfo ebpf.PdrInfo) error {
@@ -92,6 +93,10 @@ func (mapOps *MapOperationsMock) GetPdrUplink(teid uint32) (*ebpf.PdrInfo, error
 
 func (mapOps *MapOperationsMock) GetDownlinkPdrIp6(ipv6 net.IP) (*ebpf.PdrInfo, error) {
 	return nil, nil
+}
+
+func (mapOps *MapOperationsMock) GetFar(internalId uint32) (ebpf.FarInfo, error) {
+	return mapOps.far, nil
 }
 
 func TestSessionOverwrite(t *testing.T) {

@@ -18,7 +18,9 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-const huaweiMode = false // todo: swap to config
+const (
+	huaweiMode = false // todo: swap to config
+)
 
 var errMandatoryIeMissing = fmt.Errorf("mandatory IE missing")
 var errNoEstablishedAssociation = fmt.Errorf("no established association")

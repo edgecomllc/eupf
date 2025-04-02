@@ -178,6 +178,7 @@ services:
     privileged: true
     volumes:
       - /sys/fs/bpf:/sys/fs/bpf
+      - ../../../stub/pcc/test/pcc.yaml:/pcc.yaml
     environment:
       GIN_MODE: release
       UPF_INTERFACE_NAME: eth0

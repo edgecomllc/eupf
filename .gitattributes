@@ -1,0 +1,13 @@
+*.go text eol=lf
+*.mod text eol=lf
+*.sum text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.py text eol=lf
+*.robot text eol=lf
+*.sh text eol=lf
+*.env text eol=lf
+*.js text eol=lf
+*.h text eol=lf
+*.c text eol=lf
+*.md text eol=lf

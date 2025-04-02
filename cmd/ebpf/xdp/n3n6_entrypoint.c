@@ -59,10 +59,10 @@ static __always_inline const struct pdr* check_sdf_filters_ipv4(struct packet_co
     const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
     for (int i = 0; i < sdf_filters_num; i++) {
         const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-        if(match_sdf_filter_ipv4(ctx, sdf)) 
+        if(match_sdf_filter_ipv4(ctx, sdf))
             return &session->dedicated_pdrs[i].pdr;
     }
-    
+
     return 0;
 }
 
@@ -71,10 +71,10 @@ static __always_inline const struct pdr* check_sdf_filters_ipv6(struct packet_co
     const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
     for (int i = 0; i < sdf_filters_num; i++) {
         const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-        if(match_sdf_filter_ipv6(ctx, sdf)) 
+        if(match_sdf_filter_ipv6(ctx, sdf))
             return &session->dedicated_pdrs[i].pdr;
     }
-    
+
     return 0;
 }
 
@@ -106,7 +106,7 @@ static __always_inline const struct pdr* check_sdf_filters_gtp(struct packet_con
             const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
             for (int i = 0; i < sdf_filters_num; i++) {
                 const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-                if(match_sdf_filter_ipv4(&inner_context, sdf)) 
+                if(match_sdf_filter_ipv4(&inner_context, sdf))
                     return &session->dedicated_pdrs[i].pdr;
             }
             break;
@@ -170,6 +170,10 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
 
     upf_printk("upf: [n6] downlink session for ip:%pI4  far:%d action:%d", &ip4->daddr, pdr->far_id, far->action);
 
+    if ((far->action & FAR_NOCP) && far->trigger == 0) {
+          far->trigger = 1;
+    }
+
     // Only forwarding action is supported at the moment
     if (!(far->action & FAR_FORW))
         return XDP_DROP;
@@ -197,9 +201,9 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
 
     const int urr_size = sizeof(pdr->urr_id)/sizeof(pdr->urr_id[0]);
     for (int i = 0; i < urr_size; i++) {
-        update_urr(pdr->urr_id[i], packet_size, 0);   
+        update_urr(pdr->urr_id[i], packet_size, 0);
     }
-    
+
     upf_printk("upf: [n6] use mapping %pI4 -> teid:%u", &ip4->daddr, far->teid);
     enum xdp_action action = send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
 
@@ -237,6 +241,10 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
         return XDP_DROP;
     }
 
+     if ((far->action & FAR_NOCP) && far->trigger == 0) {
+        far->trigger = 1;
+     }
+
     upf_printk("upf: [n6] downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, pdr->far_id, far->action);
 
     // Only forwarding action supported at the moment
@@ -266,7 +274,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
 
     const int urr_size = sizeof(pdr->urr_id)/sizeof(pdr->urr_id[0]);
     for (int i = 0; i < urr_size; i++) {
-        update_urr(pdr->urr_id[i], packet_size, 0);   
+        update_urr(pdr->urr_id[i], packet_size, 0);
     }
 
     upf_printk("upf: [n6] use mapping %pI6c -> teid:%u", &ip6->daddr, far->teid);
@@ -345,7 +353,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
 
     const int urr_size = sizeof(pdr->urr_id)/sizeof(pdr->urr_id[0]);
     for (int i = 0; i < urr_size; i++) {
-        update_urr(pdr->urr_id[i], packet_size, 0);   
+        update_urr(pdr->urr_id[i], packet_size, 0);
     }
 
     upf_printk("upf: [n3] session for teid:%u far:%d outer_header_removal:%d", teid, pdr->far_id, pdr->outer_header_removal);

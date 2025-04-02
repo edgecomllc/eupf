@@ -33,6 +33,11 @@ type PccRule struct {
 	SdfFilter string `mapstructure:"sdf_filter" validate:"required,sdfFilter"`
 	Far       Far    `mapstructure:"far"`
 	Qer       Qer    `mapstructure:"qer"`
+	Urr       Urr    `mapstructure:"urr"`
+}
+
+type Urr struct {
+	Urrid uint32 `mapstructure:"urrid" default:"0"`
 }
 
 // Far Forwarding Action Rule in the pcc config view
@@ -148,6 +153,26 @@ func defineFlags() {
 
 func initPccConfig() {
 	configPath := pflag.Lookup("pcc-config").Value.String()
+
+	pccConfigV.SetDefault("pcc_rules", []map[string]interface{}{
+		{
+			"far": map[string]interface{}{
+				"action":                  0,
+				"outer_header_creation":   0,
+				"teid":                    0,
+				"remote_ip":               0,
+				"transport_level_marking": 0,
+			},
+			"qer": map[string]interface{}{
+				"qfi":            1,
+				"max_bitrate_ul": 0,
+				"max_bitrate_dl": 0,
+			},
+			"urr": map[string]interface{}{
+				"urrid": 0,
+			},
+		},
+	})
 
 	pccConfigV.SetConfigFile(configPath)
 	pccConfigV.SetEnvPrefix("pcc")

@@ -45,10 +45,11 @@ type SPDRInfo struct {
 }
 
 type PCCInfo struct {
-	PCCName   string
-	SDFFilter ebpf.SdfFilter
-	FAR       ebpf.FarInfo
-	QER       ebpf.QerInfo
+	PCCName      string
+	RawSDFFilter string
+	SDFFilter    ebpf.SdfFilter
+	FAR          ebpf.FarInfo
+	QER          ebpf.QerInfo
 }
 
 type SFarInfo struct {
