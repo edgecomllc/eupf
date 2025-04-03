@@ -203,7 +203,7 @@ func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations
 		}
 	} else if spdrInfo.Ipv6 != nil {
 		if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
-			return fmt.Errorf("Can't delete IPv6 PDR: %s", err.Error())
+			return fmt.Errorf("can't delete IPv6 PDR: %s", err.Error())
 		}
 	} else if spdrInfo.Teid > 0 {
 		if _, ok := pdrContext.TEIDCache[uint8(spdrInfo.Teid)]; !ok {
@@ -215,7 +215,9 @@ func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations
 		}
 	}
 	if spdrInfo.Teid != 0 {
-		pdrContext.ResourceManager.FTEIDM.ReleaseTEID(pdrContext.Session.RemoteSEID)
+		if pdrContext.ResourceManager != nil {
+			pdrContext.ResourceManager.FTEIDM.ReleaseTEID(pdrContext.Session.RemoteSEID)
+		}
 	}
 
 	return nil
