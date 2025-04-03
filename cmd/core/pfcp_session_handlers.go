@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	huaweiMode = false // todo: swap to config
+	huaweiMode = true // todo: swap to config
 )
 
 var errMandatoryIeMissing = fmt.Errorf("mandatory IE missing")

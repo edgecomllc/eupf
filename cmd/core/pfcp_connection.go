@@ -757,6 +757,15 @@ func (connector *SxaAssociationConnector) sendAssociationSetupRequest(connection
 		return
 	}
 
+	ipSuiteName := "0001" + connection.nodeId
+	ipsuitInfo := make([]byte, 0)
+	ipsuitInfo = append(ipsuitInfo, 0xA8, 0x00)
+	ipsuitInfo = append(ipsuitInfo, (byte)(len(ipSuiteName)))
+	ipsuitInfo = append(ipsuitInfo, ipSuiteName...)
+	ipsuitInfo = append(ipsuitInfo, s1uIP.To4()...)
+	ipsuitInfo = append(ipsuitInfo, s5s8IP.To4()...)
+	ipsuitInfo = append(ipsuitInfo, s1uIP.To4()...)
+
 	associationAddr := connector.getAddress()
 	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
 		newIeNodeIDHuawei(connection.nodeId),
@@ -793,12 +802,7 @@ func (connector *SxaAssociationConnector) sendAssociationSetupRequest(connection
 		// 			uladdr2: ---- 0xa9(169)
 		// 			uladdr3: ---- 0x70(112)
 		// 			uladdr4: ---- 0x8a(138)
-		ie.NewVendorSpecificIE(32787, 2011, []byte{
-			0xA8, 0x00,
-			0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34,
-			s1uIP.To4()[0], s1uIP.To4()[1], s1uIP.To4()[2], s1uIP.To4()[3],
-			s5s8IP.To4()[0], s5s8IP.To4()[1], s5s8IP.To4()[2], s5s8IP.To4()[3],
-			s1uIP.To4()[0], s1uIP.To4()[1], s1uIP.To4()[2], s1uIP.To4()[3]}),
+		ie.NewVendorSpecificIE(32787, 2011, ipsuitInfo),
 		//CHOICE
 		//	user-plane-element-weight
 		//		enterprise-id: ---- 0x7db(2011)
@@ -874,6 +878,13 @@ func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection
 		return
 	}
 
+	pSuiteName := "0001" + connection.nodeId
+	ipsuitInfo := make([]byte, 0)
+	ipsuitInfo = append(ipsuitInfo, 0x02, 0x00)
+	ipsuitInfo = append(ipsuitInfo, (byte)(len(ipSuiteName)))
+	ipsuitInfo = append(ipsuitInfo, ipSuiteName...)
+	ipsuitInfo = append(ipsuitInfo, paIP.To4()...)
+
 	associationAddr := connector.getAddress()
 	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
 		newIeNodeIDHuawei(connection.nodeId),
@@ -899,8 +910,7 @@ func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection
 		//			uladdr2: ---- 0xa9(169)
 		//			uladdr3: ---- 0x70(112)
 		//			uladdr4: ---- 0x83(131)
-		ie.NewVendorSpecificIE(32787, 2011, []byte{0x02, 0x00, 0x08, 0x30, 0x30, 0x30, 0x34, 0x64, 0x67, 0x77, 0x34,
-			paIP.To4()[0], paIP.To4()[1], paIP.To4()[2], paIP.To4()[3]}),
+		ie.NewVendorSpecificIE(32787, 2011, ipsuitInfo),
 		//CHOICE
 		//	user-plane-element-weight
 		//		enterprise-id: ---- 0x7db(2011)

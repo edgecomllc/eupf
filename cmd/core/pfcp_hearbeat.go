@@ -18,6 +18,13 @@ func HandlePfcpHeartbeatRequest(conn *PfcpConnection, msg message.Message, addr 
 		log.Debug().Msgf("Got Heartbeat Request with TS: %s, from: %s", ts, addr)
 	}
 
+	_, ok := conn.NodeAssociations[addr]
+	if !ok {
+		log.Info().Msgf("Rejecting Heartbeat Request from: %s (no association)", addr)
+		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
+		return nil, true, nil
+	}
+
 	hbres := message.NewHeartbeatResponse(hbreq.SequenceNumber, ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp))
 	log.Debug().Msgf("Sent Heartbeat Response to: %s", addr)
 	return hbres, true, nil

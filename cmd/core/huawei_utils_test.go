@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/hex"
+	"reflect"
 	"testing"
 )
 
@@ -41,4 +42,33 @@ func TestDecodeDigitsFromBytes(t *testing.T) {
 		return
 	}
 	t.Logf("Decoded digits: %s", result)
+}
+
+func TestEncodeFQDN(t *testing.T) {
+	type args struct {
+		fqdn string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []byte
+	}{
+		{
+			name: "dgw4",
+			args: args{fqdn: "dgw4"},
+			want: []byte{0x64, 0x67, 0x77, 0x34},
+		},
+		{
+			name: "nactech.dgw",
+			args: args{fqdn: "nactech.dgw"},
+			want: []byte{0x6e, 0x61, 0x63, 0x74, 0x65, 0x63, 0x68, 0x2e, 0x64, 0x67, 0x77},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := EncodeFQDNHuawei(tt.args.fqdn); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("EncodeFQDN() = %v, want %v", hex.EncodeToString(got), hex.EncodeToString(tt.want))
+			}
+		})
+	}
 }

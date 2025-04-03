@@ -410,18 +410,25 @@ func hexDigit(nibble byte) byte {
 }
 
 // ------
-
+// EncodeFQDN encodes the given string as the Name Syntax defined
+// in RFC 2181, RFC 1035 and RFC 1123.
 func EncodeFQDN(fqdn string) []byte {
-	b := make([]byte, len(fqdn) /*+1*/)
+	b := make([]byte, len(fqdn)+1)
 
 	var offset = 0
 	for _, label := range strings.Split(fqdn, ".") {
 		l := len(label)
-		//b[offset] = uint8(l)
-		copy(b[offset: /*+1*/], label)
-		offset += l /*+ 1*/
+		b[offset] = uint8(l)
+		copy(b[offset+1:], label)
+		offset += l + 1
 	}
 
+	return b
+}
+
+func EncodeFQDNHuawei(fqdn string) []byte {
+	b := make([]byte, 0)
+	b = append(b, fqdn...)
 	return b
 }
 
@@ -440,7 +447,7 @@ func NewNodeIDHuawei(ipv4, ipv6, fqdn string) *ie.IE {
 	case fqdn != "":
 		p = make([]byte, 1+len([]byte(fqdn)))
 		p[0] = ie.NodeIDFQDN
-		copy(p[1:], EncodeFQDN(fqdn))
+		copy(p[1:], EncodeFQDNHuawei(fqdn))
 	default: // all params are empty
 		return nil
 	}
