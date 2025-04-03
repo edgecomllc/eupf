@@ -59,7 +59,7 @@ static __always_inline const struct pdr* check_sdf_filters_ipv4(struct packet_co
     const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
     for (int i = 0; i < sdf_filters_num; i++) {
         const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-        if(match_sdf_filter_ipv4(ctx, sdf))
+        if(sdf->protocol && match_sdf_filter_ipv4(ctx, sdf))
             return &session->dedicated_pdrs[i].pdr;
     }
 
@@ -71,7 +71,7 @@ static __always_inline const struct pdr* check_sdf_filters_ipv6(struct packet_co
     const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
     for (int i = 0; i < sdf_filters_num; i++) {
         const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-        if(match_sdf_filter_ipv6(ctx, sdf))
+        if(sdf->protocol && match_sdf_filter_ipv6(ctx, sdf))
             return &session->dedicated_pdrs[i].pdr;
     }
 
@@ -106,7 +106,7 @@ static __always_inline const struct pdr* check_sdf_filters_gtp(struct packet_con
             const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
             for (int i = 0; i < sdf_filters_num; i++) {
                 const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-                if(match_sdf_filter_ipv4(&inner_context, sdf))
+                if(sdf->protocol && match_sdf_filter_ipv4(&inner_context, sdf))
                     return &session->dedicated_pdrs[i].pdr;
             }
             break;
@@ -127,7 +127,7 @@ static __always_inline const struct pdr* check_sdf_filters_gtp(struct packet_con
             const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
             for (int i = 0; i < sdf_filters_num; i++) {
                 const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-                if(match_sdf_filter_ipv6(&inner_context, sdf))
+                if(sdf->protocol && match_sdf_filter_ipv6(&inner_context, sdf))
                     return &session->dedicated_pdrs[i].pdr;
             }
             break;

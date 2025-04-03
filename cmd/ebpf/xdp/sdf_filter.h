@@ -69,6 +69,9 @@ static /*__always_inline*/ __u8 match_sdf_filter_ipv4(const struct packet_contex
     if(!ctx || !ctx->ip4 || !sdf)
         return 0;
 
+    if(sdf->src_addr.type == 2 || sdf->dst_addr.type == 2)
+        return 0;
+
     const struct iphdr *ip4 = ctx->ip4;
     __u8 packet_protocol = get_sdf_protocol(ip4->protocol); //TODO: convert protocol in golang part
     __u16 packet_src_port = 0;
@@ -111,6 +114,12 @@ static /*__always_inline*/ __u8 match_sdf_filter_ipv4(const struct packet_contex
 }
 
 static /*__always_inline*/ __u8 match_sdf_filter_ipv6(const struct packet_context *ctx, const struct sdf_filter *sdf) {
+    if(!ctx || !ctx->ip6 || !sdf)
+        return 0;
+
+    if(sdf->src_addr.type == 1 || sdf->dst_addr.type == 1)
+        return 0;
+    
     const struct ipv6hdr *ipv6 = ctx->ip6;  
     __u8 packet_protocol = get_sdf_protocol(ipv6->nexthdr);
     __u128 packet_src_ip_128 = *((__u128*)ipv6->saddr.s6_addr);
