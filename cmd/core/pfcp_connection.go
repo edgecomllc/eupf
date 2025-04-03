@@ -878,7 +878,7 @@ func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection
 		return
 	}
 
-	pSuiteName := "0001" + connection.nodeId
+	ipSuiteName := "0001" + connection.nodeId
 	ipsuitInfo := make([]byte, 0)
 	ipsuitInfo = append(ipsuitInfo, 0x02, 0x00)
 	ipsuitInfo = append(ipsuitInfo, (byte)(len(ipSuiteName)))
