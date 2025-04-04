@@ -201,7 +201,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
 
     const int urr_size = sizeof(pdr->urr_id)/sizeof(pdr->urr_id[0]);
     for (int i = 0; i < urr_size; i++) {
-        update_urr(pdr->urr_id[i], packet_size, 0);
+        update_urr(pdr->urr_id[i], 0, packet_size);
     }
 
     upf_printk("upf: [n6] use mapping %pI4 -> teid:%u", &ip4->daddr, far->teid);
@@ -274,7 +274,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
 
     const int urr_size = sizeof(pdr->urr_id)/sizeof(pdr->urr_id[0]);
     for (int i = 0; i < urr_size; i++) {
-        update_urr(pdr->urr_id[i], packet_size, 0);
+        update_urr(pdr->urr_id[i], 0, packet_size);
     }
 
     upf_printk("upf: [n6] use mapping %pI6c -> teid:%u", &ip6->daddr, far->teid);

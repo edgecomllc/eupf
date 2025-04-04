@@ -309,23 +309,33 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 	if updateForwardingParameters, err := far.UpdateForwardingParameters(); err == nil {
 		writeLineTabbed(sb, "Update forwarding Parameters:", 2)
 		for _, updateForwardingParameter := range updateForwardingParameters {
-			networkInstance, err := updateForwardingParameter.NetworkInstance()
-			if err == nil {
+			if networkInstance, err := updateForwardingParameter.NetworkInstance(); err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Network Instance: %s ", networkInstance), 3)
 			}
+
 			//outerHeaderCreation, err := updateForwardingParameter.OuterHeaderCreation()
-			outerHeaderCreation, err := HuaweiOuterHeaderCreation(updateForwardingParameter)
-			if err == nil {
-				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation), 3)
+			if outerHeaderCreation, err := HuaweiOuterHeaderCreation(updateForwardingParameter); err == nil {
+				writeLineTabbed(sb, "Outer Header Creation:", 3)
+				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation Description: %+v ", outerHeaderCreation.OuterHeaderCreationDescription), 4)
+				writeLineTabbed(sb, fmt.Sprintf("TEID: %+v ", outerHeaderCreation.TEID), 4)
+				writeLineTabbed(sb, fmt.Sprintf("IPv4Address: %+v ", outerHeaderCreation.IPv4Address), 4)
+				writeLineTabbed(sb, fmt.Sprintf("IPv6Address: %+v ", outerHeaderCreation.IPv6Address), 4)
+				writeLineTabbed(sb, fmt.Sprintf("PortNumber: %+v ", outerHeaderCreation.PortNumber), 4)
+				writeLineTabbed(sb, fmt.Sprintf("CTag: %+v ", outerHeaderCreation.CTag), 4)
+				writeLineTabbed(sb, fmt.Sprintf("STag: %+v ", outerHeaderCreation.STag), 4)
 			}
-			redirectInformation, err := updateForwardingParameter.RedirectInformation()
-			if err == nil {
+
+			if redirectInformation, err := updateForwardingParameter.RedirectInformation(); err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Redirect Information, server address: %s ", redirectInformation.RedirectServerAddress), 3)
 				writeLineTabbed(sb, fmt.Sprintf("Redirect Information, other server address: %s ", redirectInformation.OtherRedirectServerAddress), 3)
 			}
-			headerEnrichment, err := updateForwardingParameter.HeaderEnrichment()
-			if err == nil {
+
+			if headerEnrichment, err := updateForwardingParameter.HeaderEnrichment(); err == nil {
 				writeLineTabbed(sb, fmt.Sprintf("Header Enrichment: %s : %s ", headerEnrichment.HeaderFieldName, headerEnrichment.HeaderFieldValue), 3)
+			}
+
+			if transportLevelMarking, err := updateForwardingParameter.TransportLevelMarking(); err == nil {
+				writeLineTabbed(sb, fmt.Sprintf("Transport Level Marking: %+v", transportLevelMarking), 3)
 			}
 		}
 	}

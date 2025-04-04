@@ -836,7 +836,6 @@ func composeFarInfo(far *ie.IE, localN3Ip net.IP, localN9Ip net.IP, farInfo ebpf
 		if outerHeaderCreationIndex == -1 {
 			log.Warn().Msg("No OuterHeaderCreation")
 		} else {
-			var outerHeaderCreation *ie.OuterHeaderCreationFields
 
 			if huaweiMode {
 				huaweiOuterHeaderCreation, err := HuaweiOuterHeaderCreation(forward[outerHeaderCreationIndex]) //Huawei
@@ -845,19 +844,17 @@ func composeFarInfo(far *ie.IE, localN3Ip net.IP, localN9Ip net.IP, farInfo ebpf
 					return ebpf.FarInfo{}, err
 				}
 
-				outerHeaderCreation = &ie.OuterHeaderCreationFields{
-					OuterHeaderCreationDescription: huaweiOuterHeaderCreation.OuterHeaderCreationDescription,
-					TEID:                           huaweiOuterHeaderCreation.TEID,
-					IPv4Address:                    huaweiOuterHeaderCreation.IPv4Address,
-					IPv6Address:                    huaweiOuterHeaderCreation.IPv6Address,
-					PortNumber:                     huaweiOuterHeaderCreation.PortNumber,
-					CTag:                           huaweiOuterHeaderCreation.CTag,
-					STag:                           huaweiOuterHeaderCreation.STag,
+				farInfo.OuterHeaderCreation = uint8(1 << huaweiOuterHeaderCreation.OuterHeaderCreationDescription) //Huawei
+				farInfo.Teid = huaweiOuterHeaderCreation.TEID
+				if huaweiOuterHeaderCreation.HasIPv4() {
+					farInfo.RemoteIP = binary.LittleEndian.Uint32(huaweiOuterHeaderCreation.IPv4Address)
 				}
-
-				farInfo.OuterHeaderCreation = uint8(1 << outerHeaderCreation.OuterHeaderCreationDescription) //Huawei
+				if huaweiOuterHeaderCreation.HasIPv6() {
+					log.Warn().Msg("IPv6 not supported yet, ignoring")
+					return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
+				}
 			} else {
-				outerHeaderCreation, err = forward[outerHeaderCreationIndex].OuterHeaderCreation()
+				outerHeaderCreation, err := forward[outerHeaderCreationIndex].OuterHeaderCreation()
 				if err != nil {
 					log.Error().Msgf("Error creating OuterHeaderCreation: %s", err.Error())
 
@@ -865,15 +862,14 @@ func composeFarInfo(far *ie.IE, localN3Ip net.IP, localN9Ip net.IP, farInfo ebpf
 				}
 
 				farInfo.OuterHeaderCreation = uint8(outerHeaderCreation.OuterHeaderCreationDescription >> 8)
-			}
-
-			farInfo.Teid = outerHeaderCreation.TEID
-			if outerHeaderCreation.HasIPv4() {
-				farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
-			}
-			if outerHeaderCreation.HasIPv6() {
-				log.Warn().Msg("IPv6 not supported yet, ignoring")
-				return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
+				farInfo.Teid = outerHeaderCreation.TEID
+				if outerHeaderCreation.HasIPv4() {
+					farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
+				}
+				if outerHeaderCreation.HasIPv6() {
+					log.Warn().Msg("IPv6 not supported yet, ignoring")
+					return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
+				}
 			}
 
 			destInterfaceIndex := findIEindex(forward, 42) // IE Destination Interface
