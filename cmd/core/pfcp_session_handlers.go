@@ -18,10 +18,6 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-const (
-	huaweiMode = true // todo: swap to config
-)
-
 var errMandatoryIeMissing = fmt.Errorf("mandatory IE missing")
 var errNoEstablishedAssociation = fmt.Errorf("no established association")
 
@@ -837,7 +833,7 @@ func composeFarInfo(far *ie.IE, localN3Ip net.IP, localN9Ip net.IP, farInfo ebpf
 			log.Warn().Msg("No OuterHeaderCreation")
 		} else {
 
-			if huaweiMode {
+			if config.Conf.HuaweiSupport {
 				huaweiOuterHeaderCreation, err := HuaweiOuterHeaderCreation(forward[outerHeaderCreationIndex]) //Huawei
 				if err != nil {
 					log.Error().Msgf("Error creating OuterHeaderCreation: %s", err.Error())

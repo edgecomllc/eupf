@@ -42,7 +42,7 @@ type Urr struct {
 
 // Far Forwarding Action Rule in the pcc config view
 type Far struct {
-	Action                uint8  `mapstructure:"action" validate:"required"`
+	Action                uint8  `mapstructure:"action"`
 	OuterHeaderCreation   uint8  `mapstructure:"outer_header_creation"`
 	Teid                  uint32 `mapstructure:"teid"`
 	RemoteIP              uint32 `mapstructure:"remote_ip"`
@@ -94,6 +94,7 @@ type UpfConfig struct {
 	Qci2DscpMapping         map[string]int `mapstructure:"qci_dscp_mapping" json:"qci_dscp_mapping"`
 	AllowedApns             string         `mapstructure:"allowed_apns" json:"allowed_apns"`
 	DeniedApns              string         `mapstructure:"denied_apns" json:"denied_apns"`
+	HuaweiSupport           bool           `mapstructure:"huawei_support" json:"huawei_support"`
 }
 
 func init() {
@@ -147,6 +148,7 @@ func defineFlags() {
 	pflag.StringToInt("qdmap", map[string]int{}, "QCI to DSCP binding")
 	pflag.String("aapns", ".*", "Allowed APNs mask")
 	pflag.String("dapns", "", "Denied APNs mask")
+	pflag.Bool("huasupp", true, "Enable or disable huawei support")
 
 	pflag.Parse()
 }
@@ -154,25 +156,7 @@ func defineFlags() {
 func initPccConfig() {
 	configPath := pflag.Lookup("pcc-config").Value.String()
 
-	pccConfigV.SetDefault("pcc_rules", []map[string]interface{}{
-		{
-			"far": map[string]interface{}{
-				"action":                  0,
-				"outer_header_creation":   0,
-				"teid":                    0,
-				"remote_ip":               0,
-				"transport_level_marking": 0,
-			},
-			"qer": map[string]interface{}{
-				"qfi":            1,
-				"max_bitrate_ul": 0,
-				"max_bitrate_dl": 0,
-			},
-			"urr": map[string]interface{}{
-				"urrid": 0,
-			},
-		},
-	})
+	pccConfigV.SetDefault("pcc_rules", []PccRule{})
 
 	pccConfigV.SetConfigFile(configPath)
 	pccConfigV.SetEnvPrefix("pcc")
@@ -229,6 +213,7 @@ func initCommonConfig() {
 	_ = commonConfigV.BindPFlag("qci_dscp_mapping", pflag.Lookup("qdmap"))
 	_ = commonConfigV.BindPFlag("allowed_apns", pflag.Lookup("aapns"))
 	_ = commonConfigV.BindPFlag("denied_apns", pflag.Lookup("dapns"))
+	_ = commonConfigV.BindPFlag("huawei_support", pflag.Lookup("huasupp"))
 
 	commonConfigV.SetDefault("n9_address", commonConfigV.GetString("n3_address"))
 
