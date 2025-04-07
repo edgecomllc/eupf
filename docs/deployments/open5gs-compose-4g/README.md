@@ -2,6 +2,15 @@
 
 This deployment starts Open5gs 4G mobile core with UPF or eUPF.
 
+## Prerequisites
+
+Before starting services, ensure your host system has loaded required kernel modules:
+
+```bash
+modprobe iptable_nat
+modprobe iptable_filter
+```
+
 ---
 
 ## 1. Start services with Open5GS UPF

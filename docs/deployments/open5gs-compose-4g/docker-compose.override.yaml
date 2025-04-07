@@ -1,7 +1,7 @@
 
 services:
   sgwu:
-    image: ghcr.io/edgecomllc/eupf-dev:63b691fb66baa5ca3739457fbedecdee59d4c82a
+    image: ghcr.io/edgecomllc/eupf-dev:7047a1b53021f3387e6b4b3393bcee3903c575cb
     privileged: true
     volumes:
       - /sys/fs/bpf:/sys/fs/bpf
@@ -20,6 +20,7 @@ services:
       UPF_PFCP_NODE_ID: "172.20.0.100"
       UPF_N9_ADDRESS: ${SGWU_IP}
       UPF_GTP_PEER: ${SRS_ENB_IP}:2152
+      UPF_HUAWEI_SUPPORT: false
       UPF_LOGGING_LEVEL: debug
     entrypoint: ""
     command:
@@ -27,10 +28,7 @@ services:
       - -c
       - |
         apk add iproute2
-        apk add tcpdump
-        echo "1200 n6if" >> /etc/iproute2/rt_tables
-        ip rule add from 10.167.71.192/26 table n6if
-        ip route add default via `nslookup nat | awk '/^Address: / { print $2 }'` dev eth0 table n6if
+        ping -c 1 upf
         /app/bin/eupf
     ulimits:
       memlock: -1
@@ -48,7 +46,7 @@ services:
 
 
   upf:
-    image: ghcr.io/edgecomllc/eupf-dev:63b691fb66baa5ca3739457fbedecdee59d4c82a
+    image: ghcr.io/edgecomllc/eupf-dev:7047a1b53021f3387e6b4b3393bcee3903c575cb
     privileged: true
     volumes:
       - /sys/fs/bpf:/sys/fs/bpf
@@ -66,6 +64,7 @@ services:
       UPF_N9_ADDRESS: ${UPF_IP}
       UPF_PFCP_NODE_ID: "172.20.0.100"
       UPF_N3_ADDRESS: "172.20.0.100"
+      UPF_HUAWEI_SUPPORT: false
       UPF_LOGGING_LEVEL: debug
     entrypoint: ""
     command:
@@ -101,6 +100,8 @@ services:
       - NET_ADMIN
     networks:
       core4g:
+    depends_on:
+      - upf
     entrypoint: ""
     command:
       - /bin/sh

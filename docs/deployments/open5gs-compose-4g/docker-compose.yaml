@@ -188,8 +188,6 @@ services:
     privileged: true
     volumes:
       - ./srslte:/mnt/srslte
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
     env_file:
       - .env
     environment:
@@ -214,8 +212,6 @@ services:
     privileged: true
     volumes:
       - ./srslte:/mnt/srslte
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
     env_file:
       - .env
     environment:
@@ -234,5 +230,5 @@ networks:
     ipam:
       driver: default
       config:
-      - subnet:  10.103.0.1/16
+      - subnet:  10.103.0.0/16
 
