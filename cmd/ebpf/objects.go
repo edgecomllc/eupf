@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/edgecomllc/eupf/cmd/config"
@@ -28,16 +29,23 @@ import (
 type BpfObjects struct {
 	IpEntrypointObjects
 
-	FarIdTracker *IdTracker
-	QerIdTracker *IdTracker
-	UrrIdTracker *IdTracker
+	farIdTracker *IdTracker
+	qerIdTracker *IdTracker
+	urrIdTracker *IdTracker
+	farMutex     sync.Mutex
+	qerMutex     sync.Mutex
+	urrMutex     sync.Mutex
 }
 
 func NewBpfObjects() *BpfObjects {
 	return &BpfObjects{
-		FarIdTracker: NewIdTracker(config.Conf.FarMapSize),
-		QerIdTracker: NewIdTracker(config.Conf.QerMapSize),
-		UrrIdTracker: NewIdTracker(config.Conf.UrrMapSize),
+
+		farIdTracker: NewIdTracker(config.Conf.FarMapSize),
+		qerIdTracker: NewIdTracker(config.Conf.QerMapSize),
+		urrIdTracker: NewIdTracker(config.Conf.UrrMapSize),
+		farMutex:     sync.Mutex{},
+		qerMutex:     sync.Mutex{},
+		urrMutex:     sync.Mutex{},
 	}
 }
 
@@ -170,6 +178,42 @@ func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32
 	}
 
 	return nil
+}
+
+func (bpfObjects *BpfObjects) GetNextQER() (uint32, error) {
+	bpfObjects.qerMutex.Lock()
+	defer bpfObjects.qerMutex.Unlock()
+	return bpfObjects.qerIdTracker.GetNext()
+}
+
+func (bpfObjects *BpfObjects) GetNextFAR() (uint32, error) {
+	bpfObjects.farMutex.Lock()
+	defer bpfObjects.farMutex.Unlock()
+	return bpfObjects.farIdTracker.GetNext()
+}
+
+func (bpfObjects *BpfObjects) GetNextURR() (uint32, error) {
+	bpfObjects.urrMutex.Lock()
+	defer bpfObjects.urrMutex.Unlock()
+	return bpfObjects.urrIdTracker.GetNext()
+}
+
+func (bpfObjects *BpfObjects) ReleaseQER(qerId uint32) {
+	bpfObjects.qerMutex.Lock()
+	defer bpfObjects.qerMutex.Unlock()
+	bpfObjects.qerIdTracker.Release(qerId)
+}
+
+func (bpfObjects *BpfObjects) ReleaseFAR(farId uint32) {
+	bpfObjects.farMutex.Lock()
+	defer bpfObjects.farMutex.Unlock()
+	bpfObjects.farIdTracker.Release(farId)
+}
+
+func (bpfObjects *BpfObjects) ReleaseURR(urrId uint32) {
+	bpfObjects.urrMutex.Lock()
+	defer bpfObjects.urrMutex.Unlock()
+	bpfObjects.urrIdTracker.Release(urrId)
 }
 
 type IdTracker struct {
