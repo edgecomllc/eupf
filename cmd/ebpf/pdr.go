@@ -176,7 +176,7 @@ func (f FarInfo) MarshalJSON() ([]byte, error) {
 }
 
 func (bpfObjects *BpfObjects) NewFar(farInfo FarInfo) (uint32, error) {
-	internalId, err := bpfObjects.FarIdTracker.GetNext()
+	internalId, err := bpfObjects.GetNextFAR()
 	if err != nil {
 		return 0, err
 	}
@@ -191,7 +191,7 @@ func (bpfObjects *BpfObjects) UpdateFar(internalId uint32, farInfo FarInfo) erro
 
 func (bpfObjects *BpfObjects) DeleteFar(intenalId uint32) error {
 	log.Debug().Msgf("EBPF: Delete FAR: intenalId=%d", intenalId)
-	bpfObjects.FarIdTracker.Release(intenalId)
+	bpfObjects.ReleaseFAR(intenalId)
 	return bpfObjects.FarMap.Update(intenalId, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
 }
 
@@ -206,7 +206,7 @@ type QerInfo struct {
 }
 
 func (bpfObjects *BpfObjects) NewQer(qerInfo QerInfo) (uint32, error) {
-	internalId, err := bpfObjects.QerIdTracker.GetNext()
+	internalId, err := bpfObjects.GetNextQER()
 	if err != nil {
 		return 0, err
 	}
@@ -221,7 +221,7 @@ func (bpfObjects *BpfObjects) UpdateQer(internalId uint32, qerInfo QerInfo) erro
 
 func (bpfObjects *BpfObjects) DeleteQer(internalId uint32) error {
 	log.Debug().Msgf("EBPF: Delete QER: internalId=%d", internalId)
-	bpfObjects.QerIdTracker.Release(internalId)
+	bpfObjects.ReleaseQER(internalId)
 	return bpfObjects.QerMap.Update(internalId, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
 }
 
@@ -232,7 +232,7 @@ type UrrInfo struct {
 }
 
 func (bpfObjects *BpfObjects) NewUrr(urrInfo UrrInfo) (uint32, error) {
-	internalId, err := bpfObjects.UrrIdTracker.GetNext()
+	internalId, err := bpfObjects.GetNextURR()
 	if err != nil {
 		return 0, err
 	}
@@ -251,7 +251,7 @@ func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) (error, UrrInfo) {
 	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrInfo)); err != nil {
 		return err, UrrInfo{}
 	}
-	bpfObjects.UrrIdTracker.Release(internalId)
+	bpfObjects.ReleaseURR(internalId)
 	if err := bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&UrrInfo{}), ebpf.UpdateExist); err != nil {
 		return err, UrrInfo{}
 	}
