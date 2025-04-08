@@ -46,7 +46,7 @@
 
 1. запустите оболочку shell в поде UE1
 
-    `kubectl -n open5gs exec -ti statefulset/srsran-srs-5g -- /bin/bash`
+    `kubectl -n srs-open5gs exec -ti statefulset/srsran-srsran5gue-zmq-gnb -- /bin/bash`
 
 2. проверьте доступность сети с помошью команды ping
 
