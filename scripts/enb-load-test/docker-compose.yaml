@@ -1,0 +1,38 @@
+services:
+  eupf:
+    image: ghcr.io/edgecomllc/eupf-dev:7047a1b53021f3387e6b4b3393bcee3903c575cb
+    privileged: true
+    volumes:
+      - /sys/fs/bpf:/sys/fs/bpf
+      - ./config.yaml:/app/bin/config.yaml
+      - ./dumps:/dumps
+    entrypoint: ["/app/bin/eupf", "--config", "/app/bin/config.yaml"]
+    ulimits:
+      memlock: -1
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    networks:
+      core4g:
+        ipv4_address: 10.0.10.10
+    sysctls:
+      - net.ipv4.conf.all.forwarding=1
+
+  enb-emulator:
+    image: enb-emulator
+    build:
+      context: ./enb-emulator 
+      dockerfile: Dockerfile
+    deploy:
+      mode: replicated
+      replicas: 249
+    networks:
+      - core4g
+
+
+networks:
+  core4g:
+    driver: overlay
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24
