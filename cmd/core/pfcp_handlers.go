@@ -331,3 +331,15 @@ func HandlePfcpAssociationSetupResponse(conn *PfcpConnection, msg message.Messag
 
 	return nil, true, nil
 }
+
+func HandlePfcpSessionReportResponse(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
+	srr := msg.(*message.SessionReportResponse)
+	sessionId, err := srr.CPFSEID.FSEID()
+	if err != nil {
+		log.Warn().Msgf("Got Session Report Response with invalid CPFSEID (SEID): %s, from: %s", err, addr)
+		return nil, true, err
+	}
+
+	log.Debug().Msgf("Received message Session Report Response for session ID: %d, from: %s", sessionId, addr)
+	return nil, true, nil
+}

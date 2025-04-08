@@ -34,6 +34,7 @@ var pfcpHandlers = PfcpHandlerMap{
 	message.MsgTypeSessionEstablishmentRequest: HandlePfcpSessionEstablishmentRequest,
 	message.MsgTypeSessionDeletionRequest:      HandlePfcpSessionDeletionRequest,
 	message.MsgTypeSessionModificationRequest:  HandlePfcpSessionModificationRequest,
+	message.MsgTypeSessionReportResponse:       HandlePfcpSessionReportResponse,
 }
 
 type PfcpConnection struct {
