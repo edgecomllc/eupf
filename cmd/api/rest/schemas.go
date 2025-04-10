@@ -4,6 +4,10 @@ type LoggingLevelConfig struct {
 	LoggingLevel string `json:"logging_level" binding:"required"`
 }
 
+type LoggingCallerConfig struct {
+	LoggingCaller bool `json:"logging_caller"`
+}
+
 type DataPlaneEbpfConfig struct {
 	InterfaceName []string `json:"interface_name" binding:"required"`
 	XDPAttachMode string   `json:"xdp_attach_mode" binding:"required,oneof=generic native offload"`

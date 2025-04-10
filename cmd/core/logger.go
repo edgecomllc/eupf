@@ -9,9 +9,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var baseLogger zerolog.Logger
+
 func InitLogger() {
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006/01/02 15:04:05"}
-	log.Logger = zerolog.New(output).With().Timestamp().Logger()
+	baseLogger = zerolog.New(output).With().Timestamp().Logger()
+	log.Logger = baseLogger
 }
 
 func SetLoggerLevel(loggingLevel string) error {
@@ -25,4 +28,12 @@ func SetLoggerLevel(loggingLevel string) error {
 		return fmt.Errorf("can't parse logging level: '%s'", loggingLevel)
 	}
 	return nil
+}
+
+func SetLoggerCaller(enableCaller bool) {
+	if enableCaller {
+		log.Logger = baseLogger.With().Caller().Logger()
+	} else {
+		log.Logger = baseLogger
+	}
 }

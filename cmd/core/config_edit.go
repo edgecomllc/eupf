@@ -56,6 +56,10 @@ func UpdateLogLevel(logLevel string) error {
 	return nil
 }
 
+func UpdateLogCaller(enableCaller bool) {
+	SetLoggerCaller(enableCaller)
+}
+
 func BindDataPlaneInterfaces(
 	bpfObjects *ebpf.BpfObjects,
 	links *[]link.Link,

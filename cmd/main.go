@@ -33,6 +33,7 @@ func main() {
 	// Warning: inefficient log writing.
 	// As zerolog docs says: "Pretty logging on the console is made possible using the provided (but inefficient) zerolog.ConsoleWriter."
 	core.InitLogger()
+	core.SetLoggerCaller(config.Conf.LoggingCaller)
 	if err := core.SetLoggerLevel(config.Conf.LoggingLevel); err != nil {
 		log.Error().Msgf("Logger configuring error: %s. Using '%s' level", err.Error(), zerolog.GlobalLevel().String())
 	}

@@ -87,6 +87,7 @@ type UpfConfig struct {
 	HeartbeatInterval       uint32         `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
 	HeartbeatTimeout        uint32         `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
 	LoggingLevel            string         `mapstructure:"logging_level" validate:"required" json:"logging_level"`
+	LoggingCaller           bool           `mapstructure:"logging_caller" json:"logging_caller"`
 	UEIPPool                string         `mapstructure:"ueip_pool" validate:"cidr" json:"ueip_pool"`
 	FTEIDPool               uint32         `mapstructure:"teid_pool" json:"teid_pool"`
 	FeatureUEIP             bool           `mapstructure:"feature_ueip" json:"feature_ueip"`
@@ -133,6 +134,7 @@ func defineFlags() {
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
 	pflag.String("loglvl", "info", "Logging level")
+	pflag.Bool("logcaller", false, "Enable or disable logging caller")
 	pflag.Bool("ueip", false, "Enable or disable UEIP feature")
 	pflag.Bool("ftup", false, "Enable or disable FTUP feature")
 	pflag.String("ueippool", "10.60.0.0/24", "IP pool for UEIP feature")
@@ -206,6 +208,7 @@ func initCommonConfig() {
 	_ = commonConfigV.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
 	_ = commonConfigV.BindPFlag("heartbeat_timeout", pflag.Lookup("hbtimeout"))
 	_ = commonConfigV.BindPFlag("logging_level", pflag.Lookup("loglvl"))
+	_ = commonConfigV.BindPFlag("logging_caller", pflag.Lookup("logcaller"))
 	_ = commonConfigV.BindPFlag("feature_ueip", pflag.Lookup("ueip"))
 	_ = commonConfigV.BindPFlag("feature_ftup", pflag.Lookup("ftup"))
 	_ = commonConfigV.BindPFlag("ueip_pool", pflag.Lookup("ueippool"))

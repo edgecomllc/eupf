@@ -2,12 +2,13 @@ package rest
 
 import (
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/core"
-	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 	"net"
 	"net/http"
 	"reflect"
+
+	"github.com/edgecomllc/eupf/cmd/core"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // DisplayConfig godoc
@@ -34,6 +35,22 @@ func (h *ApiHandler) editLoggingLevelConfig(c *gin.Context) {
 
 		return
 	}
+
+	if err := h.updateConfigFile(config); err != nil {
+		log.Error().Msgf("Error updating config: %v", err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "OK"})
+}
+
+func (h *ApiHandler) editLoggingCallerConfig(c *gin.Context) {
+	var config LoggingCallerConfig
+	if err := c.ShouldBindJSON(&config); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	core.UpdateLogCaller(config.LoggingCaller)
 
 	if err := h.updateConfigFile(config); err != nil {
 		log.Error().Msgf("Error updating config: %v", err)

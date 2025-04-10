@@ -1,11 +1,12 @@
 package rest
 
 import (
+	"net/http"
+
 	"github.com/cilium/ebpf/link"
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
-	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -83,6 +84,7 @@ func (h *ApiHandler) initDefaultRoutes(group *gin.RouterGroup) {
 	{
 		config.GET("", h.displayConfig)
 		config.POST("/logging_level", h.editLoggingLevelConfig)
+		config.POST("/logging_caller", h.editLoggingCallerConfig)
 		config.POST("/dataplane_ebpf", h.editDataPlaneConfig)
 		config.POST("/dataplane_addresses", h.editDataPlaneAddressesConfig)
 		config.POST("/pfcp_n4", h.editPFCPN4Config)
