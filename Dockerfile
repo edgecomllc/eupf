@@ -10,6 +10,8 @@ RUN apt update \
 RUN go install github.com/swaggo/swag/cmd/swag@v1.8.12
 
 COPY go.mod go.sum ./
+# Pre-download dependencies to optimize build caching
+RUN go mod download -x
 COPY cmd cmd
 
 ARG BPF_ENABLE_LOG "0"
