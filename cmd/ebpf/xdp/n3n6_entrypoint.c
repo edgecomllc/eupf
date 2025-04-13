@@ -549,6 +549,7 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
             break;
         case IPPROTO_TCP:
             increment_counter(ctx->counters, rx_tcp);
+            parse_tcp(ctx);
             break;
         default:
             increment_counter(ctx->counters, rx_other);
@@ -576,6 +577,7 @@ static __always_inline enum xdp_action handle_ip6(struct packet_context *ctx) {
             break;
         case IPPROTO_TCP:
             increment_counter(ctx->counters, rx_tcp);
+            parse_tcp(ctx);
             break;
         default:
             increment_counter(ctx->counters, rx_other);
