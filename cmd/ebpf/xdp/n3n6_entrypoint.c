@@ -402,7 +402,9 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
         }
         case IPPROTO_UDP:
             increment_counter(ctx->counters, rx_udp);
-            if (GTP_UDP_PORT == parse_udp(ctx)) {
+            if (GTP_UDP_PORT == parse_udp(ctx) 
+                && (ctx->ip4->daddr == global_config.n3_ipv4_address 
+                    || ctx->ip4->daddr == global_config.n9_ipv4_address)) {
                 upf_printk("upf: gtp-u received");
                 increment_counter(ctx->n3_n6_counter, rx_n3);
                 return handle_gtpu(ctx);
@@ -470,6 +472,9 @@ static __always_inline enum xdp_action process_packet(struct packet_context *ctx
 // Combined N3 & N6 entrypoint. Use for "on-a-stick" interfaces
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx) {
+
+    upf_printk("upf: n3ip:%pI4 n9ip:%pI4", &global_config.n3_ipv4_address, &global_config.n9_ipv4_address);
+
     // upf_printk("upf n3 & n6 combined entrypoint start");
     const __u32 key = 0;
     struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat, &key);
