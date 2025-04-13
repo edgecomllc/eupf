@@ -45,6 +45,10 @@
 
 #define DEFAULT_XDP_ACTION XDP_PASS
 
+struct dataplane_config {
+    __u32 n3_ipv4_address;
+    __u32 n9_ipv4_address;  
+} global_config;
 
 static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, __u8 qfi, int teid) {
     if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, qfi, teid))

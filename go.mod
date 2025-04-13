@@ -4,7 +4,7 @@ go 1.22.3
 
 require (
 	github.com/RoaringBitmap/roaring v1.7.0
-	github.com/cilium/ebpf v0.12.3
+	github.com/cilium/ebpf v0.17.3
 	github.com/gin-contrib/cors v1.6.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/gopacket v1.1.19
@@ -17,7 +17,7 @@ require (
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.2
 	github.com/wmnsk/go-pfcp v0.0.23
-	golang.org/x/sys v0.28.0
+	golang.org/x/sys v0.30.0
 )
 
 require (
