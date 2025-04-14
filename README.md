@@ -249,11 +249,7 @@ You can also define several build arguments to configure eUPF image: `docker bui
 
 ## Contribution
 
-Please create an issue to report a bug or share an idea.
-
-## Translated docs
-
-Please check [this link](./docs/docs-ru_ru/readme.md) to find translated docs.
+Please create an issue to report a bug or share an idea. See our [Contributing Guide](./CONTRIBUTING.md) for details.
 
 ## License
 This project is licensed under the [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details
