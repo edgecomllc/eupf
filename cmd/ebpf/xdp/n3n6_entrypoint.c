@@ -402,7 +402,7 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
         }
         case IPPROTO_UDP:
             increment_counter(ctx->counters, rx_udp);
-            if (GTP_UDP_PORT == parse_udp(ctx) 
+            if (GTP_UDP_PORT == parse_udp(ctx)  
                 && (ctx->ip4->daddr == global_config.n3_ipv4_address 
                     || ctx->ip4->daddr == global_config.n9_ipv4_address)) {
                 upf_printk("upf: gtp-u received");
