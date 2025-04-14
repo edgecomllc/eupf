@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"net"
 	"os"
 	"os/signal"
@@ -51,6 +52,14 @@ func main() {
 		}
 	}
 
+	n3AddressUint32 := binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N3Address).To4())
+	n9AddressUint32 := binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N9Address).To4())
+
+	entrypointConfig := ebpf.IpEntrypointDataplaneConfig{N3Ipv4Address: n3AddressUint32, N9Ipv4Address: n9AddressUint32}
+	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
+		log.Fatal().Err(err).Msgf("can't set dataplane global config")
+	}
+
 	defer bpfObjects.Close()
 
 	for _, ifaceName := range config.Conf.InterfaceName {
@@ -82,8 +91,8 @@ func main() {
 
 	// Create PFCP connection
 	pfcpConn, err := core.NewPfcpConnection(config.Conf.PfcpAddress, config.Conf.PfcpNodeId,
-						config.Conf.N3Address, config.Conf.N9Address,
-						bpfObjects, resourceManager)
+		config.Conf.N3Address, config.Conf.N9Address,
+		bpfObjects, resourceManager)
 	if err != nil {
 		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
 	}
