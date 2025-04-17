@@ -2,24 +2,21 @@ package main
 
 import (
 	"fmt"
+	"github.com/cilium/ebpf/link"
+	"github.com/edgecomllc/eupf/cmd/api/rest"
+	"github.com/edgecomllc/eupf/cmd/config"
+	"github.com/edgecomllc/eupf/cmd/core"
+	"github.com/edgecomllc/eupf/cmd/core/service"
+	"github.com/edgecomllc/eupf/cmd/ebpf"
+	"github.com/edgecomllc/eupf/cmd/server"
+	"github.com/edgecomllc/eupf/cmd/utils"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/edgecomllc/eupf/cmd/api/rest"
-	"github.com/edgecomllc/eupf/cmd/server"
-
-	"github.com/edgecomllc/eupf/cmd/config"
-	"github.com/edgecomllc/eupf/cmd/core"
-	"github.com/edgecomllc/eupf/cmd/core/service"
-	"github.com/edgecomllc/eupf/cmd/ebpf"
-	"github.com/edgecomllc/eupf/cmd/utils"
-
-	"github.com/cilium/ebpf/link"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 //go:generate swag init --parseDependency --parseInternal --parseDepth 1 -g api/rest/handler.go

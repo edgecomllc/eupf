@@ -98,7 +98,7 @@ type UpfConfig struct {
 	HuaweiSupport           bool           `mapstructure:"huawei_support" json:"huawei_support"`
 }
 
-func init() {
+func initialize() {
 	defineFlags()
 	initValidator()
 	initCommonConfig()

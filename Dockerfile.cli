@@ -1,0 +1,41 @@
+FROM golang:1.22.3 AS builder
+
+ENV CGO_ENABLED=0 \
+    GOOS=linux
+
+ARG APP_NAME=eupf
+ENV APP_NAME="${APP_NAME}"
+
+WORKDIR /build
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY cli cli
+
+WORKDIR /build/cli/app
+RUN go build -o /build/${APP_NAME}
+
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt update && apt install -y \
+    bash-completion \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG APP_NAME=eupf
+ENV APP_NAME="${APP_NAME}"
+ENV PATH="/root:${PATH}"
+
+WORKDIR /root
+
+COPY --from=builder /build/${APP_NAME} .
+
+RUN mkdir -p /etc/bash_completion.d && \
+    ./eupf completion > /etc/bash_completion.d/eupf
+
+RUN echo "source /etc/bash_completion" >> ~/.bashrc && \
+    echo "source /etc/bash_completion.d/eupf" >> ~/.bashrc
+
+CMD ["bash", "-c", "while true; do sleep 60; done"]
