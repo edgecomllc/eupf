@@ -5,8 +5,9 @@ import (
 )
 
 type UpfXdpActionStatistic struct {
-	BpfObjects *BpfObjects
-	previous   UpfCounters
+	BpfObjects          *BpfObjects
+	upfCountersPrevious UpfCounters
+	upfRoutePrevious    IpEntrypointRouteStat
 }
 
 type UpfCounters struct {
@@ -133,7 +134,73 @@ func (stat *UpfXdpActionStatistic) GetUpfExtStatDelta() UpfCounters {
 		counters.Add(statistic.UpfCounters)
 	}
 
-	delta := stat.previous.Delta(counters)
-	stat.previous = counters
+	delta := stat.upfCountersPrevious.Delta(counters)
+	stat.upfCountersPrevious = counters
+	return delta
+}
+
+func (current *IpEntrypointRouteStat) Add(new IpEntrypointRouteStat) {
+	current.FibLookupIp4Cache += new.FibLookupIp4Cache
+	current.FibLookupIp4Ok += new.FibLookupIp4Ok
+	current.FibLookupIp4ErrorDrop += new.FibLookupIp4ErrorDrop
+	current.FibLookupIp4ErrorPass += new.FibLookupIp4ErrorPass
+
+	current.FibLookupIp6Cache += new.FibLookupIp6Cache
+	current.FibLookupIp6Ok += new.FibLookupIp6Ok
+	current.FibLookupIp6ErrorDrop += new.FibLookupIp6ErrorDrop
+	current.FibLookupIp6ErrorPass += new.FibLookupIp6ErrorPass
+}
+
+func (current *IpEntrypointRouteStat) Delta(new IpEntrypointRouteStat) IpEntrypointRouteStat {
+	delta := IpEntrypointRouteStat{}
+
+	delta.FibLookupIp4Cache = new.FibLookupIp4Cache - current.FibLookupIp4Cache
+	delta.FibLookupIp4Ok = new.FibLookupIp4Ok - current.FibLookupIp4Ok
+	delta.FibLookupIp4ErrorDrop = new.FibLookupIp4ErrorDrop - current.FibLookupIp4ErrorDrop
+	delta.FibLookupIp4ErrorPass = new.FibLookupIp4ErrorPass - current.FibLookupIp4ErrorPass
+
+	delta.FibLookupIp6Cache = new.FibLookupIp6Cache - current.FibLookupIp6Cache
+	delta.FibLookupIp6Ok = new.FibLookupIp6Ok - current.FibLookupIp6Ok
+	delta.FibLookupIp6ErrorDrop = new.FibLookupIp6ErrorDrop - current.FibLookupIp6ErrorDrop
+	delta.FibLookupIp6ErrorPass = new.FibLookupIp6ErrorPass - current.FibLookupIp6ErrorPass
+
+	return delta
+}
+
+// Getters for the upf_route_stat (route_stat)
+func (stat *UpfXdpActionStatistic) GetUpfRouteStat() IpEntrypointRouteStat {
+	var statistics []IpEntrypointRouteStat
+	var counters IpEntrypointRouteStat
+
+	err := stat.BpfObjects.UpfRouteStat.Lookup(uint32(0), &statistics)
+	if err != nil {
+		log.Warn().Msgf("failed to get upf_route_stat: %s" + err.Error())
+		return counters
+	}
+
+	for _, statistic := range statistics {
+		counters.Add(statistic)
+	}
+
+	return counters
+}
+
+// Getters for the upf_route_stat (route_stat)
+func (stat *UpfXdpActionStatistic) GetUpfRouteStatDelta() IpEntrypointRouteStat {
+	var statistics []IpEntrypointRouteStat
+	var counters IpEntrypointRouteStat
+
+	err := stat.BpfObjects.UpfRouteStat.Lookup(uint32(0), &statistics)
+	if err != nil {
+		log.Warn().Msgf("failed to get upf_route_stat: %s" + err.Error())
+		return counters
+	}
+
+	for _, statistic := range statistics {
+		counters.Add(statistic)
+	}
+
+	delta := stat.upfRoutePrevious.Delta(counters)
+	stat.upfRoutePrevious = counters
 	return delta
 }
