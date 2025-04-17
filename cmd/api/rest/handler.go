@@ -79,6 +79,7 @@ func (h *ApiHandler) initDefaultRoutes(group *gin.RouterGroup) {
 
 	group.GET("xdp_stats", h.displayXdpStatistics)
 	group.GET("packet_stats", h.displayPacketStats)
+	group.GET("route_stats", h.displayRouteStats)
 
 	config := group.Group("config")
 	{
