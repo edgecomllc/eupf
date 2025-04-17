@@ -39,6 +39,11 @@ var (
 		Help: "The total number of received packets",
 	}, []string{"packet_type"})
 
+	UpfRoute = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "upf_route",
+		Help: "The total number of packets routed",
+	}, []string{"packet_type"})
+
 	UpfMessageRxLatency = promauto.NewSummaryVec(prometheus.SummaryOpts{
 		Name:       "upf_pfcp_rx_latency",
 		Subsystem:  "pfcp",
@@ -129,4 +134,13 @@ func GatherMetrics(stats ebpf.UpfXdpActionStatistic) {
 	UpfRx.WithLabelValues("gtp-other").Add(float64(RxPacketCounters.RxGtpOther))
 	UpfRx.WithLabelValues("gtp-unexp").Add(float64(RxPacketCounters.RxGtpUnexp))
 
+	RouteStats := stats.GetUpfRouteStatDelta()
+	UpfRoute.WithLabelValues("ip4-cache").Add(float64(RouteStats.FibLookupIp4Cache))
+	UpfRoute.WithLabelValues("ip4-ok").Add(float64(RouteStats.FibLookupIp4Ok))
+	UpfRoute.WithLabelValues("ip4-error-drop").Add(float64(RouteStats.FibLookupIp4ErrorDrop))
+	UpfRoute.WithLabelValues("ip4-error-pass").Add(float64(RouteStats.FibLookupIp4ErrorPass))
+	UpfRoute.WithLabelValues("ip6-cache").Add(float64(RouteStats.FibLookupIp6Cache))
+	UpfRoute.WithLabelValues("ip6-ok").Add(float64(RouteStats.FibLookupIp6Ok))
+	UpfRoute.WithLabelValues("ip6-error-drop").Add(float64(RouteStats.FibLookupIp6ErrorDrop))
+	UpfRoute.WithLabelValues("ip6-error-pass").Add(float64(RouteStats.FibLookupIp6ErrorPass))
 }
