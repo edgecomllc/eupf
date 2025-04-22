@@ -159,3 +159,113 @@ static /*__always_inline*/ __u8 match_sdf_filter_ipv6(const struct packet_contex
 
     return 1;
 }
+
+#define MAX_CPUS 4096
+#define SAMPLE_SIZE 1024ul
+
+struct tuple5 {
+    __u32 src_ip;
+    __u32 dst_ip;
+    __u16 src_port;
+    __u16 dst_port;
+    __u8 protocol;
+} __attribute__((packed));
+
+struct tuple5_ip6 {
+    __u128 src_ip;
+    __u128 dst_ip;
+    __u16 src_port;
+    __u16 dst_port;
+    __u8 protocol;
+} __attribute__((packed));
+
+struct sdf_notify_ip4 {
+	__u16 cookie;
+    __u32 ref;
+	struct tuple5 tuple5;
+} __attribute__((packed));
+
+struct sdf_notify_ip6 {
+	__u16 cookie;
+    __u32 ref;
+	struct tuple5_ip6 tuple5;
+} __attribute__((packed));
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+	__type(key, int);
+	__type(value, __u32);
+	__uint(max_entries, MAX_CPUS);
+} sdf_notify_map SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__type(key, int);
+	__type(value, struct sdf_notify_ip4);
+	__uint(max_entries, 1);
+} sdf_notify_storage SEC(".maps");
+
+
+static __always_inline void send_sdf_notify_ip4(struct packet_context *packet_ctx, __u32 ref) 
+{
+    if(!packet_ctx || !packet_ctx->xdp_ctx || !packet_ctx->ip4)
+        return;
+
+    struct xdp_md *ctx = packet_ctx->xdp_ctx;
+    __u64 flags = BPF_F_CURRENT_CPU;
+    
+    const __u32 key = 0;
+    struct sdf_notify_ip4 *meta_ip4 = bpf_map_lookup_elem(&sdf_notify_storage, &key);
+    if(!meta_ip4)
+        return;
+
+    meta_ip4->cookie = 0x1ea1;
+    meta_ip4->ref = ref;
+    meta_ip4->tuple5.src_ip = packet_ctx->ip4->saddr;
+    meta_ip4->tuple5.dst_ip = packet_ctx->ip4->daddr;
+    meta_ip4->tuple5.protocol = packet_ctx->ip4->protocol;
+    if(packet_ctx->tcp) {
+        meta_ip4->tuple5.src_port = packet_ctx->tcp->source;
+        meta_ip4->tuple5.dst_port = packet_ctx->tcp->dest;
+    } else if(packet_ctx->udp) {
+        meta_ip4->tuple5.src_port = packet_ctx->udp->source;
+        meta_ip4->tuple5.dst_port = packet_ctx->udp->dest;
+    } else {
+        meta_ip4->tuple5.src_port = 0;
+        meta_ip4->tuple5.dst_port = 0;
+    }
+    
+    int ret = bpf_perf_event_output(ctx, &sdf_notify_map, flags, meta_ip4, sizeof(struct sdf_notify_ip4));
+    if (ret)
+        bpf_printk("perf_event_output failed: %d\n", ret);
+}
+
+static __always_inline void send_sdf_notify_ip6(struct packet_context *packet_ctx, __u32 ref) 
+{
+    if(!packet_ctx || !packet_ctx->xdp_ctx || !packet_ctx->ip6)
+        return;
+    
+    // struct xdp_md *ctx = packet_ctx->xdp_ctx;
+    // __u64 flags = BPF_F_CURRENT_CPU;
+    
+    // struct sdf_notify_ip6 meta;
+    // meta.cookie = 0x2ea2;
+    // meta.ref = 0;
+    // meta.tuple5.src_ip = *(__u128*)&packet_ctx->ip6->saddr.s6_addr;
+    // meta.tuple5.dst_ip = *(__u128*)&packet_ctx->ip6->daddr.s6_addr;
+    // meta.tuple5.protocol = packet_ctx->ip6->nexthdr;
+    // if(packet_ctx->tcp) {
+    //     meta.tuple5.src_port = packet_ctx->tcp->source;
+    //     meta.tuple5.dst_port = packet_ctx->tcp->dest;
+    // } else if(packet_ctx->udp) {
+    //     meta.tuple5.src_port = packet_ctx->udp->source;
+    //     meta.tuple5.dst_port = packet_ctx->udp->dest;
+    // } else {
+    //     meta.tuple5.src_port = 0;
+    //     meta.tuple5.dst_port = 0;
+    // }
+    
+    // int ret = bpf_perf_event_output(ctx, &sdf_notify_map, flags, &meta, sizeof(meta));
+    // if (ret)
+    //     bpf_printk("perf_event_output failed: %d\n", ret);
+}

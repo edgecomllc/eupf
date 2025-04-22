@@ -30,6 +30,7 @@ type PCCRulesConfig struct {
 // PccRule describes the structure of the pcc rule representation
 type PccRule struct {
 	PccName   string `mapstructure:"pcc_name" validate:"required"`
+	Notify    bool   `mapstructure:"notify"`
 	SdfFilter string `mapstructure:"sdf_filter" validate:"required,sdfFilter"`
 	Far       Far    `mapstructure:"far"`
 	Qer       Qer    `mapstructure:"qer"`

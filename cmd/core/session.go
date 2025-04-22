@@ -46,6 +46,7 @@ type SPDRInfo struct {
 
 type PCCInfo struct {
 	PCCName      string
+	Notify       bool
 	RawSDFFilter string
 	SDFFilter    ebpf.SdfFilter
 	FAR          ebpf.FarInfo

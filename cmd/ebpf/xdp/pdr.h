@@ -24,7 +24,7 @@
 
 #define PDR_MAP_SIZE 1024
 #define FAR_MAP_SIZE 1024
-#define SDF_LIST_SIZE 10
+#define SDF_LIST_SIZE 5
 #define URR_LIST_SIZE 3
 
 
@@ -55,6 +55,7 @@ struct pdr {
 struct sdf_rule {
     struct sdf_filter sdf_filter;
     struct pdr pdr;
+    __u8 notify;
 };
 
 struct pdr_info {

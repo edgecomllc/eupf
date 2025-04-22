@@ -659,6 +659,7 @@ func applySdfFiltersToSession(session *Session, sdfFilters []ebpf.SdfFilter, map
 				break
 			}
 			spdrInfo.PdrInfo.SdfFilter = append(spdrInfo.PdrInfo.SdfFilter, filter)
+			spdrInfo.PdrInfo.NotifyFlag = true //FIXME
 		}
 
 		session.PutPDR(spdrInfo.PdrID, spdrInfo)

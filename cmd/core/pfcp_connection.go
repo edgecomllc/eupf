@@ -51,6 +51,7 @@ type PfcpConnection struct {
 	featuresOctets         []uint8
 	ResourceManager        *service.ResourceManager
 	heartbeatFailedC       chan string
+	sdfNotifyC             <-chan ebpf.SdfFlowNotification
 	nodes                  []AssociationConnector
 	neValidator            *NeValidator
 	tracingStorage         tracing.TraceRecordStorage
@@ -68,6 +69,7 @@ func NewPfcpConnection(
 	mapOperations ebpf.ForwardingPlaneController,
 	resourceManager *service.ResourceManager,
 	dumper utils.Dumper,
+	sdfNotifyC <-chan ebpf.SdfFlowNotification,
 ) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
@@ -121,6 +123,7 @@ func NewPfcpConnection(
 		featuresOctets:        featuresOctets,
 		ResourceManager:       resourceManager,
 		heartbeatFailedC:      make(chan string),
+		sdfNotifyC:            sdfNotifyC,
 		nodes:                 []AssociationConnector{},
 		neValidator:           validator,
 		tracingStorage:        tracing.NewSimpleTraceRecordStorage(),
@@ -227,6 +230,7 @@ func buildPCCRuleMap() (map[string]PCCInfo, map[uint32][]string) {
 
 		pccRules[config.PCCConf.PccRules[i].PccName] = PCCInfo{
 			PCCName:      config.PCCConf.PccRules[i].PccName,
+			Notify:       config.PCCConf.PccRules[i].Notify,
 			SDFFilter:    sdfFilter,
 			RawSDFFilter: config.PCCConf.PccRules[i].SdfFilter,
 			FAR: ebpf.FarInfo{
@@ -271,6 +275,8 @@ func (connection *PfcpConnection) Run() {
 			connection.DeleteAssociation(associationAddr)
 		case <-reportTicker.C:
 			connection.SendReports()
+		case notification := <-connection.sdfNotifyC:
+			connection.SendReportsSDF(notification.GetURRID(), notification.GetSdfFilter())
 		default:
 			_ = connection.udpConn.SetReadDeadline(time.Now().Add(time.Second))
 			n, addr, err := connection.Receive(buf)
@@ -411,24 +417,6 @@ func (connection *PfcpConnection) SendReports() {
 				downlink := newReport.DownlinkVolume - urr.UrrInfo.DownlinkVolume
 
 				if uplink+downlink > 0 { //we have usage increment
-					if urr.UrrInfo.UplinkVolume == 0 && urr.UrrInfo.DownlinkVolume == 0 { //first usage
-						if pccRuleNames, ok := connection.PCCRulesNameLinkURRID[urrid]; ok && len(pccRuleNames) == 1 {
-							pccRule, ok := connection.PCCRules[pccRuleNames[0]]
-							if ok && pccRule.RawSDFFilter != "" {
-								urr.ReportSeqNumber += 1
-								session.URRSequence += 1 //Huawei !!!
-								SendSessionReportADC(connection, session.RemoteSEID, assocaition.NewSequenceID(), assocaition.Addr,
-									urrid,
-									//urr.ReportSeqNumber,
-									session.URRSequence, //Huawei
-									pccRule.RawSDFFilter,
-									session.IsSessionTraced())
-							} else {
-								log.Warn().Uint32("urrID", urrid).Str("pccRule", pccRuleNames[0]).Msgf("pcc rule not found or empty")
-							}
-						}
-					}
-
 					if urr.UrrInfo.VolumeThreshold > 0 && urr.UrrInfo.VolumeThreshold <= uplink+downlink {
 						urr.ReportSeqNumber += 1
 						session.URRSequence += 1 //Huawei !!!
@@ -480,6 +468,43 @@ func (connection *PfcpConnection) SendReports() {
 			}
 		}
 
+	}
+}
+
+func (connection *PfcpConnection) SendReportsSDF(referenceID uint32, sdfFilter string) {
+
+	log.Info().Msgf("SendReportsSDF: ref=%d filter=%s", referenceID, sdfFilter)
+
+	if sdfFilter == "" {
+		return
+	}
+
+	for _, assocaition := range connection.NodeAssociations {
+		for _, session := range assocaition.Sessions {
+
+			for _, pdr := range session.PDRs {
+				if pdr.Teid != referenceID /*|| pdr.Ipv4 != referenceID*/ { //FIXME: add IPv4 reference
+					continue
+				}
+			}
+
+			for urrid, urr := range session.URRs {
+				if urrid != 16733 {
+					continue
+				}
+
+				urr.ReportSeqNumber += 1
+				session.URRSequence += 1 //Huawei !!!
+				SendSessionReportADC(connection, session.RemoteSEID, assocaition.NewSequenceID(), assocaition.Addr,
+					urrid,
+					//urr.ReportSeqNumber,
+					session.URRSequence, //Huawei
+					sdfFilter,
+					session.IsSessionTraced())
+
+				return
+			}
+		}
 	}
 }
 
@@ -634,7 +659,8 @@ func SendSessionReportADC(conn *PfcpConnection, seid uint64, sequenceID uint32, 
 			//    urr-level-type: ---- bearer(2)
 			//    urr-function-type: ---- charging(1)
 			//    urr-charging-type: ---- offlinepgw(3)
-			ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03}),
+			//ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03}),
+			ie.NewVendorSpecificIE(34000, 2011, []byte{0x01, 0x03, 0x06}),
 			// CHOICE
 			// bearer-sequence
 			//    enterprise-id: ---- 0x7db(2011)
@@ -647,7 +673,11 @@ func SendSessionReportADC(conn *PfcpConnection, seid uint64, sequenceID uint32, 
 	}
 
 	if len(sdfFilter) > 0 {
-		additionalIEs = append(additionalIEs, ie.NewVendorSpecificIE(36017, 2011, []byte(sdfFilter)))
+		//"ff2f00003e7065726d697420696e20362066726f6d203130302e38392e322e312f333220343531323820746f2031302e3136392e32302e3137382f33322031303635300001ff0040000001000000054101010000000000000000000000000000000000"
+		unknownValue := []byte{0xff, 0x2f, 00, 00, (byte)(len(sdfFilter))}
+		unknownValue = append(unknownValue, []byte(sdfFilter)...)
+		unknownValue = append(unknownValue, []byte{0x0, 0x1, 0xff, 0x0, 0x40, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x5, 0x41, 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}...)
+		additionalIEs = append(additionalIEs, ie.NewVendorSpecificIE(36017, 2011, unknownValue))
 	}
 
 	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)

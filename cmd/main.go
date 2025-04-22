@@ -44,6 +44,7 @@ func main() {
 		log.Fatal().Msgf("Loading bpf objects failed: %s", err.Error())
 	}
 
+	defer bpfObjects.Close()
 	if config.Conf.EbpfMapResize {
 		if err := bpfObjects.ResizeAllMaps(config.Conf.QerMapSize, config.Conf.FarMapSize, config.Conf.PdrMapSize); err != nil {
 			log.Fatal().Msgf("Failed to set ebpf map sizes: %s", err)
@@ -61,7 +62,9 @@ func main() {
 		go dumper.Write()
 	}
 
-	defer bpfObjects.Close()
+	sdfNotifier, _ := ebpf.NewSdfNotifyListener(bpfObjects.SdfNotifyMap)
+	defer sdfNotifier.Close()
+	go sdfNotifier.ReadEventLoop()
 
 	links := make([]link.Link, 0, len(config.Conf.InterfaceName))
 	for _, ifaceName := range config.Conf.InterfaceName {
@@ -109,6 +112,7 @@ func main() {
 		bpfObjects,
 		resourceManager,
 		dumper,
+		nil,
 	)
 
 	if err != nil {
@@ -136,6 +140,7 @@ func main() {
 		bpfObjects,
 		nil,
 		dumper,
+		nil,
 	)
 
 	if err != nil {
@@ -163,6 +168,7 @@ func main() {
 		bpfObjects,
 		nil,
 		dumper,
+		sdfNotifier.GetNotificationChannel(),
 	)
 
 	if err != nil {

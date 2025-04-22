@@ -54,33 +54,44 @@ static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context 
     return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
 }
 
-static __always_inline const struct pdr* check_sdf_filters_ipv4(struct packet_context *ctx, const struct pdr_info* session)
+static __always_inline const struct pdr* check_sdf_filters_ipv4(struct packet_context *ctx, /*const*/ struct pdr_info* session, __u32 ref)
 {
     const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
     for (int i = 0; i < sdf_filters_num; i++) {
-        const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-        if(sdf->protocol && match_sdf_filter_ipv4(ctx, sdf))
-            return &session->dedicated_pdrs[i].pdr;
+        /*const*/ struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
+        if(sdf->protocol && match_sdf_filter_ipv4(ctx, sdf)) {
+            /*const*/ struct sdf_rule* rule = &session->dedicated_pdrs[i];
+            if(rule->notify == 1) { //FIXME: need more appropriate way to make notifications
+                rule->notify += 1;
+                send_sdf_notify_ip4(ctx, ref);
+            }
+            return &rule->pdr;
+        }
     }
 
     return 0;
 }
 
-static __always_inline const struct pdr* check_sdf_filters_ipv6(struct packet_context *ctx, const struct pdr_info* session)
+static __always_inline const struct pdr* check_sdf_filters_ipv6(struct packet_context *ctx, const struct pdr_info* session, __u32 ref)
 {
     const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
     for (int i = 0; i < sdf_filters_num; i++) {
         const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-        if(sdf->protocol && match_sdf_filter_ipv6(ctx, sdf))
-            return &session->dedicated_pdrs[i].pdr;
+        if(sdf->protocol && match_sdf_filter_ipv6(ctx, sdf)){
+             const struct sdf_rule* rule = &session->dedicated_pdrs[i];
+            if(rule->notify)
+                send_sdf_notify_ip6(ctx, ref);
+            return &rule->pdr;
+        }
     }
 
     return 0;
 }
 
-static __always_inline const struct pdr* check_sdf_filters_gtp(struct packet_context *ctx, const struct pdr_info* session)
+static __always_inline const struct pdr* check_sdf_filters_gtp(struct packet_context *ctx, /*const*/ struct pdr_info* session, __u32 ref)
 {
     struct packet_context inner_context = {
+        .xdp_ctx = ctx->xdp_ctx,
         .data = (char *)(long)ctx->data,
         .data_end = (const char *)(long)ctx->data_end,
     };
@@ -105,9 +116,15 @@ static __always_inline const struct pdr* check_sdf_filters_gtp(struct packet_con
 
             const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
             for (int i = 0; i < sdf_filters_num; i++) {
-                const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-                if(sdf->protocol && match_sdf_filter_ipv4(&inner_context, sdf))
-                    return &session->dedicated_pdrs[i].pdr;
+                /*const*/ struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
+                if(sdf->protocol && match_sdf_filter_ipv4(&inner_context, sdf)){
+                    /*const*/ struct sdf_rule* rule = &session->dedicated_pdrs[i];
+                    if(rule->notify == 1) {
+                        rule->notify += 1;
+                        send_sdf_notify_ip4(&inner_context, ref);
+                    }
+                    return &rule->pdr;
+                }
             }
             break;
         }
@@ -127,8 +144,12 @@ static __always_inline const struct pdr* check_sdf_filters_gtp(struct packet_con
             const int sdf_filters_num = sizeof(session->dedicated_pdrs)/sizeof(session->dedicated_pdrs[0]);
             for (int i = 0; i < sdf_filters_num; i++) {
                 const struct sdf_filter *sdf = &session->dedicated_pdrs[i].sdf_filter;
-                if(sdf->protocol && match_sdf_filter_ipv6(&inner_context, sdf))
-                    return &session->dedicated_pdrs[i].pdr;
+                if(sdf->protocol && match_sdf_filter_ipv6(&inner_context, sdf)){
+                    const struct sdf_rule* rule = &session->dedicated_pdrs[i];
+                    if(rule->notify)
+                        send_sdf_notify_ip6(&inner_context, ref);
+                    return &rule->pdr;
+                }
             }
             break;
         }
@@ -155,7 +176,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     // Set defaults
     const struct pdr *pdr = &session->default_pdr;
     if (session->sdf_mode) {
-        const struct pdr *pdr_sdf = check_sdf_filters_ipv4(ctx, session);
+        const struct pdr *pdr_sdf = check_sdf_filters_ipv4(ctx, session, ip4->daddr);
         if(pdr_sdf) {
             upf_printk(" [n6] Packet with source ip:%pI4 and destination ip:%pI4 matches SDF filter1", &ip4->saddr, &ip4->daddr);
             pdr = pdr_sdf;
@@ -228,7 +249,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     // Set defaults
     const struct pdr *pdr = &session->default_pdr;
     if (session->sdf_mode) {
-        const struct pdr *pdr_sdf = check_sdf_filters_ipv6(ctx, session);
+        const struct pdr *pdr_sdf = check_sdf_filters_ipv6(ctx, session, 0);
         if(pdr_sdf) {
             upf_printk(" [n6] Packet with source ip:%pI6c and destination ip:%pI6c matches SDF filter", &ip6->saddr, &ip6->daddr);
             pdr = pdr_sdf;
@@ -310,7 +331,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     // Set defaults
     const struct pdr *pdr = &session->default_pdr;
     if (session->sdf_mode) {
-        const struct pdr *pdr_sdf = check_sdf_filters_gtp(ctx, session);
+        const struct pdr *pdr_sdf = check_sdf_filters_gtp(ctx, session, teid);
         if(pdr_sdf) {
             upf_printk("upf: [n3] sdf filter matches teid:%u", teid);
             pdr = pdr_sdf;
