@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -42,9 +43,14 @@ func makeNgInterface(name string, linkType layers.LinkType) pcapgo.NgInterface {
 }
 
 func NewPacketDumper(dumpPath string) (*PacketDumper, error) {
+	dir := filepath.Dir(dumpPath)
+
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return nil, fmt.Errorf("can't create directories: %s", err.Error())
+	}
 
 	var f *os.File
-	var err error
 	if len(dumpPath) == 0 {
 		f, err = os.CreateTemp("", "trace-*.pcap")
 	} else {
