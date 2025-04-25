@@ -3,9 +3,11 @@ package http
 import (
 	"context"
 	"fmt"
-	"github.com/edgecomllc/eupf/cli/domain"
-	"github.com/go-resty/resty/v2"
 	"time"
+
+	"github.com/edgecomllc/eupf/cli/domain"
+	"github.com/edgecomllc/eupf/cli/eupf/models"
+	"github.com/go-resty/resty/v2"
 )
 
 type EupfHttpRepository struct {
@@ -95,4 +97,126 @@ func (r *EupfHttpRepository) StopTrace(ctx context.Context, imsi, msisdn *string
 	}
 
 	return nil
+}
+
+func (r *EupfHttpRepository) GetUpfConfig(ctx context.Context, baseURL string) (*domain.UpfConfig, error) {
+	client := r.getClient(baseURL)
+
+	resp, err := client.R().
+		SetContext(ctx).
+		SetResult(domain.UpfConfig{}).
+		Get("/config/")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Result().(*domain.UpfConfig), nil
+}
+
+func (r *EupfHttpRepository) sendRestoreRequest(ctx context.Context, baseURL, path string, body any) error {
+	client := r.getClient(baseURL)
+
+	req := client.R().
+		SetContext(ctx).
+		SetBody(body)
+
+	resp, err := req.Post(path)
+	if err != nil {
+		return err
+	}
+
+	if resp.IsError() {
+		return fmt.Errorf("request to %s failed: %s", path, resp.String())
+	}
+
+	return nil
+}
+
+func (r *EupfHttpRepository) RestoreConfigLoggingLevel(ctx context.Context, baseURL string, logLevel string) error {
+	body := models.LoggingLevelConfig{
+		LoggingLevel: logLevel,
+	}
+
+	return r.sendRestoreRequest(ctx, baseURL, "/config/logging_level", body)
+}
+
+func (r *EupfHttpRepository) RestoreConfigLoggingCaller(ctx context.Context, baseURL string, logCaller bool) error {
+	body := models.LoggingCallerConfig{
+		LoggingCaller: logCaller,
+	}
+
+	return r.sendRestoreRequest(ctx, baseURL, "/config/logging_caller", body)
+
+}
+
+func (r *EupfHttpRepository) RestoreConfigDataPlaneEbpf(ctx context.Context, baseURL string, interfaceName []string, xdpAttachMode string) error {
+	body := models.DataPlaneEbpfConfig{
+		InterfaceName: interfaceName,
+		XDPAttachMode: xdpAttachMode,
+	}
+
+	return r.sendRestoreRequest(ctx, baseURL, "/config/dataplane_ebpf", body)
+
+}
+
+func (r *EupfHttpRepository) RestoreConfigDataPlaneAddresses(ctx context.Context, baseURL string, n3Address string, n9Address string) error {
+	body := models.DataPlaneAddressesConfig{
+		N3Address: n3Address,
+		N9Address: n9Address,
+	}
+
+	return r.sendRestoreRequest(ctx, baseURL, "/config/dataplane_addresses", body)
+
+}
+
+func (r *EupfHttpRepository) RestoreConfigPFCPN4(ctx context.Context, baseURL string, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string) error {
+	body := models.PFCPN4Config{
+		PFCPAddress:    pfcpAddress,
+		PFCPNodeID:     pfcpNodeId,
+		PFCPRemoteNode: pfcpRemoteNode,
+	}
+
+	return r.sendRestoreRequest(ctx, baseURL, "/config/pfcp_n4", body)
+
+}
+
+func (r *EupfHttpRepository) RestoreConfigPFCPSxa(ctx context.Context, baseURL string, sxaAddress string, sxaNodeId string, sxaRemoteNode []string) error {
+	body := models.PFCPSxaConfig{
+		SXAAddress:    sxaAddress,
+		SXANodeID:     sxaNodeId,
+		SXARemoteNode: sxaRemoteNode,
+	}
+
+	return r.sendRestoreRequest(ctx, baseURL, "/config/pfcp_sxa", body)
+
+}
+
+func (r *EupfHttpRepository) RestoreConfigPFCPSxb(ctx context.Context, baseURL string, sxbAddress string, sxbNodeId string, sxbRemoteNode []string) error {
+	body := models.PFCPSxbConfig{
+		SXBAddress:    sxbAddress,
+		SXBNodeID:     sxbNodeId,
+		SXBRemoteNode: sxbRemoteNode,
+	}
+
+	return r.sendRestoreRequest(ctx, baseURL, "/config/pfcp_sxb", body)
+
+}
+
+func (r *EupfHttpRepository) RestoreConfigPFCPTimers(ctx context.Context, baseURL string, associationSetupTimeout uint32, heartbeatTimeout uint32) error {
+	body := models.PFCPTimersConfig{
+		AssociationSetupTimeout: associationSetupTimeout,
+		HeartbeatTimeout:        heartbeatTimeout,
+	}
+
+	return r.sendRestoreRequest(ctx, baseURL, "/config/pfcp_timers", body)
+}
+
+func (r *EupfHttpRepository) RestoreConfigGTPPath(ctx context.Context, baseURL string, gtpPeer []string, gtpEchoInterval uint32) error {
+	body := models.GTPPathConfig{
+		GtpPeer:         gtpPeer,
+		GtpEchoInterval: gtpEchoInterval,
+	}
+
+	return r.sendRestoreRequest(ctx, baseURL, "/config/gtp_path", body)
 }

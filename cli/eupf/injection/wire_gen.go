@@ -9,6 +9,7 @@ package injection
 import (
 	"github.com/edgecomllc/eupf/cli/config"
 	"github.com/edgecomllc/eupf/cli/eupf/delivery/cli"
+	"github.com/edgecomllc/eupf/cli/eupf/repository/file"
 	"github.com/edgecomllc/eupf/cli/eupf/repository/http"
 	"github.com/edgecomllc/eupf/cli/eupf/usecase"
 )
@@ -17,7 +18,8 @@ import (
 
 func InitEupfCLI(baseURL string, cfg *config.Config) *cli.CLI {
 	eupfRepository := http.NewEupfHttpRepository(baseURL)
-	eupfUseCase := usecase.NewEupf(eupfRepository, cfg)
+	eupfLocalRepository := file.NewFileRepository(cfg)
+	eupfUseCase := usecase.NewEupf(eupfRepository, eupfLocalRepository, cfg)
 	cliCLI := cli.NewCLI(eupfUseCase)
 	return cliCLI
 }

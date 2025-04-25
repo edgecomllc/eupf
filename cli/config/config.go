@@ -2,21 +2,24 @@ package config
 
 import (
 	"fmt"
+
 	"github.com/spf13/viper"
 )
 
 const configFileName = "config-cli.yaml"
 
 type Config struct {
-	LogLevel string `mapstructure:"log_level" yaml:"log_level"`
-	EupfAddr string `mapstructure:"eupf_addr" yaml:"eupf_addr"`
+	LogLevel   string `mapstructure:"log_level" yaml:"log_level"`
+	EupfAddr   string `mapstructure:"eupf_addr" yaml:"eupf_addr"`
+	BackupPath string `mapstructure:"backup_path" yaml:"backup_path"`
 }
 
 var cfgViper = viper.New()
 
 func NewConfig() (*Config, error) {
 	cfgViper.SetDefault("log_level", "debug")
-	cfgViper.SetDefault("eupf_addr", "http://127.0.0.1/api/vi/")
+	cfgViper.SetDefault("backup_path", "/var/lib/eupf/backups")
+	cfgViper.SetDefault("eupf_addr", "http://127.0.0.1/api/v1/")
 
 	cfgViper.SetConfigFile(configFileName)
 	cfgViper.SetConfigType("yaml")

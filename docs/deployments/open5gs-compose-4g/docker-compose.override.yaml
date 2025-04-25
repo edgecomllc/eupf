@@ -43,7 +43,14 @@ services:
     sysctls:
       - net.ipv4.conf.all.forwarding=1
 
-
+  eupf-cli:
+    build:
+      context: ../../../
+      dockerfile: Dockerfile.cli
+    volumes:
+      - ./backups:/var/lib/eupf/backups
+    networks:
+      core4g:
 
   upf:
     image: ghcr.io/edgecomllc/eupf-dev:7047a1b53021f3387e6b4b3393bcee3903c575cb

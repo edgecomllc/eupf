@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/edgecomllc/eupf/cli/config"
 	"github.com/edgecomllc/eupf/cli/eupf/injection"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"os"
 )
 
 func InitLogger() {
