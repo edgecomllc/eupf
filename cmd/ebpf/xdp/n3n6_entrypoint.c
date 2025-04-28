@@ -564,7 +564,7 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
 
-#define PACKET_TRACE
+//#define PACKET_TRACE
 #ifdef PACKET_TRACE
     if(action != XDP_TX && action != XDP_REDIRECT) // write all packets
         trace_packet(&context, PACKET_DIRECTION_BLOCKED);

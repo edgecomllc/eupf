@@ -21,12 +21,7 @@
 #include <linux/ipv6.h>
 
 #include "xdp/sdf_filter.h"
-
-#define PDR_MAP_SIZE 1024
-#define FAR_MAP_SIZE 1024
-#define SDF_LIST_SIZE 5
-#define URR_LIST_SIZE 3
-
+#include "xdp/sizing.h"
 
 enum outer_header_removal_values {
     OHR_GTP_U_UDP_IPv4 = 0,

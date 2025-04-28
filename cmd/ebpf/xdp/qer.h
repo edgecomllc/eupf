@@ -19,6 +19,8 @@
 #include <bpf/bpf_helpers.h>
 #include <linux/bpf.h>
 
+#include "xdp/sizing.h"
+
 enum gate_status {
     GATE_STATUS_OPEN = 0,
     GATE_STATUS_CLOSED = 1,
@@ -33,11 +35,9 @@ struct qer_info {
     __u8 dscp;
     __u64 ul_maximum_bitrate;
     __u64 dl_maximum_bitrate;
-    __u64 ul_start;
-    __u64 dl_start;
+    volatile __u64 ul_start;
+    volatile __u64 dl_start;
 };
-
-#define QER_MAP_SIZE 1024
 
 /* QER ID -> QER */
 struct
@@ -73,7 +73,7 @@ static __always_inline enum xdp_action limit_rate_sliding_window(const __u64 pac
     if (rate == 0)
         return XDP_PASS;
 
-    __u64 tx_time = packet_size * 8 * NSEC_PER_SEC / rate;
+    __u64 tx_time = packet_size * 8 * (NSEC_PER_SEC / rate);
     __u64 now = bpf_ktime_get_ns();
 
     __u64 start = *(volatile __u64 *)windows_start;
@@ -81,11 +81,11 @@ static __always_inline enum xdp_action limit_rate_sliding_window(const __u64 pac
         return XDP_DROP;
 
     if (start + window_size < now) {
-        *(volatile __u64 *)&windows_start = now - window_size + tx_time;
+        *(volatile __u64 *)windows_start = now - window_size + tx_time;
         return XDP_PASS;
     }
 
-    *(volatile __u64 *)&windows_start = start + tx_time;
+    *(volatile __u64 *)windows_start = start + tx_time;
     //__sync_fetch_and_add(&window->start, tx_time);
     return XDP_PASS;
 }

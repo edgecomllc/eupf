@@ -38,7 +38,7 @@ func getNetworkInstances(req *message.SessionEstablishmentRequest) []string {
 
 func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
 	req := msg.(*message.SessionEstablishmentRequest)
-	log.Info().Msgf("Got Session Establishment Request from: %s.", addr)
+	log.Debug().Msgf("Got Session Establishment Request from: %s.", addr)
 	printSessionEstablishmentRequest(req)
 
 	imsi, msisdn := getSubscriberData(req.IEs)
@@ -46,14 +46,14 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
 	if err != nil {
-		log.Info().Msgf("Rejecting Session Establishment Request from: %s (missing NodeID or F-SEID)", addr)
+		log.Warn().Msgf("Rejecting Session Establishment Request from: %s (missing NodeID or F-SEID)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseMandatoryIEMissing)).Inc()
 		return message.NewSessionEstablishmentResponse(0, 0, 0, req.Sequence(), 0, newIeNodeID(conn.nodeId), convertErrorToIeCause(err)), isTraced, nil
 	}
 
 	association, ok := conn.NodeAssociations[addr]
 	if !ok {
-		log.Info().Msgf("Rejecting Session Establishment Request from: %s (no association)", addr)
+		log.Warn().Msgf("Rejecting Session Establishment Request from: %s (no association)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
 		return message.NewSessionEstablishmentResponse(0, 0, 0, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), isTraced, nil
 	}
@@ -66,7 +66,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	networkInstances := getNetworkInstances(req)
 	for _, ne := range networkInstances {
 		if !conn.ValidateNetworkInstance(ne) {
-			log.Trace().Msgf("Rejecting Session Establishment Request from: %s (Not allowed network instance)", addr)
+			log.Warn().Msgf("Rejecting Session Establishment Request from: %s (Not allowed network instance)", addr)
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionEstablishmentResponse(0, 0, 0, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRuleCreationModificationFailure)), isTraced, nil
 		}
@@ -80,16 +80,16 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		for _, far := range req.CreateFAR {
 			farInfo, err := composeFarInfo(far, conn.n3Address.To4(), conn.n9Address.To4(), ebpf.FarInfo{})
 			if err != nil {
-				log.Info().Msgf("Error extracting FAR info: %s", err.Error())
+				log.Warn().Msgf("Error extracting FAR info: %s", err.Error())
 				continue
 			}
 
 			farid, _ := far.FARID()
-			log.Info().Msgf("Saving FAR info to session: %d, %+v", farid, farInfo)
+			log.Debug().Msgf("Saving FAR info to session: %d, %+v", farid, farInfo)
 			if internalId, err := mapOperations.NewFar(farInfo); err == nil {
 				session.NewFar(farid, internalId, farInfo)
 			} else {
-				log.Info().Msgf("Can't put FAR: %s", err.Error())
+				log.Warn().Msgf("Can't put FAR: %s", err.Error())
 				return err
 			}
 		}
@@ -101,11 +101,11 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				return fmt.Errorf("QER ID missing")
 			}
 			updateQer(&qerInfo, qer)
-			log.Info().Msgf("Saving QER info to session: %d, %+v", qerId, qerInfo)
+			log.Debug().Msgf("Saving QER info to session: %d, %+v", qerId, qerInfo)
 			if internalId, err := mapOperations.NewQer(qerInfo); err == nil {
 				session.NewQer(qerId, internalId, qerInfo)
 			} else {
-				log.Info().Msgf("Can't put QER: %s", err.Error())
+				log.Warn().Msgf("Can't put QER: %s", err.Error())
 				return err
 			}
 		}
@@ -117,11 +117,11 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 				return fmt.Errorf("URR ID missing")
 			}
 			updateUrr(&urrInfo, urr)
-			log.Info().Msgf("Saving URR info to session: %d, %+v", urrId, urrInfo)
+			log.Debug().Msgf("Saving URR info to session: %d, %+v", urrId, urrInfo)
 			if internalId, err := mapOperations.NewUrr(urrInfo); err == nil {
 				session.NewUrr(urrId, internalId, urrInfo)
 			} else {
-				log.Info().Msgf("Can't put URR: %s", err.Error())
+				log.Warn().Msgf("Can't put URR: %s", err.Error())
 				return err
 			}
 		}
@@ -176,7 +176,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	}()
 
 	if err != nil {
-		log.Info().Msgf("Rejecting Session Establishment Request from: %s (error in applying IEs)", err)
+		log.Warn().Msgf("Rejecting Session Establishment Request from: %s (error in applying IEs)", err)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 		return message.NewSessionEstablishmentResponse(0, 0, remoteSEID.SEID, req.Sequence(), 0, newIeNodeID(conn.nodeId), ie.NewCause(ie.CauseRuleCreationModificationFailure)), isTraced, nil
 	}
@@ -203,16 +203,16 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	estResp.SetLength()
 
 	PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRequestAccepted)).Inc()
-	log.Info().Msgf("Session Establishment Request from %s accepted. F-SEID: %#016x", addr, localSEID)
+	log.Debug().Msgf("Session Establishment Request from %s accepted. F-SEID: %#016x", addr, localSEID)
 	return estResp, isTraced, nil
 }
 
 func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
 	req := msg.(*message.SessionDeletionRequest)
-	log.Info().Msgf("Got Session Deletion Request from: %s. \n", addr)
+	log.Debug().Msgf("Got Session Deletion Request from: %s. \n", addr)
 	association, ok := conn.NodeAssociations[addr]
 	if !ok {
-		log.Info().Msgf("Rejecting Session Deletion Request from: %s (no association)", addr)
+		log.Warn().Msgf("Rejecting Session Deletion Request from: %s (no association)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), false, nil
 	}
@@ -220,7 +220,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 
 	session, ok := association.Sessions[req.SEID()]
 	if !ok {
-		log.Info().Msgf("Rejecting Session Deletion Request from: %s (unknown SEID)", addr)
+		log.Warn().Msgf("Rejecting Session Deletion Request from: %s (unknown SEID)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseSessionContextNotFound)).Inc()
 		return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), false, nil
 	}
@@ -254,7 +254,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		prevReport := urr.UrrInfo
 		err, newReport := mapOperations.DeleteUrr(urr.GlobalId)
 		if err != nil {
-			log.Info().Msgf("WARN: mapOperations failed to delete URR: %d, %s", id, err.Error())
+			log.Warn().Msgf("WARN: mapOperations failed to delete URR: %d, %s", id, err.Error())
 			continue
 		}
 		//urr.ReportSeqNumber += 1 //Huawei
@@ -294,7 +294,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		additionalIEs = append(additionalIEs, deletedURRs...)
 	}
 
-	log.Info().Msgf("Deleting session: %d", req.SEID())
+	log.Debug().Msgf("Deleting session: %d", req.SEID())
 	delete(association.Sessions, req.SEID())
 
 	conn.ReleaseResources(req.SEID())
@@ -307,20 +307,20 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 
 func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
 	req := msg.(*message.SessionModificationRequest)
-	log.Info().Msgf("Got Session Modification Request from: %s. \n", addr)
+	log.Debug().Msgf("Got Session Modification Request from: %s. \n", addr)
 
-	log.Info().Msgf("Finding association for %s", addr)
+	log.Debug().Msgf("Finding association for %s", addr)
 	association, ok := conn.NodeAssociations[addr]
 	if !ok {
-		log.Info().Msgf("Rejecting Session Modification Request from: %s (no association)", addr)
+		log.Warn().Msgf("Rejecting Session Modification Request from: %s (no association)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseNoEstablishedPFCPAssociation)).Inc()
 		return message.NewSessionModificationResponse(0, 0, req.SEID(), req.Sequence(), 0, ie.NewCause(ie.CauseNoEstablishedPFCPAssociation)), false, nil
 	}
 
-	log.Info().Msgf("Finding session %d", req.SEID())
+	log.Debug().Msgf("Finding session %d", req.SEID())
 	session, ok := association.Sessions[req.SEID()]
 	if !ok {
-		log.Info().Msgf("Rejecting Session Modification Request from: %s (unknown SEID)", addr)
+		log.Warn().Msgf("Rejecting Session Modification Request from: %s (unknown SEID)", addr)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseSessionContextNotFound)).Inc()
 		return message.NewSessionModificationResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound)), false, nil
 	}
@@ -352,16 +352,16 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		for _, far := range req.CreateFAR {
 			farInfo, err := composeFarInfo(far, conn.n3Address.To4(), conn.n9Address.To4(), ebpf.FarInfo{})
 			if err != nil {
-				log.Info().Msgf("Error extracting FAR info: %s", err.Error())
+				log.Warn().Msgf("Error extracting FAR info: %s", err.Error())
 				continue
 			}
 
 			farid, _ := far.FARID()
-			log.Info().Msgf("Saving FAR info to session: %d, %+v", farid, farInfo)
+			log.Debug().Msgf("Saving FAR info to session: %d, %+v", farid, farInfo)
 			if internalId, err := mapOperations.NewFar(farInfo); err == nil {
 				session.NewFar(farid, internalId, farInfo)
 			} else {
-				log.Info().Msgf("Can't put FAR: %s", err.Error())
+				log.Warn().Msgf("Can't put FAR: %s", err.Error())
 				return err
 			}
 		}
@@ -374,10 +374,10 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			sFarInfo := session.GetFar(farid)
 			sFarInfo.FarInfo, err = composeFarInfo(far, conn.n3Address.To4(), conn.n9Address.To4(), sFarInfo.FarInfo)
 			if err != nil {
-				log.Info().Msgf("Error extracting FAR info: %s", err.Error())
+				log.Warn().Msgf("Error extracting FAR info: %s", err.Error())
 				continue
 			}
-			log.Info().Msgf("Updating FAR info: %d, %+v", farid, sFarInfo)
+			log.Debug().Msgf("Updating FAR info: %d, %+v", farid, sFarInfo)
 			session.UpdateFar(farid, sFarInfo.FarInfo)
 			if err := mapOperations.UpdateFar(sFarInfo.GlobalId, sFarInfo.FarInfo); err != nil {
 				log.Info().Msgf("Can't update FAR: %s", err.Error())
@@ -386,7 +386,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 		for _, far := range req.RemoveFAR {
 			farid, _ := far.FARID()
-			log.Info().Msgf("Removing FAR: %d", farid)
+			log.Debug().Msgf("Removing FAR: %d", farid)
 			sFarInfo := session.RemoveFar(farid)
 			if err := mapOperations.DeleteFar(sFarInfo.GlobalId); err != nil {
 				log.Info().Msgf("Can't remove FAR: %s", err.Error())
@@ -400,11 +400,11 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				return fmt.Errorf("QER ID missing")
 			}
 			updateQer(&qerInfo, qer)
-			log.Info().Msgf("Saving QER info to session: %d, %+v", qerId, qerInfo)
+			log.Debug().Msgf("Saving QER info to session: %d, %+v", qerId, qerInfo)
 			if internalId, err := mapOperations.NewQer(qerInfo); err == nil {
 				session.NewQer(qerId, internalId, qerInfo)
 			} else {
-				log.Info().Msgf("Can't put QER: %s", err.Error())
+				log.Warn().Msgf("Can't put QER: %s", err.Error())
 				return err
 			}
 		}
@@ -416,10 +416,10 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 			sQerInfo := session.GetQer(qerId)
 			updateQer(&sQerInfo.QerInfo, qer)
-			log.Info().Msgf("Updating QER ID: %d, QER Info: %+v", qerId, sQerInfo)
+			log.Debug().Msgf("Updating QER ID: %d, QER Info: %+v", qerId, sQerInfo)
 			session.UpdateQer(qerId, sQerInfo.QerInfo)
 			if err := mapOperations.UpdateQer(sQerInfo.GlobalId, sQerInfo.QerInfo); err != nil {
-				log.Info().Msgf("Can't update QER: %s", err.Error())
+				log.Warn().Msgf("Can't update QER: %s", err.Error())
 				return err
 			}
 		}
@@ -429,10 +429,10 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err != nil {
 				return fmt.Errorf("QER ID missing")
 			}
-			log.Info().Msgf("Removing QER ID: %d", qerId)
+			log.Debug().Msgf("Removing QER ID: %d", qerId)
 			sQerInfo := session.RemoveQer(qerId)
 			if err := mapOperations.DeleteQer(sQerInfo.GlobalId); err != nil {
-				log.Info().Msgf("Can't remove QER: %s", err.Error())
+				log.Warn().Msgf("Can't remove QER: %s", err.Error())
 				return err
 			}
 		}
@@ -444,11 +444,11 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				return fmt.Errorf("URR ID missing")
 			}
 			updateUrr(&urrInfo, urr)
-			log.Info().Msgf("Saving URR info to session: %d, %+v", urrId, urrInfo)
+			log.Debug().Msgf("Saving URR info to session: %d, %+v", urrId, urrInfo)
 			if internalId, err := mapOperations.NewUrr(urrInfo); err == nil {
 				session.NewUrr(urrId, internalId, urrInfo)
 			} else {
-				log.Info().Msgf("Can't put URR: %s", err.Error())
+				log.Warn().Msgf("Can't put URR: %s", err.Error())
 				return err
 			}
 		}
@@ -460,10 +460,10 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			}
 			sUrrInfo := session.GetUrr(urrId)
 			updateUrr(&sUrrInfo.UrrInfo, urr)
-			log.Info().Msgf("Updating URR ID: %d, URR Info: %+v", urrId, sUrrInfo)
+			log.Debug().Msgf("Updating URR ID: %d, URR Info: %+v", urrId, sUrrInfo)
 			session.UpdateUrr(urrId, sUrrInfo.UrrInfo)
 			if err := mapOperations.UpdateUrr(sUrrInfo.GlobalId, sUrrInfo.UrrInfo); err != nil {
-				log.Info().Msgf("Can't update URR: %s", err.Error())
+				log.Warn().Msgf("Can't update URR: %s", err.Error())
 				return err
 			}
 		}
@@ -473,7 +473,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			if err != nil {
 				return fmt.Errorf("URR ID missing")
 			}
-			log.Info().Msgf("Removing URR ID: %d", urrId)
+			log.Debug().Msgf("Removing URR ID: %d", urrId)
 			sUrrInfo := session.RemoveUrr(urrId)
 			prevReport := sUrrInfo.UrrInfo
 			err, newReport := mapOperations.DeleteUrr(sUrrInfo.GlobalId)
@@ -503,7 +503,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			// PDR should be created last, because we need to reference FARs and QERs global id
 			pdrId, err := pdr.PDRID()
 			if err != nil {
-				log.Info().Msgf("PDR ID missing")
+				log.Warn().Msgf("PDR ID missing")
 				continue
 			}
 
@@ -615,7 +615,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		return nil
 	}()
 	if err != nil {
-		log.Info().Msgf("Rejecting Session Modification Request from: %s (failed to apply rules)", err)
+		log.Warn().Msgf("Rejecting Session Modification Request from: %s (failed to apply rules)", err)
 		PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 		return message.NewSessionModificationResponse(0, 0, session.RemoteSEID, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), traced, nil
 	}
@@ -831,7 +831,7 @@ func composeFarInfo(far *ie.IE, localN3Ip net.IP, localN9Ip net.IP, farInfo ebpf
 	if err == nil {
 		outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
 		if outerHeaderCreationIndex == -1 {
-			log.Warn().Msg("No OuterHeaderCreation")
+			log.Debug().Msg("No OuterHeaderCreation")
 		} else {
 
 			if config.Conf.HuaweiSupport {

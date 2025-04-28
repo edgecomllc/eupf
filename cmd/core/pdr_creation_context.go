@@ -65,7 +65,7 @@ func GetURRIDs(i *ie.IE) ([]uint32, error) {
 
 func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo) error {
 	if ruleName, err := pdr.ActivatePredefinedRules(); err == nil {
-		log.Info().Msgf("find activate pcc rule with name: %s", ruleName)
+		log.Debug().Msgf("find activate pcc rule with name: %s", ruleName)
 
 		if spdrInfo.PCCInfo == nil {
 			spdrInfo.PCCInfo = &PCCInfo{
@@ -77,7 +77,7 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 	}
 
 	if ruleName, err := pdr.DeactivatePredefinedRules(); err == nil {
-		log.Info().Msgf("find deactivate pcc rule with name: %s", ruleName)
+		log.Debug().Msgf("find deactivate pcc rule with name: %s", ruleName)
 
 		if spdrInfo.PCCInfo != nil && spdrInfo.PCCInfo.PCCName == ruleName {
 			spdrInfo.PCCInfo = nil
@@ -180,7 +180,7 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 
 		return nil
 	} else {
-		log.Info().Msg("Both F-TEID IE and UE IP Address IE are missing")
+		log.Warn().Msg("Both F-TEID IE and UE IP Address IE are missing")
 		return err
 	}
 }

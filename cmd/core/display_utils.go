@@ -94,7 +94,7 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 		writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", DecodeDigitsFromBytes(msisdnEncoded)), 1)
 	}
 
-	log.Info().Msg(sb.String())
+	log.Debug().Msg(sb.String())
 }
 
 // IE Contents of Create/Update/Remove are mostly the same
@@ -206,13 +206,14 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 		writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", DecodeDigitsFromBytes(msisdnEncoded)), 1)
 	}
 
-	log.Info().Msg(sb.String())
+	log.Debug().Msg(sb.String())
 }
 
 func printSessionDeleteRequest(req *message.SessionDeletionRequest) {
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), 0), 0)
+	log.Debug().Msg(sb.String())
 }
 
 func displayBar(sb *strings.Builder, bar *ie.IE) {
