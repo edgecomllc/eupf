@@ -1,7 +1,14 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/cilium/ebpf/link"
 	"github.com/edgecomllc/eupf/cmd/api/rest"
 	"github.com/edgecomllc/eupf/cmd/config"
@@ -12,11 +19,6 @@ import (
 	"github.com/edgecomllc/eupf/cmd/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"net"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 //go:generate swag init --parseDependency --parseInternal --parseDepth 1 -g api/rest/handler.go
@@ -60,6 +62,14 @@ func main() {
 		defer dumper.Close(false)
 		go dumper.ReadTraceMap(bpfObjects.TraceMap)
 		go dumper.Write()
+	}
+
+	n3AddressUint32 := binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N3Address).To4())
+	n9AddressUint32 := binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N9Address).To4())
+
+	entrypointConfig := ebpf.IpEntrypointDataplaneConfig{N3Ipv4Address: n3AddressUint32, N9Ipv4Address: n9AddressUint32}
+	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
+		log.Fatal().Err(err).Msgf("can't set dataplane global config")
 	}
 
 	sdfNotifier, _ := ebpf.NewSdfNotifyListener(bpfObjects.SdfNotifyMap)

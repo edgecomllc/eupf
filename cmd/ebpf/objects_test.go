@@ -28,13 +28,21 @@ import (
 	"github.com/google/gopacket/layers"
 )
 
+var (
+	n3IP = net.IP{10, 3, 0, 10}
+	n9IP = net.IP{10, 3, 0, 20}
+
+	n3MAC = net.HardwareAddr{1, 0, 0, 3, 0, 10}
+	n9MAC = net.HardwareAddr{1, 0, 0, 3, 0, 20}
+)
+
 func testArp(bpfObjects *BpfObjects) error {
 
 	packetArp := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
 		&layers.Ethernet{
-			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
-			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
 			EthernetType: layers.EthernetTypeARP,
 		},
 		&layers.ARP{},
@@ -61,8 +69,8 @@ func testArpBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) {
 	packetArp := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{},
 		&layers.Ethernet{
-			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
-			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
 			EthernetType: layers.EthernetTypeARP,
 		},
 		&layers.ARP{},
@@ -83,14 +91,14 @@ func testGtpBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) {
 	packet := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
 		&layers.Ethernet{
-			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
-			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
 			EthernetType: layers.EthernetTypeIPv4,
 		},
 		&layers.IPv4{
 			Version:  4,
-			DstIP:    net.IP{10, 3, 0, 10},
-			SrcIP:    net.IP{10, 3, 0, 20},
+			DstIP:    n3IP,
+			SrcIP:    n9IP,
 			Protocol: layers.IPProtocolUDP,
 			IHL:      5,
 		},
@@ -135,14 +143,14 @@ func testGtpWithPDRBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) 
 	packet := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
 		&layers.Ethernet{
-			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
-			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
 			EthernetType: layers.EthernetTypeIPv4,
 		},
 		&layers.IPv4{
 			Version:  4,
-			DstIP:    net.IP{10, 3, 0, 10},
-			SrcIP:    net.IP{10, 3, 0, 20},
+			DstIP:    n3IP,
+			SrcIP:    n9IP,
 			Protocol: layers.IPProtocolUDP,
 			IHL:      5,
 		},
@@ -203,14 +211,14 @@ func testGtpEcho(t *testing.T, bpfObjects *BpfObjects) error {
 	packetArp := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(packetArp, gopacket.SerializeOptions{FixLengths: true},
 		&layers.Ethernet{
-			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
-			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
 			EthernetType: layers.EthernetTypeIPv4,
 		},
 		&layers.IPv4{
 			Version:  4,
-			DstIP:    net.IP{10, 3, 0, 10},
-			SrcIP:    net.IP{10, 3, 0, 20},
+			DstIP:    n3IP,
+			SrcIP:    n9IP,
 			Protocol: layers.IPProtocolUDP,
 			IHL:      5,
 		},
@@ -267,14 +275,14 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 	packet := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
 		&layers.Ethernet{
-			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
-			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
 			EthernetType: layers.EthernetTypeIPv4,
 		},
 		&layers.IPv4{
 			Version:  4,
-			DstIP:    net.IP{10, 3, 0, 10},
-			SrcIP:    net.IP{10, 3, 0, 20},
+			DstIP:    n3IP,
+			SrcIP:    n9IP,
 			Protocol: layers.IPProtocolUDP,
 			IHL:      5,
 		},
@@ -355,14 +363,14 @@ func testGtpIPv4WithSDFFilterV6(bpfObjects *BpfObjects) error {
 	packet := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
 		&layers.Ethernet{
-			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
-			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
 			EthernetType: layers.EthernetTypeIPv4,
 		},
 		&layers.IPv4{
 			Version:  4,
-			DstIP:    net.IP{10, 3, 0, 10},
-			SrcIP:    net.IP{10, 3, 0, 20},
+			DstIP:    n3IP,
+			SrcIP:    n9IP,
 			Protocol: layers.IPProtocolUDP,
 			IHL:      5,
 		},
@@ -448,14 +456,14 @@ func testGtpWithSDFFilterV6(bpfObjects *BpfObjects) error {
 	packet := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
 		&layers.Ethernet{
-			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
-			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
 			EthernetType: layers.EthernetTypeIPv4,
 		},
 		&layers.IPv4{
 			Version:  4,
-			DstIP:    net.IP{10, 3, 0, 10},
-			SrcIP:    net.IP{10, 3, 0, 20},
+			DstIP:    n3IP,
+			SrcIP:    n9IP,
 			Protocol: layers.IPProtocolUDP,
 			IHL:      5,
 		},
@@ -547,14 +555,14 @@ func testGtpWithSDFFilterNotification(bpfObjects *BpfObjects) error {
 	packet := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
 		&layers.Ethernet{
-			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
-			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
 			EthernetType: layers.EthernetTypeIPv4,
 		},
 		&layers.IPv4{
 			Version:  4,
-			DstIP:    net.ParseIP("10.3.0.10"),
-			SrcIP:    net.ParseIP("10.3.0.20"),
+			DstIP:    n3IP,
+			SrcIP:    n9IP,
 			Protocol: layers.IPProtocolUDP,
 			IHL:      5,
 		},
@@ -653,8 +661,8 @@ func testGtpExtHeader(t *testing.T, bpfObjects *BpfObjects) error {
 	packet := gopacket.NewSerializeBuffer()
 	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{FixLengths: true},
 		&layers.Ethernet{
-			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
-			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
 			EthernetType: layers.EthernetTypeIPv4,
 		},
 		&layers.IPv4{
@@ -677,8 +685,8 @@ func testGtpExtHeader(t *testing.T, bpfObjects *BpfObjects) error {
 	farForward := IpEntrypointFarInfo{
 		Action:                2,
 		OuterHeaderCreation:   1,
-		Remoteip:              binary.LittleEndian.Uint32(net.IP{10, 3, 0, 10}),
-		Localip:               binary.LittleEndian.Uint32(net.IP{10, 3, 0, 20}),
+		Remoteip:              binary.LittleEndian.Uint32(n3IP),
+		Localip:               binary.LittleEndian.Uint32(n9IP),
 		Teid:                  teid,
 		TransportLevelMarking: 0}
 	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 5, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
@@ -741,6 +749,102 @@ func testGtpExtHeader(t *testing.T, bpfObjects *BpfObjects) error {
 	return nil
 }
 
+func testDLwithGTPPort(t *testing.T, bpfObjects *BpfObjects) error {
+	t.Helper()
+
+	teid := uint32(2)
+
+	packet := gopacket.NewSerializeBuffer()
+	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{
+		FixLengths: true,
+	},
+		&layers.Ethernet{
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
+			EthernetType: layers.EthernetTypeIPv4,
+		},
+		&layers.IPv4{
+			Version:  4,
+			SrcIP:    net.IP{1, 1, 1, 1},
+			DstIP:    net.IP{10, 60, 0, 1},
+			Protocol: layers.IPProtocolUDP,
+			IHL:      5,
+		},
+		&layers.UDP{
+			SrcPort: 2100,
+			DstPort: 2152,
+		},
+	); err != nil {
+		return fmt.Errorf("serializing input packet failed: %v", err)
+	}
+
+	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
+	farForward := FarInfo{
+		Action:                2,
+		OuterHeaderCreation:   1,
+		RemoteIP:              binary.LittleEndian.Uint32(n3IP),
+		LocalIP:               binary.LittleEndian.Uint32(n9IP),
+		Teid:                  teid,
+		TransportLevelMarking: 0}
+	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 5, MaxBitrateUL: 1000000, MaxBitrateDL: 100000}
+
+	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farForward)); err != nil {
+		return fmt.Errorf("can't set FAR: %v", err)
+	}
+	if err := bpfObjects.QerMap.Put(uint32(1), unsafe.Pointer(&qer)); err != nil {
+		return fmt.Errorf("can't set QER: %v", err)
+	}
+
+	if err := bpfObjects.PutPdrDownlink(net.IP{10, 60, 0, 1}, pdr); err != nil {
+		return fmt.Errorf("can't set downlink PDR: %v", err)
+	}
+
+	t.Logf("package %v", packet)
+
+	bpfRet, bufOut, err := bpfObjects.UpfIpEntrypointFunc.Test(packet.Bytes())
+	if err != nil {
+		return fmt.Errorf("ebpf run failed: %v", err)
+	}
+
+	if bpfRet != 4 { // XDP_REDIRECT
+		return fmt.Errorf("unexpected return value: %d", bpfRet)
+	}
+
+	response := gopacket.NewPacket(bufOut, layers.LayerTypeEthernet, gopacket.Default)
+	if gtpLayer := response.Layer(layers.LayerTypeGTPv1U); gtpLayer != nil {
+		gtp, _ := gtpLayer.(*layers.GTPv1U)
+
+		if gtp.MessageType != 255 { //GTPU_G_PDU
+			return fmt.Errorf("unexpected gtp response: %d", gtp.MessageType)
+		}
+		if gtp.TEID != teid {
+			return fmt.Errorf("unexpected gtp TEID: %d", gtp.TEID)
+		}
+		if gtp.ExtensionHeaderFlag == true {
+
+			if len(gtp.GTPExtensionHeaders) != 1 {
+				return fmt.Errorf("unexpected gtp extention header count: %d", len(gtp.GTPExtensionHeaders))
+			}
+
+			extHeader := gtp.GTPExtensionHeaders[0]
+			if extHeader.Type != 0x85 {
+				return fmt.Errorf("unexpected gtp extention header: %d", gtp.GTPExtensionHeaders[0].Type)
+			}
+			if len(extHeader.Content) != 2 {
+				return fmt.Errorf("unexpected gtp extention header len: %d", len(extHeader.Content))
+			}
+
+			if extHeader.Content[1] != 5 {
+				return fmt.Errorf("unexpected gtp extention header QFI: %d %d", extHeader.Content[0], extHeader.Content[1])
+			}
+		}
+	} else {
+		return fmt.Errorf("unexpected response: %v", response)
+	}
+
+	return nil
+}
+
 func TestEntrypoint(t *testing.T) {
 
 	if err := IncreaseResourceLimits(); err != nil {
@@ -754,6 +858,13 @@ func TestEntrypoint(t *testing.T) {
 	}
 
 	defer bpfObjects.Close()
+
+	n3IPUint32 := binary.LittleEndian.Uint32(n3IP.To4())
+	n9IPUint32 := binary.LittleEndian.Uint32(n9IP.To4())
+	entrypointConfig := IpEntrypointDataplaneConfig{N3Ipv4Address: n3IPUint32, N9Ipv4Address: n9IPUint32}
+	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
+		t.Fatalf("scan't set dataplane global config: %s", err.Error())
+	}
 
 	t.Run("Arp test", func(t *testing.T) {
 		err := testArp(bpfObjects)
@@ -799,6 +910,13 @@ func TestEntrypoint(t *testing.T) {
 
 	t.Run("GTP Extention Header test", func(t *testing.T) {
 		err := testGtpExtHeader(t, bpfObjects)
+		if err != nil {
+			t.Fatalf("test failed: %s", err)
+		}
+	})
+
+	t.Run("DL packet with UDP port 2152 test", func(t *testing.T) {
+		err := testDLwithGTPPort(t, bpfObjects)
 		if err != nil {
 			t.Fatalf("test failed: %s", err)
 		}
