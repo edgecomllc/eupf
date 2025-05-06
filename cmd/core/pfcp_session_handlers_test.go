@@ -18,13 +18,19 @@ import (
 )
 
 func TestHeartbeat(t *testing.T) {
-	// Create pfcp connection struct
-	pfcpConn := PfcpConnection{}
+	addr := "127.0.0.1"
+
+	// Create pfcp connection struct with association
+	pfcpConn := PfcpConnection{
+		NodeAssociations: map[string]*NodeAssociation{
+			addr: NewNodeAssociation("test-node", ""),
+		},
+	}
 	hbReq := message.NewHeartbeatRequest(0,
 		ie.NewRecoveryTimeStamp(time.Now()),
 		nil,
 	)
-	response, _, err := HandlePfcpHeartbeatRequest(&pfcpConn, hbReq, "127.0.0.1")
+	response, _, err := HandlePfcpHeartbeatRequest(&pfcpConn, hbReq, addr)
 	if err != nil {
 		t.Errorf("Error handling heartbeat request: %s", err)
 	}
