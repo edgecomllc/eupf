@@ -101,6 +101,12 @@ func (h *ApiHandler) initDefaultRoutes(group *gin.RouterGroup) {
 		pdrMap.PUT(":id", h.setUplinkPdrValue)
 	}
 
+	pdrDownlinkMap := group.Group("downlink_pdr_map")
+	{
+		pdrDownlinkMap.GET(":id", h.getDownlinkPdrValue)
+		pdrDownlinkMap.PUT(":id", h.setDownlinkPdrValue)
+	}
+
 	qerMap := group.Group("qer_map")
 	{
 		qerMap.GET("", h.listQerMapContent)

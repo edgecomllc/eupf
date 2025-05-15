@@ -19,11 +19,15 @@ func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 		if err := mapOperations.PutPdrDownlink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
 			log.Info().Msgf("Can't apply IPv4 PDR: %s", err.Error())
 		}
-	} else if spdrInfo.Ipv6 != nil {
+	}
+
+	if spdrInfo.Ipv6 != nil {
 		if err := mapOperations.PutDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
 			log.Info().Msgf("Can't apply IPv6 PDR: %s", err.Error())
 		}
-	} else if spdrInfo.Teid > 0 {
+	}
+
+	if spdrInfo.Teid > 0 {
 		if err := mapOperations.PutPdrUplink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
 			log.Info().Msgf("Can't apply GTP PDR: %s", err.Error())
 		}

@@ -64,10 +64,20 @@ func main() {
 		go dumper.Write()
 	}
 
-	n3AddressUint32 := binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N3Address).To4())
-	n9AddressUint32 := binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N9Address).To4())
+	entrypointConfig := ebpf.IpEntrypointDataplaneConfig{
+		N3Ipv4Address: binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N3Address).To4()),
+		N9Ipv4Address: binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N9Address).To4()),
+		Ip6RaSupport:  0,
+	}
 
-	entrypointConfig := ebpf.IpEntrypointDataplaneConfig{N3Ipv4Address: n3AddressUint32, N9Ipv4Address: n9AddressUint32}
+	if config.Conf.IP6RaSupport {
+		ip6Prefix, ip6Net, _ := net.ParseCIDR(config.Conf.Ip6RaPrefix)
+		ip6PrefixLength, _ := ip6Net.Mask.Size()
+
+		entrypointConfig.Ip6RaSupport = 1
+		copy(entrypointConfig.Ip6RaPrefix[:], ip6Prefix.To16())
+		entrypointConfig.Ip6RaPrefixLength = uint16(ip6PrefixLength)
+	}
 	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
 		log.Fatal().Err(err).Msgf("can't set dataplane global config")
 	}

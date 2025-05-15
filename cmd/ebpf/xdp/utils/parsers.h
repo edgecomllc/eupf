@@ -23,6 +23,7 @@
 #include <linux/types.h>
 #include <linux/udp.h>
 #include <linux/tcp.h>
+#include <linux/icmpv6.h>
 
 #include "xdp/utils/packet_context.h"
 #include "xdp/utils/trace.h"

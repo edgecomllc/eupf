@@ -99,6 +99,8 @@ type UpfConfig struct {
 	AllowedApns             string         `mapstructure:"allowed_apns" json:"allowed_apns"`
 	DeniedApns              string         `mapstructure:"denied_apns" json:"denied_apns"`
 	HuaweiSupport           bool           `mapstructure:"huawei_support" json:"huawei_support"`
+	IP6RaSupport            bool           `mapstructure:"ip6_ra_support" json:"ip6_ra_support"`
+	Ip6RaPrefix             string         `mapstructure:"ip6_ra_prefix" validate:"cidrv6" json:"ip6_ra_prefix"`
 }
 
 func initialize() {
@@ -154,6 +156,8 @@ func defineFlags() {
 	pflag.String("aapns", ".*", "Allowed APNs mask")
 	pflag.String("dapns", "", "Denied APNs mask")
 	pflag.Bool("huasupp", true, "Enable or disable huawei support")
+	pflag.Bool("ip6ra", false, "Enable or disable IPv6 Router Advertisement support")
+	pflag.String("ip6rapref", "2a03:d000:29a0:509::/64", "Subscriber IPv6 prefix")
 
 	pflag.Parse()
 }
@@ -220,6 +224,8 @@ func initCommonConfig() {
 	_ = commonConfigV.BindPFlag("allowed_apns", pflag.Lookup("aapns"))
 	_ = commonConfigV.BindPFlag("denied_apns", pflag.Lookup("dapns"))
 	_ = commonConfigV.BindPFlag("huawei_support", pflag.Lookup("huasupp"))
+	_ = commonConfigV.BindPFlag("ip6_ra_support", pflag.Lookup("ip6ra"))
+	_ = commonConfigV.BindPFlag("ip6_ra_prefix", pflag.Lookup("ip6rapref"))
 
 	commonConfigV.SetDefault("n9_address", commonConfigV.GetString("n3_address"))
 

@@ -401,10 +401,10 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 				}
 			case 93: // IE Type UE IP Address
 				if ueIp, _ := x.UEIPAddress(); ueIp != nil {
-					if ueIp != nil && ueIp.IPv4Address != nil {
+					if ueIp.IPv4Address != nil {
 						writeLineTabbed(sb, fmt.Sprintf("UE IPv4 Address: %s ", ueIp.IPv4Address), 2)
 					}
-					if ueIp != nil && ueIp.IPv6Address != nil {
+					if ueIp.IPv6Address != nil {
 						writeLineTabbed(sb, fmt.Sprintf("UE IPv6 Address: %s ", ueIp.IPv6Address), 2)
 					}
 				}

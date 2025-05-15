@@ -47,8 +47,11 @@
 #define DEFAULT_XDP_ACTION XDP_PASS
 
 struct dataplane_config {
-    __u32 n3_ipv4_address;
-    __u32 n9_ipv4_address;  
+    __u32  n3_ipv4_address;
+    __u32  n9_ipv4_address;
+    __u8   ip6_ra_support;
+    __u128 ip6_ra_prefix;
+    __u16  ip6_ra_prefix_length;
 } global_config;
 
 static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, __u8 qfi, int teid) {
@@ -423,6 +426,27 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         return handle_n6_packet_ipv4(ctx);
     }
 
+    if(global_config.ip6_ra_support && ctx->ip6 && ctx->ip6->nexthdr == IPPROTO_ICMPV6)
+    {
+        const struct in6_addr rs_address = { .in6_u.u6_addr8 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}};
+        if(*((__u128*)ctx->ip6->daddr.s6_addr) == *((__u128*)rs_address.s6_addr))
+        {
+            const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
+            struct icmp6hdr *icmp6 = (struct icmp6hdr *)(ctx->ip6 + 1);
+            if ((const char *)(icmp6 + 1) <= data_end) {
+                if(icmp6->icmp6_type == ICMPV6_ROUTER_SOLICITATION) {    
+                    //upf_printk("upf: [n3] prepare icmp ping reply to request %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+                    struct in6_addr* prefix = (struct in6_addr*)&global_config.ip6_ra_prefix;
+                    if (-1 == prepare_icmp6_ra(ctx, prefix, global_config.ip6_ra_prefix_length))
+                        return XDP_ABORTED;
+
+                    //upf_printk("upf: [n3] send icmp ping reply %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
+                    return handle_n6_packet_ipv6(ctx);
+                }
+            }
+        }
+    }
+
     /*
      *   Step 4: Route packet finally
      */
@@ -502,10 +526,9 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
 static __always_inline enum xdp_action handle_ip6(struct packet_context *ctx) {
     int l4_protocol = parse_ip6(ctx);
     switch (l4_protocol) {
-        case IPPROTO_ICMPV6:  // Let kernel stack take care
-            upf_printk("upf: icmp received. passing to kernel");
+        case IPPROTO_ICMPV6:
             increment_counter(ctx->counters, rx_icmp6);
-            return XDP_PASS;
+            break;
         case IPPROTO_UDP:
             increment_counter(ctx->counters, rx_udp);
             // Don't expect GTP over IPv6 at the moment

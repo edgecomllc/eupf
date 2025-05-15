@@ -16,6 +16,7 @@ package ebpf
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -29,8 +30,9 @@ import (
 )
 
 var (
-	n3IP = net.IP{10, 3, 0, 10}
-	n9IP = net.IP{10, 3, 0, 20}
+	n3IP       = net.ParseIP("10.3.0.10")
+	n9IP       = net.ParseIP("10.3.0.20")
+	IPv6Prefix = net.ParseIP("2a03:d000:29a0:509::")
 
 	n3MAC = net.HardwareAddr{1, 0, 0, 3, 0, 10}
 	n9MAC = net.HardwareAddr{1, 0, 0, 3, 0, 20}
@@ -845,6 +847,121 @@ func testDLwithGTPPort(t *testing.T, bpfObjects *BpfObjects) error {
 	return nil
 }
 
+func testICMPv6RA(t *testing.T, bpfObjects *BpfObjects) error {
+	//func TestICMPv6RA(t *testing.T) {
+	teid := uint32(2)
+
+	packet := gopacket.NewSerializeBuffer()
+	opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: false}
+	if err := gopacket.SerializeLayers(packet, opts,
+		&layers.Ethernet{
+			SrcMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 10},
+			DstMAC:       net.HardwareAddr{1, 0, 0, 3, 0, 20},
+			EthernetType: layers.EthernetTypeIPv4,
+		},
+		&layers.IPv4{
+			Version:  4,
+			DstIP:    net.IP{10, 3, 0, 10},
+			SrcIP:    net.IP{10, 3, 0, 20},
+			Protocol: layers.IPProtocolUDP,
+			IHL:      5,
+		},
+		&layers.UDP{
+			DstPort: 2152,
+			SrcPort: 2152,
+		},
+		&layers.GTPv1U{
+			Version:        1,
+			MessageType:    255, // GTPU_G_PDU
+			TEID:           teid,
+			SequenceNumber: 0,
+		},
+		&layers.IPv6{
+			Version:    6,
+			NextHeader: layers.IPProtocolICMPv6,
+			HopLimit:   255,
+			SrcIP:      net.ParseIP("fe80::1:0:8e11:2f19"),
+			DstIP:      net.ParseIP("ff02::2"),
+		},
+		&layers.ICMPv6{
+			TypeCode: layers.CreateICMPv6TypeCode(layers.ICMPv6TypeRouterSolicitation, 0),
+			//TypeCode: layers.ICMPv6TypeRouterSolicitation,
+			Checksum: 0x268c,
+		},
+		&layers.ICMPv6RouterSolicitation{
+			Options: []layers.ICMPv6Option{{Type: 1, Data: []byte{0x37, 0xb4, 0x18, 0x81, 0x48, 0x41}}},
+		},
+	); err != nil {
+		return fmt.Errorf("serializing input packet failed: %v", err)
+	}
+
+	t.Logf("packet:\n%v", hex.Dump(packet.Bytes()))
+
+	pdrUplink := PdrInfo{OuterHeaderRemoval: 0, FarId: 2, QerId: 1}
+	farUplink := FarInfo{Action: 2, OuterHeaderCreation: 0}
+
+	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
+	farForward := IpEntrypointFarInfo{
+		Action:                2,
+		OuterHeaderCreation:   1,
+		Remoteip:              binary.LittleEndian.Uint32(net.ParseIP("10.3.0.10").To4()),
+		Localip:               binary.LittleEndian.Uint32(net.ParseIP("10.3.0.20").To4()),
+		Teid:                  teid,
+		TransportLevelMarking: 0}
+	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 5, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
+
+	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farForward)); err != nil {
+		return fmt.Errorf("can't set FAR: %v", err)
+	}
+	if err := bpfObjects.QerMap.Put(uint32(1), unsafe.Pointer(&qer)); err != nil {
+		return fmt.Errorf("can't set QER: %v", err)
+	}
+	if err := bpfObjects.PutPdrDownlink(net.ParseIP("2a03:d000:29a0:509:1:0:8e11:2f19"), pdr); err != nil {
+		return fmt.Errorf("can't set downlink PDR: %v", err)
+	}
+
+	if err := bpfObjects.UpdateFar(2, farUplink); err != nil {
+		return fmt.Errorf("can't set uplink FAR: %v", err)
+	}
+	if err := bpfObjects.PutPdrUplink(teid, pdrUplink); err != nil {
+		return fmt.Errorf("can't set uplink PDR: %v", err)
+	}
+
+	bpfRet, bufOut, err := bpfObjects.UpfIpEntrypointFunc.Test(append(packet.Bytes(), 0x00, 0x00, 0x00, 0x00))
+	if err != nil {
+		return fmt.Errorf("ebpf run failed: %v", err)
+	}
+
+	if bpfRet != 4 { // XDP_REDIRECT
+		return fmt.Errorf("unexpected return value: %d", bpfRet)
+	}
+	t.Logf("output packet:\n%v", hex.Dump(bufOut))
+	response := gopacket.NewPacket(bufOut, layers.LayerTypeEthernet, gopacket.Default)
+	t.Logf("decoded packet:\n%v", response)
+
+	if icmpLayer := response.Layer(layers.LayerTypeICMPv6); icmpLayer != nil {
+		icmp, _ := icmpLayer.(*layers.ICMPv6)
+		if icmp.Checksum != 0xeba7 {
+			return fmt.Errorf("unexpected icmpv6 checksum: 0x%04x, should be 0xeba7", icmp.Checksum)
+		}
+	} else {
+		return fmt.Errorf("unexpected response: %v", response)
+	}
+
+	if raLayer := response.Layer(layers.LayerTypeICMPv6RouterAdvertisement); raLayer != nil {
+		ra, _ := raLayer.(*layers.ICMPv6RouterAdvertisement)
+
+		if len(ra.Options) != 1 {
+			return fmt.Errorf("unexpected icmpv6 options: %v", ra.Options)
+		}
+
+	} else {
+		return fmt.Errorf("unexpected response: %v", response)
+	}
+
+	return nil
+}
+
 func TestEntrypoint(t *testing.T) {
 
 	if err := IncreaseResourceLimits(); err != nil {
@@ -859,9 +976,14 @@ func TestEntrypoint(t *testing.T) {
 
 	defer bpfObjects.Close()
 
-	n3IPUint32 := binary.LittleEndian.Uint32(n3IP.To4())
-	n9IPUint32 := binary.LittleEndian.Uint32(n9IP.To4())
-	entrypointConfig := IpEntrypointDataplaneConfig{N3Ipv4Address: n3IPUint32, N9Ipv4Address: n9IPUint32}
+	entrypointConfig := IpEntrypointDataplaneConfig{
+		N3Ipv4Address:     binary.LittleEndian.Uint32(n3IP.To4()),
+		N9Ipv4Address:     binary.LittleEndian.Uint32(n9IP.To4()),
+		Ip6RaSupport:      1,
+		Ip6RaPrefixLength: 64,
+	}
+	copy(entrypointConfig.Ip6RaPrefix[:], IPv6Prefix.To16())
+
 	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
 		t.Fatalf("scan't set dataplane global config: %s", err.Error())
 	}
@@ -917,6 +1039,13 @@ func TestEntrypoint(t *testing.T) {
 
 	t.Run("DL packet with UDP port 2152 test", func(t *testing.T) {
 		err := testDLwithGTPPort(t, bpfObjects)
+		if err != nil {
+			t.Fatalf("test failed: %s", err)
+		}
+	})
+
+	t.Run("IMCPv6 Router Solicitation-Advirtesment test", func(t *testing.T) {
+		err := testICMPv6RA(t, bpfObjects)
 		if err != nil {
 			t.Fatalf("test failed: %s", err)
 		}

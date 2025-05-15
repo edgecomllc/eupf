@@ -131,15 +131,34 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 
 | Method | URL                              | Description                                                                     | Example                    |
 |--------|----------------------------------|---------------------------------------------------------------------------------|----------------------------|
-| `GET`  | `/api/v1/uplink_pdr_map/:id`     | Get Uplink PDR values by id. Returns an object of `PdrElement`                  | `/api/v1/uplink_pdr_map/1` |
-| `PUT`  | `/api/v1/uplink_pdr_map/:id`     | Set Uplink PDR values by id. Returns a new object of `PdrElement`               | `/api/v1/uplink_pdr_map/1` |
+| `GET`  | `/api/v1/uplink_pdr_map/:id`     | Get Uplink PDR values by TEID. Returns an object of `PdrElement`                  | `/api/v1/uplink_pdr_map/1` |
+| `PUT`  | `/api/v1/uplink_pdr_map/:id`     | Set Uplink PDR values by TEID. Returns a new object of `PdrElement`               | `/api/v1/uplink_pdr_map/1` |
 
  [PUT] Example request body:
 
     {
+      "teid": 2,
       "outer_header_removal": 0,
-      "far_id": 0,
-      "qer_id": 0
+      "far_id": 1,
+      "qer_id": 1,
+      "trace": true
+    }
+
+  #### - Downlink PDR
+
+| Method | URL                              | Description                                                                     | Example                    |
+|--------|----------------------------------|---------------------------------------------------------------------------------|----------------------------|
+| `GET`  | `/api/v1/downlink_pdr_map/:id`     | Get Uplink PDR values by IPv4 or IPv6. Returns an object of `PdrElement`                  | `/api/v1/downlink_pdr_map/2a03:d000:29a0:0509:0001:0000:1f86:9ec4` |
+| `PUT`  | `/api/v1/downlink_pdr_map/:id`     | Set Uplink PDR values by IPv4 or IPv6. Returns a new object of `PdrElement`               | `/api/v1/downlink_pdr_map/10.45.0.2` |
+
+ [PUT] Example request body:
+
+    {
+      "ip": "2a03:d000:29a0:509:1:0:1f86:9ec4",
+      "outer_header_removal": 0,
+      "far_id": 1,
+      "qer_id": 1,
+      "trace": true
     }
 
 #### - FAR map

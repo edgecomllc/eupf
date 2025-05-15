@@ -170,14 +170,17 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 				log.Error().Msg(err.Error())
 			}
 		}
-		if ueIP.IPv4Address != nil {
-			spdrInfo.Ipv4 = cloneIP(ueIP.IPv4Address)
-		} else if ueIP.IPv6Address != nil {
-			spdrInfo.Ipv6 = cloneIP(ueIP.IPv6Address)
-		} else {
+
+		if ueIP.IPv4Address == nil && ueIP.IPv6Address == nil {
 			return fmt.Errorf("UE IP Address IE is missing")
 		}
 
+		if ueIP.IPv4Address != nil {
+			spdrInfo.Ipv4 = cloneIP(ueIP.IPv4Address)
+		}
+		if ueIP.IPv6Address != nil {
+			spdrInfo.Ipv6 = cloneIP(ueIP.IPv6Address)
+		}
 		return nil
 	} else {
 		log.Warn().Msg("Both F-TEID IE and UE IP Address IE are missing")
@@ -201,11 +204,15 @@ func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations
 			//return fmt.Errorf("can't delete IPv4 PDR: %s", err.Error())
 			log.Warn().Msgf("can't delete IPv4 PDR: %s", err.Error())
 		}
-	} else if spdrInfo.Ipv6 != nil {
+	}
+
+	if spdrInfo.Ipv6 != nil {
 		if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
 			return fmt.Errorf("can't delete IPv6 PDR: %s", err.Error())
 		}
-	} else if spdrInfo.Teid > 0 {
+	}
+
+	if spdrInfo.Teid > 0 {
 		if _, ok := pdrContext.TEIDCache[uint8(spdrInfo.Teid)]; !ok {
 			if err := mapOperations.DeletePdrUplink(spdrInfo.Teid); err != nil {
 				//return fmt.Errorf("can't delete GTP PDR: %s", err.Error())
@@ -213,8 +220,7 @@ func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations
 			}
 			pdrContext.TEIDCache[uint8(spdrInfo.Teid)] = 0
 		}
-	}
-	if spdrInfo.Teid != 0 {
+
 		if pdrContext.ResourceManager != nil {
 			pdrContext.ResourceManager.FTEIDM.ReleaseTEID(pdrContext.Session.RemoteSEID)
 		}

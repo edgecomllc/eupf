@@ -87,7 +87,7 @@ static __always_inline void update_route_cache_ipv4(const struct bpf_fib_lookup 
 }
 #endif
 
-static __always_inline enum xdp_action do_route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, int ifindex, __u8 (*smac)[6], __u8 (*dmac)[6]) {
+static __always_inline enum xdp_action do_route(struct xdp_md *ctx, struct ethhdr *eth, int ifindex, __u8 (*smac)[6], __u8 (*dmac)[6]) {
     //_decr_ttl(ether_proto, l3hdr);
     __builtin_memcpy(eth->h_source, smac, ETH_ALEN);
     __builtin_memcpy(eth->h_dest, dmac, ETH_ALEN);
@@ -133,7 +133,7 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
 #ifdef ENABLE_ROUTE_CACHE
             update_route_cache_ipv4(&fib_params, ip4->daddr);
 #endif
-            return do_route_ipv4(ctx, eth, fib_params.ifindex, &fib_params.smac, &fib_params.dmac);
+            return do_route(ctx, eth, fib_params.ifindex, &fib_params.smac, &fib_params.dmac);
 
         case BPF_FIB_LKUP_RET_BLACKHOLE:
         case BPF_FIB_LKUP_RET_UNREACHABLE:
@@ -161,7 +161,7 @@ static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct eth
     }
 
     struct bpf_fib_lookup fib_params = {};
-    fib_params.family = AF_INET;
+    fib_params.family = AF_INET6;
     // fib_params.tos = ip6->flow_lbl;
     fib_params.l4_protocol = ip6->nexthdr;
     fib_params.sport = 0;
@@ -174,17 +174,10 @@ static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct eth
     int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), 0 /*BPF_FIB_LOOKUP_OUTPUT*/);
     switch (rc) {
         case BPF_FIB_LKUP_RET_SUCCESS:
-            upf_printk("upf: bpf_fib_lookup %pI6c -> %pI6c: nexthop: %pI4", &ip6->saddr, &ip6->daddr, &fib_params.ipv4_dst);
+            upf_printk("upf: bpf_fib_lookup %pI6c -> %pI6c: nexthop: %pI6c", &ip6->saddr, &ip6->daddr, &fib_params.ipv6_dst);
             statistic->fib_lookup_ip6_ok += 1;
-            //_decr_ttl(ether_proto, l3hdr);
-            __builtin_memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
-            __builtin_memcpy(eth->h_source, fib_params.smac, ETH_ALEN);
-            upf_printk("upf: bpf_redirect: if=%d %lu -> %lu", fib_params.ifindex, fib_params.smac, fib_params.dmac);
 
-            if (fib_params.ifindex == ctx->ingress_ifindex)
-                return XDP_TX;
-
-            return bpf_redirect(fib_params.ifindex, 0);
+            return do_route(ctx, eth, fib_params.ifindex, &fib_params.smac, &fib_params.dmac);
         case BPF_FIB_LKUP_RET_BLACKHOLE:
         case BPF_FIB_LKUP_RET_UNREACHABLE:
         case BPF_FIB_LKUP_RET_PROHIBIT:
