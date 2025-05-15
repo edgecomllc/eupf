@@ -31,33 +31,98 @@ In addition to prometheus metrics the eUPF API provides a set of endpoints for m
 
 #### - Config
 
-| Method | URL                              | Description                                                                     | Example                |
-|--------|----------------------------------|---------------------------------------------------------------------------------|------------------------|
-| `GET`  | `/api/v1/config`                 | Displays the configuration. Returns an object of `UpfConfig`                    | `/api/v1/config`       |
-| `POST` | `/api/v1/config`                 | Set configuration values                                                        | `/api/v1/config`       |
+| Method | URL                                  | Description                                                               | Example                |
+|--------|--------------------------------------|---------------------------------------------------------------------------|------------------------|
+| `GET`  | `/api/v1/config`                     | Displays the configuration. Returns an object of `UpfConfig`              | `/api/v1/config`       |
+| `POST` | `/api/v1/config/logging_level`       | Set logging level (e.g., `debug`, `info`, `warn`, `error`).               | `/api/v1/config/logging_level`   |
+| `POST` | `/api/v1/config/logging_caller`      | Enable or disable displaying caller info in logs.                         | `/api/v1/config/logging_caller`  |
+| `POST` | `/api/v1/config/dataplane_ebpf`      | Bind dataplane interfaces and XDP attach mode.                            | `/api/v1/config/dataplane_ebpf`  |
+| `POST` | `/api/v1/config/dataplane_addresses` | Update N3/N9 interface IP addresses.                                      | `/api/v1/config/dataplane_addresses` |
+| `POST` | `/api/v1/config/pfcp_n4`             | Update N4 PFCP connection (PFCP address, node ID, and remote nodes list). | `/api/v1/config/pfcp_n4`         |
+| `POST` | `/api/v1/config/pfcp_sxa`            | Update Sxa PFCP connection (address, node ID, and remote nodes list).     | `/api/v1/config/pfcp_sxa`        |
+| `POST` | `/api/v1/config/pfcp_sxb`            | Update Sxb PFCP connection (address, node ID, and remote nodes list).     | `/api/v1/config/pfcp_sxb`        |
+| `POST` | `/api/v1/config/pfcp_timers`         | Update PFCP heartbeat and association setup timers.                       | `/api/v1/config/pfcp_timers`     |
+| `POST` | `/api/v1/config/gtp_path`            | Update GTP peers and GTP echo request interval.                           | `/api/v1/config/gtp_path`        |
 
  [POST] Example request body:
+
+`/api/v1/config/logging_level`
+
+    {
+      "logging_level": "info"
+    }
+
+`/api/v1/config/logging_caller`
+
+    {
+      "logging_caller": true
+    }
+
+`/api/v1/config/dataplane_ebpf`
 
     {
       "interface_name": [
         "eth0",
         "eth1"
       ],
-      "xdp_attach_mode": "generic",
-      "api_address": "8080",
-      "pfcp_address": "10.100.200.14:8805",
-      "pfcp_node_id": "10.100.200.14",
-      "metrics_address": ":9090",
+      "xdp_attach_mode": "generic"
+    }
+
+`/api/v1/config/dataplane_addresses`
+
+    {
       "n3_address": "10.100.200.14",
-      "n9_address": "10.100.200.14",
-      "qer_map_size": 1024,
-      "far_map_size": 1024,
-      "pdr_map_size": 1024,
-      "resize_ebpf_maps": false,
-      "heartbeat_retries": 3,
-      "heartbeat_interval": 5,
-      "heartbeat_timeout": 5,
-      "logging_level": "info"
+      "n9_address": "10.100.200.14"
+    }
+
+`/api/v1/config/pfcp_n4`
+
+    {
+      "pfcp_address": "10.100.200.14:8805",
+      "pfcp_node_id": "n4node1",
+      "pfcp_remote_node": [
+        "10.100.200.15",
+        "10.100.200.16"
+      ]
+    }
+
+`/api/v1/config/pfcp_sxa`
+
+    {
+      "sxa_address": "10.100.200.14:8805",
+      "sxa_node_id": "sxanode1",
+      "sxa_remote_node": [
+        "10.100.200.17",
+        "10.100.200.18"
+      ]
+    }
+
+`/api/v1/config/pfcp_sxb`
+
+    {
+      "sxb_address": "10.100.200.14:8805",
+      "sxb_node_id": "sxbnode1",
+      "sxb_remote_node": [
+        "10.100.200.19",
+        "10.100.200.20"
+      ]
+    }
+
+`/api/v1/config/pfcp_timers`
+
+    {
+      "association_setup_timeout": 10,
+      "heartbeat_timeout": 5
+    }
+
+`/api/v1/config/gtp_path`
+
+    {
+      "gtp_peer": [
+        "10.100.200.30",
+        "10.100.200.31"
+      ],
+      "gtp_echo_interval": 10
     }
 
 

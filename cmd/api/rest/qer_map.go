@@ -62,6 +62,19 @@ func (h *ApiHandler) getQerValue(c *gin.Context) {
 	})
 }
 
+// SetQerValue godoc
+//
+//	@Summary Set QER map element
+//	@Description Create or update QER map element
+//	@Tags QER
+//	@Accept json
+//	@Produce json
+//	@Param id path int true "QER ID"
+//	@Param qer body ebpf.QerMapElement true "QER element data"
+//	@Success 201 {object} ebpf.QerMapElement
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /qer_map/{id} [put]
 func (h *ApiHandler) setQerValue(c *gin.Context) {
 	var qerElement ebpf.QerMapElement
 	if err := c.BindJSON(&qerElement); err != nil {

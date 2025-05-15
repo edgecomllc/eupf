@@ -17,6 +17,17 @@ type PdrElement struct {
 	QerId              uint32 `json:"qer_id"`
 }
 
+// GetUplinkPdrValue godoc
+//
+//	@Summary Get uplink PDR map element
+//	@Description Retrieve uplink PDR map element by ID
+//	@Tags PDR
+//	@Produce json
+//	@Param id path int true "PDR ID"
+//	@Success 200 {object} PdrElement
+//	@Failure 400 {object} map[string]string
+//	@Failure 404 {object} map[string]string
+//	@Router /uplink_pdr_map/{id} [get]
 func (h *ApiHandler) getUplinkPdrValue(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -41,6 +52,19 @@ func (h *ApiHandler) getUplinkPdrValue(c *gin.Context) {
 }
 
 // todo: duplicate param <id>
+// SetUplinkPdrValue godoc
+//
+//	@Summary Set uplink PDR map element
+//	@Description Create or update uplink PDR map element
+//	@Tags PDR
+//	@Accept json
+//	@Produce json
+//	@Param id path int true "PDR ID"
+//	@Param pdr body PdrElement true "PDR element data"
+//	@Success 201 {object} PdrElement
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /uplink_pdr_map/{id} [put]
 func (h *ApiHandler) setUplinkPdrValue(c *gin.Context) {
 	var pdrElement PdrElement
 	if err := c.BindJSON(&pdrElement); err != nil {

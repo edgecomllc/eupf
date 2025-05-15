@@ -20,6 +20,17 @@ type FarMapElement struct {
 	TransportLevelMarking uint16 `json:"transport_level_marking"`
 }
 
+// GetFarValue godoc
+//
+//	@Summary Get FAR map element
+//	@Description Retrieve FAR map element by ID
+//	@Tags FAR
+//	@Produce json
+//	@Param id path int true "FAR ID"
+//	@Success 200 {object} FarMapElement
+//	@Failure 400 {object} map[string]string
+//	@Failure 404 {object} map[string]string
+//	@Router /far_map/{id} [get]
 func (h *ApiHandler) getFarValue(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -46,6 +57,19 @@ func (h *ApiHandler) getFarValue(c *gin.Context) {
 	})
 }
 
+// SetFarValue godoc
+//
+//	@Summary Set FAR map element
+//	@Description Create or update FAR map element
+//	@Tags FAR
+//	@Accept json
+//	@Produce json
+//	@Param id path int true "FAR ID"
+//	@Param far body FarMapElement true "FAR element data"
+//	@Success 201 {object} FarMapElement
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /far_map/{id} [put]
 func (h *ApiHandler) setFarValue(c *gin.Context) {
 	var farElement FarMapElement
 	if err := c.BindJSON(&farElement); err != nil {

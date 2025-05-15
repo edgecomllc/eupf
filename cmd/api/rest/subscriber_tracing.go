@@ -25,6 +25,18 @@ func (h *ApiHandler) verifyTraceArguments(imsi, msisdn string) (bool, error) {
 	return true, nil
 }
 
+// ListTraces godoc
+//
+//	@Summary List active subscriber traces
+//	@Description List active traces filtered by IMSI or MSISDN
+//	@Tags Tracing
+//	@Produce json
+//	@Param imsi query string false "IMSI of subscriber"
+//	@Param msisdn query string false "MSISDN of subscriber"
+//	@Success 200 {array} tracing.TraceRecord
+//	@Failure 400 {object} map[string]string
+//	@Failure 404 {object} map[string]string
+//	@Router /subscriber_trace [get]
 func (h *ApiHandler) listTraces(c *gin.Context) {
 	imsi := c.Query("imsi")
 	msisdn := c.Query("msisdn")
@@ -58,6 +70,17 @@ func (h *ApiHandler) listTraces(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, subsList)
 }
 
+// StartTrace godoc
+//
+//	@Summary Start subscriber trace
+//	@Description Enable tracing for a subscriber identified by IMSI or MSISDN
+//	@Tags Tracing
+//	@Produce json
+//	@Param imsi query string false "IMSI of subscriber"
+//	@Param msisdn query string false "MSISDN of subscriber"
+//	@Success 201 {object} map[string]string
+//	@Failure 400 {object} map[string]string
+//	@Router /subscriber_trace [post]
 func (h *ApiHandler) startTrace(c *gin.Context) {
 	imsi := c.Query("imsi")
 	msisdn := c.Query("msisdn")
@@ -85,6 +108,18 @@ func (h *ApiHandler) startTrace(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
+// StopTrace godoc
+//
+//	@Summary Stop subscriber trace
+//	@Description Disable tracing for a subscriber identified by IMSI or MSISDN
+//	@Tags Tracing
+//	@Produce json
+//	@Param imsi query string false "IMSI of subscriber"
+//	@Param msisdn query string false "MSISDN of subscriber"
+//	@Success 200 {array} tracing.TraceRecord
+//	@Failure 400 {object} map[string]string
+//	@Failure 404 {object} map[string]string
+//	@Router /subscriber_trace [delete]
 func (h *ApiHandler) stopTrace(c *gin.Context) {
 	imsi := c.Query("imsi")
 	msisdn := c.Query("msisdn")

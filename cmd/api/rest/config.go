@@ -23,6 +23,17 @@ func (h *ApiHandler) displayConfig(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, *h.Cfg)
 }
 
+// EditLoggingLevelConfig godoc
+//
+//	@Summary Update logging level
+//	@Description Update the log level (debug, info, warn, error, etc.)
+//	@Tags Configuration
+//	@Accept json
+//	@Produce json
+//	@Param config body LoggingLevelConfig true "Logging level config"
+//	@Success 200 {object} map[string]string
+//	@Failure 400 {object} map[string]string
+//	@Router /config/logging_level [post]
 func (h *ApiHandler) editLoggingLevelConfig(c *gin.Context) {
 	var config LoggingLevelConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
@@ -43,6 +54,17 @@ func (h *ApiHandler) editLoggingLevelConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "OK"})
 }
 
+// EditLoggingCallerConfig godoc
+//
+//	@Summary Update logging caller info
+//	@Description Enable or disable function caller information in logs
+//	@Tags Configuration
+//	@Accept json
+//	@Produce json
+//	@Param config body LoggingCallerConfig true "Logging caller configuration"
+//	@Success 200 {object} map[string]string
+//	@Failure 400 {object} map[string]string
+//	@Router /config/logging_caller [post]
 func (h *ApiHandler) editLoggingCallerConfig(c *gin.Context) {
 	var config LoggingCallerConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
@@ -59,6 +81,18 @@ func (h *ApiHandler) editLoggingCallerConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "OK"})
 }
 
+// EditDataPlaneConfig godoc
+//
+//	@Summary Update dataplane eBPF interfaces
+//	@Description Bind network interfaces for eBPF dataplane processing
+//	@Tags Configuration
+//	@Accept json
+//	@Produce json
+//	@Param config body DataPlaneEbpfConfig true "Dataplane eBPF configuration"
+//	@Success 200 {object} map[string]string
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /config/dataplane_ebpf [post]
 func (h *ApiHandler) editDataPlaneConfig(c *gin.Context) {
 	var config DataPlaneEbpfConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
@@ -80,6 +114,18 @@ func (h *ApiHandler) editDataPlaneConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "OK"})
 }
 
+// EditDataPlaneAddressesConfig godoc
+//
+//	@Summary Update dataplane N3 and N9 addresses
+//	@Description Update IP addresses for N3 and N9 interfaces
+//	@Tags Configuration
+//	@Accept json
+//	@Produce json
+//	@Param config body DataPlaneAddressesConfig true "Dataplane addresses configuration"
+//	@Success 200 {object} map[string]string
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /config/dataplane_addresses [post]
 func (h *ApiHandler) editDataPlaneAddressesConfig(c *gin.Context) {
 	var config DataPlaneAddressesConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
@@ -115,6 +161,18 @@ func (h *ApiHandler) editDataPlaneAddressesConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "OK"})
 }
 
+// EditPFCPN4Config godoc
+//
+//	@Summary Update N4 PFCP connection settings
+//	@Description Update local and remote node information for PFCP N4 connection
+//	@Tags Configuration
+//	@Accept json
+//	@Produce json
+//	@Param config body PFCPN4Config true "PFCP N4 connection configuration"
+//	@Success 200 {object} map[string]string
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /config/pfcp_n4 [post]
 func (h *ApiHandler) editPFCPN4Config(c *gin.Context) {
 	var config PFCPN4Config
 	if err := c.ShouldBindJSON(&config); err != nil {
@@ -150,6 +208,18 @@ func (h *ApiHandler) editPFCPN4Config(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "OK"})
 }
 
+// EditPFCPSxaConfig godoc
+//
+//	@Summary Update Sxa PFCP connection settings
+//	@Description Update local and remote node information for PFCP Sxa connection
+//	@Tags Configuration
+//	@Accept json
+//	@Produce json
+//	@Param config body PFCPSxaConfig true "PFCP Sxa connection configuration"
+//	@Success 200 {object} map[string]string
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /config/pfcp_sxa [post]
 func (h *ApiHandler) editPFCPSxaConfig(c *gin.Context) {
 	var config PFCPSxaConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
@@ -185,6 +255,18 @@ func (h *ApiHandler) editPFCPSxaConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "OK"})
 }
 
+// EditPFCPSxbConfig godoc
+//
+//	@Summary Update Sxb PFCP connection settings
+//	@Description Update local and remote node information for PFCP Sxb connection
+//	@Tags Configuration
+//	@Accept json
+//	@Produce json
+//	@Param config body PFCPSxbConfig true "PFCP Sxb connection configuration"
+//	@Success 200 {object} map[string]string
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /config/pfcp_sxb [post]
 func (h *ApiHandler) editPFCPSxbConfig(c *gin.Context) {
 	var config PFCPSxbConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
@@ -220,6 +302,18 @@ func (h *ApiHandler) editPFCPSxbConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "OK"})
 }
 
+// EditPFCPTimersConfig godoc
+//
+//	@Summary Update PFCP timers settings
+//	@Description Update heartbeat and association setup timeout values
+//	@Tags Configuration
+//	@Accept json
+//	@Produce json
+//	@Param config body PFCPTimersConfig true "PFCP timers configuration"
+//	@Success 200 {object} map[string]string
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /config/pfcp_timers [post]
 func (h *ApiHandler) editPFCPTimersConfig(c *gin.Context) {
 	var config PFCPTimersConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
@@ -238,6 +332,18 @@ func (h *ApiHandler) editPFCPTimersConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "OK"})
 }
 
+// EditGTPPathConfig godoc
+//
+//	@Summary Update GTP path configuration
+//	@Description Update GTP peers and echo interval
+//	@Tags Configuration
+//	@Accept json
+//	@Produce json
+//	@Param config body GTPPathConfig true "GTP path configuration"
+//	@Success 200 {object} map[string]string
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /config/gtp_path [post]
 func (h *ApiHandler) editGTPPathConfig(c *gin.Context) {
 	var config GTPPathConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
