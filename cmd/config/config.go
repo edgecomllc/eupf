@@ -1,7 +1,9 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/rs/zerolog/log"
@@ -166,7 +168,7 @@ func initPccConfig() {
 	pccConfigV.AutomaticEnv()
 
 	if err := pccConfigV.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		if errors.As(err, &viper.ConfigFileNotFoundError{}) || errors.Is(err, os.ErrNotExist) {
 			log.Print("PCC config file not found. Using defaults")
 		} else {
 			log.Printf("Unable to read PCC config file: %v", err)
@@ -227,7 +229,7 @@ func initCommonConfig() {
 	commonConfigV.AutomaticEnv()
 
 	if err := commonConfigV.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		if errors.As(err, &viper.ConfigFileNotFoundError{}) || errors.Is(err, os.ErrNotExist) {
 			// Config file not found; ignore error if desired
 			log.Print("Config file not found. Using defaults")
 		} else {
