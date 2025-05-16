@@ -34,7 +34,7 @@ type PdrDownlinkElement struct {
 //	@Tags PDR
 //	@Produce json
 //	@Param id path int true "PDR ID"
-//	@Success 200 {object} PdrElement
+//	@Success 200 {object} PdrUplinkElement
 //	@Failure 400 {object} map[string]string
 //	@Failure 404 {object} map[string]string
 //	@Router /uplink_pdr_map/{id} [get]
@@ -70,8 +70,8 @@ func (h *ApiHandler) getUplinkPdrValue(c *gin.Context) {
 //	@Accept json
 //	@Produce json
 //	@Param id path int true "PDR ID"
-//	@Param pdr body PdrElement true "PDR element data"
-//	@Success 201 {object} PdrElement
+//	@Param pdr body PdrUplinkElement true "PDR element data"
+//	@Success 201 {object} PdrUplinkElement
 //	@Failure 400 {object} map[string]string
 //	@Failure 500 {object} map[string]string
 //	@Router /uplink_pdr_map/{id} [put]
