@@ -331,9 +331,3 @@ func HandlePfcpAssociationSetupResponse(conn *PfcpConnection, msg message.Messag
 
 	return nil, true, nil
 }
-
-func HandlePfcpSessionReportResponse(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
-	srr := msg.(*message.SessionReportResponse)
-	log.Debug().Msgf("Received message Session Report Response for session ID: %d, from: %s", srr.SEID(), addr)
-	return nil, true, nil
-}

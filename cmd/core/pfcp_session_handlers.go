@@ -966,3 +966,12 @@ func getSubscriberData(ieArr []*ie.IE) (string, string) {
 
 	return imsi, msisdn
 }
+
+func HandlePfcpSessionReportResponse(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
+	srr := msg.(*message.SessionReportResponse)
+	log.Debug().Msgf("Got Session Report Response from: %s.", addr)
+
+	printSessionReportResponse(srr)
+
+	return nil, true, nil
+}

@@ -421,3 +421,11 @@ func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 		}
 	}
 }
+
+func printSessionReportResponse(req *message.SessionReportResponse) {
+	var sb strings.Builder
+	sb.WriteString("\n")
+	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), GetFSEID(req.CPFSEID)), 0)
+
+	log.Debug().Msg(sb.String())
+}
