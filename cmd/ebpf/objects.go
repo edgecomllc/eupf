@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/rs/zerolog/log"
 
 	"github.com/cilium/ebpf"
@@ -39,13 +38,9 @@ type BpfObjects struct {
 
 func NewBpfObjects() *BpfObjects {
 	return &BpfObjects{
-
-		farIdTracker: NewIdTracker(config.Conf.FarMapSize),
-		qerIdTracker: NewIdTracker(config.Conf.QerMapSize),
-		urrIdTracker: NewIdTracker(config.Conf.UrrMapSize),
-		farMutex:     sync.Mutex{},
-		qerMutex:     sync.Mutex{},
-		urrMutex:     sync.Mutex{},
+		farMutex: sync.Mutex{},
+		qerMutex: sync.Mutex{},
+		urrMutex: sync.Mutex{},
 	}
 }
 
@@ -66,8 +61,31 @@ func (bpfObjects *BpfObjects) Load() error {
 		},
 	}
 
-	return LoadAllObjects(&collectionOptions,
-		Loader{LoadIpEntrypointObjects, &bpfObjects.IpEntrypointObjects})
+	if err := LoadAllObjects(&collectionOptions,
+		Loader{LoadIpEntrypointObjects, &bpfObjects.IpEntrypointObjects}); err != nil {
+		return err
+	}
+
+	if info, err := bpfObjects.FarMap.Info(); err == nil {
+		bpfObjects.farIdTracker = NewIdTracker(info.MaxEntries)
+
+	} else {
+		return err
+	}
+
+	if info, err := bpfObjects.QerMap.Info(); err == nil {
+		bpfObjects.qerIdTracker = NewIdTracker(info.MaxEntries)
+	} else {
+		return err
+	}
+
+	if info, err := bpfObjects.UrrMap.Info(); err == nil {
+		bpfObjects.urrIdTracker = NewIdTracker(info.MaxEntries)
+	} else {
+		return err
+	}
+
+	return nil
 }
 
 func (bpfObjects *BpfObjects) Close() error {
