@@ -99,6 +99,9 @@ type UpfConfig struct {
 	AllowedApns             string         `mapstructure:"allowed_apns" json:"allowed_apns"`
 	DeniedApns              string         `mapstructure:"denied_apns" json:"denied_apns"`
 	HuaweiSupport           bool           `mapstructure:"huawei_support" json:"huawei_support"`
+	TraceAssociation        bool           `mapstructure:"trace_association" json:"trace_association"`
+	TraceHeartbeat          bool           `mapstructure:"trace_heartbeat" json:"trace_heartbeat"`
+	TraceBlocked            bool           `mapstructure:"trace_blocked" json:"trace_blocked"`
 	TraceMaxDumpFiles       int            `mapstructure:"trace_files" json:"trace_files"`
 	TraceMaxDumpSize        int            `mapstructure:"trace_max_size" json:"trace_max_size"`
 	TraceMaxDumpPackets     int            `mapstructure:"trace_max_packets" json:"trace_max_packets"`
@@ -159,6 +162,9 @@ func defineFlags() {
 	pflag.String("aapns", ".*", "Allowed APNs mask")
 	pflag.String("dapns", "", "Denied APNs mask")
 	pflag.Bool("huasupp", true, "Enable or disable huawei support")
+	pflag.Bool("traceassoc", true, "Trace PFCP Association messages (Establish/Modify/Release)")
+	pflag.Bool("tracehb", false, "Trace PFCP Heartbeat messages")
+	pflag.Bool("traceblock", true, "Trace dropped dataplane packets")
 	pflag.Int("tracefcnt", 10, "Maximum number of rotated trace dump files")
 	pflag.Int("tracefsize", 10*1024*1024, "Maximum size (in bytes) of one trace dump file")
 	pflag.Int("tracefpackets", 100000, "Maximum number of packets in one trace dump file")
@@ -230,6 +236,9 @@ func initCommonConfig() {
 	_ = commonConfigV.BindPFlag("allowed_apns", pflag.Lookup("aapns"))
 	_ = commonConfigV.BindPFlag("denied_apns", pflag.Lookup("dapns"))
 	_ = commonConfigV.BindPFlag("huawei_support", pflag.Lookup("huasupp"))
+	_ = commonConfigV.BindPFlag("trace_association_disable", pflag.Lookup("traceassoc"))
+	_ = commonConfigV.BindPFlag("trace_heartbeat_disable", pflag.Lookup("tracehb"))
+	_ = commonConfigV.BindPFlag("trace_blocked_disable", pflag.Lookup("traceblock"))
 	_ = commonConfigV.BindPFlag("trace_files", pflag.Lookup("tracefcnt"))
 	_ = commonConfigV.BindPFlag("trace_max_size", pflag.Lookup("tracefsize"))
 	_ = commonConfigV.BindPFlag("trace_max_packets", pflag.Lookup("tracefpackets"))

@@ -31,7 +31,7 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 			log.Warn().Msgf("Error handling PFCP message: %s", err.Error())
 			return err
 		}
-		if trace {
+		if trace && IsMessageTraceable(incomingMsg.MessageType()) {
 			conn.TraceMessage(buf, addr, true)
 		}
 		duration := time.Since(startTime)

@@ -70,7 +70,12 @@ func main() {
 	entrypointConfig := ebpf.IpEntrypointDataplaneConfig{
 		N3Ipv4Address: binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N3Address).To4()),
 		N9Ipv4Address: binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N9Address).To4()),
+		TraceBlocked:  0,
 		Ip6RaSupport:  0,
+	}
+
+	if config.Conf.TraceBlocked {
+		entrypointConfig.TraceBlocked = 1
 	}
 
 	if config.Conf.IP6RaSupport {
@@ -81,6 +86,7 @@ func main() {
 		copy(entrypointConfig.Ip6RaPrefix[:], ip6Prefix.To16())
 		entrypointConfig.Ip6RaPrefixLength = uint16(ip6PrefixLength)
 	}
+
 	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
 		log.Fatal().Err(err).Msgf("can't set dataplane global config")
 	}

@@ -319,20 +319,46 @@ func (connection *PfcpConnection) SendMessage(msg message.Message, addr *net.UDP
 	return connection.SendMessageWithTrace(msg, addr, false)
 }
 
+func IsMessageTraceable(msgType uint8) bool {
+	switch msgType {
+	case message.MsgTypeHeartbeatRequest,
+		message.MsgTypeHeartbeatResponse:
+		if !config.Conf.TraceHeartbeat {
+			return false
+		}
+	case message.MsgTypeAssociationSetupRequest,
+		message.MsgTypeAssociationSetupResponse,
+		message.MsgTypeAssociationUpdateRequest,
+		message.MsgTypeAssociationUpdateResponse,
+		message.MsgTypeAssociationReleaseRequest,
+		message.MsgTypeAssociationReleaseResponse,
+		message.MsgTypeVersionNotSupportedResponse:
+		if !config.Conf.TraceAssociation {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (connection *PfcpConnection) SendMessageWithTrace(msg message.Message, addr *net.UDPAddr, trace bool) error {
 	responseBytes := make([]byte, msg.MarshalLen())
 	if err := msg.MarshalTo(responseBytes); err != nil {
 		log.Warn().Msg(err.Error())
 		return err
 	}
-	if trace {
+
+	if trace && IsMessageTraceable(msg.MessageType()) {
 		connection.TraceMessage(responseBytes, addr, false)
 	}
+
 	if _, err := connection.Send(responseBytes, addr); err != nil {
 		log.Warn().Msg(err.Error())
 		return err
 	}
+
 	PfcpMessageTx.WithLabelValues(msg.MessageTypeName()).Inc()
+
 	return nil
 }
 

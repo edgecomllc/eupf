@@ -161,7 +161,6 @@ func (dumper *PacketDumper) createDumpFile(filename string) error {
 }
 
 func (dumper *PacketDumper) ReadTraceMap(traceMap *ebpf.Map) {
-
 	rd, err := perf.NewReader(traceMap, 4096)
 	if err != nil {
 		log.Error().Msgf(" can't create perf reader: %s", err.Error())
@@ -180,9 +179,8 @@ func (dumper *PacketDumper) ReadTraceMap(traceMap *ebpf.Map) {
 			log.Warn().Msgf(" lost samples from perf map: %d", rec.LostSamples)
 		}
 
-		sampleLength := len(rec.RawSample)
-		if sampleLength < 9 {
-			log.Error().Msgf(" perf sample too small: %d", sampleLength)
+		if len(rec.RawSample) < 9 {
+			log.Error().Msgf(" perf sample too small: %d", len(rec.RawSample))
 		}
 
 		magic := binary.LittleEndian.Uint16(rec.RawSample[:2])
@@ -192,17 +190,21 @@ func (dumper *PacketDumper) ReadTraceMap(traceMap *ebpf.Map) {
 
 		packetLength := binary.LittleEndian.Uint16(rec.RawSample[2:4])
 		packetIface := binary.LittleEndian.Uint32(rec.RawSample[4:8]) + 1
+
 		packet := rec.RawSample[8 : 8+packetLength]
 
 		//pack := gopacket.NewPacket(packet, layers.LayerTypeEthernet, gopacket.Default)
 		//log.Trace().Msgf("Sample lost=%d, remaining=%d, len=%d, packet: %s", rec.LostSamples, rec.Remaining, packetLength, pack.Dump())
 
-		dumper.writeC <- PacketToWrite{gopacket.CaptureInfo{
-			Timestamp:      time.Now(),
-			Length:         int(packetLength),
-			CaptureLength:  int(packetLength),
-			InterfaceIndex: int(packetIface),
-		}, packet}
+		dumper.writeC <- PacketToWrite{
+			gopacket.CaptureInfo{
+				Timestamp:      time.Now(),
+				Length:         int(packetLength),
+				CaptureLength:  int(packetLength),
+				InterfaceIndex: int(packetIface),
+			},
+			packet,
+		}
 
 		// if err := dumper.w.WritePacket(gopacket.CaptureInfo{
 		// 	Timestamp:      time.Now(),

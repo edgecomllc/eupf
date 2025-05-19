@@ -49,6 +49,7 @@
 struct dataplane_config {
     __u32  n3_ipv4_address;
     __u32  n9_ipv4_address;
+    __u8   trace_blocked;
     __u8   ip6_ra_support;
     __u128 ip6_ra_prefix;
     __u16  ip6_ra_prefix_length;
@@ -223,7 +224,8 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
         return XDP_DROP;
 
     const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
-    if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate))
+    enum xdp_action rate_result  = limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate);
+    if (XDP_DROP == rate_result)
         return XDP_DROP;
 
     __u8 tos = qer->dscp ? qer->dscp : far->transport_level_marking >> 8;
@@ -254,7 +256,6 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     if(session->trace_flag)
         trace_packet(ctx, PACKET_DIRECTION_IN);
 
-    // Set defaults
     const struct pdr *pdr = &session->default_pdr;
     if (session->sdf_mode) {
         const struct pdr *pdr_sdf = check_sdf_filters_ipv6(ctx, session, 0);
@@ -270,9 +271,8 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
         return XDP_DROP;
     }
 
-     if ((far->action & FAR_NOCP) && far->trigger == 0) {
+    if ((far->action & FAR_NOCP) && far->trigger == 0)
         far->trigger = 1;
-     }
 
     upf_printk("upf: [n6] downlink session for ip:%pI6c far:%d action:%d", &ip6->daddr, pdr->far_id, far->action);
 
@@ -296,12 +296,13 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
         return XDP_DROP;
 
     const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
-    if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate))
+    enum xdp_action rate_result = limit_rate_sliding_window(packet_size, &qer->dl_start, qer->dl_maximum_bitrate);
+    if (XDP_DROP == rate_result)
         return XDP_DROP;
 
     __u8 tos = qer->dscp ? qer->dscp : far->transport_level_marking >> 8;
 
-    const int urr_size = sizeof(pdr->urr_id)/sizeof(pdr->urr_id[0]);
+    const int urr_size = sizeof(pdr->urr_id) / sizeof(pdr->urr_id[0]);
     for (int i = 0; i < urr_size; i++) {
         update_urr(pdr->urr_id[i], 0, packet_size);
     }
@@ -309,7 +310,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     upf_printk("upf: [n6] use mapping %pI6c -> teid:%u", &ip6->daddr, far->teid);
     enum xdp_action action = send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
 
-    if(session->trace_flag && (action == XDP_TX || action == XDP_REDIRECT))
+    if (session->trace_flag && (action == XDP_TX || action == XDP_REDIRECT))
         trace_packet(ctx, PACKET_DIRECTION_OUT);
 
     return action;
@@ -377,7 +378,8 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
 
     const __u64 packet_size = bpf_ntohs(ctx->gtp->message_length);
     //const __u64 packet_size = ctx->xdp_ctx->data_end - ctx->xdp_ctx->data;
-    if (XDP_DROP == limit_rate_sliding_window(packet_size, &qer->ul_start, qer->ul_maximum_bitrate))
+    enum xdp_action rate_result = limit_rate_sliding_window(packet_size, &qer->ul_start, qer->ul_maximum_bitrate);
+    if (XDP_DROP == rate_result)
         return XDP_DROP;
 
     const int urr_size = sizeof(pdr->urr_id)/sizeof(pdr->urr_id[0]);
@@ -596,11 +598,9 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
 
-//#define PACKET_TRACE
-#ifdef PACKET_TRACE
-    if(action != XDP_TX && action != XDP_REDIRECT) // write all packets
+    if (global_config.trace_blocked && action != XDP_TX && action != XDP_REDIRECT) {
         trace_packet(&context, PACKET_DIRECTION_BLOCKED);
-#endif
+    }
 
     return action;
 }
