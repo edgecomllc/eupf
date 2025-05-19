@@ -186,7 +186,7 @@ func testGtpWithPDRBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) 
 	pdr.DefaultPdr.OuterHeaderRemoval = 0
 	pdr.DefaultPdr.FarId = 1
 	pdr.DefaultPdr.QerId = 1
-	far := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
+	far := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Teid: 2, TransportLevelMarking: 0}
 	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 0, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
 
 	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&far)); err != nil {
@@ -315,8 +315,8 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 	}
 
 	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
-	farForward := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
-	farDrop := IpEntrypointFarInfo{Action: 1, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
+	farForward := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Teid: 2, TransportLevelMarking: 0}
+	farDrop := IpEntrypointFarInfo{Action: 1, OuterHeaderCreation: 1, Remoteip: 1, Teid: 2, TransportLevelMarking: 0}
 	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 0, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
 
 	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farForward)); err != nil {
@@ -403,8 +403,8 @@ func testGtpIPv4WithSDFFilterV6(bpfObjects *BpfObjects) error {
 	}
 
 	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
-	farForward := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
-	farDrop := IpEntrypointFarInfo{Action: 1, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
+	farForward := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Teid: 2, TransportLevelMarking: 0}
+	farDrop := IpEntrypointFarInfo{Action: 1, OuterHeaderCreation: 1, Remoteip: 1, Teid: 2, TransportLevelMarking: 0}
 	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 0, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
 
 	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farDrop)); err != nil {
@@ -494,8 +494,8 @@ func testGtpWithSDFFilterV6(bpfObjects *BpfObjects) error {
 	}
 
 	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
-	farForward := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
-	farDrop := IpEntrypointFarInfo{Action: 1, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
+	farForward := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Teid: 2, TransportLevelMarking: 0}
+	farDrop := IpEntrypointFarInfo{Action: 1, OuterHeaderCreation: 1, Remoteip: 1, Teid: 2, TransportLevelMarking: 0}
 	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 0, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
 
 	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farForward)); err != nil {
@@ -600,8 +600,8 @@ func testGtpWithSDFFilterNotification(bpfObjects *BpfObjects) error {
 	}
 
 	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
-	farForward := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
-	farDrop := IpEntrypointFarInfo{Action: 1, OuterHeaderCreation: 1, Remoteip: 1, Localip: 2, Teid: 2, TransportLevelMarking: 0}
+	farForward := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 1, Remoteip: 1, Teid: 2, TransportLevelMarking: 0}
+	farDrop := IpEntrypointFarInfo{Action: 1, OuterHeaderCreation: 1, Remoteip: 1, Teid: 2, TransportLevelMarking: 0}
 	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 0, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
 
 	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farDrop)); err != nil {
@@ -688,7 +688,6 @@ func testGtpExtHeader(t *testing.T, bpfObjects *BpfObjects) error {
 		Action:                2,
 		OuterHeaderCreation:   1,
 		Remoteip:              binary.LittleEndian.Uint32(n3IP),
-		Localip:               binary.LittleEndian.Uint32(n9IP),
 		Teid:                  teid,
 		TransportLevelMarking: 0}
 	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 5, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
@@ -785,7 +784,6 @@ func testDLwithGTPPort(t *testing.T, bpfObjects *BpfObjects) error {
 		Action:                2,
 		OuterHeaderCreation:   1,
 		RemoteIP:              binary.LittleEndian.Uint32(n3IP),
-		LocalIP:               binary.LittleEndian.Uint32(n9IP),
 		Teid:                  teid,
 		TransportLevelMarking: 0}
 	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 5, MaxBitrateUL: 1000000, MaxBitrateDL: 100000}

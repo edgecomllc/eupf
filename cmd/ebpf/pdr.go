@@ -165,22 +165,18 @@ type FarInfo struct {
 	OuterHeaderCreation   uint8
 	Teid                  uint32
 	RemoteIP              uint32
-	LocalIP               uint32
 	Trigger               uint8 // trigger for applying the FAR // todo maxim: change to ringbuffer
 	TransportLevelMarking uint16
 }
 
 func (f FarInfo) MarshalJSON() ([]byte, error) {
 	remoteIP := make(net.IP, 4)
-	localIP := make(net.IP, 4)
 	binary.LittleEndian.PutUint32(remoteIP, f.RemoteIP)
-	binary.LittleEndian.PutUint32(localIP, f.LocalIP)
 	data := map[string]interface{}{
 		"action":                  f.Action,
 		"outer_header_creation":   f.OuterHeaderCreation,
 		"teid":                    f.Teid,
 		"remote_ip":               remoteIP.String(),
-		"local_ip":                localIP.String(),
 		"transport_level_marking": f.TransportLevelMarking,
 	}
 	return json.Marshal(data)
@@ -199,7 +195,6 @@ func (bpfObjects *BpfObjects) NewFar(farInfo FarInfo) (uint32, error) {
 		OuterHeaderCreation:   farInfo.OuterHeaderCreation,
 		Teid:                  farInfo.Teid,
 		Remoteip:              farInfo.RemoteIP,
-		Localip:               farInfo.LocalIP,
 		TransportLevelMarking: farInfo.TransportLevelMarking,
 	}
 	return internalId, bpfObjects.FarMap.Put(internalId, unsafe.Pointer(&farToStore))
@@ -208,19 +203,18 @@ func (bpfObjects *BpfObjects) NewFar(farInfo FarInfo) (uint32, error) {
 func (bpfObjects *BpfObjects) GetFar(internalId uint32) (FarInfo, error) {
 	log.Debug().Msgf("EBPF: Get FAR: internalId=%d", internalId)
 
-	urrToStore := IpEntrypointFarInfo{}
-	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrToStore)); err != nil {
+	farToStore := IpEntrypointFarInfo{}
+	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&farToStore)); err != nil {
 		return FarInfo{}, err
 	}
 
 	farInfo := FarInfo{
-		Action:                urrToStore.Action,
-		OuterHeaderCreation:   urrToStore.OuterHeaderCreation,
-		Teid:                  urrToStore.Teid,
-		RemoteIP:              urrToStore.Remoteip,
-		LocalIP:               urrToStore.Localip,
-		Trigger:               urrToStore.Trigger,
-		TransportLevelMarking: urrToStore.TransportLevelMarking,
+		Action:                farToStore.Action,
+		OuterHeaderCreation:   farToStore.OuterHeaderCreation,
+		Teid:                  farToStore.Teid,
+		RemoteIP:              farToStore.Remoteip,
+		Trigger:               farToStore.Trigger,
+		TransportLevelMarking: farToStore.TransportLevelMarking,
 	}
 
 	return farInfo, nil
@@ -234,7 +228,6 @@ func (bpfObjects *BpfObjects) UpdateFar(internalId uint32, farInfo FarInfo) erro
 		OuterHeaderCreation:   farInfo.OuterHeaderCreation,
 		Teid:                  farInfo.Teid,
 		Remoteip:              farInfo.RemoteIP,
-		Localip:               farInfo.LocalIP,
 		TransportLevelMarking: farInfo.TransportLevelMarking,
 	}
 	return bpfObjects.FarMap.Update(internalId, unsafe.Pointer(&farToStore), ebpf.UpdateExist)

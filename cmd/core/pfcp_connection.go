@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"math"
 	"net"
 	"net/netip"
 	"regexp"
@@ -238,7 +237,6 @@ func buildPCCRuleMap() (map[string]PCCInfo, map[uint32][]string) {
 				OuterHeaderCreation:   config.PCCConf.PccRules[i].Far.OuterHeaderCreation,
 				Teid:                  config.PCCConf.PccRules[i].Far.Teid,
 				RemoteIP:              config.PCCConf.PccRules[i].Far.RemoteIP,
-				LocalIP:               math.MaxUint32, // change on processing
 				TransportLevelMarking: config.PCCConf.PccRules[i].Far.TransportLevelMarking,
 			},
 			QER: ebpf.QerInfo{
