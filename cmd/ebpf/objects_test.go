@@ -903,7 +903,6 @@ func testICMPv6RA(t *testing.T, bpfObjects *BpfObjects) error {
 		Action:                2,
 		OuterHeaderCreation:   1,
 		Remoteip:              binary.LittleEndian.Uint32(net.ParseIP("10.3.0.10").To4()),
-		Localip:               binary.LittleEndian.Uint32(net.ParseIP("10.3.0.20").To4()),
 		Teid:                  teid,
 		TransportLevelMarking: 0}
 	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 5, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
