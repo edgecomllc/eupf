@@ -34,7 +34,6 @@ type PacketDumper struct {
 	maxFiles         int
 	maxSizeBytes     int
 	maxPackets       int
-	currentFileIndex int
 	currentFileSize  int
 	currentPacketCnt int
 	dumpPath         string
@@ -51,74 +50,28 @@ func makeNgInterface(name string, linkType layers.LinkType) pcapgo.NgInterface {
 
 func NewPacketDumper(dumpPath string, maxFiles, maxSizeBytes, maxPackets int) (*PacketDumper, error) {
 	dir := filepath.Dir(dumpPath)
+	if dir == "." {
+		dir = os.TempDir()
+	}
 
 	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return nil, fmt.Errorf("can't create directories: %s", err.Error())
 	}
 
-	var f *os.File
-	if len(dumpPath) == 0 {
-		f, err = os.CreateTemp("", "trace-*.pcap")
-	} else {
-		f, err = os.Create(dumpPath)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("can't create pcap dump: %s", err.Error())
-	}
-
-	//w := pcapgo.NewWriterNanos(f)
-	//_ = w.WriteFileHeader(65536, layers.LinkTypeEthernet) // new file, must do this.
-	w, err := pcapgo.NewNgWriter(f, layers.LinkTypeEthernet)
-	if err != nil {
-		f.Close()
-		return nil, fmt.Errorf("can't create ng pcap writer: %s", err.Error())
-	}
-
-	if _, err = w.AddInterface(makeNgInterface("in", layers.LinkTypeEthernet)); err != nil {
-		f.Close()
-		return nil, fmt.Errorf("can't add in ng pcap interface:: %s", err.Error())
-	}
-
-	if _, err = w.AddInterface(makeNgInterface("out", layers.LinkTypeEthernet)); err != nil {
-		f.Close()
-		return nil, fmt.Errorf("can't add out ng pcap interface:: %s", err.Error())
-	}
-
-	if _, err = w.AddInterface(makeNgInterface("drop", layers.LinkTypeEthernet)); err != nil {
-		f.Close()
-		return nil, fmt.Errorf("can't add drop ng pcap interface:: %s", err.Error())
-	}
-
-	sigInInterface, err := w.AddInterface(makeNgInterface("sig-in", layers.LinkTypeRaw))
-	if err != nil {
-		f.Close()
-		return nil, fmt.Errorf("can't add sig in ng pcap interface:: %s", err.Error())
-	}
-
-	sigOutInterface, err := w.AddInterface(makeNgInterface("sig-out", layers.LinkTypeRaw))
-	if err != nil {
-		f.Close()
-		return nil, fmt.Errorf("can't add sig out ng pcap interface:: %s", err.Error())
-	}
-
 	dumper := &PacketDumper{
-		f:               f,
-		w:               w,
-		sigInInterface:  sigInInterface,
-		sigOutInterface: sigOutInterface,
-		writeC:          make(chan PacketToWrite, 1024),
-		packetsWritten:  0,
-		maxFiles:        maxFiles,
-		maxSizeBytes:    maxSizeBytes,
-		maxPackets:      maxPackets,
-		dumpPath:        dumpPath,
+		writeC:         make(chan PacketToWrite, 1024),
+		packetsWritten: 0,
+		maxFiles:       maxFiles,
+		maxSizeBytes:   maxSizeBytes,
+		maxPackets:     maxPackets,
+		dumpPath:       dumpPath,
 	}
 
 	if err := dumper.rotate(); err != nil {
 		return nil, err
 	}
+
 	return dumper, nil
 }
 
@@ -128,11 +81,30 @@ func (dumper *PacketDumper) rotate() error {
 		dumper.f.Close()
 	}
 
-	filename := fmt.Sprintf("%strace-%d-%s.pcap", dumper.dumpPath, dumper.currentFileIndex, time.Now().Format(time.RFC3339))
-	dumper.currentFileIndex = (dumper.currentFileIndex + 1) % dumper.maxFiles
+	filename := fmt.Sprintf("%strace.pcap", dumper.dumpPath)
+	if _, err := os.Stat(filename); err == nil {
+		newFilename := fmt.Sprintf("%strace-%s.pcap", dumper.dumpPath, time.Now().Format(time.RFC3339))
+		if err := os.Rename(filename, newFilename); err != nil {
+			log.Error().Err(err).Msgf("Can't rename trace file: %s -> %s", filename, newFilename)
+		}
+	}
+
+	if files, err := filepath.Glob(fmt.Sprintf("%strace-*.pcap", dumper.dumpPath)); err == nil {
+		if len(files) > dumper.maxFiles {
+			filesToRemove := len(files) - dumper.maxFiles
+			for idx, file := range files[0:filesToRemove] {
+				log.Info().Msgf("Remove old trace file [%d/%d]: %s", idx+1, filesToRemove, file)
+				if err := os.Remove(file); err != nil {
+					log.Error().Err(err).Msgf("Can't remove old trace file: %s", file)
+				}
+			}
+		}
+	} else {
+		return err
+	}
+
 	dumper.currentFileSize = 0
 	dumper.currentPacketCnt = 0
-
 	return dumper.createDumpFile(filename)
 }
 
@@ -146,11 +118,33 @@ func (dumper *PacketDumper) createDumpFile(filename string) error {
 		f.Close()
 		return fmt.Errorf("can't create ng writer: %w", err)
 	}
-	_, _ = w.AddInterface(makeNgInterface("in", layers.LinkTypeEthernet))
-	_, _ = w.AddInterface(makeNgInterface("out", layers.LinkTypeEthernet))
-	_, _ = w.AddInterface(makeNgInterface("drop", layers.LinkTypeEthernet))
-	sigIn, _ := w.AddInterface(makeNgInterface("sig-in", layers.LinkTypeRaw))
-	sigOut, _ := w.AddInterface(makeNgInterface("sig-out", layers.LinkTypeRaw))
+
+	if _, err = w.AddInterface(makeNgInterface("in", layers.LinkTypeEthernet)); err != nil {
+		f.Close()
+		return fmt.Errorf("can't add in ng pcap interface:: %s", err.Error())
+	}
+
+	if _, err = w.AddInterface(makeNgInterface("out", layers.LinkTypeEthernet)); err != nil {
+		f.Close()
+		return fmt.Errorf("can't add out ng pcap interface:: %s", err.Error())
+	}
+
+	if _, err = w.AddInterface(makeNgInterface("drop", layers.LinkTypeEthernet)); err != nil {
+		f.Close()
+		return fmt.Errorf("can't add drop ng pcap interface:: %s", err.Error())
+	}
+
+	sigIn, err := w.AddInterface(makeNgInterface("sig-in", layers.LinkTypeRaw))
+	if err != nil {
+		f.Close()
+		return fmt.Errorf("can't add sig in ng pcap interface:: %s", err.Error())
+	}
+
+	sigOut, err := w.AddInterface(makeNgInterface("sig-out", layers.LinkTypeRaw))
+	if err != nil {
+		f.Close()
+		return fmt.Errorf("can't add sig out ng pcap interface:: %s", err.Error())
+	}
 
 	dumper.f = f
 	dumper.w = w
@@ -177,10 +171,12 @@ func (dumper *PacketDumper) ReadTraceMap(traceMap *ebpf.Map) {
 
 		if rec.LostSamples > 0 {
 			log.Warn().Msgf(" lost samples from perf map: %d", rec.LostSamples)
+			continue
 		}
 
 		if len(rec.RawSample) < 9 {
 			log.Error().Msgf(" perf sample too small: %d", len(rec.RawSample))
+			continue
 		}
 
 		magic := binary.LittleEndian.Uint16(rec.RawSample[:2])
@@ -190,11 +186,7 @@ func (dumper *PacketDumper) ReadTraceMap(traceMap *ebpf.Map) {
 
 		packetLength := binary.LittleEndian.Uint16(rec.RawSample[2:4])
 		packetIface := binary.LittleEndian.Uint32(rec.RawSample[4:8]) + 1
-
 		packet := rec.RawSample[8 : 8+packetLength]
-
-		//pack := gopacket.NewPacket(packet, layers.LayerTypeEthernet, gopacket.Default)
-		//log.Trace().Msgf("Sample lost=%d, remaining=%d, len=%d, packet: %s", rec.LostSamples, rec.Remaining, packetLength, pack.Dump())
 
 		dumper.writeC <- PacketToWrite{
 			gopacket.CaptureInfo{
@@ -205,15 +197,6 @@ func (dumper *PacketDumper) ReadTraceMap(traceMap *ebpf.Map) {
 			},
 			packet,
 		}
-
-		// if err := dumper.w.WritePacket(gopacket.CaptureInfo{
-		// 	Timestamp:      time.Now(),
-		// 	Length:         int(packetLength),
-		// 	CaptureLength:  int(packetLength),
-		// 	InterfaceIndex: int(packetIface),
-		// }, packet); err != nil {
-		// 	log.Error().Msgf(" can't write perf sample to pcap dump: %s", err.Error())
-		// }
 	}
 }
 

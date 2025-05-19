@@ -7,7 +7,7 @@ import (
 
 func TestPacketDumper_RunWrite(t *testing.T) {
 
-	dumper, _ := NewPacketDumper("")
+	dumper, _ := NewPacketDumper("", 1, 1024, 1000)
 	dumper.DumpRawIn(netip.MustParseAddrPort("1.2.3.4:8805"), netip.MustParseAddrPort("1.2.3.4:8806"), []byte{0, 0, 0})
 	dumper.DumpRawOut(netip.MustParseAddrPort("1.2.3.4:8805"), netip.MustParseAddrPort("1.2.3.4:8806"), []byte{0, 0, 0})
 	dumper.Close(true)
