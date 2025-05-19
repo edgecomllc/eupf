@@ -99,6 +99,9 @@ type UpfConfig struct {
 	AllowedApns             string         `mapstructure:"allowed_apns" json:"allowed_apns"`
 	DeniedApns              string         `mapstructure:"denied_apns" json:"denied_apns"`
 	HuaweiSupport           bool           `mapstructure:"huawei_support" json:"huawei_support"`
+	TraceMaxDumpFiles       int            `mapstructure:"trace_files" json:"trace_files"`
+	TraceMaxDumpSize        int            `mapstructure:"trace_max_size" json:"trace_max_size"`
+	TraceMaxDumpPackets     int            `mapstructure:"trace_max_packets" json:"trace_max_packets"`
 	IP6RaSupport            bool           `mapstructure:"ip6_ra_support" json:"ip6_ra_support"`
 	Ip6RaPrefix             string         `mapstructure:"ip6_ra_prefix" validate:"cidrv6" json:"ip6_ra_prefix"`
 }
@@ -156,6 +159,9 @@ func defineFlags() {
 	pflag.String("aapns", ".*", "Allowed APNs mask")
 	pflag.String("dapns", "", "Denied APNs mask")
 	pflag.Bool("huasupp", true, "Enable or disable huawei support")
+	pflag.Int("tracefcnt", 10, "Maximum number of rotated trace dump files")
+	pflag.Int("tracefsize", 10*1024*1024, "Maximum size (in bytes) of one trace dump file")
+	pflag.Int("tracefpackets", 100000, "Maximum number of packets in one trace dump file")
 	pflag.Bool("ip6ra", false, "Enable or disable IPv6 Router Advertisement support")
 	pflag.String("ip6rapref", "2a03:d000:29a0:509::/64", "Subscriber IPv6 prefix")
 
@@ -224,6 +230,9 @@ func initCommonConfig() {
 	_ = commonConfigV.BindPFlag("allowed_apns", pflag.Lookup("aapns"))
 	_ = commonConfigV.BindPFlag("denied_apns", pflag.Lookup("dapns"))
 	_ = commonConfigV.BindPFlag("huawei_support", pflag.Lookup("huasupp"))
+	_ = commonConfigV.BindPFlag("trace_files", pflag.Lookup("tracefcnt"))
+	_ = commonConfigV.BindPFlag("trace_max_size", pflag.Lookup("tracefsize"))
+	_ = commonConfigV.BindPFlag("trace_max_packets", pflag.Lookup("tracefpackets"))
 	_ = commonConfigV.BindPFlag("ip6_ra_support", pflag.Lookup("ip6ra"))
 	_ = commonConfigV.BindPFlag("ip6_ra_prefix", pflag.Lookup("ip6rapref"))
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/binary"
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -54,8 +53,12 @@ func main() {
 	}
 
 	var err error
-	traceFileName := fmt.Sprintf("dumps/%s-trace.pcap", time.Now().Format(time.RFC3339))
-	dumper, err := utils.NewPacketDumper(traceFileName)
+	dumper, err := utils.NewPacketDumper(
+		"dumps/",
+		config.Conf.TraceMaxDumpFiles,
+		config.Conf.TraceMaxDumpSize,
+		config.Conf.TraceMaxDumpPackets,
+	)
 	if err != nil {
 		log.Error().Msgf("Can't start dumper: %s", err.Error())
 	} else {

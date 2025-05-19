@@ -25,12 +25,19 @@ type Dumper interface {
 }
 
 type PacketDumper struct {
-	f               *os.File
-	w               *pcapgo.NgWriter
-	sigInInterface  int
-	sigOutInterface int
-	writeC          chan PacketToWrite
-	packetsWritten  uint64
+	f                *os.File
+	w                *pcapgo.NgWriter
+	sigInInterface   int
+	sigOutInterface  int
+	writeC           chan PacketToWrite
+	packetsWritten   uint64
+	maxFiles         int
+	maxSizeBytes     int
+	maxPackets       int
+	currentFileIndex int
+	currentFileSize  int
+	currentPacketCnt int
+	dumpPath         string
 }
 
 func makeNgInterface(name string, linkType layers.LinkType) pcapgo.NgInterface {
@@ -42,7 +49,7 @@ func makeNgInterface(name string, linkType layers.LinkType) pcapgo.NgInterface {
 		LinkType:            linkType}
 }
 
-func NewPacketDumper(dumpPath string) (*PacketDumper, error) {
+func NewPacketDumper(dumpPath string, maxFiles, maxSizeBytes, maxPackets int) (*PacketDumper, error) {
 	dir := filepath.Dir(dumpPath)
 
 	err := os.MkdirAll(dir, os.ModePerm)
@@ -96,14 +103,61 @@ func NewPacketDumper(dumpPath string) (*PacketDumper, error) {
 		return nil, fmt.Errorf("can't add sig out ng pcap interface:: %s", err.Error())
 	}
 
-	return &PacketDumper{
+	dumper := &PacketDumper{
 		f:               f,
 		w:               w,
 		sigInInterface:  sigInInterface,
 		sigOutInterface: sigOutInterface,
 		writeC:          make(chan PacketToWrite, 1024),
 		packetsWritten:  0,
-	}, nil
+		maxFiles:        maxFiles,
+		maxSizeBytes:    maxSizeBytes,
+		maxPackets:      maxPackets,
+		dumpPath:        dumpPath,
+	}
+
+	if err := dumper.rotate(); err != nil {
+		return nil, err
+	}
+	return dumper, nil
+}
+
+func (dumper *PacketDumper) rotate() error {
+	if dumper.f != nil {
+		dumper.w.Flush()
+		dumper.f.Close()
+	}
+
+	filename := fmt.Sprintf("%strace-%d-%s.pcap", dumper.dumpPath, dumper.currentFileIndex, time.Now().Format(time.RFC3339))
+	dumper.currentFileIndex = (dumper.currentFileIndex + 1) % dumper.maxFiles
+	dumper.currentFileSize = 0
+	dumper.currentPacketCnt = 0
+
+	return dumper.createDumpFile(filename)
+}
+
+func (dumper *PacketDumper) createDumpFile(filename string) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("can't create rotated pcap: %w", err)
+	}
+	w, err := pcapgo.NewNgWriter(f, layers.LinkTypeEthernet)
+	if err != nil {
+		f.Close()
+		return fmt.Errorf("can't create ng writer: %w", err)
+	}
+	_, _ = w.AddInterface(makeNgInterface("in", layers.LinkTypeEthernet))
+	_, _ = w.AddInterface(makeNgInterface("out", layers.LinkTypeEthernet))
+	_, _ = w.AddInterface(makeNgInterface("drop", layers.LinkTypeEthernet))
+	sigIn, _ := w.AddInterface(makeNgInterface("sig-in", layers.LinkTypeRaw))
+	sigOut, _ := w.AddInterface(makeNgInterface("sig-out", layers.LinkTypeRaw))
+
+	dumper.f = f
+	dumper.w = w
+	dumper.sigInInterface = sigIn
+	dumper.sigOutInterface = sigOut
+
+	return nil
 }
 
 func (dumper *PacketDumper) ReadTraceMap(traceMap *ebpf.Map) {
@@ -225,13 +279,22 @@ func (dumper *PacketDumper) dumpRaw(srcIP net.IP, srcPort uint16, dstIP net.IP, 
 }
 
 func (dumper *PacketDumper) Write() {
-
-	for packet := range dumper.writeC {
-		if err := dumper.w.WritePacket(packet.info, packet.packet); err != nil {
-			log.Error().Err(err).Msgf("can't write sample to pcap dump")
-		} else {
-			dumper.packetsWritten += 1
+	for pkt := range dumper.writeC {
+		if dumper.currentPacketCnt >= dumper.maxPackets || dumper.currentFileSize >= dumper.maxSizeBytes {
+			if err := dumper.rotate(); err != nil {
+				log.Error().Err(err).Msg("failed to rotate dump file")
+				break
+			}
 		}
+
+		if err := dumper.w.WritePacket(pkt.info, pkt.packet); err != nil {
+			log.Error().Err(err).Msgf("can't write sample to pcap")
+			break
+		}
+
+		dumper.packetsWritten++
+		dumper.currentPacketCnt++
+		dumper.currentFileSize += len(pkt.packet)
 	}
 }
 
