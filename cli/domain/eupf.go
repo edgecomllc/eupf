@@ -83,6 +83,9 @@ type EupfRepository interface {
 }
 
 type EupfUseCase interface {
+	ConfigSetNewEUPFBaseURL(baseURL string) error
+	ConfigShowEUPFBaseURL() (string, error)
+
 	TraceList(ctx context.Context, tempBaseURL string) ([]TraceRecord, error)
 	StartTrace(ctx context.Context, imsi, msisdn *string, tempBaseURL string) error
 	StopTrace(ctx context.Context, imsi, msisdn *string, tempBaseURL string) error

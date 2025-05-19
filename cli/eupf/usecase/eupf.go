@@ -2,12 +2,26 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
 	"github.com/edgecomllc/eupf/cli/config"
 	"github.com/edgecomllc/eupf/cli/domain"
 	"github.com/rs/zerolog/log"
+)
+
+const (
+	baseURLConfigKey = "eupf_addr"
+)
+
+var (
+	ErrNotFoundConfig = errors.New("config not found")
+	ErrNoEUPFAddr     = errors.New("no eupf address")
+
+	ErrInvalidURLFormat  = errors.New("invalid URL format")
+	ErrUnsupportedScheme = errors.New("unsupported scheme: must be http or https")
+	ErrMissingHostInURL  = errors.New("missing host in URL")
 )
 
 type Eupf struct {
@@ -138,4 +152,42 @@ func (e *Eupf) BackupRestore(ctx context.Context, tempBaseURL string, name strin
 	}
 
 	return nil
+}
+
+// validateBaseURL checks if the provided URL is a valid HTTP(S) address.
+func validateBaseURL(u string) error {
+	parsed, err := url.ParseRequestURI(u)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrInvalidURLFormat, err)
+	}
+
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return ErrUnsupportedScheme
+	}
+
+	if parsed.Host == "" {
+		return ErrMissingHostInURL
+	}
+
+	return nil
+}
+
+func (e *Eupf) ConfigSetNewEUPFBaseURL(baseURL string) error {
+	if err := validateBaseURL(baseURL); err != nil {
+		return err
+	}
+
+	return e.cfg.UpdateFile(map[string]interface{}{baseURLConfigKey: baseURL})
+}
+
+func (e *Eupf) ConfigShowEUPFBaseURL() (string, error) {
+	if e.cfg == nil {
+		return "", ErrNotFoundConfig
+	}
+
+	if e.cfg.EupfAddr == "" {
+		return "", ErrNoEUPFAddr
+	}
+
+	return e.cfg.EupfAddr, nil
 }
