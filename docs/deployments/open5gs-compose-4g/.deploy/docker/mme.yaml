@@ -1,11 +1,11 @@
 logger:
-#  file:
-#    path: @localstatedir@/log/open5gs/mme.log
-  level: info   # fatal|error|warn|info(default)|debug|trace
+  #  file:
+  #    path: @localstatedir@/log/open5gs/mme.log
+  level: info # fatal|error|warn|info(default)|debug|trace
 
 global:
   max:
-    ue: 32  # The number of UE can be increased depending on memory size.
+    ue: 32 # The number of UE can be increased depending on memory size.
 #    peer: 64
 
 mme:
@@ -37,8 +37,8 @@ mme:
         mnc: 99
       tac: 1
   security:
-    integrity_order : [ EIA2, EIA1, EIA0 ]
-    ciphering_order : [ EEA0, EEA1, EEA2 ]
+    integrity_order: [EIA2, EIA1, EIA0]
+    ciphering_order: [EEA0, EEA1, EEA2]
   network_name:
     full: ERG
     short: ERG
