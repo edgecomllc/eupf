@@ -111,6 +111,10 @@ func (r *EupfHttpRepository) GetUpfConfig(ctx context.Context, baseURL string) (
 		return nil, err
 	}
 
+	if resp.IsError() {
+		return nil, fmt.Errorf("get upf config failed: %s", resp.Status())
+	}
+
 	return resp.Result().(*domain.UpfConfig), nil
 }
 
