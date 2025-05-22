@@ -107,6 +107,17 @@ func (h *ApiHandler) setUplinkPdrValue(c *gin.Context) {
 	c.IndentedJSON(http.StatusCreated, pdrElement)
 }
 
+// GetDownlinkPdrValue godoc
+//
+//	@Summary Get downlink PDR map element
+//	@Description Retrieve downlink PDR map element by IP address
+//	@Tags PDR
+//	@Produce json
+//	@Param ip path string true "IP Address (IPv4 or IPv6)"
+//	@Success 200 {object} PdrDownlinkElement
+//	@Failure 400 {object} map[string]string
+//	@Failure 404 {object} map[string]string
+//	@Router /downlink_pdr_map/{id} [get]
 func (h *ApiHandler) getDownlinkPdrValue(c *gin.Context) {
 	ip := net.ParseIP(c.Param("id"))
 	if ip == nil {
@@ -144,6 +155,19 @@ func (h *ApiHandler) getDownlinkPdrValue(c *gin.Context) {
 	})
 }
 
+// SetDownlinkPdrValue godoc
+//
+//	@Summary Set downlink PDR map element
+//	@Description Create or update downlink PDR map element by IP address
+//	@Tags PDR
+//	@Accept json
+//	@Produce json
+//	@Param ip path string true "IP Address (IPv4 or IPv6)"
+//	@Param pdr body PdrDownlinkElement true "PDR element data"
+//	@Success 201 {object} PdrDownlinkElement
+//	@Failure 400 {object} map[string]string
+//	@Failure 500 {object} map[string]string
+//	@Router /downlink_pdr_map/{id} [put]
 func (h *ApiHandler) setDownlinkPdrValue(c *gin.Context) {
 	ip := net.ParseIP(c.Param("id"))
 	if ip == nil {
