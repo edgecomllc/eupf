@@ -57,6 +57,14 @@ type UpfConfig struct {
 	AllowedApns             string         `json:"allowed_apns"`
 	DeniedApns              string         `json:"denied_apns"`
 	HuaweiSupport           bool           `json:"huawei_support"`
+	TraceAssociation        bool           `json:"trace_association"`
+	TraceHeartbeat          bool           `json:"trace_heartbeat"`
+	TraceBlocked            bool           `json:"trace_blocked"`
+	TraceMaxDumpFiles       int            `json:"trace_files"`
+	TraceMaxDumpSize        int            `json:"trace_max_size"`
+	TraceMaxDumpPackets     int            `json:"trace_max_packets"`
+	IP6RaSupport            bool           `json:"ip6_ra_support"`
+	Ip6RaPrefix             string         `json:"ip6_ra_prefix"`
 }
 
 type EupfLocalRepository interface {
