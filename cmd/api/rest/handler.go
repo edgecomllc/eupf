@@ -128,8 +128,8 @@ func (h *ApiHandler) initDefaultRoutes(group *gin.RouterGroup) {
 
 	sessions := group.Group("pfcp_sessions")
 	{
-		//sessions.GET("", ListPfcpSessions(pfcpSrv))
 		sessions.GET("", h.listPfcpSessionsFiltered)
+		sessions.DELETE("", h.deletePfcpSessions)
 	}
 
 	subscriberTracing := group.Group("subscriber_trace")

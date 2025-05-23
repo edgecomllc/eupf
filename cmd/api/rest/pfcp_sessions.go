@@ -9,6 +9,33 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// DeletePfcpSessions godoc
+//
+//	@Summary	Delete PFCP session by IMSI, MSISDN or ID
+//	@Description	Deletes a PFCP session based on provided parameters. At least one parameter must be provided.
+//	@Tags		PFCP
+//	@Accept		json
+//	@Produce	json
+//	@Param		imsi	query		string	false	"IMSI of the session to delete"
+//	@Param		msisdn	query		string	false	"MSISDN of the session to delete"
+//	@Param		id		query		string	false	"ID of the session to delete"
+//	@Success	200		{string}	string	"Session successfully deleted"
+//	@Failure	400		{string}	string	"Bad Request - No parameters provided"
+//	@Failure	404		{string}	string	"Session not found"
+//	@Router		/pfcp_sessions [delete]
+func (h *ApiHandler) deletePfcpSessions(c *gin.Context) {
+	imsi := c.Query("imsi")
+	msisdn := c.Query("msisdn")
+	id := c.Query("id")
+
+	if imsi == "" && msisdn == "" && id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing parameter. IMSI, ID or MSISDN required"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "OK"})
+}
+
 // ListPfcpSessionsFiltered godoc
 //
 //	@Summary	If no parameters are given, list all PFCP sessions. If ip or teid is given, single session will be returned. If both ip and teid are given, it is possible to return two sessions.

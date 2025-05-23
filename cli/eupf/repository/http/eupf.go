@@ -224,3 +224,80 @@ func (r *EupfHttpRepository) RestoreConfigGTPPath(ctx context.Context, baseURL s
 
 	return r.sendRestoreRequest(ctx, baseURL, "/config/gtp_path", body)
 }
+
+func (r *EupfHttpRepository) SessionShow(ctx context.Context, ip, teid, baseURL string) ([]domain.PfcpSession, error) {
+	client := r.getClient(baseURL)
+	req := client.R().SetContext(ctx)
+
+	if ip != "" {
+		req.SetQueryParam("ip", ip)
+	}
+
+	if teid != "" {
+		req.SetQueryParam("teid", teid)
+	}
+
+	var sessions []domain.PfcpSession
+
+	resp, err := req.
+		SetResult(&sessions).
+		ForceContentType("application/json").
+		Get("/pfcp_sessions/")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("get pfcp sessions failed: %s", resp.Status())
+	}
+
+	return sessions, nil
+}
+
+func (r *EupfHttpRepository) SessionReleaseByIMSI(ctx context.Context, imsi, baseURL string) error {
+	client := r.getClient(baseURL)
+	req := client.R().SetContext(ctx).SetQueryParam("imsi", imsi)
+
+	resp, err := req.Delete("/pfcp_sessions/")
+	if err != nil {
+		return err
+	}
+
+	if resp.IsError() {
+		return fmt.Errorf("delete pfcp sessions by imsi failed: %s", resp.Status())
+	}
+
+	return nil
+}
+
+func (r *EupfHttpRepository) SessionReleaseByMSISDN(ctx context.Context, msisdn, baseURL string) error {
+	client := r.getClient(baseURL)
+	req := client.R().SetContext(ctx).SetQueryParam("msisdn", msisdn)
+
+	resp, err := req.Delete("/pfcp_sessions/")
+	if err != nil {
+		return err
+	}
+
+	if resp.IsError() {
+		return fmt.Errorf("delete pfcp sessions by msisdn failed: %s", resp.Status())
+	}
+
+	return nil
+}
+
+func (r *EupfHttpRepository) SessionReleaseByID(ctx context.Context, id, baseURL string) error {
+	client := r.getClient(baseURL)
+	req := client.R().SetContext(ctx).SetQueryParam("id", id)
+
+	resp, err := req.Delete("/pfcp_sessions/")
+	if err != nil {
+		return err
+	}
+
+	if resp.IsError() {
+		return fmt.Errorf("delete pfcp sessions by session id failed: %s", resp.Status())
+	}
+
+	return nil
+}

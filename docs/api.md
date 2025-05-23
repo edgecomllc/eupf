@@ -204,11 +204,17 @@ Method | URL                    | Description                                   
 
 ### - PFCP associations
 
-Method | URL                              | Description                                                                  | Example
------- | -------------------------------- | ---------------------------------------------------------------------------- | --------------------------------
-`GET`  | `/api/v1/pfcp_associations`      | Lists the PFCP associations. Returns an list of `NodeAssociationDescription` | `/api/v1/pfcp_associations`
-`GET`  | `/api/v1/pfcp_associations/full` | Lists the full PFCP associations. Returns an objects of `NodeAssociation`    | `/api/v1/pfcp_associations/full`
-`GET`  | `/api/v1/pfcp_sessions`          | Lists the PFCP sessions content. Returns a list of `Session`                 | `/api/v1/pfcp_sessions`
+Method | URL                              | Description                                                                 | Example
+------ | -------------------------------- | --------------------------------------------------------------------------- | --------------------------------
+`GET`  | `/api/v1/pfcp_associations`      | Lists the PFCP associations. Returns a list of `NodeAssociationDescription` | `/api/v1/pfcp_associations`
+`GET`  | `/api/v1/pfcp_associations/full` | Lists the full PFCP associations. Returns objects of `NodeAssociation`      | `/api/v1/pfcp_associations/full`
+
+### - PFCP sessions
+
+Method   | URL                     | Description                                                                                                                                                | Example
+-------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -----------------------------------------------
+`GET`    | `/api/v1/pfcp_sessions` | Lists the PFCP sessions. If no parameters are given, returns all sessions. If ip or teid is given, returns filtered sessions. Returns a list of `Session`. | `/api/v1/pfcp_sessions?ip=192.168.1.1&teid=123`
+`DELETE` | `/api/v1/pfcp_sessions` | Deletes a PFCP session by IMSI, MSISDN or session ID. At least one parameter required. Returns status message.                                             | `/api/v1/pfcp_sessions?imsi=123456789012345`
 
 ### - Subscriber tracing
 

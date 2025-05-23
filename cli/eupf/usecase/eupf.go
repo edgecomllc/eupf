@@ -191,3 +191,33 @@ func (e *Eupf) ConfigShowEUPFBaseURL() (string, error) {
 
 	return e.cfg.EupfAddr, nil
 }
+
+func (e *Eupf) SessionShow(ctx context.Context, ip, teid, tempBaseURL string) ([]domain.PfcpSession, error) {
+	baseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.eupfRepo.SessionShow(ctx, ip, teid, baseURL)
+}
+
+func (e *Eupf) SessionRelease(ctx context.Context, imsi, msisdn, id, tempBaseURL string) error {
+	baseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return err
+	}
+
+	if imsi != "" {
+		return e.eupfRepo.SessionReleaseByIMSI(ctx, imsi, baseURL)
+	}
+
+	if msisdn != "" {
+		return e.eupfRepo.SessionReleaseByMSISDN(ctx, msisdn, baseURL)
+	}
+
+	if id != "" {
+		return e.eupfRepo.SessionReleaseByID(ctx, id, baseURL)
+	}
+
+	return nil
+}
