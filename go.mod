@@ -8,8 +8,8 @@ require (
 	github.com/gin-contrib/cors v1.6.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-resty/resty/v2 v2.16.5
-	github.com/google/gopacket v1.1.19
 	github.com/google/wire v0.6.0
+	github.com/gopacket/gopacket v1.3.1
 	github.com/korylprince/ipnetgen v1.0.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rs/zerolog v1.31.0
@@ -62,6 +62,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.19.0
 	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/google/gopacket v1.1.19
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect

@@ -25,8 +25,8 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
+	"github.com/gopacket/gopacket"
+	"github.com/gopacket/gopacket/layers"
 )
 
 var (
@@ -352,6 +352,83 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 	}
 
 	if bpfRet != 1 { // XDP_DROP
+		return fmt.Errorf("unexpected return value: %d", bpfRet)
+	}
+
+	return nil
+}
+
+func testGtpHeaderWithSequence(t *testing.T, bpfObjects *BpfObjects) error {
+	t.Helper()
+
+	teid := uint32(1)
+
+	packet := gopacket.NewSerializeBuffer()
+	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
+		&layers.Ethernet{
+			SrcMAC:       n3MAC,
+			DstMAC:       n9MAC,
+			EthernetType: layers.EthernetTypeIPv4,
+		},
+		&layers.IPv4{
+			Version:  4,
+			DstIP:    n3IP,
+			SrcIP:    n9IP,
+			Protocol: layers.IPProtocolUDP,
+			IHL:      5,
+		},
+		&layers.UDP{
+			DstPort: 2152,
+			SrcPort: 2152,
+		},
+		&layers.GTPv1U{
+			Version:            1,
+			MessageType:        255, // GTPU_G_PDU
+			MessageLength:      44,
+			TEID:               teid,
+			SequenceNumberFlag: true,
+			SequenceNumber:     1234,
+		},
+		&layers.IPv4{
+			Version:  4,
+			DstIP:    net.IP{1, 1, 1, 1},
+			SrcIP:    net.IP{10, 60, 0, 1},
+			Protocol: layers.IPProtocolICMPv4,
+			IHL:      5,
+		},
+		&layers.ICMPv4{
+			TypeCode: layers.ICMPv4TypeEchoRequest,
+			Id:       0,
+			Seq:      0,
+		},
+	); err != nil {
+		return fmt.Errorf("serializing input packet failed: %v", err)
+	}
+
+	t.Logf("packet: %v", packet.Layers())
+	t.Logf("packet:\n%v", hex.Dump(packet.Bytes()))
+
+	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
+	farForward := IpEntrypointFarInfo{Action: 2, OuterHeaderCreation: 0, Remoteip: 1, Teid: 2, TransportLevelMarking: 0}
+	qer := IpEntrypointQerInfo{UlGateStatus: 0, DlGateStatus: 0, Qfi: 0, UlMaximumBitrate: 1000000, DlMaximumBitrate: 100000, UlStart: 0, DlStart: 0}
+
+	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farForward)); err != nil {
+		return fmt.Errorf("can't set FAR: %v", err)
+	}
+	if err := bpfObjects.QerMap.Put(uint32(1), unsafe.Pointer(&qer)); err != nil {
+		return fmt.Errorf("can't set QER: %v", err)
+	}
+
+	if err := bpfObjects.PutPdrUplink(teid, pdr); err != nil {
+		return fmt.Errorf("can't set uplink PDR: %v", err)
+	}
+
+	bpfRet, _, err := bpfObjects.UpfIpEntrypointFunc.Test(packet.Bytes())
+	if err != nil {
+		return fmt.Errorf("ebpf run failed: %v", err)
+	}
+
+	if bpfRet != 3 && bpfRet != 4 { // XDP_TX or XDP_REDIRECT
 		return fmt.Errorf("unexpected return value: %d", bpfRet)
 	}
 
@@ -1029,6 +1106,13 @@ func TestEntrypoint(t *testing.T) {
 
 	t.Run("GTP Extention Header test", func(t *testing.T) {
 		err := testGtpExtHeader(t, bpfObjects)
+		if err != nil {
+			t.Fatalf("test failed: %s", err)
+		}
+	})
+
+	t.Run("GTP-U with sequence field test", func(t *testing.T) {
+		err := testGtpHeaderWithSequence(t, bpfObjects)
 		if err != nil {
 			t.Fatalf("test failed: %s", err)
 		}

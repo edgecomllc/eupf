@@ -34,8 +34,12 @@ static __always_inline __u32 parse_gtp(struct packet_context *ctx) {
         return -1;
 
     ctx->data += sizeof(*gtp);
-    if (gtp->e || gtp->s || gtp->pn)
-        ctx->data += sizeof(struct gtp_hdr_ext) + 4;
+    if (gtp->e || gtp->s || gtp->pn) {
+        ctx->data += sizeof(struct gtp_hdr_ext);
+        if(gtp->e)
+            ctx->data += 4; // FIXME: add extention headers parsing
+    }
+    
     ctx->gtp = gtp;
     return gtp->message_type;
 }
@@ -95,8 +99,11 @@ static __always_inline long remove_gtp_header(struct packet_context *ctx) {
 
     size_t ext_gtp_header_size = 0;
     struct gtpuhdr *gtp = ctx->gtp;
-    if (gtp->e || gtp->s || gtp->pn)
-        ext_gtp_header_size += sizeof(struct gtp_hdr_ext) + 4;
+    if (gtp->e || gtp->s || gtp->pn) {
+        ext_gtp_header_size += sizeof(struct gtp_hdr_ext);
+        if(gtp->e)
+            ext_gtp_header_size += 4; // FIXME: add extention headers parsing
+    }
 
     const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtpuhdr) + ext_gtp_header_size;
 
