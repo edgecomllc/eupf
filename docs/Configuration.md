@@ -14,7 +14,7 @@ Currently UPF have several config parameters shown below.<br>Parameters can be c
 | PFCP address <br>`Optional`    | Local address that PFCP server will listen to                                                                                                                                                                                                                                                                                                   | `pfcp_address`    | `UPF_PFCP_ADDRESS`    | `--paddr`   | `:8805`         |
 | PFCP NodeID <br>`Optional`     | Local NodeID for PFCP protocol. Format is IPv4 address.                                                                                                                                                                                                                                                                                         | `pfcp_node_id`    | `UPF_PFCP_NODE_ID`    | `--nodeid`  | `127.0.0.1`     |
 | GTP peer <br>`Optional`        | List of gtp peer's address to send echo requests to. Format is `[hostnameA:portA, hostnameB:portB,  ...]`.                                                                                                                                                                                                                                                               | `gtp_peer`    | `UPF_GTP_PEER`        | `--peer`    | `-`         |
-| Echo request iterval <br>`Optional`        | Echo request sending interval. Format is seconds.                                                                                                                                                                                                                                                                                    | `echo_interval`    | `UPF_ECHO_INTERVAL`        | `--echo`    | `10`         |
+| Echo request iterval <br>`Optional`        | Echo request sending interval. Format is seconds.                                                                                                                                                                                                                                                                                    | `gtp_echo_interval`    | `UPF_GTP_ECHO_INTERVAL`        | `--echo`    | `10`         |
 | Metrics address <br>`Optional` | Local address for serving Prometheus mertrics endpoint.                                                                                                                                                                                                                                                                                         | `metrics_address` | `UPF_METRICS_ADDRESS` | `--maddr`   | `:9090`         |
 | QER map size <br>`Optional`    | Size of the eBPF map for QER parameters                                                                                                                                                                                                                                                                                                         | `qer_map_size`    | `UPF_QER_MAP_SIZE`    | `--qersize` | `1024  `        |
 | FAR map size <br>`Optional`    | Size of the eBPF map for FAR parameters                                                                                                                                                                                                                                                                                                         | `far_map_size`    | `UPF_FAR_MAP_SIZE`    | `--farsize` | `1024  `        |
@@ -24,8 +24,27 @@ Currently UPF have several config parameters shown below.<br>Parameters can be c
 | FTUP Feature <br>`Optional`    | Support for TEID allocation option                                                                                                                                                                                                                                                                                                              | `feature_ftup`    | `UPF_FEATURE_FTUP`    | `--ftup`     | `false`         |
 | UE IP Pool <br>`Optional`         | Pool of IP addresses, needed to allocate ip when the UEIP option is enabled                                                                                                                                                                                                                                                                     | `ueip_pool`         | `UPF_UEIP_POOL`         | `--ueippool`   | `10.60.0.0/24`  |
 | TEID Pool <br>`Optional`       | Pool of TEIDs, needed to allocate TEID when the FTUP option is enabled                                                                                                                                                                                                                                                                          | `teid_pool`       | `UPF_TEID_POOL`       | `--teidpool` | `65535`         |
-| PFCP peers <br>`Optional`   | List of PFCP peers (SMF hostnames or IP addresses) which UPF will try to connect                                                                                                                                                                                                                                                                                   | `pfcp_node`   | `UPF_PFCP_NODE`   | `--pfcpnode`  |          |
+| PFCP peers <br>`Optional`   | List of PFCP peers (SMF hostnames or IP addresses) which UPF will try to connect                                                                                                                                                                                                                                                                                   | `pfcp_node`   | `UPF_PFCP_NODE`   | `--pfcprnode`  |          |
 | Association Setup timeout <br>`Optional`   | Timeout between Association Setup Requests initiated by UPF                                                                                                                                                                                                                                                                                   | `association_setup_timeout`   | `UPF_ASSOCIATION_SETUP_TIMEOUT`   | `--astimeout`  | `5`         |
+|Support Huawei proprietary options <br>`Optional`|Enable or disable huawei support|`huawei_support`|`UPF_HUAWEI_SUPPORT`|`--huasupp`|`true`|
+| S1-U address <br>`Optional` | Address for communication over S1-U interface | `s1u_address` | UPF_S1U_ADDRESS | --s1uaddr string | 127.0.0.1 |
+| S5/S8 address <br>`Optional` | Address for communication over S5/S8 interface | `s5s8_address` | UPF_S5S8_ADDRESS | --s5s8addr string | 127.0.0.1 |
+| PA address<br>`Optional` | Address for communication over PA interface | `pa_address` | UPF_PA_ADDRESS | --paaddr string | 127.0.0.1 |
+| Sxa address <br>`Optional` | Sxa Address to bind PFCP server to | `sxa_address` | UPF_SXA_ADDRESS | --sxaaddr string | 127.0.0.2:8805 |
+| List of Sxa peers<br>`Optional` | Address of remote Sxa node | `sxa_node` | UPF_SXA_NODE | --sxanode stringArray |  |
+| Sxa node id <br>`Optional` | Sxa PFCP Server Node ID | `sxa_node_id` | UPF_SXA_NODE_ID | --sxanodeid string | 127.0.0.2 |
+| Sxb address <br>`Optional` | Sxb Address to bind PFCP server to | `sxb_address` | UPF_SXB_ADDRESS | --sxbaddr string | 127.0.0.3:8805 |
+| List of Sxb peers<br>`Optional` | Address of remote Sxb node | `sxb_node` | UPF_SXB_NODE | --sxbnode stringArray |  |
+| Sxb node id <br>`Optional` | Sxb PFCP Server Node ID | `sxb_node_id` | UPF_SXB_NODE_ID | --sxbnodeid string | 127.0.0.3 |
+| Trace assocuation<br>`Optional` | Trace PFCP Association messages (Establish/Modify/Release) | `trace_association` | UPF_TRACE_ASSOCIATION | --traceassoc | TRUE |
+| Trace heartbeat<br>`Optional` | Trace PFCP Heartbeat messages | `trace_heartbeat` | UPF_TRACE_HEARTBEAT | --tracehb | FALSE |
+| Trace droppped packets<br>`Optional` | Trace dropped dataplane packets | `trace_blocked` | UPF_TRACE_BLOCKED | --traceblock | TRUE |
+| Trace files number<br>`Optional` | Maximum number of rotated trace dump files | `trace_files` | UPF_TRACE_FILES | --tracefcnt int | 10 |
+| Trace packets in file<br>`Optional` | Maximum number of packets in one trace dump file | `trace_max_packets` | UPF_TRACE_MAX_PACKETS | --tracefpackets int | 100000 |
+| Max trace size<br>`Optional` | Maximum size (in bytes) of one trace dump file | `trace_max_size` | UPF_TRACE_MAX_SIZE | --tracefsize int | 10485760 |
+| IPv6 router advertisement<br>`Optional` | Enable or disable IPv6 Router Advertisement support | `ip6_ra_support` | UPF_IP6_RA_SUPPORT | --ip6ra | FALSE |
+| IPv6 subscriber prefix<br>`Optional` | Subscriber IPv6 prefix | `ip6_ra_prefix` | UPF_IP6_RA_PREFIX | --ip6rapref string | 2a03:d000:29a0:509::/64 |
+
 We are using [Viper](https://github.com/spf13/viper) for configuration handling, [Viper](https://github.com/spf13/viper) uses the following precedence order. Each item takes precedence over the item below it:
 
 - CLI argument
@@ -55,6 +74,26 @@ feature_ueip: true
 feature_ftup: true
 ip_pool: 10.60.0.0/16
 teid_pool: 65535
+pfcp_node: 
+association_setup_timeout: 5
+huawei_support: true
+s1u_address: 127.0.0.1
+s5s8_address: 127.0.0.1
+sxa_address: 127.0.0.2:8805
+sxa_node: 
+sxa_node_id: 127.0.0.2
+sxb_address: 127.0.0.3:8805
+sxb_node: 
+sxb_node_id: 127.0.0.3
+pa_address: 127.0.0.1
+trace_association: true
+trace_blocked: true
+trace_files: 10
+trace_max_packets: 100000
+trace_max_size: 10485760
+trace_heartbeat: false
+ip6_ra_support: false
+ip6_ra_prefix: 2a03:d000:29a0:509::/64
 ```
 
 ### Environment variables
