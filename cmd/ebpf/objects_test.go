@@ -172,7 +172,7 @@ func testGtpWithPDRBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) 
 	}
 
 	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
-	far := FarInfo{Action: 2, OuterHeaderCreation: 1, RemoteIP: 1, LocalIP: 2, Teid: 2, TransportLevelMarking: 0}
+	far := FarInfo{Action: 2, OuterHeaderCreation: 1, RemoteIP: 1, Teid: 2, TransportLevelMarking: 0}
 	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 0, MaxBitrateUL: 1000000, MaxBitrateDL: 100000, StartUL: 0, StartDL: 0}
 
 	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&far)); err != nil {
@@ -303,8 +303,8 @@ func testGtpWithSDFFilter(bpfObjects *BpfObjects) error {
 	}
 
 	pdr := PdrInfo{OuterHeaderRemoval: 0, FarId: 1, QerId: 1}
-	farForward := FarInfo{Action: 2, OuterHeaderCreation: 1, RemoteIP: 1, LocalIP: 2, Teid: 2, TransportLevelMarking: 0}
-	farDrop := FarInfo{Action: 1, OuterHeaderCreation: 1, RemoteIP: 1, LocalIP: 2, Teid: 2, TransportLevelMarking: 0}
+	farForward := FarInfo{Action: 2, OuterHeaderCreation: 1, RemoteIP: 1, Teid: 2, TransportLevelMarking: 0}
+	farDrop := FarInfo{Action: 1, OuterHeaderCreation: 1, RemoteIP: 1, Teid: 2, TransportLevelMarking: 0}
 	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 0, MaxBitrateUL: 1000000, MaxBitrateDL: 100000, StartUL: 0, StartDL: 0}
 
 	if err := bpfObjects.FarMap.Put(uint32(1), unsafe.Pointer(&farForward)); err != nil {
@@ -381,7 +381,6 @@ func testGtpExtHeader(t *testing.T, bpfObjects *BpfObjects) error {
 		Action:                2,
 		OuterHeaderCreation:   1,
 		RemoteIP:              binary.LittleEndian.Uint32(net.IP{10, 3, 0, 10}),
-		LocalIP:               binary.LittleEndian.Uint32(net.IP{10, 3, 0, 20}),
 		Teid:                  teid,
 		TransportLevelMarking: 0}
 	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 5, MaxBitrateUL: 1000000, MaxBitrateDL: 100000, StartUL: 0, StartDL: 0}
@@ -484,7 +483,6 @@ func testDLwithGTPPort(t *testing.T, bpfObjects *BpfObjects) error {
 		Action:                2,
 		OuterHeaderCreation:   1,
 		RemoteIP:              binary.LittleEndian.Uint32(net.IP{10, 3, 0, 10}),
-		LocalIP:               binary.LittleEndian.Uint32(net.IP{10, 3, 0, 20}),
 		Teid:                  teid,
 		TransportLevelMarking: 0}
 	qer := QerInfo{GateStatusUL: 0, GateStatusDL: 0, Qfi: 5, MaxBitrateUL: 1000000, MaxBitrateDL: 100000, StartUL: 0, StartDL: 0}
