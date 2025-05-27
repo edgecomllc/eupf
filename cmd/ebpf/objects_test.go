@@ -29,10 +29,10 @@ import (
 
 var (
 	n3IP = net.ParseIP("10.3.0.10")
-	n9IP = net.ParseIP("10.3.0.20")
+	//n9IP = net.ParseIP("10.3.0.20")
 
 	n3MAC = net.HardwareAddr{1, 0, 0, 3, 0, 10}
-	n9MAC = net.HardwareAddr{1, 0, 0, 3, 0, 20}
+	//n9MAC = net.HardwareAddr{1, 0, 0, 3, 0, 20}
 )
 
 func testArp(bpfObjects *BpfObjects) error {
