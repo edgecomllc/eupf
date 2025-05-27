@@ -9,7 +9,7 @@ eUPF implements 5G UPF functions according to 3GPP TS 129 244 version 16.4.0 Rel
 Procedure             | Status | 3GPP reference
 :-------------------- | :----: | :-----------------------------------------------------
 Heartbeat             |  `Y`   | TS 129 244: 6.2.2 Heartbeat Procedure
-Load Control          |  `N`   | TS 129 244: 6.2.3 Heartbeat Procedure
+Load Control          |  `N`   | TS 129 244: 6.2.3 Load Control Procedure
 Overload Control      |  `N`   | TS 129 244: 6.2.4 Overload Control Procedure
 PFD Management        |  `N`   | TS 129 244: 6.2.5 PFCP PFD Management Procedure
 Association Setup     |  `Y`   | TS 129 244: 6.2.6 PFCP Association Setup Procedure
@@ -19,7 +19,7 @@ Node Report           |  `N`   | TS 129 244: 6.2.9 PFCP Node Report Procedure
 Session Establishment |  `Y`   | TS 129 244: 6.3.2 PFCP Session Establishment Procedure
 Session Modificationt |  `Y`   | TS 129 244: 6.3.3 PFCP Session Modification Procedure
 Session Deletion      |  `Y`   | TS 129 244: 6.3.4 PFCP Session Deletion Procedure
-Session Report        |  `N`   | TS 129 244: 6.3.5 PFCP Session Report Procedure
+Session Report        |  `Y`   | TS 129 244: 6.3.5 PFCP Session Report Procedure
 
 ### PFCP messages
 
@@ -46,8 +46,8 @@ Session Modification Request   |  `Y`   | TS 129 244: 7.5.4 PFCP Session Modific
 Session Modification Response  |  `Y`   | TS 129 244: 7.5.5 PFCP Session Modification Response
 Session Deletion Request       |  `Y`   | TS 129 244: 7.5.6 PFCP Session Deletion Request
 Session Deletion Response      |  `Y`   | TS 129 244: 7.5.7 PFCP Session Deletion Response
-Session Report Request         |  `N`   | TS 129 244: 7.5.8 PFCP Session Report Request
-Session Report Response        |  `N`   | TS 129 244: 7.5.9 PFCP Session Report Response
+Session Report Request         |  `Y`   | TS 129 244: 7.5.8 PFCP Session Report Request
+Session Report Response        |  `Y`   | TS 129 244: 7.5.9 PFCP Session Report Response
 
 ## N3 interface support
 
@@ -129,17 +129,14 @@ G-PDU                                    |  `Y`   | TS 29.281: 6.1 General
 
 **3GPP reference** | **Status** | **System metric name** | **Description**
 ------------------ | :--------: | :--------------------- | ---------------------------------------------
+5.4.1              |    `N`     | Roadmap                | N3 interface related measurements
+5.4.2              |    `N`     | Roadmap                | N6 related measurements
 5.4.3.1.1          |    `Y`     | `upf_pfcp_rx`          | Number of requested N4 session establishments
 5.4.3.1.2          |    `Y`     | `upf_pfcp_rx_errors`   | Number of failed N4 session establishments
 5.4.3.2.1          |    `Y`     | `upf_pfcp_tx`          | Number of requested N4 session reports
-5.4.3              |    `N`     | `-`                    | Roadmap
-5.4.1              |    `N`     | `-`                    | Roadmap
-5.4.1.7            |    `N`     | `-`                    | Roadmap
-5.4.2.1            |    `N`     | `-`                    | Roadmap
-5.4.2.2            |    `N`     | `-`                    | Roadmap
-5.4.1.9            |    `N`     | `-`                    | Roadmap
-5.4.6              |    `N`     | `-`                    | Roadmap
-5.4.9              |    `N`     | `-`                    | Roadmap
-5.4.7              |    `N`     | `-`                    | Roadmap
-5.4.8              |    `N`     | `-`                    | Roadmap
-5.4.10             |    `N`     | `-`                    | Roadmap
+5.4.3.2.2          |    `N`     | Roadmap                | Number of successful N4 session reports
+5.4.6              |    `N`     | Roadmap                | Round-trip packet delay between PSA UPF and UE
+5.4.7              |    `N`     | Roadmap                | UL packet delay between NG-RAN and PSA UPF
+5.4.8              |    `N`     | Roadmap                | Round-trip packet delay between PSA UPF and NG-RAN
+5.4.9              |    `N`     | Roadmap                | One way packet delay between PSA UPF and UE
+5.4.10             |    `N`     | Roadmap                | QoS flow related measurements
