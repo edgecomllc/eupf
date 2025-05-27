@@ -324,10 +324,10 @@ Session Establishment Request:
     Max Bitrate UL: 200000
     QFI: 9
 2023/04/17 16:11:50 WARN: No OuterHeaderCreation
-2023/04/17 16:11:50 Saving FAR info to session: 1, {Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0 LocalIP:0}
-2023/04/17 16:11:50 EBPF: Put FAR: i=1, farInfo={Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0 LocalIP:0}
-2023/04/17 16:11:50 Saving FAR info to session: 2, {Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0 LocalIP:0}
-2023/04/17 16:11:50 EBPF: Put FAR: i=2, farInfo={Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0 LocalIP:0}
+2023/04/17 16:11:50 Saving FAR info to session: 1, {Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0}
+2023/04/17 16:11:50 EBPF: Put FAR: i=1, farInfo={Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0}
+2023/04/17 16:11:50 Saving FAR info to session: 2, {Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0}
+2023/04/17 16:11:50 EBPF: Put FAR: i=2, farInfo={Action:2 OuterHeaderCreation:0 Teid:0 RemoteIP:0}
 2023/04/17 16:11:50 Saving uplink PDR info to session: 1, {PdrInfo:{OuterHeaderRemoval:0 FarId:1} Teid:1 Ipv4:<nil>}
 2023/04/17 16:11:50 EBPF: Put PDR Uplink: teid=1, pdrInfo={OuterHeaderRemoval:0 FarId:1}
 2023/04/17 16:11:50 Saving downlink PDR info to session: 2, {PdrInfo:{OuterHeaderRemoval:0 FarId:2} Teid:0 Ipv4:10.1.0.1}
@@ -349,8 +349,8 @@ Session Modification Request:
   UpdateFAR ID: 2
     Apply Action: [2]
     Forwarding Parameters:
-2023/04/17 16:11:50 Updating FAR info: 2, {Action:2 OuterHeaderCreation:1 Teid:2 RemoteIP:3962725386 LocalIP:0}
-2023/04/17 16:11:50 EBPF: Update FAR: i=2, farInfo={Action:2 OuterHeaderCreation:1 Teid:2 RemoteIP:3962725386 LocalIP:0}
+2023/04/17 16:11:50 Updating FAR info: 2, {Action:2 OuterHeaderCreation:1 Teid:2 RemoteIP:3962725386}
+2023/04/17 16:11:50 EBPF: Update FAR: i=2, farInfo={Action:2 OuterHeaderCreation:1 Teid:2 RemoteIP:3962725386}
 2023/04/17 16:11:50 Updating downlink PDR: 2, {PdrInfo:{OuterHeaderRemoval:0 FarId:2} Teid:0 Ipv4:10.1.0.1}
 2023/04/17 16:11:50 EBPF: Update PDR Downlink: ipv4=10.1.0.1, pdrInfo={OuterHeaderRemoval:0 FarId:2}
 Stream closed EOF for free5gc/edgecomllc-eupf-universal-chart-d4b54d4b7-t2hr6 (app)
@@ -626,15 +626,13 @@ writing to stdout
                         "Action": 2,
                         "OuterHeaderCreation": 0,
                         "Teid": 0,
-                        "RemoteIP": 0,
-                        "LocalIP": 0
+                        "RemoteIP": 0
                     },
                     "2": {
                         "Action": 2,
                         "OuterHeaderCreation": 1,
                         "Teid": 3,
-                        "RemoteIP": 3962725386,
-                        "LocalIP": 3912393738
+                        "RemoteIP": 3962725386
                     }
                 },
                 "QERs": {

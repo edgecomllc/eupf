@@ -46,7 +46,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	err = func() error {
 		mapOperations := conn.mapOperations
 		for _, far := range req.CreateFAR {
-			farInfo, err := composeFarInfo(far, conn.n3Address.To4(), conn.n9Address.To4(), ebpf.FarInfo{})
+			farInfo, err := composeFarInfo(far, ebpf.FarInfo{})
 			if err != nil {
 				log.Error().Err(err).Msg("Error extracting FAR info")
 				return err
@@ -259,7 +259,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		mapOperations := conn.mapOperations
 
 		for _, far := range req.CreateFAR {
-			farInfo, err := composeFarInfo(far, conn.n3Address.To4(), conn.n9Address.To4(), ebpf.FarInfo{})
+			farInfo, err := composeFarInfo(far, ebpf.FarInfo{})
 			if err != nil {
 				log.Warn().Err(err).Msg("Error extracting FAR info")
 				return err
@@ -281,7 +281,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 				return err
 			}
 			sFarInfo := session.GetFar(farid)
-			sFarInfo.FarInfo, err = composeFarInfo(far, conn.n3Address.To4(), conn.n9Address.To4(), sFarInfo.FarInfo)
+			sFarInfo.FarInfo, err = composeFarInfo(far, sFarInfo.FarInfo)
 			if err != nil {
 				log.Warn().Err(err).Msg("Error extracting FAR info")
 				return err
@@ -565,14 +565,13 @@ func cloneIP(ip net.IP) net.IP {
 	return dup
 }
 
-func composeFarInfo(far *ie.IE, localN3Ip net.IP, localN9Ip net.IP, farInfo ebpf.FarInfo) (ebpf.FarInfo, error) {
+func composeFarInfo(far *ie.IE, farInfo ebpf.FarInfo) (ebpf.FarInfo, error) {
 	if applyAction, err := far.ApplyAction(); err == nil {
 		farInfo.Action = applyAction[0]
 	}
 	var forward []*ie.IE
 	var err error
 	if far.Type == ie.CreateFAR {
-		farInfo.LocalIP = binary.LittleEndian.Uint32(localN3Ip)
 		forward, err = far.ForwardingParameters()
 	} else if far.Type == ie.UpdateFAR {
 		forward, err = far.UpdateForwardingParameters()
@@ -594,19 +593,6 @@ func composeFarInfo(far *ie.IE, localN3Ip net.IP, localN9Ip net.IP, farInfo ebpf
 			if outerHeaderCreation.HasIPv6() {
 				log.Warn().Msg("IPv6 not supported yet, ignoring")
 				return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
-			}
-
-			destInterfaceIndex := findIEindex(forward, 42) // IE Destination Interface
-			if destInterfaceIndex == -1 {
-				log.Warn().Msg("No Destination Interface IE")
-			} else {
-				destInterface, _ := forward[destInterfaceIndex].DestinationInterface()
-				// OuterHeaderCreation == GTP-U/UDP/IPv4 && DestinationInterface == Core:
-				if (farInfo.OuterHeaderCreation&0x01) == 0x01 && (destInterface == 0x01) {
-					farInfo.LocalIP = binary.LittleEndian.Uint32(localN9Ip)
-				} else {
-					farInfo.LocalIP = binary.LittleEndian.Uint32(localN3Ip)
-				}
 			}
 		}
 	}

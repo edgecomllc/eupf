@@ -50,6 +50,11 @@ struct dataplane_config {
     __u32 n9_ipv4_address;  
 } global_config;
 
+static __always_inline int is_local_ip(__u32 ip)
+{
+    return (ip == global_config.n3_ipv4_address || ip == global_config.n9_ipv4_address);
+}
+
 static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, __u8 qfi, int teid) {
     if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, qfi, teid))
         return XDP_ABORTED;
@@ -120,7 +125,7 @@ static __always_inline __u16 handle_n6_packet_ipv4(struct packet_context *ctx) {
     update_urr(pdr->urr2_id, 0, packet_size);
 
     upf_printk("upf: [n6] use mapping %pI4 -> teid:%u", &ip4->daddr, far->teid);
-    return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
+    return send_to_gtp_tunnel(ctx, global_config.n3_ipv4_address, far->remoteip, tos, qer->qfi, far->teid);
 }
 
 static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_context *ctx) {
@@ -183,7 +188,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     update_urr(pdr->urr2_id, 0, packet_size);
 
     upf_printk("upf: [n6] use mapping %pI6c -> teid:%u", &ip6->daddr, far->teid);
-    return send_to_gtp_tunnel(ctx, far->localip, far->remoteip, tos, qer->qfi, far->teid);
+    return send_to_gtp_tunnel(ctx, global_config.n3_ipv4_address, far->remoteip, tos, qer->qfi, far->teid);
 }
 
 static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx) {
@@ -318,7 +323,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     if (far->outer_header_creation & OHC_GTP_U_UDP_IPv4)
     {
         upf_printk("upf: [n3] session for teid:%u -> %u remote:%pI4", teid, far->teid, &far->remoteip);
-        update_gtp_tunnel(ctx, far->localip, far->remoteip, 0, far->teid);
+        update_gtp_tunnel(ctx, global_config.n9_ipv4_address, far->remoteip, 0, far->teid);
     } else if (outer_header_removal == OHR_GTP_U_UDP_IPv4) {
         long result = remove_gtp_header(ctx);
         if (result) {
@@ -332,7 +337,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
      */
     // if(ctx->ip4 && ctx->ip4->ttl < 2)
     // {
-    //     if (-1 == add_icmp_over_ip4_headers(ctx, far->localip, ctx->ip4->saddr))
+    //     if (-1 == add_icmp_over_ip4_headers(ctx, ctx->ip4->daddr, ctx->ip4->saddr))
     //         return XDP_ABORTED;
 
     //     upf_printk("upf: send icmp ttl exeeded %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
@@ -342,10 +347,10 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     /*
      * Reply to ping requests (debug purspose only)
      */
-    if(ctx->ip4 && ctx->ip4->daddr == far->localip && ctx->ip4->protocol == IPPROTO_ICMP)
+    if(ctx->ip4 && is_local_ip(ctx->ip4->daddr) && ctx->ip4->protocol == IPPROTO_ICMP)
     {
         upf_printk("upf: [n3] prepare icmp ping reply to request %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
-        if (-1 == prepare_icmp_echo_reply(ctx, far->localip, ctx->ip4->saddr))
+        if (-1 == prepare_icmp_echo_reply(ctx, ctx->ip4->daddr, ctx->ip4->saddr))
             return XDP_ABORTED;
 
         upf_printk("upf: [n3] send icmp ping reply %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);

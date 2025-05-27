@@ -16,7 +16,6 @@ type FarMapElement struct {
 	OuterHeaderCreation   uint8  `json:"outer_header_creation"`
 	Teid                  uint32 `json:"teid"`
 	RemoteIP              uint32 `json:"remote_ip"`
-	LocalIP               uint32 `json:"local_ip"`
 	TransportLevelMarking uint16 `json:"transport_level_marking"`
 }
 
@@ -41,7 +40,6 @@ func (h *ApiHandler) getFarValue(c *gin.Context) {
 		OuterHeaderCreation:   value.OuterHeaderCreation,
 		Teid:                  value.Teid,
 		RemoteIP:              value.RemoteIP,
-		LocalIP:               value.LocalIP,
 		TransportLevelMarking: value.TransportLevelMarking,
 	})
 }
@@ -59,7 +57,6 @@ func (h *ApiHandler) setFarValue(c *gin.Context) {
 		OuterHeaderCreation:   farElement.OuterHeaderCreation,
 		Teid:                  farElement.Teid,
 		RemoteIP:              farElement.RemoteIP,
-		LocalIP:               farElement.LocalIP,
 		TransportLevelMarking: farElement.TransportLevelMarking,
 	}
 
