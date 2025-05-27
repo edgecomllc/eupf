@@ -27,6 +27,14 @@ import (
 	"github.com/google/gopacket/layers"
 )
 
+var (
+	n3IP = net.ParseIP("10.3.0.10")
+	n9IP = net.ParseIP("10.3.0.20")
+
+	//n3MAC = net.HardwareAddr{1, 0, 0, 3, 0, 10}
+	//n9MAC = net.HardwareAddr{1, 0, 0, 3, 0, 20}
+)
+
 func testArp(bpfObjects *BpfObjects) error {
 
 	packetArp := gopacket.NewSerializeBuffer()
@@ -559,6 +567,15 @@ func TestEntrypoint(t *testing.T) {
 	}
 
 	defer bpfObjects.Close()
+
+	entrypointConfig := IpEntrypointDataplaneConfig{
+		N3Ipv4Address: binary.LittleEndian.Uint32(n3IP.To4()),
+		N9Ipv4Address: binary.LittleEndian.Uint32(n9IP.To4()),
+	}
+
+	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
+		t.Fatalf("scan't set dataplane global config: %s", err.Error())
+	}
 
 	t.Run("Arp test", func(t *testing.T) {
 		err := testArp(bpfObjects)
