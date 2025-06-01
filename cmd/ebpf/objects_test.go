@@ -27,6 +27,14 @@ var (
 	n9MAC = net.HardwareAddr{1, 0, 0, 3, 0, 20}
 )
 
+var (
+	n3IP = net.ParseIP("10.3.0.10")
+	n9IP = net.ParseIP("10.3.0.20")
+
+	//n3MAC = net.HardwareAddr{1, 0, 0, 3, 0, 10}
+	//n9MAC = net.HardwareAddr{1, 0, 0, 3, 0, 20}
+)
+
 func testArp(bpfObjects *BpfObjects) error {
 
 	packetArp := gopacket.NewSerializeBuffer()
@@ -1046,6 +1054,15 @@ func TestEntrypoint(t *testing.T) {
 		Ip6RaPrefixLength: 64,
 	}
 	copy(entrypointConfig.Ip6RaPrefix[:], IPv6Prefix.To16())
+
+	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
+		t.Fatalf("scan't set dataplane global config: %s", err.Error())
+	}
+
+	entrypointConfig := IpEntrypointDataplaneConfig{
+		N3Ipv4Address: binary.LittleEndian.Uint32(n3IP.To4()),
+		N9Ipv4Address: binary.LittleEndian.Uint32(n9IP.To4()),
+	}
 
 	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
 		t.Fatalf("scan't set dataplane global config: %s", err.Error())
