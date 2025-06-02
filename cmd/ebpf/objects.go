@@ -168,7 +168,7 @@ func ResizeEbpfMap(eMap **ebpf.Map, eProg *ebpf.Program, newSize uint32) error {
 	return nil
 }
 
-func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32, pdrMapSize uint32) error {
+func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32, pdrMapSize uint32, urrMapSize uint32) error {
 	//QER
 	if err := ResizeEbpfMap(&bpfObjects.QerMap, bpfObjects.UpfIpEntrypointFunc, qerMapSize); err != nil {
 		log.Info().Msgf("Failed to resize QER map: %s", err)
@@ -192,6 +192,12 @@ func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32
 	}
 	if err := ResizeEbpfMap(&bpfObjects.PdrMapUplinkIp4, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
 		log.Info().Msgf("Failed to resize PDR map: %s", err)
+		return err
+	}
+
+	// URR
+	if err := ResizeEbpfMap(&bpfObjects.UrrMap, bpfObjects.UpfIpEntrypointFunc, urrMapSize); err != nil {
+		log.Info().Msgf("Failed to resize URR map: %s", err)
 		return err
 	}
 
