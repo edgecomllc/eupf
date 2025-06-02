@@ -16,15 +16,15 @@ type EupfRepository interface {
 	StopTrace(ctx context.Context, imsi, msisdn *string, baseURL string) error
 
 	GetUpfConfig(ctx context.Context, baseURL string) (*UpfConfig, error)
-	RestoreConfigLoggingLevel(ctx context.Context, baseURL string, logLevel string) error
-	RestoreConfigLoggingCaller(ctx context.Context, baseURL string, logCaller bool) error
-	RestoreConfigDataPlaneEbpf(ctx context.Context, baseURL string, interfaceName []string, xdpAttachMode string) error
-	RestoreConfigDataPlaneAddresses(ctx context.Context, baseURL string, n3Address string, n9Address string) error
-	RestoreConfigPFCPN4(ctx context.Context, baseURL string, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string) error
-	RestoreConfigPFCPSxa(ctx context.Context, baseURL string, sxaAddress string, sxaNodeId string, sxaRemoteNode []string) error
-	RestoreConfigPFCPSxb(ctx context.Context, baseURL string, sxbAddress string, sxbNodeId string, sxbRemoteNode []string) error
-	RestoreConfigPFCPTimers(ctx context.Context, baseURL string, associationSetupTimeout uint32, heartbeatTimeout uint32) error
-	RestoreConfigGTPPath(ctx context.Context, baseURL string, gtpPeer []string, gtpEchoInterval uint32) error
+	RestoreConfigLoggingLevel(ctx context.Context, logLevel string, baseURL string) error
+	RestoreConfigLoggingCaller(ctx context.Context, logCaller bool, baseURL string) error
+	RestoreConfigDataPlaneEbpf(ctx context.Context, interfaceName []string, xdpAttachMode string, baseURL string) error
+	RestoreConfigDataPlaneAddresses(ctx context.Context, n3Address string, n9Address string, baseURL string) error
+	RestoreConfigPFCPN4(ctx context.Context, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string, baseURL string) error
+	RestoreConfigPFCPSxa(ctx context.Context, sxaAddress string, sxaNodeId string, sxaRemoteNode []string, baseURL string) error
+	RestoreConfigPFCPSxb(ctx context.Context, sxbAddress string, sxbNodeId string, sxbRemoteNode []string, baseURL string) error
+	RestoreConfigPFCPTimers(ctx context.Context, associationSetupTimeout uint32, heartbeatTimeout uint32, baseURL string) error
+	RestoreConfigGTPPath(ctx context.Context, gtpPeer []string, gtpEchoInterval uint32, baseURL string) error
 
 	SessionShow(ctx context.Context, ip, teid, baseURL string) ([]PfcpSession, error)
 	SessionReleaseByIMSI(ctx context.Context, imsi, baseURL string) error
@@ -33,8 +33,8 @@ type EupfRepository interface {
 }
 
 type EupfUseCase interface {
-	ConfigSetNewEUPFBaseURL(baseURL string) error
-	ConfigShowEUPFBaseURL() (string, error)
+	CliConfigSetNewEUPFBaseURL(baseURL string) error
+	CliConfigShowEUPFBaseURL() (string, error)
 
 	BackupList(ctx context.Context) ([]BackupRecord, error)
 	BackupCreate(ctx context.Context, baseURL string) error
@@ -46,4 +46,14 @@ type EupfUseCase interface {
 
 	SessionShow(ctx context.Context, ip, teid, baseURL string) ([]PfcpSession, error)
 	SessionRelease(ctx context.Context, imsi, msisdn, id, baseURL string) error
+
+	LoggingLevel(ctx context.Context, logLevel string, baseURL string) error
+	LoggingCaller(ctx context.Context, logCaller bool, baseURL string) error
+	DataPlaneEbpf(ctx context.Context, interfaceName []string, xdpAttachMode string, baseURL string) error
+	DataPlaneAddresses(ctx context.Context, n3Address string, n9Address string, baseURL string) error
+	PFCPN4(ctx context.Context, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string, baseURL string) error
+	PFCPSxa(ctx context.Context, sxaAddress string, sxaNodeId string, sxaRemoteNode []string, baseURL string) error
+	PFCPSxb(ctx context.Context, sxbAddress string, sxbNodeId string, sxbRemoteNode []string, baseURL string) error
+	PFCPTimers(ctx context.Context, associationSetupTimeout uint32, heartbeatTimeout uint32, baseURL string) error
+	GTPPath(ctx context.Context, gtpPeer []string, gtpEchoInterval uint32, baseURL string) error
 }

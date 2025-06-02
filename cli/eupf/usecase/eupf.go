@@ -115,39 +115,39 @@ func (e *Eupf) BackupRestore(ctx context.Context, tempBaseURL string, name strin
 		return err
 	}
 
-	if err := e.eupfRepo.RestoreConfigLoggingLevel(ctx, baseURL, config.LoggingLevel); err != nil {
+	if err := e.eupfRepo.RestoreConfigLoggingLevel(ctx, config.LoggingLevel, baseURL); err != nil {
 		log.Warn().Msgf("Failed to restore logging level: %s", err)
 	}
 
-	if err := e.eupfRepo.RestoreConfigLoggingCaller(ctx, baseURL, config.LoggingCaller); err != nil {
+	if err := e.eupfRepo.RestoreConfigLoggingCaller(ctx, config.LoggingCaller, baseURL); err != nil {
 		log.Warn().Msgf("Failed to restore logging caller: %s", err)
 	}
 
-	if err := e.eupfRepo.RestoreConfigDataPlaneEbpf(ctx, baseURL, config.InterfaceName, config.XDPAttachMode); err != nil {
+	if err := e.eupfRepo.RestoreConfigDataPlaneEbpf(ctx, config.InterfaceName, config.XDPAttachMode, baseURL); err != nil {
 		log.Warn().Msgf("Failed to restore data plane ebpf: %s", err)
 	}
 
-	if err := e.eupfRepo.RestoreConfigDataPlaneAddresses(ctx, baseURL, config.N3Address, config.N9Address); err != nil {
+	if err := e.eupfRepo.RestoreConfigDataPlaneAddresses(ctx, config.N3Address, config.N9Address, baseURL); err != nil {
 		log.Warn().Msgf("Failed to restore data plane addresses: %s", err)
 	}
 
-	if err := e.eupfRepo.RestoreConfigPFCPN4(ctx, baseURL, config.PfcpAddress, config.PfcpNodeId, config.PfcpRemoteNode); err != nil {
+	if err := e.eupfRepo.RestoreConfigPFCPN4(ctx, config.PfcpAddress, config.PfcpNodeId, config.PfcpRemoteNode, baseURL); err != nil {
 		log.Warn().Msgf("Failed to restore PFCP N4: %s", err)
 	}
 
-	if err := e.eupfRepo.RestoreConfigPFCPSxa(ctx, baseURL, config.SxaLocalAddress, config.SxaLocalNodeId, config.SxaRemoteNode); err != nil {
+	if err := e.eupfRepo.RestoreConfigPFCPSxa(ctx, config.SxaLocalAddress, config.SxaLocalNodeId, config.SxaRemoteNode, baseURL); err != nil {
 		log.Warn().Msgf("Failed to restore PFCP SXA: %s", err)
 	}
 
-	if err := e.eupfRepo.RestoreConfigPFCPSxb(ctx, baseURL, config.SxbLocalAddress, config.SxbLocalNodeId, config.SxbRemoteNode); err != nil {
+	if err := e.eupfRepo.RestoreConfigPFCPSxb(ctx, config.SxbLocalAddress, config.SxbLocalNodeId, config.SxbRemoteNode, baseURL); err != nil {
 		log.Warn().Msgf("Failed to restore PFCP SXB: %s", err)
 	}
 
-	if err := e.eupfRepo.RestoreConfigPFCPTimers(ctx, baseURL, config.AssociationSetupTimeout, config.HeartbeatTimeout); err != nil {
+	if err := e.eupfRepo.RestoreConfigPFCPTimers(ctx, config.AssociationSetupTimeout, config.HeartbeatTimeout, baseURL); err != nil {
 		log.Warn().Msgf("Failed to restore PFCP timers: %s", err)
 	}
 
-	if err := e.eupfRepo.RestoreConfigGTPPath(ctx, baseURL, config.GtpPeer, config.GtpEchoInterval); err != nil {
+	if err := e.eupfRepo.RestoreConfigGTPPath(ctx, config.GtpPeer, config.GtpEchoInterval, baseURL); err != nil {
 		log.Warn().Msgf("Failed to restore GTP path: %s", err)
 	}
 
@@ -172,7 +172,7 @@ func validateBaseURL(u string) error {
 	return nil
 }
 
-func (e *Eupf) ConfigSetNewEUPFBaseURL(baseURL string) error {
+func (e *Eupf) CliConfigSetNewEUPFBaseURL(baseURL string) error {
 	if err := validateBaseURL(baseURL); err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func (e *Eupf) ConfigSetNewEUPFBaseURL(baseURL string) error {
 	return e.cfg.UpdateFile(map[string]interface{}{baseURLConfigKey: baseURL})
 }
 
-func (e *Eupf) ConfigShowEUPFBaseURL() (string, error) {
+func (e *Eupf) CliConfigShowEUPFBaseURL() (string, error) {
 	if e.cfg == nil {
 		return "", ErrNotFoundConfig
 	}
@@ -220,4 +220,85 @@ func (e *Eupf) SessionRelease(ctx context.Context, imsi, msisdn, id, tempBaseURL
 	}
 
 	return nil
+}
+
+func (e *Eupf) LoggingLevel(ctx context.Context, logLevel string, tempBaseURL string) error {
+	tempBaseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return err
+	}
+
+	return e.eupfRepo.RestoreConfigLoggingLevel(ctx, logLevel, tempBaseURL)
+}
+
+func (e *Eupf) LoggingCaller(ctx context.Context, logCaller bool, tempBaseURL string) error {
+	tempBaseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return err
+	}
+
+	return e.eupfRepo.RestoreConfigLoggingCaller(ctx, logCaller, tempBaseURL)
+}
+
+func (e *Eupf) DataPlaneEbpf(ctx context.Context, interfaceName []string, xdpAttachMode string, tempBaseURL string) error {
+	tempBaseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return err
+	}
+
+	return e.eupfRepo.RestoreConfigDataPlaneEbpf(ctx, interfaceName, xdpAttachMode, tempBaseURL)
+}
+
+func (e *Eupf) DataPlaneAddresses(ctx context.Context, n3Address string, n9Address string, tempBaseURL string) error {
+	tempBaseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return err
+	}
+
+	return e.eupfRepo.RestoreConfigDataPlaneAddresses(ctx, n3Address, n9Address, tempBaseURL)
+}
+
+func (e *Eupf) PFCPN4(ctx context.Context, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string, tempBaseURL string) error {
+	tempBaseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return err
+	}
+
+	return e.eupfRepo.RestoreConfigPFCPN4(ctx, pfcpAddress, pfcpNodeId, pfcpRemoteNode, tempBaseURL)
+}
+
+func (e *Eupf) PFCPSxa(ctx context.Context, sxaAddress string, sxaNodeId string, sxaRemoteNode []string, tempBaseURL string) error {
+	tempBaseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return err
+	}
+
+	return e.eupfRepo.RestoreConfigPFCPSxa(ctx, sxaAddress, sxaNodeId, sxaRemoteNode, tempBaseURL)
+}
+
+func (e *Eupf) PFCPSxb(ctx context.Context, sxbAddress string, sxbNodeId string, sxbRemoteNode []string, tempBaseURL string) error {
+	tempBaseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return err
+	}
+
+	return e.eupfRepo.RestoreConfigPFCPSxb(ctx, sxbAddress, sxbNodeId, sxbRemoteNode, tempBaseURL)
+}
+
+func (e *Eupf) PFCPTimers(ctx context.Context, associationSetupTimeout uint32, heartbeatTimeout uint32, tempBaseURL string) error {
+	tempBaseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return err
+	}
+
+	return e.eupfRepo.RestoreConfigPFCPTimers(ctx, associationSetupTimeout, heartbeatTimeout, tempBaseURL)
+}
+
+func (e *Eupf) GTPPath(ctx context.Context, gtpPeer []string, gtpEchoInterval uint32, tempBaseURL string) error {
+	tempBaseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return err
+	}
+
+	return e.eupfRepo.RestoreConfigGTPPath(ctx, gtpPeer, gtpEchoInterval, tempBaseURL)
 }

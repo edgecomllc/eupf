@@ -136,8 +136,7 @@ func (r *EupfHttpRepository) sendRestoreRequest(ctx context.Context, baseURL, pa
 
 	return nil
 }
-
-func (r *EupfHttpRepository) RestoreConfigLoggingLevel(ctx context.Context, baseURL string, logLevel string) error {
+func (r *EupfHttpRepository) RestoreConfigLoggingLevel(ctx context.Context, logLevel string, baseURL string) error {
 	body := models.LoggingLevelConfig{
 		LoggingLevel: logLevel,
 	}
@@ -145,7 +144,7 @@ func (r *EupfHttpRepository) RestoreConfigLoggingLevel(ctx context.Context, base
 	return r.sendRestoreRequest(ctx, baseURL, "/config/logging_level", body)
 }
 
-func (r *EupfHttpRepository) RestoreConfigLoggingCaller(ctx context.Context, baseURL string, logCaller bool) error {
+func (r *EupfHttpRepository) RestoreConfigLoggingCaller(ctx context.Context, logCaller bool, baseURL string) error {
 	body := models.LoggingCallerConfig{
 		LoggingCaller: logCaller,
 	}
@@ -154,7 +153,7 @@ func (r *EupfHttpRepository) RestoreConfigLoggingCaller(ctx context.Context, bas
 
 }
 
-func (r *EupfHttpRepository) RestoreConfigDataPlaneEbpf(ctx context.Context, baseURL string, interfaceName []string, xdpAttachMode string) error {
+func (r *EupfHttpRepository) RestoreConfigDataPlaneEbpf(ctx context.Context, interfaceName []string, xdpAttachMode string, baseURL string) error {
 	body := models.DataPlaneEbpfConfig{
 		InterfaceName: interfaceName,
 		XDPAttachMode: xdpAttachMode,
@@ -164,7 +163,7 @@ func (r *EupfHttpRepository) RestoreConfigDataPlaneEbpf(ctx context.Context, bas
 
 }
 
-func (r *EupfHttpRepository) RestoreConfigDataPlaneAddresses(ctx context.Context, baseURL string, n3Address string, n9Address string) error {
+func (r *EupfHttpRepository) RestoreConfigDataPlaneAddresses(ctx context.Context, n3Address string, n9Address string, baseURL string) error {
 	body := models.DataPlaneAddressesConfig{
 		N3Address: n3Address,
 		N9Address: n9Address,
@@ -174,7 +173,7 @@ func (r *EupfHttpRepository) RestoreConfigDataPlaneAddresses(ctx context.Context
 
 }
 
-func (r *EupfHttpRepository) RestoreConfigPFCPN4(ctx context.Context, baseURL string, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string) error {
+func (r *EupfHttpRepository) RestoreConfigPFCPN4(ctx context.Context, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string, baseURL string) error {
 	body := models.PFCPN4Config{
 		PFCPAddress:    pfcpAddress,
 		PFCPNodeID:     pfcpNodeId,
@@ -185,7 +184,7 @@ func (r *EupfHttpRepository) RestoreConfigPFCPN4(ctx context.Context, baseURL st
 
 }
 
-func (r *EupfHttpRepository) RestoreConfigPFCPSxa(ctx context.Context, baseURL string, sxaAddress string, sxaNodeId string, sxaRemoteNode []string) error {
+func (r *EupfHttpRepository) RestoreConfigPFCPSxa(ctx context.Context, sxaAddress string, sxaNodeId string, sxaRemoteNode []string, baseURL string) error {
 	body := models.PFCPSxaConfig{
 		SXAAddress:    sxaAddress,
 		SXANodeID:     sxaNodeId,
@@ -196,7 +195,7 @@ func (r *EupfHttpRepository) RestoreConfigPFCPSxa(ctx context.Context, baseURL s
 
 }
 
-func (r *EupfHttpRepository) RestoreConfigPFCPSxb(ctx context.Context, baseURL string, sxbAddress string, sxbNodeId string, sxbRemoteNode []string) error {
+func (r *EupfHttpRepository) RestoreConfigPFCPSxb(ctx context.Context, sxbAddress string, sxbNodeId string, sxbRemoteNode []string, baseURL string) error {
 	body := models.PFCPSxbConfig{
 		SXBAddress:    sxbAddress,
 		SXBNodeID:     sxbNodeId,
@@ -207,7 +206,7 @@ func (r *EupfHttpRepository) RestoreConfigPFCPSxb(ctx context.Context, baseURL s
 
 }
 
-func (r *EupfHttpRepository) RestoreConfigPFCPTimers(ctx context.Context, baseURL string, associationSetupTimeout uint32, heartbeatTimeout uint32) error {
+func (r *EupfHttpRepository) RestoreConfigPFCPTimers(ctx context.Context, associationSetupTimeout uint32, heartbeatTimeout uint32, baseURL string) error {
 	body := models.PFCPTimersConfig{
 		AssociationSetupTimeout: associationSetupTimeout,
 		HeartbeatTimeout:        heartbeatTimeout,
@@ -216,7 +215,7 @@ func (r *EupfHttpRepository) RestoreConfigPFCPTimers(ctx context.Context, baseUR
 	return r.sendRestoreRequest(ctx, baseURL, "/config/pfcp_timers", body)
 }
 
-func (r *EupfHttpRepository) RestoreConfigGTPPath(ctx context.Context, baseURL string, gtpPeer []string, gtpEchoInterval uint32) error {
+func (r *EupfHttpRepository) RestoreConfigGTPPath(ctx context.Context, gtpPeer []string, gtpEchoInterval uint32, baseURL string) error {
 	body := models.GTPPathConfig{
 		GtpPeer:         gtpPeer,
 		GtpEchoInterval: gtpEchoInterval,
