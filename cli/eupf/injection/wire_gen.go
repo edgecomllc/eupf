@@ -8,7 +8,7 @@ package injection
 
 import (
 	"github.com/edgecomllc/eupf/cli/config"
-	"github.com/edgecomllc/eupf/cli/eupf/delivery/cli"
+	"github.com/edgecomllc/eupf/cli/eupf/delivery"
 	"github.com/edgecomllc/eupf/cli/eupf/repository/file"
 	"github.com/edgecomllc/eupf/cli/eupf/repository/http"
 	"github.com/edgecomllc/eupf/cli/eupf/usecase"
@@ -16,10 +16,10 @@ import (
 
 // Injectors from wire.go:
 
-func InitEupfCLI(baseURL string, cfg *config.Config) *cli.CLI {
+func InitEupfCLI(baseURL string, cfg *config.Config) *delivery.CLI {
 	eupfRepository := http.NewEupfHttpRepository(baseURL)
 	eupfLocalRepository := file.NewFileRepository(cfg)
 	eupfUseCase := usecase.NewEupf(eupfRepository, eupfLocalRepository, cfg)
-	cliCLI := cli.NewCLI(eupfUseCase)
-	return cliCLI
+	cli := delivery.NewCLI(eupfUseCase)
+	return cli
 }
