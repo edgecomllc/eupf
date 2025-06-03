@@ -8,6 +8,7 @@ import (
 
 	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/gin-gonic/gin"
+	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
 )
 
@@ -387,11 +388,21 @@ func (h *ApiHandler) updateConfigFile(data interface{}) error {
 		cfgs[jsonTag] = fieldValue.Interface()
 	}
 
-	err := h.Cfg.UpdateFile(cfgs)
-	if err != nil {
+	if err := h.Cfg.UpdateFile(cfgs); err != nil {
 		log.Error().Err(err).Msgf("failed to update config: %s", err.Error())
-
 		return err
+	}
+
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Result:           h.Cfg,
+		WeaklyTypedInput: true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create decoder: %w", err)
+	}
+
+	if err := decoder.Decode(cfgs); err != nil {
+		return fmt.Errorf("decode to UpfConfig failed: %w", err)
 	}
 
 	return nil
