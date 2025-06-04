@@ -134,10 +134,6 @@ func ResizeEbpfMap(eMap **ebpf.Map, eProg *ebpf.Program, newSize uint32) error {
 		MaxEntries: mapInfo.MaxEntries,
 		Flags:      mapInfo.Flags,
 	}
-	if err != nil {
-		log.Info().Msgf("Failed to close old ebpf map: %s, %+v", err, *eMap)
-		return err
-	}
 
 	// Unpin the old map
 	err = (*eMap).Unpin()
