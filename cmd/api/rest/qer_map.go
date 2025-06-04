@@ -37,9 +37,9 @@ func (h *ApiHandler) listQerMapContent(c *gin.Context) {
 //	@Success		200	{object}	[]ebpf.QerMapElement
 //	@Router			/qer_map/{id} [get]
 func (h *ApiHandler) getQerValue(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		log.Info().Msgf("Error converting id to int: %s", err.Error())
+		log.Info().Msgf("Error converting id to uint32: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -76,6 +76,13 @@ func (h *ApiHandler) getQerValue(c *gin.Context) {
 //	@Failure 500 {object} map[string]string
 //	@Router /qer_map/{id} [put]
 func (h *ApiHandler) setQerValue(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		log.Info().Msgf("Error converting id to uint32: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	var qerElement ebpf.QerMapElement
 	if err := c.BindJSON(&qerElement); err != nil {
 		log.Printf("Parsing request body error: %s", err.Error())
@@ -91,7 +98,7 @@ func (h *ApiHandler) setQerValue(c *gin.Context) {
 		MaxBitrateDL: qerElement.MaxBitrateDL,
 	}
 
-	if err := h.BpfObjects.IpEntrypointObjects.QerMap.Put(uint32(qerElement.Id), unsafe.Pointer(&value)); err != nil {
+	if err := h.BpfObjects.IpEntrypointObjects.QerMap.Put(uint32(id), unsafe.Pointer(&value)); err != nil {
 		log.Printf("Error writting map: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
