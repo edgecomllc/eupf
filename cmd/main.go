@@ -47,7 +47,7 @@ func main() {
 	}
 
 	if config.Conf.EbpfMapResize {
-		if err := bpfObjects.ResizeAllMaps(config.Conf.QerMapSize, config.Conf.FarMapSize, config.Conf.PdrMapSize); err != nil {
+		if err := bpfObjects.ResizeAllMaps(config.Conf.QerMapSize, config.Conf.FarMapSize, config.Conf.PdrMapSize, config.Conf.UrrMapSize); err != nil {
 			log.Fatal().Msgf("Failed to set ebpf map sizes: %s", err)
 		}
 	}

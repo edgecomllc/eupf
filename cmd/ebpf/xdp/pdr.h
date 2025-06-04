@@ -21,11 +21,8 @@
 #include <linux/ipv6.h>
 
 #include "xdp/sdf_filter.h"
+#include "xdp/sizing.h"
 
-#define PDR_MAP_TEID_IPV4_SIZE 1024
-#define PDR_MAP_DOWNLINK_IPV4_SIZE 1024
-#define PDR_MAP_DOWNLINK_IPV6_SIZE 1024
-#define FAR_MAP_SIZE 1024
 
 
 enum outer_header_removal_values {
@@ -70,7 +67,7 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, __u32);
     __type(value, struct pdr_info);
-    __uint(max_entries, PDR_MAP_DOWNLINK_IPV4_SIZE);
+    __uint(max_entries, PDR_MAP_SIZE);
 } pdr_map_downlink_ip4 SEC(".maps");
 
 /* ipv6 -> PDR */
@@ -79,7 +76,7 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, struct in6_addr);
     __type(value, struct pdr_info);
-    __uint(max_entries, PDR_MAP_DOWNLINK_IPV6_SIZE);
+    __uint(max_entries, PDR_MAP_SIZE);
 } pdr_map_downlink_ip6 SEC(".maps");
 
 
@@ -89,7 +86,7 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, __u32);
     __type(value, struct pdr_info);
-    __uint(max_entries, PDR_MAP_TEID_IPV4_SIZE);
+    __uint(max_entries, PDR_MAP_SIZE);
 } pdr_map_teid_ip4 SEC(".maps");
 
 enum far_action_mask {

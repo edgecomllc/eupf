@@ -20,13 +20,13 @@
 #include <linux/bpf.h>
 
 #include "xdp/utils/trace.h"
+#include "xdp/sizing.h"
 
 struct urr_info {
     __u64 ul;
     __u64 dl;
 };
 
-#define URR_MAP_SIZE 1024
 
 /* URR ID -> URR */
 struct
