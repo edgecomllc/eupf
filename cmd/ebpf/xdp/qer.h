@@ -18,6 +18,7 @@
 
 #include <bpf/bpf_helpers.h>
 #include <linux/bpf.h>
+#include "xdp/sizing.h"
 
 enum gate_status {
     GATE_STATUS_OPEN = 0,
@@ -36,7 +37,6 @@ struct qer_info {
     volatile __u64 dl_start;
 };
 
-#define QER_MAP_SIZE 1024
 
 /* QER ID -> QER */
 struct
