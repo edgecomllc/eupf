@@ -135,15 +135,14 @@ func NewPfcpConnection(
 func (connection *PfcpConnection) Update(
 	pfcpAddress string,
 	pfcpNodeId string,
-	pfcpRemoteNodes []string,
 ) error {
-	if connection.udpConn.LocalAddr().String() != pfcpAddress {
-		udpAddr, err := net.ResolveUDPAddr("udp", pfcpAddress)
-		if err != nil {
-			log.Warn().Msgf("Can't resolve UDP address: %s", err.Error())
-			return err
-		}
+	udpAddr, err := net.ResolveUDPAddr("udp", pfcpAddress)
+	if err != nil {
+		log.Warn().Msgf("Can't resolve UDP address: %s", err.Error())
+		return err
+	}
 
+	if connection.udpConn.LocalAddr().String() != udpAddr.String() {
 		newUdpConn, err := net.ListenUDP("udp", udpAddr)
 		if err != nil {
 			log.Warn().Msgf("Can't listen UDP address: %s", err.Error())
@@ -154,15 +153,16 @@ func (connection *PfcpConnection) Update(
 
 		oldUDPConn := connection.udpConn
 		connection.udpConn = newUdpConn
-		connection.nodeId = pfcpNodeId
 
-		err = oldUDPConn.Close()
-		if err != nil {
+		if err = oldUDPConn.Close(); err != nil {
 			log.Error().Msgf("Can't close old UDP connection: %s", err.Error())
 		}
 
 		log.Info().Msgf("Delete old PFCP connection: %v", udpAddr)
+
 	}
+
+	connection.nodeId = pfcpNodeId
 
 	return nil
 }

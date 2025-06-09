@@ -182,7 +182,7 @@ func main() {
 			log.Warn().Msgf("failed to create sxa association connector: %v", err)
 			continue
 		}
-		sxaRemoteNodes = append(remoteNodes, connector)
+		sxaRemoteNodes = append(sxaRemoteNodes, connector)
 	}
 	sxaConn.SetRemoteNodes(sxaRemoteNodes)
 	go sxaConn.Run()
@@ -210,7 +210,7 @@ func main() {
 			log.Warn().Msgf("failed to create sxb association connector: %v", err)
 			continue
 		}
-		sxbRemoteNodes = append(remoteNodes, connector)
+		sxbRemoteNodes = append(sxbRemoteNodes, connector)
 	}
 	sxbConn.SetRemoteNodes(sxbRemoteNodes)
 	go sxbConn.Run()

@@ -163,7 +163,7 @@ func UpdatePFCPConnections(
 ) error {
 	conn, ok := pfcpSrv[keyName]
 	if ok {
-		if err := conn.Update(address, nodeID, remoteNodes); err != nil {
+		if err := conn.Update(address, nodeID); err != nil {
 			return err
 		}
 	} else {
