@@ -532,6 +532,50 @@ func (connection *PfcpConnection) SendReportsSDF(referenceID uint32, sdfFilter s
 	}
 }
 
+func (connection *PfcpConnection) ReleaseSessionByID(seid uint64) bool {
+	for _, assocaition := range connection.NodeAssociations {
+		if session, ok := assocaition.Sessions[seid]; ok {
+			pdrList := []uint16{}
+			for pdrID := range session.PDRs {
+				pdrList = append(pdrList, uint16(pdrID))
+			}
+			SendSessionReportSessionRelease(
+				connection,
+				session.RemoteSEID,
+				assocaition.NewSequenceID(),
+				assocaition.Addr,
+				session.IsSessionTraced(),
+				pdrList)
+
+			return true
+		}
+	}
+
+	return false
+}
+
+func (connection *PfcpConnection) ReleaseSessionByUserID(imsi string, msisdn string) bool {
+	for _, assocaition := range connection.NodeAssociations {
+		for _, session := range assocaition.Sessions {
+			if session.IMSI == imsi || session.MSISDN == msisdn {
+				pdrList := []uint16{}
+				for pdrID := range session.PDRs {
+					pdrList = append(pdrList, uint16(pdrID))
+				}
+				SendSessionReportSessionRelease(
+					connection,
+					session.RemoteSEID,
+					assocaition.NewSequenceID(),
+					assocaition.Addr,
+					session.IsSessionTraced(),
+					pdrList)
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (connection *PfcpConnection) GetConnAddr() string {
 	return connection.nodeAddrV4.String()
 }
@@ -736,6 +780,50 @@ func SendDownlinkNotificationReport(
 
 	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
 	log.Debug().Msgf("Sent DLDR Session Report Request to: %s", associationAddr)
+	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
+	if err == nil {
+		if err := conn.SendMessageWithTrace(sessionReport, udpAddr, traced); err != nil {
+			log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
+		}
+	} else {
+		log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
+	}
+}
+
+func SendSessionReportSessionRelease(conn *PfcpConnection, seid uint64, sequenceID uint32, associationAddr string, traced bool, pdrList []uint16) {
+
+	pdrListIE := []*ie.IE{}
+	for _, pdrID := range pdrList {
+		pdrListIE = append(pdrListIE, ie.NewPDRID(pdrID))
+	}
+
+	additionalIEs := []*ie.IE{
+		ie.NewReportType(0, 0, 0, 0),
+
+		// CHOICE
+		// extend-report-type
+		// enterprise-id: 0x7db(2011)
+		// spare: 0x0(0)
+		// otr: 0x0(0)
+		// pdtn: 0x0(0)
+		// scr: 0x0(0)
+		// updr: 0x1(1)
+		// upsr: 0x0(0)
+		//ie.NewVendorSpecificIE(33106, 2011, []byte{0x02}),
+
+		// CHOICE
+		// delete-report-type
+		// enterprise-id --- 0x7db(2011)
+		// pdr-id-list
+		// 	CHOICE
+		// 	pdr-id --- 0x4(4)
+		// 	CHOICE
+		// 	pdr-id --- 0x5(5)
+		ie.NewVendorSpecificGroupedIE(32799, 2011, pdrListIE...),
+	}
+
+	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
+	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err == nil {
 		if err := conn.SendMessageWithTrace(sessionReport, udpAddr, traced); err != nil {

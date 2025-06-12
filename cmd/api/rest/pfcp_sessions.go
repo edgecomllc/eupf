@@ -7,6 +7,7 @@ import (
 
 	"github.com/edgecomllc/eupf/cmd/core"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // DeletePfcpSessions godoc
@@ -24,16 +25,39 @@ import (
 //	@Failure	404		{string}	string	"Session not found"
 //	@Router		/pfcp_sessions [delete]
 func (h *ApiHandler) deletePfcpSessions(c *gin.Context) {
-	imsi := c.Query("imsi")
-	msisdn := c.Query("msisdn")
-	id := c.Query("id")
-
-	if imsi == "" && msisdn == "" && id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing parameter. IMSI, ID or MSISDN required"})
+	query := c.Request.URL.Query()
+	if len(query) != 1 {
+		log.Warn().Msgf("Can't delete session by several query parameters: %v", query)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ambiguous query parameter"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "OK"})
+	if id, err := strconv.ParseUint(c.Query("id"), 10, 32); err == nil {
+		for _, con := range h.GetPFCPSrv() {
+			if con.ReleaseSessionByID(id) {
+				c.IndentedJSON(http.StatusOK, gin.H{"message": "OK"})
+				return
+			}
+		}
+
+		log.Warn().Err(err).Msgf("can't release session by id: %s", c.Query("id"))
+		c.JSON(http.StatusNotFound, gin.H{"error": "can't release session by id"})
+		return
+	}
+
+	imsi := c.Query("imsi")
+	msisdn := c.Query("msisdn")
+	if imsi != "" || msisdn != "" {
+		for _, con := range h.GetPFCPSrv() {
+			if con.ReleaseSessionByUserID(imsi, msisdn) {
+				c.IndentedJSON(http.StatusOK, gin.H{"message": "OK"})
+				return
+			}
+		}
+	}
+
+	log.Warn().Msgf("can't release session")
+	c.JSON(http.StatusNotFound, gin.H{"error": "can't release session"})
 }
 
 // ListPfcpSessionsFiltered godoc
