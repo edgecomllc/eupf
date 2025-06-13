@@ -34,14 +34,39 @@ type BpfObjects struct {
 	farMutex     sync.Mutex
 	qerMutex     sync.Mutex
 	urrMutex     sync.Mutex
+
+	qerMapSize uint32
+	farMapSize uint32
+	pdrMapSize uint32
+	urrMapSize uint32
 }
 
 func NewBpfObjects() *BpfObjects {
 	return &BpfObjects{
-		farMutex: sync.Mutex{},
-		qerMutex: sync.Mutex{},
-		urrMutex: sync.Mutex{},
+		farMutex:   sync.Mutex{},
+		qerMutex:   sync.Mutex{},
+		urrMutex:   sync.Mutex{},
+		qerMapSize: 1024,
+		farMapSize: 1024,
+		pdrMapSize: 1024,
+		urrMapSize: 1024,
 	}
+}
+
+func (bpfObjects *BpfObjects) SetPdrMapSize(pdrMapSize uint32) {
+	bpfObjects.pdrMapSize = pdrMapSize
+}
+
+func (bpfObjects *BpfObjects) SetFarMapSize(farMapSize uint32) {
+	bpfObjects.farMapSize = farMapSize
+}
+
+func (bpfObjects *BpfObjects) SetQerMapSize(qerMapSize uint32) {
+	bpfObjects.qerMapSize = qerMapSize
+}
+
+func (bpfObjects *BpfObjects) SetUrrMapSize(urrMapSize uint32) {
+	bpfObjects.urrMapSize = urrMapSize
 }
 
 func (bpfObjects *BpfObjects) Load() error {
@@ -51,7 +76,43 @@ func (bpfObjects *BpfObjects) Load() error {
 		return err
 	}
 
+	spec, err := LoadIpEntrypoint()
+	if err != nil {
+		return err
+	}
+
+	desiredMapSizes := map[string]uint32{
+		"qer_map":              bpfObjects.qerMapSize,
+		"far_map":              bpfObjects.farMapSize,
+		"pdr_map_downlink_ip4": bpfObjects.pdrMapSize,
+		"pdr_map_downlink_ip6": bpfObjects.pdrMapSize,
+		"pdr_map_uplink_ip4":   bpfObjects.pdrMapSize,
+		"urr_map":              bpfObjects.urrMapSize,
+	}
+
+	replacements := make(map[string]*ebpf.Map)
+	for mapName, size := range desiredMapSizes {
+		specMap, ok := spec.Maps[mapName]
+		if !ok {
+			log.Error().Msgf("Map %s not found in spec", mapName)
+			continue
+		}
+
+		specMap.MaxEntries = size
+
+		m, err := ebpf.NewMap(specMap)
+		if err != nil {
+			log.Error().Msgf("Failed to create map %s: %s", mapName, err)
+			return err
+		}
+
+		replacements[mapName] = m
+
+		log.Debug().Msgf("Loaded map %s", mapName)
+	}
+
 	collectionOptions := ebpf.CollectionOptions{
+		MapReplacements: replacements,
 		Maps: ebpf.MapOptions{
 			// Pin the map to the BPF filesystem and configure the
 			// library to automatically re-write it in the BPF
@@ -61,8 +122,12 @@ func (bpfObjects *BpfObjects) Load() error {
 		},
 	}
 
-	if err := LoadAllObjects(&collectionOptions,
-		Loader{LoadIpEntrypointObjects, &bpfObjects.IpEntrypointObjects}); err != nil {
+	if err := spec.LoadAndAssign(&bpfObjects.IpEntrypointObjects, &collectionOptions); err != nil {
+		for _, m := range replacements {
+			m.Close()
+		}
+
+		log.Warn().Msgf("Failed to load objects: %s", err)
 		return err
 	}
 
