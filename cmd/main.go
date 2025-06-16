@@ -42,14 +42,12 @@ func main() {
 	}
 
 	bpfObjects := ebpf.NewBpfObjects()
+	bpfObjects.SetPdrMapSize(config.Conf.PdrMapSize)
+	bpfObjects.SetFarMapSize(config.Conf.FarMapSize)
+	bpfObjects.SetQerMapSize(config.Conf.QerMapSize)
+	bpfObjects.SetUrrMapSize(config.Conf.UrrMapSize)
 	if err := bpfObjects.Load(); err != nil {
 		log.Fatal().Msgf("Loading bpf objects failed: %s", err.Error())
-	}
-
-	if config.Conf.EbpfMapResize {
-		if err := bpfObjects.ResizeAllMaps(config.Conf.QerMapSize, config.Conf.FarMapSize, config.Conf.PdrMapSize, config.Conf.UrrMapSize); err != nil {
-			log.Fatal().Msgf("Failed to set ebpf map sizes: %s", err)
-		}
 	}
 
 	n3AddressUint32 := binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N3Address).To4())
