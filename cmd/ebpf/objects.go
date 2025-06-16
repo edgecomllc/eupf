@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/rs/zerolog/log"
 
 	"github.com/cilium/ebpf"
@@ -25,7 +24,6 @@ import (
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf ZeroEntrypoint 	xdp/zero_entrypoint.c -- -I. -O2 -Wall
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N3Entrypoint 	xdp/n3_entrypoint.c -- -I. -O2 -Wall
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpf N6Entrypoint 	xdp/n6_entrypoint.c -- -I. -O2 -Wall
-
 type BpfObjects struct {
 	IpEntrypointObjects
 
@@ -35,18 +33,39 @@ type BpfObjects struct {
 	farMutex     sync.Mutex
 	qerMutex     sync.Mutex
 	urrMutex     sync.Mutex
+
+	qerMapSize uint32
+	farMapSize uint32
+	pdrMapSize uint32
+	urrMapSize uint32
 }
 
 func NewBpfObjects() *BpfObjects {
 	return &BpfObjects{
-
-		farIdTracker: NewIdTracker(config.Conf.FarMapSize),
-		qerIdTracker: NewIdTracker(config.Conf.QerMapSize),
-		urrIdTracker: NewIdTracker(config.Conf.UrrMapSize),
-		farMutex:     sync.Mutex{},
-		qerMutex:     sync.Mutex{},
-		urrMutex:     sync.Mutex{},
+		farMutex:   sync.Mutex{},
+		qerMutex:   sync.Mutex{},
+		urrMutex:   sync.Mutex{},
+		qerMapSize: 1024,
+		farMapSize: 1024,
+		pdrMapSize: 1024,
+		urrMapSize: 1024,
 	}
+}
+
+func (bpfObjects *BpfObjects) SetPdrMapSize(pdrMapSize uint32) {
+	bpfObjects.pdrMapSize = pdrMapSize
+}
+
+func (bpfObjects *BpfObjects) SetFarMapSize(farMapSize uint32) {
+	bpfObjects.farMapSize = farMapSize
+}
+
+func (bpfObjects *BpfObjects) SetQerMapSize(qerMapSize uint32) {
+	bpfObjects.qerMapSize = qerMapSize
+}
+
+func (bpfObjects *BpfObjects) SetUrrMapSize(urrMapSize uint32) {
+	bpfObjects.urrMapSize = urrMapSize
 }
 
 func (bpfObjects *BpfObjects) Load() error {
@@ -56,7 +75,43 @@ func (bpfObjects *BpfObjects) Load() error {
 		return err
 	}
 
+	spec, err := LoadIpEntrypoint()
+	if err != nil {
+		return err
+	}
+
+	desiredMapSizes := map[string]uint32{
+		"qer_map":              bpfObjects.qerMapSize,
+		"far_map":              bpfObjects.farMapSize,
+		"pdr_map_downlink_ip4": bpfObjects.pdrMapSize,
+		"pdr_map_downlink_ip6": bpfObjects.pdrMapSize,
+		"pdr_map_teid_ip4":     bpfObjects.pdrMapSize,
+		"urr_map":              bpfObjects.urrMapSize,
+	}
+
+	replacements := make(map[string]*ebpf.Map)
+	for mapName, size := range desiredMapSizes {
+		specMap, ok := spec.Maps[mapName]
+		if !ok {
+			log.Error().Msgf("Map %s not found in spec", mapName)
+			continue
+		}
+
+		specMap.MaxEntries = size
+
+		m, err := ebpf.NewMap(specMap)
+		if err != nil {
+			log.Error().Msgf("Failed to create map %s: %s", mapName, err)
+			return err
+		}
+
+		replacements[mapName] = m
+
+		log.Debug().Msgf("Loaded map %s", mapName)
+	}
+
 	collectionOptions := ebpf.CollectionOptions{
+		MapReplacements: replacements,
 		Maps: ebpf.MapOptions{
 			// Pin the map to the BPF filesystem and configure the
 			// library to automatically re-write it in the BPF
@@ -66,8 +121,35 @@ func (bpfObjects *BpfObjects) Load() error {
 		},
 	}
 
-	return LoadAllObjects(&collectionOptions,
-		Loader{LoadIpEntrypointObjects, &bpfObjects.IpEntrypointObjects})
+	if err := spec.LoadAndAssign(&bpfObjects.IpEntrypointObjects, &collectionOptions); err != nil {
+		for _, m := range replacements {
+			m.Close()
+		}
+
+		log.Warn().Msgf("Failed to load objects: %s", err)
+		return err
+	}
+
+	if info, err := bpfObjects.FarMap.Info(); err == nil {
+		bpfObjects.farIdTracker = NewIdTracker(info.MaxEntries)
+
+	} else {
+		return err
+	}
+
+	if info, err := bpfObjects.QerMap.Info(); err == nil {
+		bpfObjects.qerIdTracker = NewIdTracker(info.MaxEntries)
+	} else {
+		return err
+	}
+
+	if info, err := bpfObjects.UrrMap.Info(); err == nil {
+		bpfObjects.urrIdTracker = NewIdTracker(info.MaxEntries)
+	} else {
+		return err
+	}
+
+	return nil
 }
 
 func (bpfObjects *BpfObjects) Close() error {
