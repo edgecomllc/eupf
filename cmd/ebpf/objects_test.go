@@ -558,7 +558,7 @@ func TestEntrypoint(t *testing.T) {
 		t.Fatalf("Can't increase resource limits: %s", err.Error())
 	}
 
-	bpfObjects := &BpfObjects{}
+	bpfObjects := NewBpfObjects()
 
 	if err := bpfObjects.Load(); err != nil {
 		t.Fatalf("Loading bpf objects failed: %s", err.Error())
@@ -618,7 +618,7 @@ func TestEntrypointBenchmark(t *testing.T) {
 		t.Fatalf("Can't increase resource limits: %s", err.Error())
 	}
 
-	bpfObjects := &BpfObjects{}
+	bpfObjects := NewBpfObjects()
 
 	if err := bpfObjects.Load(); err != nil {
 		t.Fatalf("Loading bpf objects failed: %s", err.Error())

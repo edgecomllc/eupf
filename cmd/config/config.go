@@ -27,7 +27,6 @@ type UpfConfig struct {
 	FarMapSize              uint32   `mapstructure:"far_map_size" json:"far_map_size"`
 	UrrMapSize              uint32   `mapstructure:"urr_map_size" json:"urr_map_size"`
 	PdrMapSize              uint32   `mapstructure:"pdr_map_size" json:"pdr_map_size"`
-	EbpfMapResize           bool     `mapstructure:"resize_ebpf_maps" json:"resize_ebpf_maps"`
 	MaxSessions             uint32   `mapstructure:"max_sessions" json:"max_sessions"`
 	HeartbeatRetries        uint32   `mapstructure:"heartbeat_retries" json:"heartbeat_retries"`
 	HeartbeatInterval       uint32   `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
@@ -56,8 +55,7 @@ func init() {
 	pflag.Uint32("farsize", 0, "Size of the FAR ebpf map")
 	pflag.Uint32("urrsize", 0, "Size of the URR ebpf map")
 	pflag.Uint32("pdrsize", 0, "Size of the PDR ebpf map")
-	pflag.Bool("mapresize", false, "Enable or disable ebpf map resizing")
-	pflag.Uint32("maxsessions", 0, "Maximum number of sessions")
+	pflag.Uint32("maxsessions", 65535, "Maximum number of sessions")
 	pflag.Uint32("hbretries", 3, "Number of heartbeat retries")
 	pflag.Uint32("hbinterval", 5, "Heartbeat interval in seconds")
 	pflag.Uint32("hbtimeout", 5, "Heartbeat timeout in seconds")
@@ -87,7 +85,6 @@ func init() {
 	_ = v.BindPFlag("far_map_size", pflag.Lookup("farsize"))
 	_ = v.BindPFlag("urr_map_size", pflag.Lookup("urrsize"))
 	_ = v.BindPFlag("pdr_map_size", pflag.Lookup("pdrsize"))
-	_ = v.BindPFlag("resize_ebpf_maps", pflag.Lookup("mapresize"))
 	_ = v.BindPFlag("max_sessions", pflag.Lookup("maxsessions"))
 	_ = v.BindPFlag("heartbeat_retries", pflag.Lookup("hbretries"))
 	_ = v.BindPFlag("heartbeat_interval", pflag.Lookup("hbinterval"))
@@ -131,19 +128,17 @@ func (c *UpfConfig) Validate() error {
 		c.UEIPPool = ""
 	}
 
-	if c.EbpfMapResize && c.MaxSessions > 0 {
-		if c.PdrMapSize == 0 {
-			c.PdrMapSize = c.MaxSessions * 2
-		}
-		if c.FarMapSize == 0 {
-			c.FarMapSize = c.MaxSessions * 2
-		}
-		if c.QerMapSize == 0 {
-			c.QerMapSize = c.MaxSessions
-		}
-		if c.UrrMapSize == 0 {
-			c.UrrMapSize = c.MaxSessions * 2
-		}
+	if c.PdrMapSize == 0 {
+		c.PdrMapSize = c.MaxSessions * 2
+	}
+	if c.FarMapSize == 0 {
+		c.FarMapSize = c.MaxSessions * 2
+	}
+	if c.QerMapSize == 0 {
+		c.QerMapSize = c.MaxSessions
+	}
+	if c.UrrMapSize == 0 {
+		c.UrrMapSize = c.MaxSessions * 2
 	}
 
 	return nil
