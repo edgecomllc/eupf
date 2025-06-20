@@ -1,9 +1,14 @@
 package core
 
 import (
+	"errors"
 	"net"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
+)
+
+var (
+	ErrSessionNotFound = errors.New("session not found")
 )
 
 type Session struct {
@@ -86,10 +91,13 @@ func (s *Session) GetFar(id uint32) SFarInfo {
 	return s.FARs[id]
 }
 
-func (s *Session) RemoveFar(id uint32) SFarInfo {
-	sFarInfo := s.FARs[id]
+func (s *Session) RemoveFar(id uint32) (SFarInfo, error) {
+	sFarInfo, ok := s.FARs[id]
+	if !ok {
+		return SFarInfo{}, ErrSessionNotFound
+	}
 	delete(s.FARs, id)
-	return sFarInfo
+	return sFarInfo, nil
 }
 
 func (s *Session) NewQer(id uint32, internalId uint32, qerInfo ebpf.QerInfo) {
@@ -109,10 +117,13 @@ func (s *Session) GetQer(id uint32) SQerInfo {
 	return s.QERs[id]
 }
 
-func (s *Session) RemoveQer(id uint32) SQerInfo {
-	sQerInfo := s.QERs[id]
+func (s *Session) RemoveQer(id uint32) (SQerInfo, error) {
+	sQerInfo, ok := s.QERs[id]
+	if !ok {
+		return SQerInfo{}, ErrSessionNotFound
+	}
 	delete(s.QERs, id)
-	return sQerInfo
+	return sQerInfo, nil
 }
 
 func (s *Session) NewUrr(id uint32, internalId uint32, urrInfo ebpf.UrrInfo) {
@@ -132,10 +143,13 @@ func (s *Session) GetUrr(id uint32) SUrrInfo {
 	return s.URRs[id]
 }
 
-func (s *Session) RemoveUrr(id uint32) SUrrInfo {
-	sUrrInfo := s.URRs[id]
+func (s *Session) RemoveUrr(id uint32) (SUrrInfo, error) {
+	sUrrInfo, ok := s.URRs[id]
+	if !ok {
+		return SUrrInfo{}, ErrSessionNotFound
+	}
 	delete(s.URRs, id)
-	return sUrrInfo
+	return sUrrInfo, nil
 }
 
 func (s *Session) PutPDR(id uint32, info SPDRInfo) {
@@ -146,10 +160,13 @@ func (s *Session) GetPDR(id uint16) SPDRInfo {
 	return s.PDRs[uint32(id)]
 }
 
-func (s *Session) RemovePDR(id uint32) SPDRInfo {
-	sPdrInfo := s.PDRs[id]
+func (s *Session) RemovePDR(id uint32) (SPDRInfo, error) {
+	sPdrInfo, ok := s.PDRs[id]
+	if !ok {
+		return SPDRInfo{}, ErrSessionNotFound
+	}
 	delete(s.PDRs, id)
-	return sPdrInfo
+	return sPdrInfo, nil
 }
 
 func (s *Session) GetSessionImsi() string {
