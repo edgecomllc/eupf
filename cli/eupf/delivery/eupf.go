@@ -24,7 +24,8 @@ func NewCLI(usecase domain.EupfUseCase) *CLI {
 		usecase: usecase,
 	}
 
-	root.AddCommand(cli.newConfigCmd())
+	root.AddCommand(cli.newConfigSetCmd())
+	root.AddCommand(cli.newConfigShowCmd())
 	root.AddCommand(cli.newSessionCmd())
 	root.AddCommand(cli.newCliConfigCmd())
 	root.AddCommand(cli.newTraceCmd())

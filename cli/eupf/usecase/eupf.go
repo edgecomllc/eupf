@@ -222,7 +222,7 @@ func (e *Eupf) SessionRelease(ctx context.Context, imsi, msisdn, id, tempBaseURL
 	return nil
 }
 
-func (e *Eupf) LoggingLevel(ctx context.Context, logLevel string, tempBaseURL string) error {
+func (e *Eupf) SetLoggingLevel(ctx context.Context, logLevel string, tempBaseURL string) error {
 	tempBaseURL, err := validateURL(tempBaseURL)
 	if err != nil {
 		return err
@@ -231,7 +231,7 @@ func (e *Eupf) LoggingLevel(ctx context.Context, logLevel string, tempBaseURL st
 	return e.eupfRepo.RestoreConfigLoggingLevel(ctx, logLevel, tempBaseURL)
 }
 
-func (e *Eupf) LoggingCaller(ctx context.Context, logCaller bool, tempBaseURL string) error {
+func (e *Eupf) SetLoggingCaller(ctx context.Context, logCaller bool, tempBaseURL string) error {
 	tempBaseURL, err := validateURL(tempBaseURL)
 	if err != nil {
 		return err
@@ -240,7 +240,7 @@ func (e *Eupf) LoggingCaller(ctx context.Context, logCaller bool, tempBaseURL st
 	return e.eupfRepo.RestoreConfigLoggingCaller(ctx, logCaller, tempBaseURL)
 }
 
-func (e *Eupf) DataPlaneEbpf(ctx context.Context, interfaceName []string, xdpAttachMode string, tempBaseURL string) error {
+func (e *Eupf) SetDataPlaneEbpf(ctx context.Context, interfaceName []string, xdpAttachMode string, tempBaseURL string) error {
 	tempBaseURL, err := validateURL(tempBaseURL)
 	if err != nil {
 		return err
@@ -249,7 +249,7 @@ func (e *Eupf) DataPlaneEbpf(ctx context.Context, interfaceName []string, xdpAtt
 	return e.eupfRepo.RestoreConfigDataPlaneEbpf(ctx, interfaceName, xdpAttachMode, tempBaseURL)
 }
 
-func (e *Eupf) DataPlaneAddresses(ctx context.Context, n3Address string, n9Address string, tempBaseURL string) error {
+func (e *Eupf) SetDataPlaneAddresses(ctx context.Context, n3Address string, n9Address string, tempBaseURL string) error {
 	tempBaseURL, err := validateURL(tempBaseURL)
 	if err != nil {
 		return err
@@ -258,7 +258,7 @@ func (e *Eupf) DataPlaneAddresses(ctx context.Context, n3Address string, n9Addre
 	return e.eupfRepo.RestoreConfigDataPlaneAddresses(ctx, n3Address, n9Address, tempBaseURL)
 }
 
-func (e *Eupf) PFCPN4(ctx context.Context, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string, tempBaseURL string) error {
+func (e *Eupf) SetPFCPN4(ctx context.Context, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string, tempBaseURL string) error {
 	tempBaseURL, err := validateURL(tempBaseURL)
 	if err != nil {
 		return err
@@ -267,7 +267,7 @@ func (e *Eupf) PFCPN4(ctx context.Context, pfcpAddress string, pfcpNodeId string
 	return e.eupfRepo.RestoreConfigPFCPN4(ctx, pfcpAddress, pfcpNodeId, pfcpRemoteNode, tempBaseURL)
 }
 
-func (e *Eupf) PFCPSxa(ctx context.Context, sxaAddress string, sxaNodeId string, sxaRemoteNode []string, tempBaseURL string) error {
+func (e *Eupf) SetPFCPSxa(ctx context.Context, sxaAddress string, sxaNodeId string, sxaRemoteNode []string, tempBaseURL string) error {
 	tempBaseURL, err := validateURL(tempBaseURL)
 	if err != nil {
 		return err
@@ -276,7 +276,7 @@ func (e *Eupf) PFCPSxa(ctx context.Context, sxaAddress string, sxaNodeId string,
 	return e.eupfRepo.RestoreConfigPFCPSxa(ctx, sxaAddress, sxaNodeId, sxaRemoteNode, tempBaseURL)
 }
 
-func (e *Eupf) PFCPSxb(ctx context.Context, sxbAddress string, sxbNodeId string, sxbRemoteNode []string, tempBaseURL string) error {
+func (e *Eupf) SetPFCPSxb(ctx context.Context, sxbAddress string, sxbNodeId string, sxbRemoteNode []string, tempBaseURL string) error {
 	tempBaseURL, err := validateURL(tempBaseURL)
 	if err != nil {
 		return err
@@ -285,7 +285,7 @@ func (e *Eupf) PFCPSxb(ctx context.Context, sxbAddress string, sxbNodeId string,
 	return e.eupfRepo.RestoreConfigPFCPSxb(ctx, sxbAddress, sxbNodeId, sxbRemoteNode, tempBaseURL)
 }
 
-func (e *Eupf) PFCPTimers(ctx context.Context, associationSetupTimeout uint32, heartbeatTimeout uint32, tempBaseURL string) error {
+func (e *Eupf) SetPFCPTimers(ctx context.Context, associationSetupTimeout uint32, heartbeatTimeout uint32, tempBaseURL string) error {
 	tempBaseURL, err := validateURL(tempBaseURL)
 	if err != nil {
 		return err
@@ -294,11 +294,20 @@ func (e *Eupf) PFCPTimers(ctx context.Context, associationSetupTimeout uint32, h
 	return e.eupfRepo.RestoreConfigPFCPTimers(ctx, associationSetupTimeout, heartbeatTimeout, tempBaseURL)
 }
 
-func (e *Eupf) GTPPath(ctx context.Context, gtpPeer []string, gtpEchoInterval uint32, tempBaseURL string) error {
+func (e *Eupf) SetGTPPath(ctx context.Context, gtpPeer []string, gtpEchoInterval uint32, tempBaseURL string) error {
 	tempBaseURL, err := validateURL(tempBaseURL)
 	if err != nil {
 		return err
 	}
 
 	return e.eupfRepo.RestoreConfigGTPPath(ctx, gtpPeer, gtpEchoInterval, tempBaseURL)
+}
+
+func (e *Eupf) GetConfig(ctx context.Context, tempBaseURL string) (*domain.UpfConfig, error) {
+	tempBaseURL, err := validateURL(tempBaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.eupfRepo.GetUpfConfig(ctx, tempBaseURL)
 }

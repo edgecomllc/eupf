@@ -9,9 +9,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *CLI) newConfigCmd() *cobra.Command {
-	configCmd := &cobra.Command{
-		Use:   "config",
+func (c *CLI) newConfigSetCmd() *cobra.Command {
+	setCmd := &cobra.Command{
+		Use:   "set",
 		Short: "Configuration application management",
 	}
 
@@ -19,41 +19,41 @@ func (c *CLI) newConfigCmd() *cobra.Command {
 		Use:   "logging",
 		Short: "Logging configuration management",
 	}
-	loggingCmd.AddCommand(c.newLoggingLevel())
-	loggingCmd.AddCommand(c.newLoggingCaller())
+	loggingCmd.AddCommand(c.newSetLoggingLevel())
+	loggingCmd.AddCommand(c.newSetLoggingCaller())
 
 	dataPlaneCmd := &cobra.Command{
 		Use:   "dataplane",
 		Short: "Dataplane configuration management",
 	}
-	dataPlaneCmd.AddCommand(c.newDataPlaneEbpf())
-	dataPlaneCmd.AddCommand(c.newDataPlaneAddresses())
+	dataPlaneCmd.AddCommand(c.newSetDataPlaneEbpf())
+	dataPlaneCmd.AddCommand(c.newSetDataPlaneAddresses())
 
 	pfcpCmd := &cobra.Command{
 		Use:   "pfcp",
 		Short: "Pfcp configuration management",
 	}
-	pfcpCmd.AddCommand(c.newPFCPN4())
-	pfcpCmd.AddCommand(c.newPFCPSxa())
-	pfcpCmd.AddCommand(c.newPFCPSxb())
-	pfcpCmd.AddCommand(c.newPFCPTimers())
+	pfcpCmd.AddCommand(c.newSetPFCPN4())
+	pfcpCmd.AddCommand(c.newSetPFCPSxa())
+	pfcpCmd.AddCommand(c.newSetPFCPSxb())
+	pfcpCmd.AddCommand(c.newSetPFCPTimers())
 
 	gtpCmd := &cobra.Command{
 		Use:   "gtp",
 		Short: "Gtp configuration management",
 	}
-	gtpCmd.AddCommand(c.newGTPPath())
+	gtpCmd.AddCommand(c.newSetGTPPath())
 
-	configCmd.AddCommand(gtpCmd)
-	configCmd.AddCommand(pfcpCmd)
-	configCmd.AddCommand(dataPlaneCmd)
-	configCmd.AddCommand(loggingCmd)
+	setCmd.AddCommand(gtpCmd)
+	setCmd.AddCommand(pfcpCmd)
+	setCmd.AddCommand(dataPlaneCmd)
+	setCmd.AddCommand(loggingCmd)
 
-	return configCmd
+	return setCmd
 }
 
 // logging level <level>
-func (cli *CLI) newLoggingLevel() *cobra.Command {
+func (cli *CLI) newSetLoggingLevel() *cobra.Command {
 	var baseURL string
 
 	cmd := &cobra.Command{
@@ -73,7 +73,7 @@ Overrides configuration parameter: logging_level`,
 
 			level := args[0]
 
-			err := cli.usecase.LoggingLevel(ctx, level, baseURL)
+			err := cli.usecase.SetLoggingLevel(ctx, level, baseURL)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to set logging level: %v\n", err)
 				os.Exit(1)
@@ -87,7 +87,7 @@ Overrides configuration parameter: logging_level`,
 }
 
 // logging caller
-func (cli *CLI) newLoggingCaller() *cobra.Command {
+func (cli *CLI) newSetLoggingCaller() *cobra.Command {
 	var baseURL string
 
 	cmd := &cobra.Command{
@@ -107,7 +107,7 @@ Overrides configuration parameter: logging_caller`,
 
 			caller := args[0] == "true"
 
-			err := cli.usecase.LoggingCaller(ctx, caller, baseURL)
+			err := cli.usecase.SetLoggingCaller(ctx, caller, baseURL)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to configure logging caller: %v\n", err)
 				os.Exit(1)
@@ -121,7 +121,7 @@ Overrides configuration parameter: logging_caller`,
 }
 
 // dataplane ebpf --interfaces <ifaces> --xdp-attach <mode>
-func (cli *CLI) newDataPlaneEbpf() *cobra.Command {
+func (cli *CLI) newSetDataPlaneEbpf() *cobra.Command {
 	var baseURL string
 	var interfaces []string
 	var xdpAttachMode string
@@ -138,7 +138,7 @@ func (cli *CLI) newDataPlaneEbpf() *cobra.Command {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			err := cli.usecase.DataPlaneEbpf(ctx, interfaces, xdpAttachMode, baseURL)
+			err := cli.usecase.SetDataPlaneEbpf(ctx, interfaces, xdpAttachMode, baseURL)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to configure eBPF dataplane: %v\n", err)
 				os.Exit(1)
@@ -156,7 +156,7 @@ func (cli *CLI) newDataPlaneEbpf() *cobra.Command {
 }
 
 // dataplane addresses --n3 <address> --n9 <address>
-func (cli *CLI) newDataPlaneAddresses() *cobra.Command {
+func (cli *CLI) newSetDataPlaneAddresses() *cobra.Command {
 	var baseURL string
 	var n3 string
 	var n9 string
@@ -175,7 +175,7 @@ Overrides configuration parameters:
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			err := cli.usecase.DataPlaneAddresses(ctx, n3, n9, baseURL)
+			err := cli.usecase.SetDataPlaneAddresses(ctx, n3, n9, baseURL)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to configure dataplane addresses: %v\n", err)
 				os.Exit(1)
@@ -193,7 +193,7 @@ Overrides configuration parameters:
 }
 
 // pfcp n4 --addr <addr> --node <id> --remote <nodes>
-func (cli *CLI) newPFCPN4() *cobra.Command {
+func (cli *CLI) newSetPFCPN4() *cobra.Command {
 	var baseURL string
 	var pfcpAddress string
 	var pfcpNodeId string
@@ -208,13 +208,13 @@ Requires --addr, --node and --remote
 Overrides configuration parameters:
   - pfcp_address
   - pfcp_node_id
-  - pfcp_remote_node`,
+  - pfcp_node`,
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			err := cli.usecase.PFCPN4(ctx, pfcpAddress, pfcpNodeId, pfcpRemoteNode, baseURL)
+			err := cli.usecase.SetPFCPN4(ctx, pfcpAddress, pfcpNodeId, pfcpRemoteNode, baseURL)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to configure PFCP N4: %v\n", err)
 				os.Exit(1)
@@ -234,7 +234,7 @@ Overrides configuration parameters:
 }
 
 // pfcp sxa --addr <addr> --node <id> --remote <nodes>
-func (cli *CLI) newPFCPSxa() *cobra.Command {
+func (cli *CLI) newSetPFCPSxa() *cobra.Command {
 	var baseURL string
 	var sxaAddress string
 	var sxaNodeId string
@@ -255,7 +255,7 @@ Overrides configuration parameters:
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			err := cli.usecase.PFCPSxa(ctx, sxaAddress, sxaNodeId, sxaRemoteNode, baseURL)
+			err := cli.usecase.SetPFCPSxa(ctx, sxaAddress, sxaNodeId, sxaRemoteNode, baseURL)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to configure PFCP Sxa: %v\n", err)
 				os.Exit(1)
@@ -275,7 +275,7 @@ Overrides configuration parameters:
 }
 
 // pfcp sxb --addr <addr> --node <id> --remote <nodes>
-func (cli *CLI) newPFCPSxb() *cobra.Command {
+func (cli *CLI) newSetPFCPSxb() *cobra.Command {
 	var baseURL string
 	var sxbAddress string
 	var sxbNodeId string
@@ -296,7 +296,7 @@ Overrides configuration parameters:
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			err := cli.usecase.PFCPSxb(ctx, sxbAddress, sxbNodeId, sxbRemoteNode, baseURL)
+			err := cli.usecase.SetPFCPSxb(ctx, sxbAddress, sxbNodeId, sxbRemoteNode, baseURL)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to configure PFCP Sxb: %v\n", err)
 				os.Exit(1)
@@ -316,7 +316,7 @@ Overrides configuration parameters:
 }
 
 // pfcp timers --assoc-timeout <sec> --heartbeat-timeout <sec>
-func (cli *CLI) newPFCPTimers() *cobra.Command {
+func (cli *CLI) newSetPFCPTimers() *cobra.Command {
 	var baseURL string
 	var associationSetupTimeout uint32
 	var heartbeatTimeout uint32
@@ -335,7 +335,7 @@ Overrides configuration parameters:
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			err := cli.usecase.PFCPTimers(ctx, associationSetupTimeout, heartbeatTimeout, baseURL)
+			err := cli.usecase.SetPFCPTimers(ctx, associationSetupTimeout, heartbeatTimeout, baseURL)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to configure PFCP timers: %v\n", err)
 				os.Exit(1)
@@ -353,7 +353,7 @@ Overrides configuration parameters:
 }
 
 // gtp path --peers <peers> --echo-interval <sec>
-func (cli *CLI) newGTPPath() *cobra.Command {
+func (cli *CLI) newSetGTPPath() *cobra.Command {
 	var baseURL string
 	var gtpPeer []string
 	var gtpEchoInterval uint32
@@ -375,7 +375,7 @@ Overrides configuration parameters:
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			err := cli.usecase.GTPPath(ctx, gtpPeer, gtpEchoInterval, baseURL)
+			err := cli.usecase.SetGTPPath(ctx, gtpPeer, gtpEchoInterval, baseURL)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to configure GTP path: %v\n", err)
 				os.Exit(1)

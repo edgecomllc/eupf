@@ -47,13 +47,15 @@ type EupfUseCase interface {
 	SessionShow(ctx context.Context, ip, teid, baseURL string) ([]PfcpSession, error)
 	SessionRelease(ctx context.Context, imsi, msisdn, id, baseURL string) error
 
-	LoggingLevel(ctx context.Context, logLevel string, baseURL string) error
-	LoggingCaller(ctx context.Context, logCaller bool, baseURL string) error
-	DataPlaneEbpf(ctx context.Context, interfaceName []string, xdpAttachMode string, baseURL string) error
-	DataPlaneAddresses(ctx context.Context, n3Address string, n9Address string, baseURL string) error
-	PFCPN4(ctx context.Context, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string, baseURL string) error
-	PFCPSxa(ctx context.Context, sxaAddress string, sxaNodeId string, sxaRemoteNode []string, baseURL string) error
-	PFCPSxb(ctx context.Context, sxbAddress string, sxbNodeId string, sxbRemoteNode []string, baseURL string) error
-	PFCPTimers(ctx context.Context, associationSetupTimeout uint32, heartbeatTimeout uint32, baseURL string) error
-	GTPPath(ctx context.Context, gtpPeer []string, gtpEchoInterval uint32, baseURL string) error
+	SetLoggingLevel(ctx context.Context, logLevel string, baseURL string) error
+	SetLoggingCaller(ctx context.Context, logCaller bool, baseURL string) error
+	SetDataPlaneEbpf(ctx context.Context, interfaceName []string, xdpAttachMode string, baseURL string) error
+	SetDataPlaneAddresses(ctx context.Context, n3Address string, n9Address string, baseURL string) error
+	SetPFCPN4(ctx context.Context, pfcpAddress string, pfcpNodeId string, pfcpRemoteNode []string, baseURL string) error
+	SetPFCPSxa(ctx context.Context, sxaAddress string, sxaNodeId string, sxaRemoteNode []string, baseURL string) error
+	SetPFCPSxb(ctx context.Context, sxbAddress string, sxbNodeId string, sxbRemoteNode []string, baseURL string) error
+	SetPFCPTimers(ctx context.Context, associationSetupTimeout uint32, heartbeatTimeout uint32, baseURL string) error
+	SetGTPPath(ctx context.Context, gtpPeer []string, gtpEchoInterval uint32, baseURL string) error
+
+	GetConfig(ctx context.Context, baseURL string) (*UpfConfig, error)
 }

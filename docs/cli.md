@@ -1,7 +1,6 @@
 # eUPF Command Line Interface Documentation
 
-CLI tool is a separate application available to run as a carside to working eUPF service API. So, the CLI tool can be used remotely from anywhere there eUPF's API port accessible.
-The tool has its built-in help 
+CLI tool is a separate application available to run as a carside to working eUPF service API. So, the CLI tool can be used remotely from anywhere there eUPF's API port accessible. The tool has its built-in help
 
 ```ruby
 ~# eupf -h
@@ -16,9 +15,12 @@ Usage:
 
 Available Commands:
   backup      Backup management
+  cli-config  Configuration management
   completion  Generate shell completion scripts
-  config      Configuration management
   help        Help about any command
+  session     Pfcp session management
+  set         Configuration application management
+  show        Display current configuration settings
   trace       Trace management
 
 Flags:
@@ -27,10 +29,11 @@ Flags:
 Use "eupf [command] --help" for more information about a command.
 ```
 
-### Config
+## Config
 
-Configuration file `./config-cli.yaml` is possible to be created from scrutch using command <br>
-`eupf config set-baseurl  --url http://127.0.0.1:8081/api/v1`
+Configuration file `./config-cli.yaml` is possible to be created from scratch using command
+
+`eupf cli-config set-baseurl --url http://127.0.0.1:8081/api/v1`
 
 Default CLI tool config-cli.yaml is:
 
@@ -40,92 +43,103 @@ eupf_addr: http://172.19.0.1:8082/api/v1/
 log_level: debug
 ```
 
-#### Configuration management
+### Configuration management
 
-Usage:
-  eupf config [command]
+Usage: eupf cli-config [command]
 
 Available Commands:
--  set-baseurl  Set new base URL in config
--  show-baseurl Show current base URL from config
 
-Use "eupf config [command] --help" for more information about a command.
+- set-baseurl Set new base URL in config
+- show-baseurl Show current base URL from config
 
-#### Set a new base URL to be used as the default endpoint for eupf API.
+Use "eupf cli-config [command] --help" for more information about a command.
 
-This overrides the "eupf_addr" value in the config-cli.yaml file. <br>
+### Set a new base URL to be used as the default endpoint for eupf API
+
+This overrides the "eupf_addr" value in the config-cli.yaml file.
+
 Example:
--  eupf config set-baseurl --url http://localhost:8081/api/v1
 
-Usage:
-  eupf config set-baseurl [flags]
+- eupf cli-config set-baseurl --url <http://localhost:8081/api/v1>
+
+Usage: eupf cli-config set-baseurl [flags]
 
 Flags:
--  -h, --help         help for set-baseurl
--    --url string   New base URL to save in config (e.g. http://localhost:8081/api/v1)
+
+- -h, --help help for set-baseurl
+- --url string New base URL to save in config (e.g. <http://localhost:8081/api/v1>)
 
 Example
 
 ```ruby
-root@a2fc85d4d909:~# eupf config set-baseurl  --url http://172.19.0.1:8082/api/v1/
+root@a2fc85d4d909:~# eupf cli-config set-baseurl  --url http://172.19.0.1:8082/api/v1/
 2025/05/22 06:49:31 INF CLI config file updated successfully: config-cli.yaml
 Base URL updated successfully.
 ```
 
-#### Display the currently configured default eupf API base URL,
+### Display the currently configured default eupf API base URL
 
 which is stored in the config-cli.yaml file under "eupf_addr".
 
-Usage:
-  eupf config show-baseurl [flags]
+Usage: eupf config show-baseurl [flags]
 
 Flags:
--  -h, --help   help for show-baseurl
+
+- -h, --help help for show-baseurl
 
 Example
 
 ```ruby
-root@a2fc85d4d909:~# eupf config show-baseurl
+root@a2fc85d4d909:~# eupf cli-config show-baseurl
 Current base URL: http://172.19.0.1:8082/api/v1/
 ```
 
-### Backup/Restore current eUPF parameters
+## Backup/Restore current eUPF parameters
 
 Usage:
--  eupf backup [command]
+
+- eupf backup [command]
 
 Available Commands:
--  create      Create backup
--  restore     Restore backup
--  show        Show backups files
 
-#### Create backup configuration from current settings.
+- create Create backup
+- restore Restore backup
+- show Show backups files
 
- Use --baseurl to override the eupf endpoint .
+### Create backup configuration from current settings
+
+Use --baseurl to override the eupf endpoint .
 
 Usage:
--  eupf backup create [flags]
+
+- eupf backup create [flags]
 
 Flags:
--    --baseurl string   Optional base URL to override eupf API address (e.g. http://localhost:8081)
--  -h, --help             help for create
 
-#### Retrieve list of backups.
+- --baseurl string Optional base URL to override eupf API address (e.g. <http://localhost:8081>)
+- -h, --help help for create
+
+### Retrieve list of backups
 
 Usage:
--  eupf backup show 
 
-#### Restore backup configuration from given id.
+- eupf backup show
 
- Use --baseurl to override the eupf endpoint.
+### Restore backup configuration from given id
+
+Use --baseurl to override the eupf endpoint.
 
 ID of backup can be found from 'backup show' command. Example: 'eupf backup restore 1745307978'
 
 Usage:
--  eupf backup restore <id of backup> [flags]
+
+- eupf backup restore
+
+  <id of="" backup=""> [flags]</id>
 
 Flags:
--    --baseurl string   Optional base URL to override eupf API address (e.g. http://localhost:8081)
+
+- --baseurl string Optional base URL to override eupf API address (e.g. <http://localhost:8081>)
 
 Example
 
@@ -147,40 +161,40 @@ drwxr-xr-x 3 root root 4096 May 20 05:28 ..
 -rw-r--r-- 1 root root  537 May 20 15:10 1747753851.zip
 ```
 
-### Trace management
+## Trace management
 
 Packets dump pcap file content management.
 
-Usage:
-  eupf trace [command]
+Usage: eupf trace [command]
 
 Available Commands:
--  set         Start trace for IMSI and/or MSISDN
--  show        Show current trace records
--  stop        Stop trace for IMSI and/or MSISDN
 
-#### Start subscriber trace session. 
+- set Start trace for IMSI and/or MSISDN
+- show Show current trace records
+- stop Stop trace for IMSI and/or MSISDN
+
+### Start subscriber trace session
 
 Use --imsi and/or --msisdn to filter, and --baseurl to override the eupf endpoint.
 
-Usage:
-  eupf trace set [flags]
+Usage: eupf trace set [flags]
 
 Flags:
--  --baseurl string   Optional base URL to override eupf API
-- -h, --help             help for set
--  --imsi string      IMSI to trace
--  --msisdn string    MSISDN to trace
 
-#### Retrieve active trace records from the eupf API. 
+- --baseurl string Optional base URL to override eupf API
+- -h, --help help for set
+- --imsi string IMSI to trace
+- --msisdn string MSISDN to trace
+
+### Retrieve active trace records from the eupf API
 
 Optionally use --baseurl to override target.
 
-Usage:
-  eupf trace show [flags]
+Usage: eupf trace show [flags]
 
 Flags:
--    --baseurl string   Optional base URL to override eupf API address (e.g. http://localhost:8081)
+
+- --baseurl string Optional base URL to override eupf API address (e.g. <http://localhost:8081>)
 
 Example: empty list returns error 404
 
@@ -189,18 +203,18 @@ root@aeb8218ffaea:~# eupf trace show --baseurl http://172.19.0.1:8082/api/v1/
 failed to list traces: trace list failed: 404 Not Found
 ```
 
-#### Stop subscriber trace session. 
+### Stop subscriber trace session
 
 Use --imsi and/or --msisdn to match, and --baseurl to override the eupf endpoint.
 
-Usage:
-  eupf trace stop [flags]
+Usage: eupf trace stop [flags]
 
 Flags:
--    --baseurl string   Optional base URL to override eupf API
-- -h, --help             help for stop
--    --imsi string      IMSI to stop trace
--    --msisdn string    MSISDN to stop trace
+
+- --baseurl string Optional base URL to override eupf API
+- -h, --help help for stop
+- --imsi string IMSI to stop trace
+- --msisdn string MSISDN to stop trace
 
 Example
 
@@ -219,10 +233,9 @@ root@aeb8218ffaea:~# eupf trace show --baseurl http://172.19.0.1:8082/api/v1/
 failed to list traces: trace list failed: 404 Not Found
 ```
 
-### Generate shell completion scripts
+## Generate shell completion scripts
 
-Usage:
-  eupf completion 
+Usage: eupf completion
 
 ```sh
 mkdir -p /etc/bash_completion.d && \
@@ -245,4 +258,52 @@ __eupf_debug()
     fi
 }
 ..........
+```
+
+### Dynamic Configuration Management
+
+The eUPF CLI provides **real-time configuration management** through two core commands:
+
+--------------------------------------------------------------------------------
+
+#### `set` Commands
+
+Dynamically update runtime configuration without service restart:
+
+```ruby
+eupf set <category> <parameter> <value> [flags]
+```
+
+Example set logging verbosity to debug:
+
+```ruby
+eupf set logging level debug
+```
+
+Example configure eBPF interfaces and attach mode:
+
+```ruby
+eupf set dataplane ebpf -i eth0 -i eth1 --xdp-attach native
+```
+
+--------------------------------------------------------------------------------
+
+#### `show` Commands
+
+Display current runtime configuration values:
+
+```ruby
+eupf show <category> <parameter>
+```
+
+Example display current logging level:
+
+```ruby
+eupf show logging level
+```
+
+Example display eBPF dataplane configuration:
+
+```ruby
+eupf show dataplane ebpf
 ```
