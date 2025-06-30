@@ -113,7 +113,20 @@ func (stat *UpfXdpActionStatistic) GetUpfExtStat() UpfCounters {
 	}
 
 	for _, statistic := range statistics {
-		counters.Add(statistic.UpfCounters)
+		counters.Add(UpfCounters{
+			RxArp:      statistic.UpfCounters.RxArp,
+			RxIcmp:     statistic.UpfCounters.RxIcmp,
+			RxIcmp6:    statistic.UpfCounters.RxIcmp6,
+			RxIp4:      statistic.UpfCounters.RxIp4,
+			RxIp6:      statistic.UpfCounters.RxIp6,
+			RxTcp:      statistic.UpfCounters.RxTcp,
+			RxUdp:      statistic.UpfCounters.RxUdp,
+			RxOther:    statistic.UpfCounters.RxOther,
+			RxGtpEcho:  statistic.UpfCounters.RxGtpEcho,
+			RxGtpPdu:   statistic.UpfCounters.RxGtpPdu,
+			RxGtpOther: statistic.UpfCounters.RxGtpOther,
+			RxGtpUnexp: statistic.UpfCounters.RxGtpUnexp,
+		})
 	}
 
 	return counters
@@ -131,7 +144,20 @@ func (stat *UpfXdpActionStatistic) GetUpfExtStatDelta() UpfCounters {
 	}
 
 	for _, statistic := range statistics {
-		counters.Add(statistic.UpfCounters)
+		counters.Add(UpfCounters{
+			RxArp:      statistic.UpfCounters.RxArp,
+			RxIcmp:     statistic.UpfCounters.RxIcmp,
+			RxIcmp6:    statistic.UpfCounters.RxIcmp6,
+			RxIp4:      statistic.UpfCounters.RxIp4,
+			RxIp6:      statistic.UpfCounters.RxIp6,
+			RxTcp:      statistic.UpfCounters.RxTcp,
+			RxUdp:      statistic.UpfCounters.RxUdp,
+			RxOther:    statistic.UpfCounters.RxOther,
+			RxGtpEcho:  statistic.UpfCounters.RxGtpEcho,
+			RxGtpPdu:   statistic.UpfCounters.RxGtpPdu,
+			RxGtpOther: statistic.UpfCounters.RxGtpOther,
+			RxGtpUnexp: statistic.UpfCounters.RxGtpUnexp,
+		})
 	}
 
 	delta := stat.upfCountersPrevious.Delta(counters)
@@ -174,7 +200,7 @@ func (stat *UpfXdpActionStatistic) GetUpfRouteStat() IpEntrypointRouteStat {
 
 	err := stat.BpfObjects.UpfRouteStat.Lookup(uint32(0), &statistics)
 	if err != nil {
-		log.Warn().Msgf("failed to get upf_route_stat: %s" + err.Error())
+		log.Warn().Err(err).Msgf("failed to get upf_route_stat")
 		return counters
 	}
 
@@ -192,7 +218,7 @@ func (stat *UpfXdpActionStatistic) GetUpfRouteStatDelta() IpEntrypointRouteStat 
 
 	err := stat.BpfObjects.UpfRouteStat.Lookup(uint32(0), &statistics)
 	if err != nil {
-		log.Warn().Msgf("failed to get upf_route_stat: %s" + err.Error())
+		log.Warn().Err(err).Msgf("failed to get upf_route_stat")
 		return counters
 	}
 

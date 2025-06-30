@@ -1,4 +1,4 @@
-FROM golang:1.22.7-bullseye as builder
+FROM golang:1.24 as builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN BPF_CFLAGS="" \
     && BPF_CFLAGS=$BPF_CFLAGS go generate -v ./cmd/...
 RUN CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/
 
-FROM alpine:3.18.5 AS runtime
+FROM alpine:3.22.0 AS runtime
 LABEL org.opencontainers.image.source="https://github.com/edgecomllc/eupf"
 
 COPY --from=builder /app/bin/ /app/bin/

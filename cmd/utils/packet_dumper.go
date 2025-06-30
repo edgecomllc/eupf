@@ -10,12 +10,12 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcapgo"
+	"github.com/gopacket/gopacket/layers"
+	"github.com/gopacket/gopacket/pcapgo"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
-	"github.com/google/gopacket"
+	"github.com/gopacket/gopacket"
 	"github.com/rs/zerolog/log"
 )
 
