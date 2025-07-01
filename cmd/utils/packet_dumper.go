@@ -155,7 +155,8 @@ func (dumper *PacketDumper) createDumpFile(filename string) error {
 }
 
 func (dumper *PacketDumper) ReadTraceMap(traceMap *ebpf.Map) {
-	rd, err := perf.NewReader(traceMap, 4096)
+	rd, err := perf.NewReader(traceMap, 1024*4096)
+	//rd, err := ringbuf.NewReader(traceMap)
 	if err != nil {
 		log.Error().Msgf(" can't create perf reader: %s", err.Error())
 		return
@@ -163,6 +164,7 @@ func (dumper *PacketDumper) ReadTraceMap(traceMap *ebpf.Map) {
 	defer rd.Close()
 
 	var rec perf.Record
+	//var rec ringbuf.Record
 	for {
 		if err := rd.ReadInto(&rec); err != nil {
 			log.Error().Msgf(" can't read from perf map: %s", err.Error())

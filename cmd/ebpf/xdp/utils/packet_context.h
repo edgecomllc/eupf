@@ -37,4 +37,5 @@ struct packet_context {
     struct udphdr *udp;
     struct tcphdr *tcp;
     struct gtpuhdr *gtp;
+    __u8 trace;
 };

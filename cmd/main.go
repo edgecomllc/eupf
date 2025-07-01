@@ -69,8 +69,18 @@ func main() {
 	entrypointConfig := ebpf.IpEntrypointDataplaneConfig{
 		N3Ipv4Address: binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N3Address).To4()),
 		N9Ipv4Address: binary.LittleEndian.Uint32(net.ParseIP(config.Conf.N9Address).To4()),
+		TraceIn:       0,
+		TraceOut:      0,
 		TraceBlocked:  0,
 		Ip6RaSupport:  0,
+	}
+
+	if config.Conf.TraceIn {
+		entrypointConfig.TraceIn = 1
+	}
+
+	if config.Conf.TraceOut {
+		entrypointConfig.TraceOut = 1
 	}
 
 	if config.Conf.TraceBlocked {

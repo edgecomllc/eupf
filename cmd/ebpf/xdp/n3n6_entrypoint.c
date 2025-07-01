@@ -49,6 +49,8 @@
 struct dataplane_config {
     __u32  n3_ipv4_address;
     __u32  n9_ipv4_address;
+    __u8   trace_in;
+    __u8   trace_out;
     __u8   trace_blocked;
     __u8   ip6_ra_support;
     __u128 ip6_ra_prefix;
@@ -184,8 +186,10 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     }
 
     upf_printk("upf: [n6] downlink session for ip:%pI4 trace:%d", &ip4->daddr, session->trace_flag);
-    if(session->trace_flag)
+    ctx->trace = session->trace_flag;
+    if(ctx->trace && global_config.trace_in) {
         trace_packet(ctx, PACKET_DIRECTION_IN);
+    }
 
     // Set defaults
     const struct pdr *pdr = &session->default_pdr;
@@ -241,12 +245,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     }
 
     upf_printk("upf: [n6] use mapping %pI4 -> teid:%u", &ip4->daddr, far->teid);
-    enum xdp_action action = send_to_gtp_tunnel(ctx, global_config.n3_ipv4_address, far->remoteip, tos, qer->qfi, far->teid);
-
-    if(session->trace_flag && (action == XDP_TX || action == XDP_REDIRECT))
-        trace_packet(ctx, PACKET_DIRECTION_OUT);
-
-    return action;
+    return send_to_gtp_tunnel(ctx, global_config.n3_ipv4_address, far->remoteip, tos, qer->qfi, far->teid);
 }
 
 static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_context *ctx) {
@@ -258,8 +257,10 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     }
     
     upf_printk("upf: [n6] downlink session for ip:%pI6c trace:%d", &ip6->daddr, session->trace_flag);
-    if(session->trace_flag)
+    ctx->trace = session->trace_flag;
+    if(ctx->trace && global_config.trace_in) {
         trace_packet(ctx, PACKET_DIRECTION_IN);
+    }
 
     const struct pdr *pdr = &session->default_pdr;
     if (session->sdf_mode) {
@@ -313,12 +314,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     }
 
     upf_printk("upf: [n6] use mapping %pI6c -> teid:%u", &ip6->daddr, far->teid);
-    enum xdp_action action = send_to_gtp_tunnel(ctx, global_config.n3_ipv4_address, far->remoteip, tos, qer->qfi, far->teid);
-
-    if (session->trace_flag && (action == XDP_TX || action == XDP_REDIRECT))
-        trace_packet(ctx, PACKET_DIRECTION_OUT);
-
-    return action;
+    return send_to_gtp_tunnel(ctx, global_config.n3_ipv4_address, far->remoteip, tos, qer->qfi, far->teid);
 }
 
 
@@ -339,8 +335,10 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     }
 
     upf_printk("upf: [n3] teid:%u trace:%d", teid, session->trace_flag);
-    if(session->trace_flag)
+    ctx->trace = session->trace_flag;
+    if(ctx->trace && global_config.trace_in) {
         trace_packet(ctx, PACKET_DIRECTION_IN);
+    }
 
     // Set defaults
     const struct pdr *pdr = &session->default_pdr;
@@ -457,22 +455,17 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     /*
      *   Step 4: Route packet finally
      */
-     enum xdp_action action = XDP_ABORTED;
     if (ctx->ip4) {
         increment_counter(ctx->n3_n6_counter, tx_n6);
         update_tos_ipv4(ctx->ip4, tos);
-        action = route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+        return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
     } else if (ctx->ip6) {
         increment_counter(ctx->n3_n6_counter, tx_n6);
         update_tos_ipv6(ctx->ip6, tos);
-        action = route_ipv6(ctx->xdp_ctx, ctx->eth, ctx->ip6);
+        return route_ipv6(ctx->xdp_ctx, ctx->eth, ctx->ip6);
     }
 
-    if(session->trace_flag && (action == XDP_TX || action == XDP_REDIRECT))
-        trace_packet(ctx, PACKET_DIRECTION_OUT);
-
-    return action;
-
+    return XDP_ABORTED;
 }
 
 static __always_inline enum xdp_action handle_gtpu(struct packet_context *ctx) {
@@ -582,6 +575,8 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     // upf_printk("upf n3 & n6 combined entrypoint start");
     upf_printk("upf: n3ip:%pI4 n9ip:%pI4", &global_config.n3_ipv4_address, &global_config.n9_ipv4_address);
 
+    //bpf_printk("upf_ip_entrypoint_func 1: %d %d %d", ctx->ingress_ifindex, ctx->rx_queue_index, ctx->egress_ifindex);
+
     const __u32 key = 0;
     struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat, &key);
     if (!statistic) {
@@ -598,12 +593,15 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
         .data_end = (const char *)(long)ctx->data_end,
         .xdp_ctx = ctx,
         .counters = &statistic->upf_counters,
-        .n3_n6_counter = &statistic->upf_n3_n6_counter};
+        .n3_n6_counter = &statistic->upf_n3_n6_counter,
+        .trace = 0};
 
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;
-
-    if (global_config.trace_blocked && action != XDP_TX && action != XDP_REDIRECT) {
+    
+    if(global_config.trace_out && context.trace && (action == XDP_TX || action == XDP_REDIRECT)) {
+        trace_packet(&context, PACKET_DIRECTION_OUT);
+    } else if (global_config.trace_blocked && action != XDP_TX && action != XDP_REDIRECT) {
         trace_packet(&context, PACKET_DIRECTION_BLOCKED);
     }
 
