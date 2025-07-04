@@ -427,13 +427,15 @@ func composeFarInfo(far *ie.IE, farInfo ebpf.FarInfo) (ebpf.FarInfo, error) {
 	}
 	var forward []*ie.IE
 	var err error
-	if far.Type == ie.CreateFAR {
+	switch far.Type {
+	case ie.CreateFAR:
 		forward, err = far.ForwardingParameters()
-	} else if far.Type == ie.UpdateFAR {
+	case ie.UpdateFAR:
 		forward, err = far.UpdateForwardingParameters()
-	} else {
+	default:
 		return ebpf.FarInfo{}, fmt.Errorf("unsupported IE type")
 	}
+
 	if err == nil {
 		outerHeaderCreationIndex := findIEindex(forward, 84) // IE Type Outer Header Creation
 		if outerHeaderCreationIndex == -1 {
@@ -588,203 +590,27 @@ func processEstablishmentRequestRules(
 	createdPDRs *[]SPDRInfo,
 ) error {
 	mapOperations := conn.mapOperations
-	for _, far := range req.CreateFAR {
-		farInfo, err := composeFarInfo(far, ebpf.FarInfo{})
-		if err != nil {
-			logger.Info().Msgf("Error extracting FAR info: %s", err.Error())
-			continue
-		}
 
-		farID, _ := far.FARID()
-		logger.Info().Msgf("Saving FAR info to session: %d, %+v", farID, farInfo)
-
-		operationPool.Add(Operation{
-			Apply: func(farID uint32, farInfo ebpf.FarInfo) func() error {
-				return func() error {
-					id, err := conn.mapOperations.NewFar(farInfo)
-					if err != nil {
-						logger.Info().Msgf("Can't put FAR: %s", err.Error())
-						return err
-					}
-
-					session.NewFar(farID, id, farInfo)
-
-					return nil
-				}
-			}(farID, farInfo),
-			Rollback: func(farID uint32) func() error {
-				return func() error {
-					far, err := session.RemoveFar(farID)
-					if err != nil {
-						return err
-					}
-
-					return conn.mapOperations.DeleteFar(far.GlobalId)
-				}
-			}(farID),
-		})
+	err := createFARs(req.CreateFAR, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
 	}
-	for _, qer := range req.CreateQER {
-		qerInfo := ebpf.QerInfo{}
-
-		qerID, err := qer.QERID()
-		if err != nil {
-			return fmt.Errorf("QER ID missing")
-		}
-
-		updateQer(&qerInfo, qer)
-		logger.Info().Msgf("Saving QER info to session: %d, %+v", qerID, qerInfo)
-
-		operationPool.Add(Operation{
-			Apply: func(qerID uint32, qerInfo ebpf.QerInfo) func() error {
-				return func() error {
-					id, err := conn.mapOperations.NewQer(qerInfo)
-					if err != nil {
-						logger.Info().Msgf("Can't put QER: %s", err.Error())
-						return err
-					}
-
-					session.NewQer(qerID, id, qerInfo)
-
-					return nil
-				}
-			}(qerID, qerInfo),
-
-			Rollback: func(qerID uint32) func() error {
-				return func() error {
-					qer, err := session.RemoveQer(qerID)
-					if err != nil {
-						return err
-					}
-
-					return conn.mapOperations.DeleteQer(qer.GlobalId)
-				}
-			}(qerID),
-		})
+	err = createQERs(req.CreateQER, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
 	}
-
-	for _, urr := range req.CreateURR {
-		urrInfo := ebpf.UrrInfo{}
-
-		urrID, err := urr.URRID()
-		if err != nil {
-			return fmt.Errorf("URR ID missing")
-		}
-
-		updateUrr(&urrInfo, urr)
-		logger.Info().Msgf("Saving URR info to session: %d, %+v", urrID, urrInfo)
-
-		operationPool.Add(Operation{
-			Apply: func(urrID uint32, urrInfo ebpf.UrrInfo) func() error {
-				return func() error {
-					id, err := conn.mapOperations.NewUrr(urrInfo)
-					if err != nil {
-						logger.Info().Msgf("Can't put URR: %s", err.Error())
-						return err
-					}
-
-					session.NewUrr(urrID, id, urrInfo)
-
-					return nil
-				}
-			}(urrID, urrInfo),
-
-			Rollback: func(urrID uint32) func() error {
-				return func() error {
-					urr, err := session.RemoveUrr(urrID)
-					if err != nil {
-						return err
-					}
-
-					_, err = conn.mapOperations.DeleteUrr(urr.GlobalId)
-
-					return err
-				}
-			}(urrID),
-		})
+	err = createURRs(req.CreateURR, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
 	}
 
 	imsi, msisdn := getSubscriberData(req.IEs)
 	isTraced := conn.NeedSessionTrace(imsi, msisdn)
 
-	sdfFilters := make([]ebpf.SdfFilter, 0)
-
-	for _, pdr := range req.CreatePDR {
-		pdi, err := pdr.PDI()
-		if err != nil {
-			continue
-		}
-
-		for _, x := range pdi {
-			ne, err := x.NetworkInstance()
-			if err != nil {
-				continue
-			}
-
-			if !conn.ValidateNetworkInstance(ne) {
-				return errNotAllowedNetworkInstance
-			}
-		}
-
-		// PDR should be created last, because we need to reference FARs and QERs global id
-		pdrID, err := pdr.PDRID()
-		if err != nil {
-			continue
-		}
-
-		spdrInfo := SPDRInfo{
-			PdrID:   uint32(pdrID),
-			PdrInfo: ebpf.PdrInfo{TraceFlag: isTraced},
-		}
-		pdrCopy := pdr
-
-		operationPool.Add(Operation{
-			Apply: func(pdrID uint16, spdrInfo SPDRInfo, pdr *ie.IE) func() error {
-				return func() error {
-					if err := pdrContext.extractPDR(pdr, &spdrInfo); err == nil {
-						if spdrInfo.PCCInfo != nil {
-							rule, ok := conn.PCCRules[spdrInfo.PCCInfo.PCCName]
-							if !ok {
-								logger.Warn().
-									Str("pcc rule name", spdrInfo.PCCInfo.PCCName).
-									Uint16("pdrID", pdrID).
-									Msgf("PCC rule not found")
-
-								return nil
-							}
-
-							spdrInfo.PCCInfo = &rule
-							sdfFilters = append(sdfFilters, spdrInfo.PCCInfo.SDFFilter)
-							logger.Debug().
-								Str("pcc rule name", spdrInfo.PCCInfo.PCCName).
-								Uint16("pdrID", pdrID).
-								Msgf("PCC rule found: %+v", spdrInfo.PCCInfo)
-						}
-						session.PutPDR(spdrInfo.PdrID, spdrInfo)
-						applyPDR(spdrInfo, mapOperations)
-						*createdPDRs = append(*createdPDRs, spdrInfo)
-					} else {
-						logger.Error().Msgf("error extracting PDR info: %s", err.Error())
-						return err
-					}
-
-					return nil
-				}
-			}(pdrID, spdrInfo, pdrCopy),
-
-			Rollback: func(spdrInfo SPDRInfo) func() error {
-				return func() error {
-					if _, err := session.RemovePDR(spdrInfo.PdrID); err != nil {
-						return err
-					}
-
-					return pdrContext.deletePDR(spdrInfo, conn.mapOperations)
-				}
-			}(spdrInfo),
-		})
+	err = createPDRs(req.CreatePDR, session, operationPool, logger, isTraced, conn, pdrContext, createdPDRs)
+	if err != nil {
+		return err
 	}
-
-	applySdfFiltersToSession(session, sdfFilters, mapOperations)
 
 	return nil
 }
@@ -816,6 +642,7 @@ func processDeletionRequestRules(
 			}(pdr),
 		})
 	}
+
 	for pfcpFarID, far := range session.FARs {
 		operationPool.Add(Operation{
 			Apply: func(far SFarInfo) func() error {
@@ -828,7 +655,7 @@ func processDeletionRequestRules(
 				return func() error {
 					newInternalID, err := conn.mapOperations.NewFar(far.FarInfo)
 					if err != nil {
-						logger.Info().Msgf("Can't put FAR: %s", err.Error())
+						logger.Warn().Msgf("Can't put FAR: %s", err.Error())
 						return err
 					}
 
@@ -851,13 +678,11 @@ func processDeletionRequestRules(
 				return func() error {
 					newInternalID, err := conn.mapOperations.NewQer(qer.QerInfo)
 					if err != nil {
-						logger.Info().Msgf("Can't put QER: %s", err.Error())
-
+						logger.Warn().Msgf("Can't put QER: %s", err.Error())
 						return err
 					}
 
 					session.NewQer(pfcpQerID, newInternalID, qer.QerInfo)
-
 					return nil
 				}
 			}(pfcpQerID, qer),
@@ -951,31 +776,105 @@ func processModificationRequestRules(
 ) error {
 	mapOperations := conn.mapOperations
 
-	for _, far := range req.CreateFAR {
+	err := createFARs(req.CreateFAR, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
+	}
+	err = updateFARs(req.UpdateFAR, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
+	}
+	err = removeFARs(req.RemoveFAR, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
+	}
+
+	err = createQERs(req.CreateQER, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
+	}
+	err = updateQERs(req.UpdateQER, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
+	}
+	err = removeQERs(req.RemoveQER, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
+	}
+
+	err = createURRs(req.CreateURR, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
+	}
+	err = updateURRs(req.UpdateURR, mapOperations, session, operationPool, logger)
+	if err != nil {
+		return err
+	}
+	err = removeURRs(req.RemoveURR, mapOperations, session, operationPool, logger, removedURRs)
+	if err != nil {
+		return err
+	}
+
+	// obtain tracing flag from storage by IMSI or MSISDN
+	imsi, msisdn := getSubscriberData(req.IEs)
+	isTraced := conn.NeedSessionTrace(imsi, msisdn)
+
+	err = createPDRs(req.CreatePDR, session, operationPool, logger, isTraced, conn, pdrContext, createdPDRs)
+	if err != nil {
+		return err
+	}
+	err = updatePDRs(req.UpdatePDR, session, operationPool, logger, isTraced, conn, pdrContext)
+	if err != nil {
+		return err
+	}
+	err = removePDRs(req.RemovePDR, session, operationPool, logger, mapOperations, pdrContext)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createFARs(
+	FARs []*ie.IE,
+	mapOperations ebpf.ForwardingPlaneController,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+) error {
+	for _, far := range FARs {
 		farInfo, err := composeFarInfo(far, ebpf.FarInfo{})
 		if err != nil {
-			logger.Info().Msgf("Error extracting FAR info: %s", err.Error())
+			logger.Warn().Msgf("Error extracting FAR info: %s", err.Error())
 			continue
 		}
 
 		farID, _ := far.FARID()
 		logger.Info().Msgf("Saving FAR info to session: %d, %+v", farID, farInfo)
 
+		var created bool
 		operationPool.Add(Operation{
-			Apply: func(farID uint32, farInfo ebpf.FarInfo) func() error {
+			Apply: func() func() error {
 				return func() error {
 					id, err := mapOperations.NewFar(farInfo)
 					if err != nil {
-						logger.Info().Msgf("Can't put FAR: %s", err.Error())
+						logger.Warn().Msgf("Can't put FAR: %s", err.Error())
 						return err
 					}
+
+					created = true
+
 					session.NewFar(farID, id, farInfo)
 					return nil
 				}
-			}(farID, farInfo),
+			}(),
 
-			Rollback: func(farID uint32) func() error {
+			Rollback: func() func() error {
 				return func() error {
+					if !created {
+						return nil
+					}
+
 					far, err := session.RemoveFar(farID)
 					if err != nil {
 						return err
@@ -983,95 +882,52 @@ func processModificationRequestRules(
 
 					return mapOperations.DeleteFar(far.GlobalId)
 				}
-			}(farID),
+			}(),
 		})
 	}
 
-	for _, far := range req.UpdateFAR {
-		farID, err := far.FARID()
-		if err != nil {
-			return err
-		}
-		oldFar := session.GetFar(farID)
+	return nil
+}
 
-		newFarInfo, err := composeFarInfo(far, oldFar.FarInfo)
-		if err != nil {
-			logger.Info().Msgf("Error extracting FAR info: %s", err.Error())
-			continue
-		}
-
-		newFar := oldFar
-		newFar.FarInfo = newFarInfo
-
-		operationPool.Add(Operation{
-			Apply: func(farID uint32, far SFarInfo) func() error {
-				return func() error {
-					session.UpdateFar(farID, far.FarInfo)
-					return mapOperations.UpdateFar(far.GlobalId, far.FarInfo)
-				}
-			}(farID, newFar),
-
-			Rollback: func(farID uint32, far SFarInfo) func() error {
-				return func() error {
-					session.UpdateFar(farID, far.FarInfo)
-					return mapOperations.UpdateFar(far.GlobalId, far.FarInfo)
-				}
-			}(farID, oldFar),
-		})
-	}
-
-	for _, far := range req.RemoveFAR {
-		farID, _ := far.FARID()
-		logger.Info().Msgf("Removing FAR: %d", farID)
-		oldFar, err := session.RemoveFar(farID)
-		if err != nil {
-			return err
-		}
-
-		operationPool.Add(Operation{
-			Apply: func(globalID uint32) func() error {
-				return func() error {
-					return mapOperations.DeleteFar(globalID)
-				}
-			}(oldFar.GlobalId),
-
-			Rollback: func(farID uint32, farInfo ebpf.FarInfo) func() error {
-				return func() error {
-					if internalID, err := mapOperations.NewFar(farInfo); err == nil {
-						session.NewFar(farID, internalID, farInfo)
-						return nil
-					} else {
-						logger.Info().Msgf("Can't rollback FAR: %s", err.Error())
-						return err
-					}
-				}
-			}(farID, oldFar.FarInfo),
-		})
-	}
-
-	for _, qer := range req.CreateQER {
+func createQERs(
+	QERs []*ie.IE,
+	mapOperations ebpf.ForwardingPlaneController,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+) error {
+	for _, qer := range QERs {
 		qerID, err := qer.QERID()
 		if err != nil {
-			continue
+			return err
 		}
 
 		qerInfo := ebpf.QerInfo{}
 		updateQer(&qerInfo, qer)
 
+		var created bool
 		operationPool.Add(Operation{
-			Apply: func(qerID uint32, qerInfo ebpf.QerInfo) func() error {
+			Apply: func() func() error {
 				return func() error {
 					id, err := mapOperations.NewQer(qerInfo)
 					if err != nil {
+						logger.Warn().Msgf("Can't put QER: %s", err.Error())
 						return err
 					}
+
+					created = true
+
 					session.NewQer(qerID, id, qerInfo)
 					return nil
 				}
-			}(qerID, qerInfo),
+			}(),
 
-			Rollback: func(qerID uint32) func() error {
+			Rollback: func() func() error {
 				return func() error {
+					if !created {
+						return nil
+					}
+
 					qer, err := session.RemoveQer(qerID)
 					if err != nil {
 						return err
@@ -1079,88 +935,54 @@ func processModificationRequestRules(
 
 					return mapOperations.DeleteQer(qer.GlobalId)
 				}
-			}(qerID),
+			}(),
 		})
 	}
 
-	for _, qer := range req.UpdateQER {
-		qerID, err := qer.QERID()
-		if err != nil {
-			return err
-		}
+	return nil
+}
 
-		oldQer := session.GetQer(qerID)
-
-		newQer := oldQer
-		updateQer(&newQer.QerInfo, qer)
-
-		operationPool.Add(Operation{
-			Apply: func(qerID uint32, qer SQerInfo) func() error {
-				return func() error {
-					session.UpdateQer(qerID, qer.QerInfo)
-					return mapOperations.UpdateQer(qer.GlobalId, qer.QerInfo)
-				}
-			}(qerID, newQer),
-
-			Rollback: func(qerID uint32, qer SQerInfo) func() error {
-				return func() error {
-					session.UpdateQer(qerID, qer.QerInfo)
-					return mapOperations.UpdateQer(qer.GlobalId, qer.QerInfo)
-				}
-			}(qerID, oldQer),
-		})
-	}
-
-	for _, qer := range req.RemoveQER {
-		qerID, _ := qer.QERID()
-		oldQer, err := session.RemoveQer(qerID)
-		if err != nil {
-			return err
-		}
-
-		operationPool.Add(Operation{
-			Apply: func(globalID uint32) func() error {
-				return func() error {
-					return mapOperations.DeleteQer(globalID)
-				}
-			}(oldQer.GlobalId),
-
-			Rollback: func(qerID uint32, qerInfo ebpf.QerInfo) func() error {
-				return func() error {
-					internalID, err := mapOperations.NewQer(qerInfo)
-					if err != nil {
-						return err
-					}
-					session.NewQer(qerID, internalID, qerInfo)
-					return nil
-				}
-			}(qerID, oldQer.QerInfo),
-		})
-	}
-
-	for _, urr := range req.CreateURR {
+func createURRs(
+	URRs []*ie.IE,
+	mapOperations ebpf.ForwardingPlaneController,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+) error {
+	for _, urr := range URRs {
 		urrID, err := urr.URRID()
 		if err != nil {
-			continue
+			return err
 		}
 
 		urrInfo := ebpf.UrrInfo{}
-		updateUrr(&urrInfo, urr)
 
+		updateUrr(&urrInfo, urr)
+		logger.Info().Msgf("Saving URR info to session: %d, %+v", urrID, urrInfo)
+
+		var created bool
 		operationPool.Add(Operation{
-			Apply: func(urrID uint32, urrInfo ebpf.UrrInfo) func() error {
+			Apply: func() func() error {
 				return func() error {
 					id, err := mapOperations.NewUrr(urrInfo)
 					if err != nil {
+						logger.Error().Msgf("Can't put URR: %s", err.Error())
 						return err
 					}
+
+					created = true
+
 					session.NewUrr(urrID, id, urrInfo)
 					return nil
 				}
-			}(urrID, urrInfo),
+			}(),
 
-			Rollback: func(urrID uint32) func() error {
+			Rollback: func() func() error {
 				return func() error {
+					if !created {
+						return nil
+					}
+
 					urr, err := session.RemoveUrr(urrID)
 					if err != nil {
 						return err
@@ -1170,99 +992,43 @@ func processModificationRequestRules(
 
 					return err
 				}
-			}(urrID),
+			}(),
 		})
 	}
 
-	for _, urr := range req.UpdateURR {
-		urrID, err := urr.URRID()
+	return nil
+}
+
+func createPDRs(
+	PDRs []*ie.IE,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+	isTraced bool,
+	conn *PfcpConnection,
+	pdrContext *PDRCreationContext,
+	createdPDRs *[]SPDRInfo,
+) error {
+	mapOperations := conn.mapOperations
+	sdfFilters := make([]ebpf.SdfFilter, 0, len(PDRs))
+
+	for _, pdr := range PDRs {
+		pdi, err := pdr.PDI()
 		if err != nil {
-			return err
+			continue
 		}
 
-		oldUrr := session.GetUrr(urrID)
+		for _, x := range pdi {
+			ne, err := x.NetworkInstance()
+			if err != nil {
+				continue
+			}
 
-		newUrr := oldUrr
-		updateUrr(&newUrr.UrrInfo, urr)
-
-		operationPool.Add(Operation{
-			Apply: func(urrID uint32, urr SUrrInfo) func() error {
-				return func() error {
-					session.UpdateUrr(urrID, urr.UrrInfo)
-					return mapOperations.UpdateUrr(urr.GlobalId, urr.UrrInfo)
-				}
-			}(urrID, newUrr),
-
-			Rollback: func(urrID uint32, urr SUrrInfo) func() error {
-				return func() error {
-					session.UpdateUrr(urrID, urr.UrrInfo)
-					return mapOperations.UpdateUrr(urr.GlobalId, urr.UrrInfo)
-				}
-			}(urrID, oldUrr),
-		})
-	}
-
-	for _, urr := range req.RemoveURR {
-		urrID, _ := urr.URRID()
-		oldUrr, err := session.RemoveUrr(urrID)
-		if err != nil {
-			return err
+			if !conn.ValidateNetworkInstance(ne) {
+				return errNotAllowedNetworkInstance
+			}
 		}
 
-		operationPool.Add(Operation{
-			Apply: func(urrID uint32, urr SUrrInfo) func() error {
-				return func() error {
-					newReport, err := mapOperations.DeleteUrr(urr.GlobalId)
-					if err != nil {
-						return err
-					}
-
-					uplink := newReport.UplinkVolume - urr.UrrInfo.UplinkVolume
-					downlink := newReport.DownlinkVolume - urr.UrrInfo.DownlinkVolume
-
-					report := ie.NewUsageReportWithinSessionModificationResponse(
-						ie.NewURRID(urrID),
-						ie.NewURSEQN(urr.ReportSeqNumber+1),
-						ie.NewUsageReportTrigger([]uint8{0, 1 << 3, 0}...),
-						ie.NewEndTime(time.Now()),
-						ie.NewVolumeMeasurement(0x7,
-							uplink+downlink,
-							uplink,
-							downlink,
-							0, 0, 0),
-					)
-
-					*removedURRs = append(*removedURRs, report)
-					return nil
-				}
-			}(urrID, oldUrr),
-
-			Rollback: func(urrID uint32, urr SUrrInfo) func() error {
-				return func() error {
-					newGlobalID, err := mapOperations.NewUrr(urr.UrrInfo)
-					if err != nil {
-						return err
-					}
-
-					session.URRs[urrID] = SUrrInfo{
-						UrrInfo:         urr.UrrInfo,
-						GlobalId:        newGlobalID,
-						ReportSeqNumber: urr.ReportSeqNumber,
-					}
-
-					return nil
-				}
-			}(urrID, oldUrr),
-		})
-	}
-
-	// obtain tracing flag from storage by IMSI or MSISDN
-	imsi, msisdn := getSubscriberData(req.IEs)
-	isTraced := conn.NeedSessionTrace(imsi, msisdn)
-
-	sdfFilters := make([]ebpf.SdfFilter, 0)
-
-	for _, pdr := range req.CreatePDR {
 		// PDR should be created last, because we need to reference FARs and QERs global id
 		pdrID, err := pdr.PDRID()
 		if err != nil {
@@ -1276,9 +1042,9 @@ func processModificationRequestRules(
 		}
 
 		operationPool.Add(Operation{
-			Apply: func(pdr *ie.IE, info SPDRInfo) func() error {
+			Apply: func() func() error {
 				return func() error {
-					if err := pdrContext.extractPDR(pdr, &info); err == nil {
+					if err := pdrContext.extractPDR(pdrCopy, &spdrInfo); err == nil {
 						if spdrInfo.PCCInfo != nil {
 							rule, ok := conn.PCCRules[spdrInfo.PCCInfo.PCCName]
 							if !ok {
@@ -1298,33 +1064,168 @@ func processModificationRequestRules(
 								Msgf("PCC rule found: %+v", spdrInfo.PCCInfo)
 						}
 
-						logger.Debug().Msgf("pdr: %+v", info)
-						session.PutPDR(info.PdrID, info)
-						applyPDR(info, mapOperations)
-						*createdPDRs = append(*createdPDRs, info)
+						logger.Debug().Msgf("pdr: %+v", spdrInfo)
+						session.PutPDR(spdrInfo.PdrID, spdrInfo)
+						applyPDR(spdrInfo, mapOperations)
+						*createdPDRs = append(*createdPDRs, spdrInfo)
 						return nil
 					}
 					return err
 				}
-			}(pdrCopy, spdrInfo),
+			}(),
 
-			Rollback: func(info SPDRInfo) func() error {
+			Rollback: func() func() error {
 				return func() error {
-					if _, err := session.RemovePDR(info.PdrID); err != nil {
+					if _, err := session.RemovePDR(spdrInfo.PdrID); err != nil {
 						return err
 					}
-					return pdrContext.deletePDR(info, mapOperations)
+
+					return pdrContext.deletePDR(spdrInfo, mapOperations)
 				}
-			}(spdrInfo),
+			}(),
 		})
 	}
 
 	applySdfFiltersToSession(session, sdfFilters, mapOperations)
 
-	delSDFFilters := make([]ebpf.SdfFilter, 0)
-	sdfFilters = make([]ebpf.SdfFilter, 0)
+	return nil
+}
 
-	for _, pdr := range req.UpdatePDR {
+func updateFARs(
+	FARs []*ie.IE,
+	mapOperations ebpf.ForwardingPlaneController,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+) error {
+	for _, far := range FARs {
+		farID, err := far.FARID()
+		if err != nil {
+			return err
+		}
+		oldFar := session.GetFar(farID)
+
+		newFarInfo, err := composeFarInfo(far, oldFar.FarInfo)
+		if err != nil {
+			logger.Info().Msgf("Error extracting FAR info: %s", err.Error())
+			continue
+		}
+
+		newFar := oldFar
+		newFar.FarInfo = newFarInfo
+
+		operationPool.Add(Operation{
+			Apply: func() func() error {
+				return func() error {
+					session.UpdateFar(farID, newFar.FarInfo)
+					return mapOperations.UpdateFar(newFar.GlobalId, newFar.FarInfo)
+				}
+			}(),
+
+			Rollback: func() func() error {
+				return func() error {
+					session.UpdateFar(farID, oldFar.FarInfo)
+					return mapOperations.UpdateFar(oldFar.GlobalId, oldFar.FarInfo)
+				}
+			}(),
+		})
+	}
+
+	return nil
+}
+
+func updateQERs(
+	QERs []*ie.IE,
+	mapOperations ebpf.ForwardingPlaneController,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+) error {
+	for _, qer := range QERs {
+		qerID, err := qer.QERID()
+		if err != nil {
+			logger.Warn().Msgf("Can't get QER ID: %s", err.Error())
+			return err
+		}
+
+		oldQer := session.GetQer(qerID)
+
+		newQer := oldQer
+		updateQer(&newQer.QerInfo, qer)
+
+		operationPool.Add(Operation{
+			Apply: func() func() error {
+				return func() error {
+					session.UpdateQer(qerID, newQer.QerInfo)
+					return mapOperations.UpdateQer(newQer.GlobalId, newQer.QerInfo)
+				}
+			}(),
+
+			Rollback: func() func() error {
+				return func() error {
+					session.UpdateQer(qerID, oldQer.QerInfo)
+					return mapOperations.UpdateQer(oldQer.GlobalId, oldQer.QerInfo)
+				}
+			}(),
+		})
+	}
+
+	return nil
+}
+func updateURRs(
+	URRs []*ie.IE,
+	mapOperations ebpf.ForwardingPlaneController,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+) error {
+	for _, urr := range URRs {
+		urrID, err := urr.URRID()
+		if err != nil {
+			logger.Warn().Msgf("Can't get URR ID: %s", err.Error())
+			return err
+		}
+
+		oldUrr := session.GetUrr(urrID)
+
+		newUrr := oldUrr
+		updateUrr(&newUrr.UrrInfo, urr)
+
+		operationPool.Add(Operation{
+			Apply: func() func() error {
+				return func() error {
+					session.UpdateUrr(urrID, newUrr.UrrInfo)
+					return mapOperations.UpdateUrr(newUrr.GlobalId, newUrr.UrrInfo)
+				}
+			}(),
+
+			Rollback: func() func() error {
+				return func() error {
+					session.UpdateUrr(urrID, oldUrr.UrrInfo)
+					return mapOperations.UpdateUrr(oldUrr.GlobalId, oldUrr.UrrInfo)
+				}
+			}(),
+		})
+	}
+
+	return nil
+}
+
+func updatePDRs(
+	PDRs []*ie.IE,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+	isTraced bool,
+	conn *PfcpConnection,
+	pdrContext *PDRCreationContext,
+) error {
+	mapOperations := conn.mapOperations
+
+	delSDFFilters := make([]ebpf.SdfFilter, 0)
+	sdfFilters := make([]ebpf.SdfFilter, 0, len(PDRs))
+
+	for _, pdr := range PDRs {
 		pdrID, err := pdr.PDRID()
 		if err != nil {
 			return err
@@ -1403,29 +1304,163 @@ func processModificationRequestRules(
 	removeSdfFiltersFromSession(session, delSDFFilters, mapOperations)
 	applySdfFiltersToSession(session, sdfFilters, mapOperations)
 
-	for _, pdr := range req.RemovePDR {
-		pdrID, _ := pdr.PDRID()
-		pdrKey := uint32(pdrID)
+	return nil
+}
 
-		oldPdr, err := session.RemovePDR(pdrKey)
+func removeFARs(
+	FARs []*ie.IE,
+	mapOperations ebpf.ForwardingPlaneController,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+) error {
+	for _, far := range FARs {
+		farID, _ := far.FARID()
+		logger.Info().Msgf("Removing FAR: %d", farID)
+		oldFar, err := session.RemoveFar(farID)
 		if err != nil {
 			return err
 		}
 
 		operationPool.Add(Operation{
-			Apply: func(pdr SPDRInfo) func() error {
-				return func() error {
-					return pdrContext.deletePDR(pdr, mapOperations)
+			Apply: func() error {
+				return mapOperations.DeleteFar(oldFar.GlobalId)
+			},
+			Rollback: func() error {
+				internalID, err := mapOperations.NewFar(oldFar.FarInfo)
+				if err != nil {
+					logger.Info().Msgf("Can't rollback FAR: %s", err.Error())
+					return err
 				}
-			}(oldPdr),
+				session.NewFar(farID, internalID, oldFar.FarInfo)
+				return nil
+			},
+		})
+	}
 
-			Rollback: func(pdrID uint32, pdr SPDRInfo) func() error {
-				return func() error {
-					session.PutPDR(pdrID, pdr)
-					applyPDR(pdr, mapOperations)
-					return nil
+	return nil
+}
+
+func removeQERs(
+	QERs []*ie.IE,
+	mapOperations ebpf.ForwardingPlaneController,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+) error {
+	for _, qer := range QERs {
+		qerID, _ := qer.QERID()
+		logger.Debug().Msgf("Removing QER: %d", qerID)
+		oldQer, err := session.RemoveQer(qerID)
+		if err != nil {
+			return err
+		}
+
+		operationPool.Add(Operation{
+			Apply: func() error {
+				return mapOperations.DeleteQer(oldQer.GlobalId)
+			},
+			Rollback: func() error {
+				internalID, err := mapOperations.NewQer(oldQer.QerInfo)
+				if err != nil {
+					return err
 				}
-			}(pdrKey, oldPdr),
+				session.NewQer(qerID, internalID, oldQer.QerInfo)
+				return nil
+			},
+		})
+	}
+
+	return nil
+}
+
+func removeURRs(
+	URRs []*ie.IE,
+	mapOperations ebpf.ForwardingPlaneController,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+	removedURRs *[]*ie.IE,
+) error {
+	for _, urr := range URRs {
+		urrID, _ := urr.URRID()
+		logger.Debug().Msgf("Removing URR: %d", urrID)
+		oldUrr, err := session.RemoveUrr(urrID)
+		if err != nil {
+			return err
+		}
+
+		operationPool.Add(Operation{
+			Apply: func() error {
+				newReport, err := mapOperations.DeleteUrr(oldUrr.GlobalId)
+				if err != nil {
+					return err
+				}
+
+				uplink := newReport.UplinkVolume - oldUrr.UrrInfo.UplinkVolume
+				downlink := newReport.DownlinkVolume - oldUrr.UrrInfo.DownlinkVolume
+
+				report := ie.NewUsageReportWithinSessionModificationResponse(
+					ie.NewURRID(urrID),
+					ie.NewURSEQN(oldUrr.ReportSeqNumber+1),
+					ie.NewUsageReportTrigger([]uint8{0, 1 << 3, 0}...),
+					ie.NewEndTime(time.Now()),
+					ie.NewVolumeMeasurement(0x7,
+						uplink+downlink,
+						uplink,
+						downlink,
+						0, 0, 0),
+				)
+
+				*removedURRs = append(*removedURRs, report)
+				return nil
+			},
+			Rollback: func() error {
+				newGlobalID, err := mapOperations.NewUrr(oldUrr.UrrInfo)
+				if err != nil {
+					return err
+				}
+
+				session.URRs[urrID] = SUrrInfo{
+					UrrInfo:         oldUrr.UrrInfo,
+					GlobalId:        newGlobalID,
+					ReportSeqNumber: oldUrr.ReportSeqNumber,
+				}
+				return nil
+			},
+		})
+	}
+
+	return nil
+}
+
+func removePDRs(
+	PDRs []*ie.IE,
+	session *Session,
+	operationPool *OperationPool,
+	logger zerolog.Logger,
+	mapOperations ebpf.ForwardingPlaneController,
+	pdrContext *PDRCreationContext,
+) error {
+	for _, pdr := range PDRs {
+		pdrID, _ := pdr.PDRID()
+		pdrKey := uint32(pdrID)
+
+		oldPdr, err := session.RemovePDR(pdrKey)
+		if err != nil {
+			logger.Warn().Msgf("Can't remove PDR: %s", err.Error())
+			return err
+		}
+
+		operationPool.Add(Operation{
+			Apply: func() error {
+				return pdrContext.deletePDR(oldPdr, mapOperations)
+			},
+			Rollback: func() error {
+				session.PutPDR(pdrKey, oldPdr)
+				applyPDR(oldPdr, mapOperations)
+				return nil
+			},
 		})
 	}
 
