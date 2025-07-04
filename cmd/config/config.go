@@ -180,8 +180,8 @@ func defineFlags() {
 
 func initPccConfig() {
 	configPath := pflag.Lookup("pcc-config").Value.String()
-
-	pccConfigV.SetDefault("pcc_rules", []PccRule{})
+  
+  pccConfigV.SetDefault("pcc_rules", []PccRule{})
 
 	pccConfigV.SetConfigFile(configPath)
 	pccConfigV.SetEnvPrefix("pcc")
@@ -193,6 +193,8 @@ func initPccConfig() {
 		} else {
 			log.Printf("Unable to read PCC config file: %v", err)
 		}
+
+		return
 	}
 
 	log.Printf("Startup PCC config: %+v", pccConfigV.AllSettings())

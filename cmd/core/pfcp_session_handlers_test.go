@@ -81,16 +81,16 @@ func TestAssociationSetup(t *testing.T) {
 	}
 }
 
-func PreparePfcpConnection(t *testing.T) (PfcpConnection, string) {
+func PreparePfcpConnection(t *testing.T) (*PfcpConnection, string) {
 	config := config.UpfConfig{}
 	return PreparePfcpConnectionWithMock(t, &MapOperationsMock{}, config)
 }
 
-func PreparePfcpConnectionWithConfig(t *testing.T, config config.UpfConfig) (PfcpConnection, string) {
+func PreparePfcpConnectionWithConfig(t *testing.T, config config.UpfConfig) (*PfcpConnection, string) {
 	return PreparePfcpConnectionWithMock(t, &MapOperationsMock{}, config)
 }
 
-func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneController, config config.UpfConfig) (PfcpConnection, string) {
+func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneController, config config.UpfConfig) (*PfcpConnection, string) {
 
 	var pfcpHandlers = PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            HandlePfcpHeartbeatRequest,
@@ -146,7 +146,7 @@ func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneCo
 		t.Errorf("Association not created")
 	}
 
-	return pfcpConn, smfIP
+	return &pfcpConn, smfIP
 }
 
 func SendDefaulMappingPdrs(t *testing.T, pfcpConn *PfcpConnection, smfIP string) {
@@ -206,7 +206,7 @@ func SendDefaulMappingPdrs(t *testing.T, pfcpConn *PfcpConnection, smfIP string)
 func TestSdfFilterStoreValid(t *testing.T) {
 
 	pfcpConn, smfIP := PreparePfcpConnection(t)
-	SendDefaulMappingPdrs(t, &pfcpConn, smfIP)
+	SendDefaulMappingPdrs(t, pfcpConn, smfIP)
 
 	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 1 {
 		t.Errorf("Session 1, should have already stored 1 PDR")
@@ -258,12 +258,12 @@ func TestSdfFilterStoreValid(t *testing.T) {
 	)
 
 	var err error
-	_, _, err = HandlePfcpSessionModificationRequest(&pfcpConn, seReq1, smfIP)
+	_, _, err = HandlePfcpSessionModificationRequest(pfcpConn, seReq1, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
 
-	_, _, err = HandlePfcpSessionModificationRequest(&pfcpConn, seReq2, smfIP)
+	_, _, err = HandlePfcpSessionModificationRequest(pfcpConn, seReq2, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
@@ -296,7 +296,7 @@ func TestSdfFilterStoreValid(t *testing.T) {
 func TestSdfFilterStoreInvalid(t *testing.T) {
 
 	pfcpConn, smfIP := PreparePfcpConnection(t)
-	SendDefaulMappingPdrs(t, &pfcpConn, smfIP)
+	SendDefaulMappingPdrs(t, pfcpConn, smfIP)
 
 	if len(pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs) != 1 {
 		t.Errorf("Session 1, should have already stored 1 PDR")
@@ -320,7 +320,7 @@ func TestSdfFilterStoreInvalid(t *testing.T) {
 	)
 
 	var err error
-	_, _, err = HandlePfcpSessionModificationRequest(&pfcpConn, seReq1, smfIP)
+	_, _, err = HandlePfcpSessionModificationRequest(pfcpConn, seReq1, smfIP)
 	if err != nil {
 		t.Errorf("No error should appear while handling session establishment request. PDR with bad SDF should be skipped?")
 	}
@@ -334,7 +334,7 @@ func TestSdfFilterStoreInvalid(t *testing.T) {
 func TestSeveralSdfFiltersSupport(t *testing.T) {
 
 	pfcpConn, smfIP := PreparePfcpConnection(t)
-	SendDefaulMappingPdrs(t, &pfcpConn, smfIP)
+	SendDefaulMappingPdrs(t, pfcpConn, smfIP)
 
 	ip1, _ := net.ResolveIPAddr("ip", "1.1.1.1")
 
@@ -383,7 +383,7 @@ func TestSeveralSdfFiltersSupport(t *testing.T) {
 	)
 
 	var err error
-	_, _, err = HandlePfcpSessionModificationRequest(&pfcpConn, seReq1, smfIP)
+	_, _, err = HandlePfcpSessionModificationRequest(pfcpConn, seReq1, smfIP)
 	if err != nil {
 		t.Errorf("No error should appear while handling session establishment request. PDR with bad SDF should be skipped?")
 	}
@@ -422,7 +422,7 @@ func TestFTUPInAssociationSetupResponse(t *testing.T) {
 	)
 
 	// Processing Association Setup Request
-	response, _, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
+	response, _, err := HandlePfcpAssociationSetupRequest(pfcpConn, asReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling Association Setup Request: %s", err)
 	}
@@ -494,7 +494,7 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 	)
 
 	// Processing Session Establishment Request
-	response, _, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq, smfIP)
+	response, _, err := HandlePfcpSessionEstablishmentRequest(pfcpConn, seReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling Session Establishment Request: %s", err)
 	}
@@ -564,7 +564,7 @@ func TestIPAllocationInSessionEstablishmentResponse(t *testing.T) {
 		)
 
 		// Processing Session Establishment Request
-		response, _, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, seReq, smfIP)
+		response, _, err := HandlePfcpSessionEstablishmentRequest(pfcpConn, seReq, smfIP)
 		if err != nil {
 			t.Errorf("Error handling Session Establishment Request: %s", err)
 		}
@@ -625,7 +625,7 @@ func TestUEIPInAssociationSetupResponse(t *testing.T) {
 	)
 
 	// Processing Association Setup Request
-	response, _, err := HandlePfcpAssociationSetupRequest(&pfcpConn, asReq, smfIP)
+	response, _, err := HandlePfcpAssociationSetupRequest(pfcpConn, asReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling Association Setup Request: %s", err)
 	}
@@ -656,7 +656,7 @@ func TestHandlePfcpSessionEstablishmentRequestWithURR(t *testing.T) {
 			ie.NewURRID(0xf),
 		),
 	)
-	_, _, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	_, _, err := HandlePfcpSessionEstablishmentRequest(pfcpConn, estReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
@@ -677,7 +677,7 @@ func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
 			ie.NewPDRID(0xffff),
 		),
 	)
-	_, _, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	_, _, err := HandlePfcpSessionEstablishmentRequest(pfcpConn, estReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
@@ -687,7 +687,7 @@ func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
 			ie.NewURRID(0xf),
 		),
 	)
-	_, _, err = HandlePfcpSessionModificationRequest(&pfcpConn, modReq, smfIP)
+	_, _, err = HandlePfcpSessionModificationRequest(pfcpConn, modReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session modification request: %s", err)
 	}
@@ -703,7 +703,7 @@ func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
 	// 		ie.NewMeasurementMethod(1, 1, 1),
 	// 	),
 	// )
-	// _, err = HandlePfcpSessionModificationRequest(&pfcpConn, modReq, smfIP)
+	// _, err = HandlePfcpSessionModificationRequest(pfcpConn, modReq, smfIP)
 	// if err != nil {
 	// 	t.Errorf("Error handling session modification request: %s", err)
 	// }
@@ -719,7 +719,7 @@ func TestHandlePfcpSessionModificationRequestWithURR(t *testing.T) {
 
 	ebpfMock.urr.UplinkVolume = 1234
 	ebpfMock.urr.DownlinkVolume = 5678
-	msg, _, err := HandlePfcpSessionModificationRequest(&pfcpConn, modReq, smfIP)
+	msg, _, err := HandlePfcpSessionModificationRequest(pfcpConn, modReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session modification request: %s", err)
 	}
@@ -780,7 +780,7 @@ func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
 			ie.NewURRID(0xf),
 		),
 	)
-	_, _, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	_, _, err := HandlePfcpSessionEstablishmentRequest(pfcpConn, estReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err)
 	}
@@ -788,7 +788,7 @@ func TestHandlePfcpSessionDeletionRequestWithURR(t *testing.T) {
 	ebpfMock.urr.UplinkVolume = 100
 	ebpfMock.urr.DownlinkVolume = 200
 	delReq := message.NewSessionDeletionRequest(0, 0, 2, 1, 0)
-	msg, _, err := HandlePfcpSessionDeletionRequest(&pfcpConn, delReq, smfIP)
+	msg, _, err := HandlePfcpSessionDeletionRequest(pfcpConn, delReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session deletion request: %s", err)
 	}
@@ -851,7 +851,7 @@ func TestHandlePfcpSessionEstablishmentRequestWithNotAllowedAPN(t *testing.T) {
 				),
 			),
 		)
-		msg, _, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+		msg, _, err := HandlePfcpSessionEstablishmentRequest(pfcpConn, estReq, smfIP)
 		if err != nil {
 			t.Errorf("Error handling session establishment request: %s", err)
 		}
@@ -879,7 +879,7 @@ func TestHandlePfcpSessionEstablishmentRequestWithNotAllowedAPN(t *testing.T) {
 				),
 			),
 		)
-		msg, _, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReqWithAllowed, smfIP)
+		msg, _, err := HandlePfcpSessionEstablishmentRequest(pfcpConn, estReqWithAllowed, smfIP)
 		if err != nil {
 			t.Errorf("Error handling session establishment request: %s", err)
 		}
@@ -915,7 +915,7 @@ func TestHandlePfcpSessionEstablishmentRequestWithTrace(t *testing.T) {
 		),
 		ie.NewVendorSpecificIE(32769, 2011, []byte{0x52, 0x50, 0x03, 0x00, 0x00, 0x00, 0x20, 0xf3}),
 	)
-	_, _, err := HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	_, _, err := HandlePfcpSessionEstablishmentRequest(pfcpConn, estReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err.Error())
 	}
@@ -929,7 +929,7 @@ func TestHandlePfcpSessionEstablishmentRequestWithTrace(t *testing.T) {
 	}
 
 	estReq.SetSEID(estReq.SEID() + 1)
-	_, _, err = HandlePfcpSessionEstablishmentRequest(&pfcpConn, estReq, smfIP)
+	_, _, err = HandlePfcpSessionEstablishmentRequest(pfcpConn, estReq, smfIP)
 	if err != nil {
 		t.Errorf("Error handling session establishment request: %s", err.Error())
 	}

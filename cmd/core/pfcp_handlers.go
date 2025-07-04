@@ -52,6 +52,66 @@ func setBit(n uint8, pos uint) uint8 {
 	return n
 }
 
+func HandlePfcpAssociationUpdateResponse(
+	conn *PfcpConnection,
+	msg message.Message,
+	addr string,
+) (message.Message, bool, error) {
+	asupres := msg.(*message.AssociationUpdateResponse)
+
+	log.Info().Msgf("Got Association Update Response from: %s (Seq: %d)", addr, asupres.SequenceNumber)
+
+	log.Debug().Msgf("Association Update Response content: %+v", asupres)
+
+	if asupres.NodeID != nil {
+		log.Debug().Msgf("Node ID: %+v", asupres.NodeID)
+	}
+
+	return nil, false, nil
+}
+
+func HandlePfcpAssociationReleaseRequest(
+	conn *PfcpConnection,
+	msg message.Message,
+	addr string,
+) (message.Message, bool, error) {
+	asreq := msg.(*message.AssociationReleaseRequest)
+	log.Info().Msgf("Got Association Release Request from: %s (Seq: %d)", addr, asreq.SequenceNumber)
+
+	nodeID := asreq.NodeID
+	if nodeID == nil {
+		log.Warn().Msgf("Got Association Release Request without NodeID from: %s", addr)
+		nodeID = ie.NewNodeID("0.0.0.0", "", "")
+	}
+
+	conn.associationMutex.Lock()
+	defer conn.associationMutex.Unlock()
+
+	assoc, ok := conn.NodeAssociations[addr]
+	if !ok {
+		log.Warn().Msgf("No association found for address: %s", addr)
+
+		return message.NewAssociationReleaseResponse(
+			asreq.SequenceNumber,
+			nodeID,
+			ie.NewCause(ie.CauseRequestRejected),
+		), false, nil
+	}
+
+	if _, err := nodeID.NodeID(); err != nil {
+		log.Warn().Msgf("Error getting node ID: %s", err.Error())
+	} else {
+		conn.DeleteAssociation(addr)
+		log.Info().Msgf("Association with node [%s] released and removed", assoc.ID)
+	}
+
+	return message.NewAssociationReleaseResponse(
+		asreq.SequenceNumber,
+		nodeID,
+		ie.NewCause(ie.CauseRequestAccepted),
+	), false, nil
+}
+
 // https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/16.04.00_60/ts_129244v160400p.pdf page 95
 func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
 	asreq := msg.(*message.AssociationSetupRequest)

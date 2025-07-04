@@ -52,3 +52,9 @@ func (h *ApiHandler) listPfcpAssociationsFull(c *gin.Context) {
 
 	c.IndentedJSON(http.StatusOK, associations)
 }
+
+func (h *ApiHandler) pfcpAssociationRelease(c *gin.Context) {
+	h.associationReleaseChan <- struct{}{}
+
+	c.Status(http.StatusNoContent)
+}

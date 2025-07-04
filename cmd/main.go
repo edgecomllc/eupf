@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/binary"
 	"net"
 	"os"
@@ -22,9 +23,41 @@ import (
 
 //go:generate swag init --parseDependency --parseInternal --parseDepth 1 -g api/rest/handler.go
 
+func waitForAllAssocReleases(conns ...*core.PfcpConnection) {
+	const (
+		pfcpAssocReleaseTimeout      = time.Second * 5
+		pfcpAssocReleaseCheckTimeout = time.Millisecond * 100
+	)
+
+	timer := time.NewTimer(pfcpAssocReleaseTimeout)
+	tick := time.NewTicker(pfcpAssocReleaseCheckTimeout)
+
+	defer timer.Stop()
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-timer.C:
+			return
+		case <-tick.C:
+			allEmpty := true
+			for _, conn := range conns {
+				if len(conn.NodeAssociations) != 0 {
+					allEmpty = false
+					break
+				}
+			}
+			if allEmpty {
+				return
+			}
+		}
+	}
+}
+
 func main() {
 	stopper := make(chan os.Signal, 1)
 	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
+	resetAssociationChan := make(chan struct{})
 
 	config.Init()
 
@@ -247,6 +280,7 @@ func main() {
 		&config.Conf,
 		&links,
 		gtpPathManager,
+		resetAssociationChan,
 	)
 
 	engine := h.InitRoutes()
@@ -273,6 +307,21 @@ func main() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	assocReleaseFunc := func() {
+		pfcpConn.SendAssociationReleaseRequest()
+		sxaConn.SendAssociationReleaseRequest()
+		sxbConn.SendAssociationReleaseRequest()
+
+		waitForAllAssocReleases(pfcpConn, sxaConn, sxbConn)
+
+		pfcpConn.DeleteAllAssociations()
+		sxaConn.DeleteAllAssociations()
+		sxbConn.DeleteAllAssociations()
+	}
+
 	for {
 		select {
 		case <-ticker.C:
@@ -283,8 +332,24 @@ func main() {
 			// }
 			// log.Printf("Pipeline map contents:\n%s", s)
 		case <-stopper:
-			log.Info().Msgf("Received signal, exiting program..")
+			log.Info().Msg("OS signal received. Initiating graceful shutdown...")
+
+			assocReleaseFunc()
+
+			gtpPathManager.Stop()
+
+			if err := apiSrv.Stop(ctx); err != nil {
+				log.Error().Err(err).Msg("Error while stopping API server")
+			}
+			if err := metricsSrv.Stop(ctx); err != nil {
+				log.Error().Err(err).Msg("Error while stopping metrics server")
+			}
+
+			log.Info().Msg("Service has been shut down successfully.")
+
 			return
+		case <-resetAssociationChan:
+			assocReleaseFunc()
 		}
 	}
 }

@@ -208,6 +208,7 @@ Method | URL                              | Description                         
 ------ | -------------------------------- | --------------------------------------------------------------------------- | --------------------------------
 `GET`  | `/api/v1/pfcp_associations`      | Lists the PFCP associations. Returns a list of `NodeAssociationDescription` | `/api/v1/pfcp_associations`
 `GET`  | `/api/v1/pfcp_associations/full` | Lists the full PFCP associations. Returns objects of `NodeAssociation`      | `/api/v1/pfcp_associations/full`
+`GET`  | `/api/v1/pfcp_associations/release` | Calls for PFCP Association Release Request for all established associations. Returns nothing      | `/api/v1/pfcp_associations/release`
 
 ### - PFCP sessions
 

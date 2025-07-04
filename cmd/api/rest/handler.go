@@ -25,12 +25,13 @@ import (
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 
 type ApiHandler struct {
-	BpfObjects        *ebpf.BpfObjects
-	pfcpSrv           map[string]*core.PfcpConnection
-	ForwardPlaneStats *ebpf.UpfXdpActionStatistic
-	Cfg               *config.UpfConfig
-	Links             *[]link.Link
-	GtpPathManager    *core.GtpPathManager
+	BpfObjects             *ebpf.BpfObjects
+	pfcpSrv                map[string]*core.PfcpConnection
+	ForwardPlaneStats      *ebpf.UpfXdpActionStatistic
+	Cfg                    *config.UpfConfig
+	Links                  *[]link.Link
+	GtpPathManager         *core.GtpPathManager
+	associationReleaseChan chan struct{}
 }
 
 func NewApiHandler(
@@ -40,14 +41,16 @@ func NewApiHandler(
 	cfg *config.UpfConfig,
 	links *[]link.Link,
 	gtpPathManager *core.GtpPathManager,
+	releaseChan chan struct{},
 ) *ApiHandler {
 	return &ApiHandler{
-		BpfObjects:        bpfObjects,
-		pfcpSrv:           pfcpSrv,
-		ForwardPlaneStats: forwardPlaneStats,
-		Cfg:               cfg,
-		Links:             links,
-		GtpPathManager:    gtpPathManager,
+		BpfObjects:             bpfObjects,
+		pfcpSrv:                pfcpSrv,
+		ForwardPlaneStats:      forwardPlaneStats,
+		Cfg:                    cfg,
+		Links:                  links,
+		GtpPathManager:         gtpPathManager,
+		associationReleaseChan: releaseChan,
 	}
 }
 
@@ -124,6 +127,7 @@ func (h *ApiHandler) initDefaultRoutes(group *gin.RouterGroup) {
 	{
 		associations.GET("", h.listPfcpAssociations)
 		associations.GET("full", h.listPfcpAssociationsFull)
+		associations.GET("release", h.pfcpAssociationRelease)
 	}
 
 	sessions := group.Group("pfcp_sessions")

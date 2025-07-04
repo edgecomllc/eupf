@@ -33,6 +33,8 @@ var pfcpHandlers = PfcpHandlerMap{
 	message.MsgTypeSessionEstablishmentRequest: HandlePfcpSessionEstablishmentRequest,
 	message.MsgTypeSessionDeletionRequest:      HandlePfcpSessionDeletionRequest,
 	message.MsgTypeSessionModificationRequest:  HandlePfcpSessionModificationRequest,
+	message.MsgTypeAssociationUpdateResponse:   HandlePfcpAssociationUpdateResponse,
+	message.MsgTypeAssociationReleaseRequest:   HandlePfcpAssociationReleaseRequest,
 	message.MsgTypeSessionReportResponse:       HandlePfcpSessionReportResponse,
 }
 
@@ -259,6 +261,19 @@ func (connection *PfcpConnection) SetRemoteNodes(nodes []AssociationConnector) {
 	connection.nodes = nodes
 }
 
+func (connection *PfcpConnection) SendAssociationReleaseRequest() {
+	log.Info().Msgf("Send AssociationUpdate with release request for node: %s", connection.nodeId)
+
+	for _, assoc := range connection.NodeAssociations {
+		err := SendAssociationUpdate(connection, assoc, false, true)
+		if err != nil {
+			log.Warn().Msg(err.Error())
+
+			continue
+		}
+	}
+}
+
 func (connection *PfcpConnection) Run() {
 	connection.AssociationSetupTicker = time.NewTicker(time.Duration(config.Conf.AssociationSetupTimeout) * time.Second)
 	reportTicker := time.NewTicker(time.Duration(60) * time.Second)
@@ -376,14 +391,40 @@ func (connection *PfcpConnection) RefreshAssociations() {
 	}
 }
 
+func (connection *PfcpConnection) DeleteAllAssociations() {
+	connection.associationMutex.Lock()
+	defer connection.associationMutex.Unlock()
+
+	for assocAddr, assoc := range connection.NodeAssociations {
+		if assoc == nil {
+			log.Warn().Msgf("Skip empty association %s during deletion", assocAddr)
+			continue
+		}
+
+		log.Info().Msgf("Pruning node association: %s", assocAddr)
+		for sessionId, session := range assoc.Sessions {
+			log.Info().Msgf("Deleting session: %d", sessionId)
+			connection.DeleteSession(session)
+		}
+
+		delete(connection.NodeAssociations, assocAddr)
+	}
+}
+
 // DeleteAssociation deletes an association and all sessions associated with it.
 func (connection *PfcpConnection) DeleteAssociation(assocAddr string) {
 	assoc := connection.GetAssociation(assocAddr)
+	if assoc == nil {
+		log.Warn().Msgf("Association %s not found", assocAddr)
+		return
+	}
+
 	log.Info().Msgf("Pruning expired node association: %s", assocAddr)
 	for sessionId, session := range assoc.Sessions {
 		log.Info().Msgf("Deleting session: %d", sessionId)
 		connection.DeleteSession(session)
 	}
+
 	delete(connection.NodeAssociations, assocAddr)
 }
 
@@ -758,6 +799,39 @@ func SendSessionReportADC(conn *PfcpConnection, seid uint64, sequenceID uint32, 
 	} else {
 		log.Info().Msgf("Failed to send Session Report Request: %s\n", err.Error())
 	}
+}
+
+func SendAssociationUpdate(
+	conn *PfcpConnection,
+	assoc *NodeAssociation,
+	traced bool,
+	release bool,
+) error {
+	sequenceID := assoc.NextSequenceID
+
+	additionalIEs := []*ie.IE{
+		//newIeNodeID(conn.nodeId),             // its Node ID;
+		newIeNodeIDHuawei(conn.nodeId),
+	}
+
+	if release {
+		additionalIEs = append(additionalIEs, ie.NewPFCPAssociationReleaseRequest(1, 0))
+	}
+
+	pfcpMsg := message.NewAssociationUpdateRequest(sequenceID, additionalIEs...)
+
+	udpAddr, err := net.ResolveUDPAddr("udp", assoc.Addr+":8805")
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to resolve address for CP node: %s", assoc.ID)
+		return err
+	}
+
+	if err := conn.SendMessageWithTrace(pfcpMsg, udpAddr, traced); err != nil {
+		log.Error().Err(err).Msgf("Failed to send PFCP message to: %s", assoc.ID)
+		return err
+	}
+
+	return nil
 }
 
 func SendDownlinkNotificationReport(
