@@ -1,7 +1,7 @@
 
 services:
   sgwu:
-    image: ghcr.io/edgecomllc/eupf-dev:7047a1b53021f3387e6b4b3393bcee3903c575cb
+    image: ghcr.io/edgecomllc/eupf-dev:af719f6dde185b9207e88a7297ebb82d3296094a
     privileged: true
     volumes:
       - /sys/fs/bpf:/sys/fs/bpf
@@ -53,7 +53,7 @@ services:
       core4g:
 
   upf:
-    image: ghcr.io/edgecomllc/eupf-dev:7047a1b53021f3387e6b4b3393bcee3903c575cb
+    image: ghcr.io/edgecomllc/eupf-dev:af719f6dde185b9207e88a7297ebb82d3296094a
     privileged: true
     volumes:
       - /sys/fs/bpf:/sys/fs/bpf
@@ -64,8 +64,9 @@ services:
       UPF_XDP_ATTACH_MODE: generic
       UPF_API_ADDRESS: ":8081"
       UPF_PFCP_ADDRESS: "localhost:8805"
-      UPF_SXB_ADDRESS: "upf:8806"
-      UPF_SXB_REMOTE_NODE: smf
+      UPF_SXB_ADDRESS: "upf:8805"
+      UPF_SXB_REMOTE_NODE: 10.103.255.247
+      UPF_SXB_NODE_ID: 10.103.255.249
       UPF_METRICS_ADDRESS: ":9091"
       UPF_PA_ADDRESS: ${UPF_IP}
       UPF_N9_ADDRESS: ${UPF_IP}
@@ -80,6 +81,7 @@ services:
       - |
         apk add iproute2
         apk add tcpdump
+        mkdir -p /etc/iproute2
         echo "1200 n6if" >> /etc/iproute2/rt_tables
         ip rule add from 10.167.71.192/26 table n6if
         ip route add default via `nslookup nat | awk '/^Address: / { print $2 }'` dev eth0 table n6if
@@ -119,9 +121,15 @@ services:
         ip route add 10.167.71.192/26 via `nslookup upf | awk '/^Address: / { print $2 }'` dev eth0
         tail -f /dev/null
 
-  sgwc:
-    image: ghcr.io/edgecomllc/spgw-c:0af3242882adfa0aa118be194957ed200ceaeb6c
+
+  smf:
+    image: ghcr.io/edgecomllc/spgw-c:87e59f0468594ca0852bfdce3420b13ff4093ab8
     command: ["/app/spgw-c"]
+    depends_on:
+      - upf
     volumes:
       - .deploy/docker/smfcfg.yaml:/app/config/smfcfg.yaml
       - .deploy/docker/uerouting.yaml:/app/config/uerouting.yaml
+    networks:
+      core4g:
+        ipv4_address: ${SMF_IP}

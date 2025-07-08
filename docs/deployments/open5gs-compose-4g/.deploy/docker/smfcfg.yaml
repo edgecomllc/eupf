@@ -53,9 +53,9 @@ configuration:
   # PFCP (Packet Forwarding Control Protocol) configuration for N4 interface.
   pfcp:
     # addr config is deprecated in smf config v1.0.3, please use the following config
-    nodeID: 127.0.0.1 # the Node ID of this SMF
-    listenAddr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
-    externalAddr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
+    nodeID: 10.103.255.247 # the Node ID of this SMF
+    listenAddr: 10.103.255.247 # the IP/FQDN of N4 interface on this SMF (PFCP)
+    externalAddr: 10.103.255.247 # the IP/FQDN of N4 interface on this SMF (PFCP)
     assocFailAlertInterval: 10s
     assocFailRetryInterval: 30s
     heartbeatInterval: 10s
@@ -67,8 +67,8 @@ configuration:
         type: AN # the type of the node (AN or UPF)
       UPF: # the name of the node
         type: UPF # the type of the node (AN or UPF)
-        nodeID: 127.0.0.8 # the Node ID of this UPF
-        addr: 127.0.0.8 # the IP/FQDN of N4 interface on this UPF (PFCP)
+        nodeID: 10.103.255.249 # the Node ID of this UPF
+        addr: 10.103.255.249 # the IP/FQDN of N4 interface on this UPF (PFCP)
         sNssaiUpfInfos: # S-NSSAI information list for this UPF
           - sNssai: # S-NSSAI (Single Network Slice Selection Assistance Information)
               sst: 1 # Slice/Service Type (uinteger, range: 0~255)
@@ -95,7 +95,7 @@ configuration:
         interfaces: # Interface list for this UPF
           - interfaceType: N3 # the type of the interface (N3 or N9)
             endpoints: # the IP address of this N3/N9 interface on this UPF
-              - 127.0.0.8
+              - 10.103.255.249
             networkInstances: # Data Network Name (DNN)
               - internet
 
@@ -125,5 +125,6 @@ configuration:
 # Logging Configuration
 logger:
   enable: true # true or false
-  level: debug # how detailed to output, value: trace, debug, info, warn, error, fatal, panic
+  # level: debug # how detailed to output, value: trace, debug, info, warn, error, fatal, panic
+  level: trace # how detailed to output, value: trace, debug, info, warn, error, fatal, panic
   reportCaller: false # enable the caller report or not, value: true or false
