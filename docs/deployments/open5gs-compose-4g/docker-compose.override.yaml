@@ -27,7 +27,6 @@ services:
       - /bin/sh
       - -c
       - |
-        apk add iproute2
         ping -c 1 upf
         /app/bin/eupf
     ulimits:
@@ -79,7 +78,6 @@ services:
       - /bin/sh
       - -c
       - |
-        apk add iproute2
         apk add tcpdump
         mkdir -p /etc/iproute2
         echo "1200 n6if" >> /etc/iproute2/rt_tables
