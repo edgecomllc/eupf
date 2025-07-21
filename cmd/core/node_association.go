@@ -19,12 +19,16 @@ type NodeAssociation struct {
 	HeartbeatChannel chan uint32 `json:"-"`
 	HeartbeatsActive bool
 	sync.Mutex       `json:"-"`
-	// AssociationStart time.Time // Held until propper failure detection is implemented
 	HeartbeatTimeout *time.Timer
+	ctx              context.Context
+	ctxCancel        context.CancelFunc
+	// AssociationStart time.Time // Held until propper failure detection is implemented
 }
 
 func NewNodeAssociation(remoteNodeID string, addr string) *NodeAssociation {
 	UpfPfcpAssociations.WithLabelValues(remoteNodeID).Set(1)
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &NodeAssociation{
 		ID:               remoteNodeID,
 		Addr:             addr,
@@ -32,6 +36,8 @@ func NewNodeAssociation(remoteNodeID string, addr string) *NodeAssociation {
 		NextSequenceID:   1,
 		Sessions:         make(map[uint64]*Session),
 		HeartbeatChannel: make(chan uint32),
+		ctx:              ctx,
+		ctxCancel:        cancel,
 		// AssociationStart: time.Now(),
 	}
 }
@@ -50,31 +56,46 @@ func (association *NodeAssociation) NewSequenceID() uint32 {
 }
 
 func (association *NodeAssociation) ScheduleHeartbeat(conn *PfcpConnection) {
-	ctx := context.Background()
-	failedHeartbeats := uint32(0)
+	var (
+		failedHeartbeats uint32
+		sequence         uint32
+	)
+
+	heartbeatTicker := time.NewTicker(time.Duration(config.Conf.HeartbeatInterval) * time.Second)
+	defer heartbeatTicker.Stop()
+
+	association.HeartbeatTimeout = time.NewTimer(0)
+	defer association.HeartbeatTimeout.Stop()
 
 	for {
-		sequence := association.NewSequenceID()
-		SendHeartbeatRequest(conn, sequence, association.Addr)
-
-		association.HeartbeatTimeout = time.NewTimer(time.Duration(config.Conf.HeartbeatTimeout) * time.Second)
 		select {
-		case <-association.HeartbeatTimeout.C:
-			failedHeartbeats++
-			if failedHeartbeats >= config.Conf.HeartbeatRetries {
-				log.Warn().Msgf("the number of unanswered heartbeats has reached the limit, association deleted: %s", association.Addr)
-				UpfPfcpAssociations.WithLabelValues(association.ID).Set(0)
-				conn.heartbeatFailedC <- association.Addr
+		case <-heartbeatTicker.C:
+			sequence = association.NewSequenceID()
+			SendHeartbeatRequest(conn, sequence, association.Addr)
+
+			association.HeartbeatTimeout.Reset(time.Duration(config.Conf.HeartbeatTimeout) * time.Second)
+
+			select {
+			case <-association.HeartbeatTimeout.C:
+				failedHeartbeats++
+				if failedHeartbeats >= config.Conf.HeartbeatRetries {
+					log.Warn().Msgf("the number of unanswered heartbeats has reached the limit, association deleted: %s", association.Addr)
+					UpfPfcpAssociations.WithLabelValues(association.ID).Set(0)
+					conn.heartbeatFailedC <- association.Addr
+					return
+				}
+
+			case seq := <-association.HeartbeatChannel:
+				if sequence == seq {
+					association.HeartbeatTimeout.Stop()
+					failedHeartbeats = 0
+				}
+			case <-association.ctx.Done():
 				return
 			}
-		case seq := <-association.HeartbeatChannel:
-			if sequence == seq {
-				association.HeartbeatTimeout.Stop()
-				failedHeartbeats = 0
-				<-time.After(time.Duration(config.Conf.HeartbeatInterval) * time.Second)
-			}
-		case <-ctx.Done():
-			log.Info().Msgf("HeartbeatScheduler context done | association address: %s", association.Addr)
+
+		case <-association.ctx.Done():
+			log.Info().Msgf("schedule heartbeat context done, association address: %s", association.Addr)
 			return
 		}
 	}
@@ -82,4 +103,8 @@ func (association *NodeAssociation) ScheduleHeartbeat(conn *PfcpConnection) {
 
 func (association *NodeAssociation) HandleHeartbeat(sequence uint32) {
 	association.HeartbeatChannel <- sequence
+}
+
+func (association *NodeAssociation) Close() {
+	association.ctxCancel()
 }

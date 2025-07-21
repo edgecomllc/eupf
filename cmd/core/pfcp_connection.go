@@ -407,6 +407,8 @@ func (connection *PfcpConnection) DeleteAllAssociations() {
 			connection.DeleteSession(session)
 		}
 
+		assoc.Close()
+
 		delete(connection.NodeAssociations, assocAddr)
 	}
 }
@@ -424,6 +426,8 @@ func (connection *PfcpConnection) DeleteAssociation(assocAddr string) {
 		log.Info().Msgf("Deleting session: %d", sessionId)
 		connection.DeleteSession(session)
 	}
+
+	assoc.Close()
 
 	delete(connection.NodeAssociations, assocAddr)
 }
@@ -935,7 +939,7 @@ func (connector *DefaultAssociationConnector) sendAssociationSetupRequest(connec
 		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
 		ie.NewUPFunctionFeatures(connection.featuresOctets[:]...),
 	)
-	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
+	log.Info().Msgf("Sent Default Association Setup Request to: %s", associationAddr)
 
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err != nil {
@@ -1064,7 +1068,7 @@ func (connector *SxaAssociationConnector) sendAssociationSetupRequest(connection
 		//		high-bandwidth-value: ---- 0x1(1)
 		ie.NewVendorSpecificIE(32901, 2011, []byte{1}),
 	)
-	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
+	log.Info().Msgf("Sent Sxa Association Setup Request to: %s", associationAddr)
 
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err != nil {
@@ -1172,7 +1176,7 @@ func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection
 		//		high-bandwidth-value: ---- 0x1(1)
 		ie.NewVendorSpecificIE(32901, 2011, []byte{1}),
 	)
-	log.Info().Msgf("Sent Association Setup Request to: %s", associationAddr)
+	log.Info().Msgf("Sent Sxb Association Setup Request to: %s", associationAddr)
 
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err != nil {

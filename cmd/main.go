@@ -23,31 +23,31 @@ import (
 
 //go:generate swag init --parseDependency --parseInternal --parseDepth 1 -g api/rest/handler.go
 
-func waitForAllAssocReleases(conns ...*core.PfcpConnection) {
+func waitForAllAssocReleases(ctx context.Context, conns ...*core.PfcpConnection) {
 	const (
-		pfcpAssocReleaseTimeout      = time.Second * 5
+		pfcpAssocReleaseTimeout      = time.Second * 10
 		pfcpAssocReleaseCheckTimeout = time.Millisecond * 100
 	)
 
-	timer := time.NewTimer(pfcpAssocReleaseTimeout)
-	tick := time.NewTicker(pfcpAssocReleaseCheckTimeout)
+	ctx, cancel := context.WithTimeout(ctx, pfcpAssocReleaseTimeout)
+	defer cancel()
 
-	defer timer.Stop()
+	tick := time.NewTicker(pfcpAssocReleaseCheckTimeout)
 	defer tick.Stop()
 
 	for {
 		select {
-		case <-timer.C:
+		case <-ctx.Done():
+			log.Warn().Msg("Association release timeout")
 			return
 		case <-tick.C:
-			allEmpty := true
+			totalAssocs := 0
 			for _, conn := range conns {
-				if len(conn.NodeAssociations) != 0 {
-					allEmpty = false
-					break
-				}
+				totalAssocs += len(conn.NodeAssociations)
 			}
-			if allEmpty {
+
+			if totalAssocs == 0 {
+				log.Info().Msg("All associations released")
 				return
 			}
 		}
@@ -307,7 +307,7 @@ func main() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	assocReleaseFunc := func() {
@@ -315,7 +315,7 @@ func main() {
 		sxaConn.SendAssociationReleaseRequest()
 		sxbConn.SendAssociationReleaseRequest()
 
-		waitForAllAssocReleases(pfcpConn, sxaConn, sxbConn)
+		waitForAllAssocReleases(ctx, pfcpConn, sxaConn, sxbConn)
 
 		pfcpConn.DeleteAllAssociations()
 		sxaConn.DeleteAllAssociations()

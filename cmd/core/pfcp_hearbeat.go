@@ -36,14 +36,14 @@ func HandlePfcpHeartbeatResponse(conn *PfcpConnection, msg message.Message, addr
 	if err != nil {
 		log.Warn().Msgf("Got Heartbeat Response with invalid TS: %s, from: %s", err, addr)
 		return nil, true, err
-	} else {
-		log.Debug().Msgf("Got Heartbeat Response with TS: %s, from: %s", ts, addr)
 	}
+
+	log.Debug().Msgf("Got Heartbeat Response with TS: %s, from: %s", ts, addr)
 
 	if association := conn.GetAssociation(addr); association != nil {
 		association.HandleHeartbeat(msg.Sequence())
 	}
-	return nil, true, err
+	return nil, true, nil
 }
 
 func SendHeartbeatRequest(conn *PfcpConnection, sequenceID uint32, associationAddr string) {
@@ -52,9 +52,9 @@ func SendHeartbeatRequest(conn *PfcpConnection, sequenceID uint32, associationAd
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
 	if err == nil {
 		if err := conn.SendMessageWithTrace(hbreq, udpAddr, true); err != nil {
-			log.Info().Msgf("Failed to send Heartbeat Request: %s\n", err.Error())
+			log.Warn().Msgf("Failed to send Heartbeat Request: %s\n", err.Error())
 		}
 	} else {
-		log.Info().Msgf("Failed to send Heartbeat Request: %s\n", err.Error())
+		log.Warn().Msgf("Failed to send Heartbeat Request: %s\n", err.Error())
 	}
 }
