@@ -79,6 +79,7 @@ services:
       - -c
       - |
         apk add tcpdump
+        apk add iproute2
         mkdir -p /etc/iproute2
         echo "1200 n6if" >> /etc/iproute2/rt_tables
         ip rule add from 10.167.71.192/26 table n6if
