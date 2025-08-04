@@ -1,7 +1,7 @@
 
 services:
   sgwu:
-    image: ghcr.io/edgecomllc/eupf-dev:af719f6dde185b9207e88a7297ebb82d3296094a
+    image: ghcr.io/edgecomllc/eupf-dev:4fb2b5fd105fc4e33ff1cc5a581cb80dcaae334d
     privileged: true
     volumes:
       - /sys/fs/bpf:/sys/fs/bpf
@@ -52,7 +52,7 @@ services:
       core4g:
 
   upf:
-    image: ghcr.io/edgecomllc/eupf-dev:af719f6dde185b9207e88a7297ebb82d3296094a
+    image: ghcr.io/edgecomllc/eupf-dev:4fb2b5fd105fc4e33ff1cc5a581cb80dcaae334d
     privileged: true
     volumes:
       - /sys/fs/bpf:/sys/fs/bpf
@@ -79,7 +79,6 @@ services:
       - -c
       - |
         apk add tcpdump
-        apk add iproute2
         mkdir -p /etc/iproute2
         echo "1200 n6if" >> /etc/iproute2/rt_tables
         ip rule add from 10.167.71.192/26 table n6if
