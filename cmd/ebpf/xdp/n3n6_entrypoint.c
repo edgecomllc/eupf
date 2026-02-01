@@ -324,7 +324,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
     {
         upf_printk("upf: [n3] session for teid:%u -> %u remote:%pI4", teid, far->teid, &far->remoteip);
         update_gtp_tunnel(ctx, global_config.n9_ipv4_address, far->remoteip, 0, far->teid);
-    } else if (outer_header_removal == OHR_GTP_U_UDP_IPv4) {
+    } else if ((outer_header_removal == OHR_GTP_U_UDP_IPv4) || (outer_header_removal == OHR_GTP_U_UDP_IP)) {
         long result = remove_gtp_header(ctx);
         if (result) {
             upf_printk("upf: [n3] handle_gtp_packet: can't remove gtp header: %d", result);
