@@ -590,10 +590,6 @@ static __always_inline enum xdp_action process_packet(struct packet_context *ctx
 SEC("xdp/upf_ip_entrypoint")
 int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     // upf_printk("upf n3 & n6 combined entrypoint start");
-    upf_printk("upf: n3ip:%pI4 n9ip:%pI4", &global_config.n3_ipv4_address, &global_config.n9_ipv4_address);
-
-    //bpf_printk("upf_ip_entrypoint_func 1: %d %d %d", ctx->ingress_ifindex, ctx->rx_queue_index, ctx->egress_ifindex);
-
     const __u32 key = 0;
     struct upf_statistic *statistic = bpf_map_lookup_elem(&upf_ext_stat, &key);
     if (!statistic) {
