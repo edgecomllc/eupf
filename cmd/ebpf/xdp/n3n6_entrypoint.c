@@ -326,11 +326,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
 }
 
 
-static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx) {
-    if(++ctx->recursion > 2) {
-        return DEFAULT_XDP_ACTION;
-    }
-    
+static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx) {    
     if (!ctx->gtp) {
         upf_printk("upf: [n3] unexpected packet context. no gtp header");
         return DEFAULT_XDP_ACTION;
@@ -415,10 +411,10 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         upf_printk("upf: [n3] session for teid:%u -> %u remote:%pI4", teid, far->teid, &far->remoteip);
         update_gtp_tunnel(ctx, global_config.n9_ipv4_address, far->remoteip, 0, far->teid);
 
-        if(is_local_ip(ctx->ip4->daddr)) {
-            upf_printk("upf: [n3] process locally teid:%u -> %u remote:%pI4", teid, far->teid, &far->remoteip);
-            return handle_gtp_packet(ctx);
-        }
+        // if(is_local_ip(ctx->ip4->daddr)) {
+        //     upf_printk("upf: [n3] process locally teid:%u -> %u remote:%pI4", teid, far->teid, &far->remoteip);
+        //     return handle_gtp_packet(ctx);
+        // }
     } else if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) {
         long result = remove_gtp_header(ctx);
         if (result) {
