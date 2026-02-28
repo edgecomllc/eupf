@@ -62,6 +62,8 @@ static __always_inline int is_local_ip(__u32 ip)
     return (ip == global_config.n3_ipv4_address || ip == global_config.n9_ipv4_address);
 }
 
+static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx);
+
 static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, __u8 qfi, int teid) {
     if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, qfi, teid))
         return XDP_ABORTED;
