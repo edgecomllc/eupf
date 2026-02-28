@@ -80,7 +80,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	conn.NodeAssociations[addr] = association
 
 	additionalIEs := []*ie.IE{
-		newIeNodeIDHuawei(conn.nodeId),
+		newIeNodeID(conn.nodeId),
 		ie.NewCause(ie.CauseRequestAccepted),
 		ie.NewFSEID(localSEID, cloneIP(conn.nodeAddrV4.Addr().AsSlice()), nil),
 	}

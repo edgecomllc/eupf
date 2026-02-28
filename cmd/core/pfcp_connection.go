@@ -814,8 +814,8 @@ func SendAssociationUpdate(
 	sequenceID := assoc.NextSequenceID
 
 	additionalIEs := []*ie.IE{
-		//newIeNodeID(conn.nodeId),             // its Node ID;
-		newIeNodeIDHuawei(conn.nodeId),
+		newIeNodeID(conn.nodeId), // its Node ID;
+		//newIeNodeIDHuawei(conn.nodeId),
 	}
 
 	if release {

@@ -300,8 +300,8 @@ func HandlePfcpAssociationUpdateRequest(conn *PfcpConnection, msg message.Messag
 
 	// shall send a PFCP Association Update Response including:
 	asres := message.NewAssociationUpdateResponse(asreq.SequenceNumber,
-		//newIeNodeID(conn.nodeId),             // its Node ID;
-		newIeNodeIDHuawei(conn.nodeId),
+		newIeNodeID(conn.nodeId), // its Node ID;
+		//newIeNodeIDHuawei(conn.nodeId),
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
 	)
 
