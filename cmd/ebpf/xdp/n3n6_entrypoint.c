@@ -327,6 +327,10 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
 
 
 static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx) {
+    if(++ctx->recursion > 2) {
+        return DEFAULT_XDP_ACTION;
+    }
+    
     if (!ctx->gtp) {
         upf_printk("upf: [n3] unexpected packet context. no gtp header");
         return DEFAULT_XDP_ACTION;
@@ -607,7 +611,8 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
         .xdp_ctx = ctx,
         .counters = &statistic->upf_counters,
         .n3_n6_counter = &statistic->upf_n3_n6_counter,
-        .trace = 0};
+        .trace = 0,
+        .recursion = 0};
 
     enum xdp_action action = process_packet(&context);
     statistic->xdp_actions[action & EUPF_MAX_XDP_ACTION_MASK] += 1;

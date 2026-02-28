@@ -38,4 +38,5 @@ struct packet_context {
     struct tcphdr *tcp;
     struct gtpuhdr *gtp;
     __u8 trace;
+    __u8 recursion;
 };
