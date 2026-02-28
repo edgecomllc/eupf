@@ -276,7 +276,7 @@ func (connection *PfcpConnection) SendAssociationReleaseRequest() {
 
 func (connection *PfcpConnection) Run() {
 	connection.AssociationSetupTicker = time.NewTicker(time.Duration(config.Conf.AssociationSetupTimeout) * time.Second)
-	reportTicker := time.NewTicker(time.Duration(60) * time.Second)
+	reportTicker := time.NewTicker(time.Duration(5) * time.Second)
 	buf := make([]byte, 1500)
 
 	for {
@@ -512,7 +512,7 @@ func (connection *PfcpConnection) SendReports() {
 					continue
 				}
 
-				if currentFar.Action != 0x08 { // todo maxim: const
+				if currentFar.Action&0x08 == 0 { // todo maxim: const
 					continue
 				}
 

@@ -45,6 +45,7 @@ type SPDRInfo struct {
 	Ipv4            net.IP
 	Ipv6            net.IP
 	NetworkInstance string
+	SourceInterface uint8
 	Allocated       bool
 	PCCInfo         *PCCInfo
 }

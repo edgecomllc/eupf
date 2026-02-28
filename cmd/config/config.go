@@ -76,6 +76,8 @@ type UpfConfig struct {
 	MetricsAddress          string         `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
 	N3Address               string         `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
 	N9Address               string         `mapstructure:"n9_address" validate:"ipv4" json:"n9_address"`
+	N3AdvertisedAddress     string         `mapstructure:"n3_adv_address" validate:"ipv4" json:"n3_adv_address"`
+	N9AdvertisedAddress     string         `mapstructure:"n9_adv_address" validate:"ipv4" json:"n9_adv_address"`
 	S1UAddress              string         `mapstructure:"s1u_address" validate:"ipv4" json:"s1u_address"`
 	S5S8Address             string         `mapstructure:"s5s8_address" validate:"ipv4" json:"s5s8_address"`
 	PAAddress               string         `mapstructure:"pa_address" validate:"ipv4" json:"pa_address"`
@@ -133,6 +135,8 @@ func defineFlags() {
 	pflag.String("maddr", ":9090", "Address to bind metrics server to")
 	pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
 	pflag.String("n9addr", "n3addr", "Address for communication over N9 interface")
+	pflag.String("n3advaddr", "n3addr", "Advertised address for communication over N3 interface")
+	pflag.String("n9advaddr", "n9addr", "Advertised address for communication over N9 interface")
 	pflag.String("s1uaddr", "127.0.0.1", "Address for communication over S1-U interface")
 	pflag.String("s5s8addr", "127.0.0.1", "Address for communication over S5/S8 interface")
 	pflag.String("paaddr", "127.0.0.1", "Address for communication over PA interface")
@@ -180,8 +184,8 @@ func defineFlags() {
 
 func initPccConfig() {
 	configPath := pflag.Lookup("pcc-config").Value.String()
-  
-  pccConfigV.SetDefault("pcc_rules", []PccRule{})
+
+	pccConfigV.SetDefault("pcc_rules", []PccRule{})
 
 	pccConfigV.SetConfigFile(configPath)
 	pccConfigV.SetEnvPrefix("pcc")
@@ -219,6 +223,8 @@ func initCommonConfig() {
 	_ = commonConfigV.BindPFlag("metrics_address", pflag.Lookup("maddr"))
 	_ = commonConfigV.BindPFlag("n3_address", pflag.Lookup("n3addr"))
 	_ = commonConfigV.BindPFlag("n9_address", pflag.Lookup("n9addr"))
+	_ = commonConfigV.BindPFlag("n3_adv_address", pflag.Lookup("n3advaddr"))
+	_ = commonConfigV.BindPFlag("n9_adv_address", pflag.Lookup("n9advaddr"))
 	_ = commonConfigV.BindPFlag("s1u_address", pflag.Lookup("s1uaddr"))
 	_ = commonConfigV.BindPFlag("s5s8_address", pflag.Lookup("s5s8addr"))
 	_ = commonConfigV.BindPFlag("pa_address", pflag.Lookup("paaddr"))
@@ -254,6 +260,8 @@ func initCommonConfig() {
 	_ = commonConfigV.BindPFlag("ip6_ra_prefix", pflag.Lookup("ip6rapref"))
 
 	commonConfigV.SetDefault("n9_address", commonConfigV.GetString("n3_address"))
+	commonConfigV.SetDefault("n3_adv_address", commonConfigV.GetString("n3_address"))
+	commonConfigV.SetDefault("n9_adv_address", commonConfigV.GetString("n9_address"))
 
 	commonConfigV.SetConfigFile(configPath)
 

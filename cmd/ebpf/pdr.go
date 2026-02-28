@@ -204,7 +204,7 @@ func (bpfObjects *BpfObjects) GetFar(internalId uint32) (FarInfo, error) {
 	log.Debug().Msgf("EBPF: Get FAR: internalId=%d", internalId)
 
 	farToStore := IpEntrypointFarInfo{}
-	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&farToStore)); err != nil {
+	if err := bpfObjects.FarMap.Lookup(internalId, unsafe.Pointer(&farToStore)); err != nil {
 		return FarInfo{}, err
 	}
 
@@ -217,6 +217,7 @@ func (bpfObjects *BpfObjects) GetFar(internalId uint32) (FarInfo, error) {
 		TransportLevelMarking: farToStore.TransportLevelMarking,
 	}
 
+	log.Debug().Msgf("EBPF: Get FAR: internalId=%d, farInfo=%+v", internalId, farInfo)
 	return farInfo, nil
 }
 

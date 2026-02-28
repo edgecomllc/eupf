@@ -34,7 +34,7 @@ func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 	}
 }
 
-func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) []*ie.IE {
+func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP, n9Address net.IP) []*ie.IE {
 	var additionalIEs []*ie.IE
 	for _, pdr := range createdPDRs {
 		if pdr.Allocated {
@@ -43,7 +43,11 @@ func processCreatedPDRs(createdPDRs []SPDRInfo, n3Address net.IP) []*ie.IE {
 			} else if pdr.Ipv6 != nil {
 
 			} else {
-				additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0x01, pdr.Teid, cloneIP(n3Address), nil, 0)))
+				if pdr.SourceInterface == 0 { //Access
+					additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0x01, pdr.Teid, cloneIP(n3Address), nil, 0)))
+				} else {
+					additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0x01, pdr.Teid, cloneIP(n9Address), nil, 0)))
+				}
 			}
 		}
 	}

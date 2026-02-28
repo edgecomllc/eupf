@@ -85,7 +85,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		ie.NewFSEID(localSEID, cloneIP(conn.nodeAddrV4.Addr().AsSlice()), nil),
 	}
 
-	pdrIEs := processCreatedPDRs(createdPDRs, cloneIP(conn.n3Address))
+	pdrIEs := processCreatedPDRs(createdPDRs, cloneIP(conn.n3Address), cloneIP(conn.n9Address))
 	additionalIEs = append(additionalIEs, pdrIEs...)
 
 	// Send SessionEstablishmentResponse
@@ -228,7 +228,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 		ie.NewCause(ie.CauseRequestAccepted),
 	}
 
-	pdrIEs := processCreatedPDRs(createdPDRs, conn.n3Address)
+	pdrIEs := processCreatedPDRs(createdPDRs, conn.n3Address, conn.n9Address)
 	additionalIEs = append(additionalIEs, pdrIEs...)
 	if len(removedURRs) != 0 {
 		additionalIEs = append(additionalIEs, removedURRs...)

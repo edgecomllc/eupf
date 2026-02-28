@@ -114,6 +114,10 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 		spdrInfo.NetworkInstance = ne
 	}
 
+	if sourceInterface, err := pdr.SourceInterface(); err == nil {
+		spdrInfo.SourceInterface = sourceInterface
+	}
+
 	for _, x := range pdi {
 		if x.Type == ie.SDFFilter {
 			if sdfFilter, err := x.SDFFilter(); err == nil {

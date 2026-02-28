@@ -361,6 +361,10 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
 
     upf_printk("upf: [n3] far:%d action:%d outer_header_creation:%d", pdr->far_id, far->action, far->outer_header_creation);
 
+    if ((far->action & FAR_NOCP) && far->trigger == 0) {
+          far->trigger = 1;
+    }
+
     // Only forwarding action supported at the moment
     if (!(far->action & FAR_FORW))
         return XDP_DROP;
