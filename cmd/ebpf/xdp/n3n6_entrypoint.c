@@ -46,6 +46,8 @@
 
 #define DEFAULT_XDP_ACTION XDP_PASS
 
+SEC("xdp/upf_ip_entrypoint")
+int upf_ip_entrypoint_func(struct xdp_md *ctx);
 
 struct {
     __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
