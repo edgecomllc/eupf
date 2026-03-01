@@ -53,9 +53,9 @@ struct {
     __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
     __uint(max_entries, 1); // Number of programs in the chain
     __type(key, __u32);
-    __type(value, __u32);
+    __array(values, int (struct xdp_md *)); 
 } jmp_table SEC(".maps") = {
-    .value = {
+    .values = {
         [0] = (void *)&upf_ip_entrypoint_func, // Map index 0 points to itself
     },
 };
