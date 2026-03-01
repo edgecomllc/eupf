@@ -85,7 +85,7 @@ static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context 
 
     if(is_local_ip(ctx->ip4->daddr)) {
         upf_printk("upf: process locally teid:%u remote:%pI4", teid, &ctx->ip4->daddr);
-        bpf_tail_call(ctx, &jmp_table, 0);
+        bpf_tail_call(ctx->xdp_ctx, &jmp_table, 0);
         return XDP_ABORTED;
         //return handle_gtp_packet(ctx);
     }
@@ -430,7 +430,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
 
         if(is_local_ip(ctx->ip4->daddr)) {
             upf_printk("upf: [n3] process locally teid:%u -> %u remote:%pI4", teid, far->teid, &far->remoteip);
-            bpf_tail_call(ctx, &jmp_table, 0);
+            bpf_tail_call(ctx->xdp_ctx, &jmp_table, 0);
             return XDP_ABORTED;
             //return handle_gtp_packet(ctx);
         }
