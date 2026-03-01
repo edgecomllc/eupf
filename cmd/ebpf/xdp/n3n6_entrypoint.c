@@ -46,6 +46,19 @@
 
 #define DEFAULT_XDP_ACTION XDP_PASS
 
+
+struct {
+    __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+    __uint(max_entries, 1); // Number of programs in the chain
+    __type(key, __u32);
+    __type(value, __u32);
+} jmp_table SEC(".maps") = {
+    .values = {
+        [0] = (void *)&upf_ip_entrypoint_func, // Map index 0 points to itself
+    },
+};
+
+
 struct dataplane_config {
     __u32  n3_ipv4_address;
     __u32  n9_ipv4_address;
@@ -70,7 +83,9 @@ static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context 
 
     if(is_local_ip(ctx->ip4->daddr)) {
         upf_printk("upf: process locally teid:%u remote:%pI4", teid, &ctx->ip4->daddr);
-        return handle_gtp_packet(ctx);
+        bpf_tail_call(ctx, &jmp_table, 0);
+        return XDP_ABORTED;
+        //return handle_gtp_packet(ctx);
     }
 
     upf_printk("upf: send gtp pdu %pI4 -> %pI4", &ctx->ip4->saddr, &ctx->ip4->daddr);
@@ -411,10 +426,12 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
         upf_printk("upf: [n3] session for teid:%u -> %u remote:%pI4", teid, far->teid, &far->remoteip);
         update_gtp_tunnel(ctx, global_config.n9_ipv4_address, far->remoteip, 0, far->teid);
 
-        // if(is_local_ip(ctx->ip4->daddr)) {
-        //     upf_printk("upf: [n3] process locally teid:%u -> %u remote:%pI4", teid, far->teid, &far->remoteip);
-        //     return handle_gtp_packet(ctx);
-        // }
+        if(is_local_ip(ctx->ip4->daddr)) {
+            upf_printk("upf: [n3] process locally teid:%u -> %u remote:%pI4", teid, far->teid, &far->remoteip);
+            bpf_tail_call(ctx, &jmp_table, 0);
+            return XDP_ABORTED;
+            //return handle_gtp_packet(ctx);
+        }
     } else if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) {
         long result = remove_gtp_header(ctx);
         if (result) {
