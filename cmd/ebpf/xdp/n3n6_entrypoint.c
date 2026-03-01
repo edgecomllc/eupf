@@ -55,7 +55,7 @@ struct {
     __type(key, __u32);
     __type(value, __u32);
 } jmp_table SEC(".maps") = {
-    .values = {
+    .value = {
         [0] = (void *)&upf_ip_entrypoint_func, // Map index 0 points to itself
     },
 };
