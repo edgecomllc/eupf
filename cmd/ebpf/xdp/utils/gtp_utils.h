@@ -192,7 +192,7 @@ static __always_inline void fill_gtp_ext_header_psc(struct gtp_hdr_ext_pdu_sessi
 
 static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx, int saddr, int daddr, __u8 tos, __u8 qfi, int teid) {
 
-#define NO_GTP_EXTENTION
+//#define NO_GTP_EXTENTION
 #ifdef NO_GTP_EXTENTION 
     static const size_t gtp_full_hdr_size = sizeof(struct gtpuhdr);
     static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_size;
