@@ -16,10 +16,18 @@ COPY cmd cmd
 
 ARG BPF_ENABLE_LOG "0"
 ARG BPF_ENABLE_ROUTE_CACHE "0"
-RUN BPF_CFLAGS="" \
-    && if [ "$BPF_ENABLE_LOG" = "1" ]; then BPF_CFLAGS="$BPF_CFLAGS -DENABLE_LOG"; fi \
-    && if [ "$BPF_ENABLE_ROUTE_CACHE" = "1" ]; then BPF_CFLAGS="$BPF_CFLAGS -DENABLE_ROUTE_CACHE"; fi \
-    && BPF_CFLAGS=$BPF_CFLAGS go generate -v ./cmd/...
+ENV BPF_CFLAGS=""
+RUN if [ "$BPF_ENABLE_LOG" = "1" ]; then \
+        echo "Enabling BPF logging"; \
+        export BPF_CFLAGS="$BPF_CFLAGS -DENABLE_LOG"; \
+    fi \
+    && if [ "$BPF_ENABLE_ROUTE_CACHE" = "1" ]; then \
+        echo "Enabling route cache"; \
+        export BPF_CFLAGS="$BPF_CFLAGS -DENABLE_ROUTE_CACHE"; \
+    fi \
+    && echo "Final BPF_CFLAGS: $BPF_CFLAGS" \
+    && go generate -v ./cmd/...
+
 RUN CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/
 
 FROM alpine:3.22.0 AS runtime
