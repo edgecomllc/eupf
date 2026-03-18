@@ -2,6 +2,11 @@ name: Build and publish docker image
 
 on:
   workflow_dispatch:
+    inputs:
+      debug:
+        type: boolean
+        description: Enable debug output
+        required: true
   workflow_call:
   push:
     branches:
@@ -52,6 +57,8 @@ jobs:
           push: true
           tags: ${{ steps.meta-app.outputs.tags }}
           labels: ${{ steps.meta-app.outputs.labels }}
+          build-args: |
+            ENABLE_LOG=${{ fromJSON('["0", "1"]')[github.event.inputs.debug == 'true'] }}
 
   build-cli:
     name: Build and Push CLI
