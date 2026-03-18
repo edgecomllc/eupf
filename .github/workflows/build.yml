@@ -59,6 +59,8 @@ jobs:
           labels: ${{ steps.meta-app.outputs.labels }}
           build-args: |
             ENABLE_LOG=${{ fromJSON('["0", "1"]')[github.event.inputs.debug == 'true'] }}
+          cache-from: type=registry,ref=user/app:cache
+          cache-to: type=registry,ref=user/app:cache,mode=max
 
   build-cli:
     name: Build and Push CLI
