@@ -162,10 +162,14 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 				}
 			}
 			spdrInfo.Teid = teid
-			return nil
 		}
-		return fmt.Errorf("F-TEID IE is missing")
-	} else if ueIP, err := pdr.UEIPAddress(); err == nil {
+
+		if spdrInfo.Teid == 0 {
+			return fmt.Errorf("F-TEID IE is missing")
+		}
+	}
+
+	if ueIP, err := pdr.UEIPAddress(); err == nil {
 		if config.Conf.FeatureUEIP && hasCHV4(ueIP.Flags) {
 			if ip, err := pdrContext.getIP(); err == nil {
 				ueIP.IPv4Address = cloneIP(ip)
@@ -185,11 +189,14 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 		if ueIP.IPv6Address != nil {
 			spdrInfo.Ipv6 = cloneIP(ueIP.IPv6Address)
 		}
-		return nil
-	} else {
+	}
+
+	if spdrInfo.Teid == 0 && spdrInfo.Ipv4 == nil && spdrInfo.Ipv6 == nil {
 		log.Warn().Msg("Both F-TEID IE and UE IP Address IE are missing")
 		return err
 	}
+
+	return nil
 }
 
 func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) error {
@@ -203,19 +210,6 @@ func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations
 		return nil
 	}
 
-	if spdrInfo.Ipv4 != nil {
-		if err := mapOperations.DeletePdrDownlink(spdrInfo.Ipv4); err != nil {
-			//return fmt.Errorf("can't delete IPv4 PDR: %s", err.Error())
-			log.Warn().Msgf("can't delete IPv4 PDR: %s", err.Error())
-		}
-	}
-
-	if spdrInfo.Ipv6 != nil {
-		if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
-			return fmt.Errorf("can't delete IPv6 PDR: %s", err.Error())
-		}
-	}
-
 	if spdrInfo.Teid > 0 {
 		if _, ok := pdrContext.TEIDCache[uint8(spdrInfo.Teid)]; !ok {
 			if err := mapOperations.DeletePdrUplink(spdrInfo.Teid); err != nil {
@@ -227,6 +221,19 @@ func (pdrContext *PDRCreationContext) deletePDR(spdrInfo SPDRInfo, mapOperations
 
 		if pdrContext.ResourceManager != nil {
 			pdrContext.ResourceManager.FTEIDM.ReleaseTEID(pdrContext.Session.RemoteSEID)
+		}
+	} else {
+		if spdrInfo.Ipv4 != nil {
+			if err := mapOperations.DeletePdrDownlink(spdrInfo.Ipv4); err != nil {
+				//return fmt.Errorf("can't delete IPv4 PDR: %s", err.Error())
+				log.Warn().Msgf("can't delete IPv4 PDR: %s", err.Error())
+			}
+		}
+
+		if spdrInfo.Ipv6 != nil {
+			if err := mapOperations.DeleteDownlinkPdrIp6(spdrInfo.Ipv6); err != nil {
+				return fmt.Errorf("can't delete IPv6 PDR: %s", err.Error())
+			}
 		}
 	}
 

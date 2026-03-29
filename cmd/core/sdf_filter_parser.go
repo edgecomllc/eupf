@@ -2,11 +2,11 @@ package core
 
 import (
 	"fmt"
-	"github.com/edgecomllc/eupf/cmd/config"
-	"log"
 	"net"
 	"regexp"
 	"strconv"
+
+	"github.com/edgecomllc/eupf/cmd/config"
 
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 )
@@ -18,7 +18,7 @@ func ParseSdfFilter(flowDescription string) (ebpf.SdfFilter, error) {
 	var err error
 
 	match := re.FindStringSubmatch(flowDescription)
-	log.Printf("Matched groups: %+q\n", match)
+	//log.Printf("Matched groups: %+q\n", match)
 	if len(match) == 0 {
 		return ebpf.SdfFilter{}, fmt.Errorf("SDF Filter: bad formatting. Should be compatible with regexp: %s", re.String())
 	}

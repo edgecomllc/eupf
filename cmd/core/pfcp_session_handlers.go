@@ -302,21 +302,21 @@ func removeSdfFiltersFromSession(session *Session, delFilters []ebpf.SdfFilter, 
 
 func updatePdrInMap(spdrInfo SPDRInfo, mapOps ebpf.ForwardingPlaneController) {
 
-	if spdrInfo.Ipv4 != nil {
-		if err := mapOps.UpdatePdrDownlink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
-			log.Info().Msgf("Can't update IPv4 PDR: %s", err)
-		}
-	}
-
-	if spdrInfo.Ipv6 != nil {
-		if err := mapOps.UpdateDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
-			log.Info().Msgf("Can't update IPv6 PDR: %s", err)
-		}
-	}
-
 	if spdrInfo.Teid > 0 {
 		if err := mapOps.UpdatePdrUplink(spdrInfo.Teid, spdrInfo.PdrInfo); err != nil {
 			log.Info().Msgf("Can't update GTP PDR: %s", err)
+		}
+	} else {
+		if spdrInfo.Ipv4 != nil {
+			if err := mapOps.UpdatePdrDownlink(spdrInfo.Ipv4, spdrInfo.PdrInfo); err != nil {
+				log.Info().Msgf("Can't update IPv4 PDR: %s", err)
+			}
+		}
+
+		if spdrInfo.Ipv6 != nil {
+			if err := mapOps.UpdateDownlinkPdrIp6(spdrInfo.Ipv6, spdrInfo.PdrInfo); err != nil {
+				log.Info().Msgf("Can't update IPv6 PDR: %s", err)
+			}
 		}
 	}
 }

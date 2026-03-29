@@ -11,6 +11,7 @@ import (
 	"github.com/edgecomllc/eupf/cmd/core/service"
 	"github.com/edgecomllc/eupf/cmd/core/tracing"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/wmnsk/go-pfcp/ie"
@@ -177,8 +178,8 @@ func SendDefaulMappingPdrs(t *testing.T, pfcpConn *PfcpConnection, smfIP string)
 		ie.NewCreatePDR(
 			ie.NewPDRID(1),
 			ie.NewPDI(
-				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip2.IP, nil, 0),
+				ie.NewSourceInterface(ie.SrcInterfaceAccess),
+				ie.NewFTEID(0, 10, ip2.IP, nil, 0),
 			),
 		),
 	)
@@ -198,12 +199,18 @@ func SendDefaulMappingPdrs(t *testing.T, pfcpConn *PfcpConnection, smfIP string)
 	if pfcpConn.NodeAssociations[smfIP].Sessions[2].PDRs[1].Ipv4.String() != "1.1.1.1" {
 		t.Errorf("Session 1, got broken")
 	}
-	if pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[1].Teid != 0 {
+	if pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[1].Teid != 10 {
 		t.Errorf("Session 2, got broken")
 	}
 }
 
 func TestSdfFilterStoreValid(t *testing.T) {
+
+	if !testing.Verbose() {
+		loglevel := zerolog.GlobalLevel()
+		zerolog.SetGlobalLevel(zerolog.Disabled)
+		defer zerolog.SetGlobalLevel(loglevel)
+	}
 
 	pfcpConn, smfIP := PreparePfcpConnection(t)
 	SendDefaulMappingPdrs(t, pfcpConn, smfIP)
@@ -250,7 +257,7 @@ func TestSdfFilterStoreValid(t *testing.T) {
 			ie.NewPDRID(2),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip2.IP, nil, 0),
+				ie.NewFTEID(0, 10, ip2.IP, nil, 0),
 				// ie.NewUEIPAddress(2, ip2.IP.String(), "", 0, 0),
 				ie.NewSDFFilter(fd.FlowDescription, "", "", "", 0),
 			),
@@ -273,7 +280,7 @@ func TestSdfFilterStoreValid(t *testing.T) {
 		t.Errorf("Session 1, got broken")
 	}
 
-	if pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[2].Teid != 0 {
+	if pfcpConn.NodeAssociations[smfIP].Sessions[3].PDRs[2].Teid != 10 {
 		t.Errorf("Session 2, got broken")
 	}
 
@@ -313,7 +320,7 @@ func TestSdfFilterStoreInvalid(t *testing.T) {
 			ie.NewPDRID(1),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+				ie.NewFTEID(0, 10, ip1.IP, nil, 0),
 				ie.NewSDFFilter("deny out ip from 10.62.0.1 to 8.8.8.8/32", "", "", "", 0),
 			),
 		),
@@ -375,7 +382,7 @@ func TestSeveralSdfFiltersSupport(t *testing.T) {
 			ie.NewPDRID(2),
 			ie.NewPDI(
 				ie.NewSourceInterface(ie.SrcInterfaceCore),
-				ie.NewFTEID(0, 0, ip1.IP, nil, 0),
+				ie.NewFTEID(0, 10, ip1.IP, nil, 0),
 				ie.NewSDFFilter(fd1.FlowDescription, "", "", "", 0),
 				ie.NewSDFFilter(fd2.FlowDescription, "", "", "", 0),
 			),
@@ -474,7 +481,7 @@ func TestTEIDAllocationInSessionEstablishmentResponse(t *testing.T) {
 		),
 	)
 
-	fteid3 := ie.NewFTEID(0, 0, net.ParseIP("127.0.0.2"), nil, 1)
+	fteid3 := ie.NewFTEID(0, 10, net.ParseIP("127.0.0.2"), nil, 1)
 	createPDR3 := ie.NewCreatePDR(
 		ie.NewPDRID(2),
 		ie.NewPDI(
