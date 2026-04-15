@@ -85,11 +85,12 @@ func NewPfcpConnection(
 
 	n3Addr := net.ParseIP(n3Ip)
 	if n3Addr == nil {
-		return nil, fmt.Errorf("failed to parse N3 IP address ID: %s", n3Ip)
+		return nil, fmt.Errorf("failed to parse N3 IP address: %s", n3Ip)
 	}
+
 	n9Addr := net.ParseIP(n9Ip)
 	if n9Addr == nil {
-		return nil, fmt.Errorf("failed to parse N9 IP address ID: %s", n9Ip)
+		return nil, fmt.Errorf("failed to parse N9 IP address: %s", n9Ip)
 	}
 
 	log.Info().Msgf("Starting PFCP connection: %v with Node ID: %v, N3 address: %v, N9 address: %v", udpAddr, nodeId, n3Addr, n9Addr)

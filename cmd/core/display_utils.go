@@ -94,6 +94,34 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 		writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", DecodeDigitsFromBytes(msisdnEncoded)), 1)
 	}
 
+	if req.UserID != nil {
+		if userID, err := req.UserID.UserID(); err == nil {
+			if (userID.Flags & 0x01) == 0x01 {
+				writeLineTabbed(&sb, fmt.Sprintf("IMSI: %s ", userID.IMSI), 1)
+			}
+
+			if (userID.Flags & 0x02) == 0x02 {
+				writeLineTabbed(&sb, fmt.Sprintf("IMEI: %s ", userID.IMEI), 1)
+			}
+
+			if (userID.Flags & 0x04) == 0x04 {
+				writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", userID.MSISDN), 1)
+			}
+		}
+	}
+
+	if req.APNDNN != nil {
+		if apn, err := req.APNDNN.APNDNN(); err == nil {
+			writeLineTabbed(&sb, fmt.Sprintf("APN/DNN: %s ", apn), 1)
+		}
+	}
+
+	if req.SNSSAI != nil {
+		if snssai, err := req.SNSSAI.SNSSAI(); err == nil && len(snssai) == 4 {
+			writeLineTabbed(&sb, fmt.Sprintf("S-NSSAI: SST: %d SD: %x ", snssai[0], snssai[1:3]), 1)
+		}
+	}
+
 	log.Debug().Msg(sb.String())
 }
 

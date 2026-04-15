@@ -3,7 +3,6 @@ package core
 import (
 	"net"
 
-	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 	"github.com/wmnsk/go-pfcp/ie"
@@ -42,11 +41,7 @@ func processCreatedPDRs(createdPDRs []SPDRInfo, defaultN3AdvAddress net.IP, defa
 		if pdr.Allocated {
 			if pdr.Teid > 0 {
 				if pdr.SourceInterface == 0 { //Access
-					n3AdvAddress := config.Conf.GetN3AdvertisedAddress(pdr.Ipv4)
-					if n3AdvAddress == nil {
-						n3AdvAddress = defaultN3AdvAddress
-					}
-					additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0x01, pdr.Teid, cloneIP(n3AdvAddress), nil, 0)))
+					additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0x01, pdr.Teid, cloneIP(defaultN3AdvAddress), nil, 0)))
 				} else {
 					additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewFTEID(0x01, pdr.Teid, cloneIP(defaultN9AdvAddress), nil, 0)))
 				}

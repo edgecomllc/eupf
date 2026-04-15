@@ -22,6 +22,7 @@ type Session struct {
 	URRs        map[uint32]SUrrInfo
 	URRSequence uint32
 	Traced      bool
+	Is5G        bool
 }
 
 func NewSession(localSEID, remoteSEID uint64, IMSI, MSISDN string, traced bool) *Session {
@@ -35,6 +36,7 @@ func NewSession(localSEID, remoteSEID uint64, IMSI, MSISDN string, traced bool) 
 		QERs:       map[uint32]SQerInfo{},
 		URRs:       map[uint32]SUrrInfo{},
 		Traced:     traced,
+		Is5G:       false,
 	}
 }
 

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/netip"
 	"os"
 	"strconv"
 
@@ -62,60 +61,60 @@ type Qer struct {
 }
 
 type UpfConfig struct {
-	InterfaceName           []string          `mapstructure:"interface_name" json:"interface_name"`
-	XDPAttachMode           string            `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload" json:"xdp_attach_mode"`
-	ApiAddress              string            `mapstructure:"api_address" validate:"hostname_port" json:"api_address"`
-	PfcpAddress             string            `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
-	PfcpNodeId              string            `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
-	PfcpRemoteNode          []string          `mapstructure:"pfcp_remote_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
-	SxaRemoteNode           []string          `mapstructure:"sxa_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxa_node"`
-	SxbRemoteNode           []string          `mapstructure:"sxb_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxb_node"`
-	SxaLocalAddress         string            `mapstructure:"sxa_address" validate:"hostname_port" json:"sxa_address"`
-	SxbLocalAddress         string            `mapstructure:"sxb_address" validate:"hostname_port" json:"sxb_address"`
-	SxaLocalNodeId          string            `mapstructure:"sxa_node_id" validate:"hostname|ip" json:"sxa_node_id"`
-	SxbLocalNodeId          string            `mapstructure:"sxb_node_id" validate:"hostname|ip" json:"sxb_node_id"`
-	AssociationSetupTimeout uint32            `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
-	MetricsAddress          string            `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
-	N3Address               string            `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
-	N9Address               string            `mapstructure:"n9_address" validate:"ipv4" json:"n9_address"`
-	N3AdvertisedAddress     string            `mapstructure:"n3_adv_address" validate:"ipv4" json:"n3_adv_address"`
-	N9AdvertisedAddress     string            `mapstructure:"n9_adv_address" validate:"ipv4" json:"n9_adv_address"`
-	N3AdvertisedAddressExt  map[string]string `mapstructure:"n3_adv_address_extended" validate:"omitempty,dive,keys,cidrv4,endkeys,required,ipv4" json:"n3_adv_ext"`
-	S1UAddress              string            `mapstructure:"s1u_address" validate:"ipv4" json:"s1u_address"`
-	S5S8Address             string            `mapstructure:"s5s8_address" validate:"ipv4" json:"s5s8_address"`
-	PAAddress               string            `mapstructure:"pa_address" validate:"ipv4" json:"pa_address"`
-	GtpPeer                 []string          `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
-	GtpEchoInterval         uint32            `mapstructure:"gtp_echo_interval" validate:"min=1" json:"gtp_echo_interval"`
-	QerMapSize              uint32            `mapstructure:"qer_map_size" json:"qer_map_size"`
-	FarMapSize              uint32            `mapstructure:"far_map_size" json:"far_map_size"`
-	UrrMapSize              uint32            `mapstructure:"urr_map_size" json:"urr_map_size"`
-	PdrMapSize              uint32            `mapstructure:"pdr_map_size" json:"pdr_map_size"`
-	MaxSessions             uint32            `mapstructure:"max_sessions" json:"max_sessions"`
-	HeartbeatRetries        uint32            `mapstructure:"heartbeat_retries" json:"heartbeat_retries"`
-	HeartbeatInterval       uint32            `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
-	HeartbeatTimeout        uint32            `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
-	LoggingLevel            string            `mapstructure:"logging_level" validate:"required" json:"logging_level"`
-	LoggingCaller           bool              `mapstructure:"logging_caller" json:"logging_caller"`
-	UEIPPool                string            `mapstructure:"ueip_pool" validate:"cidr" json:"ueip_pool"`
-	FTEIDPool               uint32            `mapstructure:"teid_pool" json:"teid_pool"`
-	FeatureUEIP             bool              `mapstructure:"feature_ueip" json:"feature_ueip"`
-	FeatureFTUP             bool              `mapstructure:"feature_ftup" json:"feature_ftup"`
-	Qci2DscpMapping         map[string]int    `mapstructure:"qci_dscp_mapping" json:"qci_dscp_mapping"`
-	AllowedApns             string            `mapstructure:"allowed_apns" json:"allowed_apns"`
-	DeniedApns              string            `mapstructure:"denied_apns" json:"denied_apns"`
-	HuaweiSupport           bool              `mapstructure:"huawei_support" json:"huawei_support"`
-	TraceAssociation        bool              `mapstructure:"trace_association" json:"trace_association"`
-	TraceHeartbeat          bool              `mapstructure:"trace_heartbeat" json:"trace_heartbeat"`
-	TraceIn                 bool              `mapstructure:"trace_in" json:"trace_in"`
-	TraceOut                bool              `mapstructure:"trace_out" json:"trace_out"`
-	TraceBlocked            bool              `mapstructure:"trace_blocked" json:"trace_blocked"`
-	TraceMaxDumpFiles       int               `mapstructure:"trace_files" json:"trace_files"`
-	TraceMaxDumpSize        int               `mapstructure:"trace_max_size" json:"trace_max_size"`
-	TraceMaxDumpPackets     int               `mapstructure:"trace_max_packets" json:"trace_max_packets"`
-	IP6RaSupport            bool              `mapstructure:"ip6_ra_support" json:"ip6_ra_support"`
-	Ip6RaPrefix             string            `mapstructure:"ip6_ra_prefix" validate:"cidrv6" json:"ip6_ra_prefix"`
+	InterfaceName           []string       `mapstructure:"interface_name" json:"interface_name"`
+	XDPAttachMode           string         `mapstructure:"xdp_attach_mode" validate:"oneof=generic native offload" json:"xdp_attach_mode"`
+	ApiAddress              string         `mapstructure:"api_address" validate:"hostname_port" json:"api_address"`
+	PfcpAddress             string         `mapstructure:"pfcp_address" validate:"hostname_port" json:"pfcp_address"`
+	PfcpNodeId              string         `mapstructure:"pfcp_node_id" validate:"hostname|ip" json:"pfcp_node_id"`
+	PfcpRemoteNode          []string       `mapstructure:"pfcp_remote_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
+	SxaRemoteNode           []string       `mapstructure:"sxa_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxa_node"`
+	SxbRemoteNode           []string       `mapstructure:"sxb_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxb_node"`
+	SxaLocalAddress         string         `mapstructure:"sxa_address" validate:"hostname_port" json:"sxa_address"`
+	SxbLocalAddress         string         `mapstructure:"sxb_address" validate:"hostname_port" json:"sxb_address"`
+	SxaLocalNodeId          string         `mapstructure:"sxa_node_id" validate:"hostname|ip" json:"sxa_node_id"`
+	SxbLocalNodeId          string         `mapstructure:"sxb_node_id" validate:"hostname|ip" json:"sxb_node_id"`
+	AssociationSetupTimeout uint32         `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
+	MetricsAddress          string         `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
+	N3Address               string         `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
+	N9Address               string         `mapstructure:"n9_address" validate:"ipv4" json:"n9_address"`
+	N3AdvertisedAddress     string         `mapstructure:"n3_adv_address" validate:"ipv4" json:"n3_adv_address"`
+	N3AdvertisedAddress5G   string         `mapstructure:"n3_adv_address" validate:"ipv4" json:"n3_adv_address_5g"`
+	N9AdvertisedAddress     string         `mapstructure:"n9_adv_address" validate:"ipv4" json:"n9_adv_address"`
+	S1UAddress              string         `mapstructure:"s1u_address" validate:"ipv4" json:"s1u_address"`
+	S5S8Address             string         `mapstructure:"s5s8_address" validate:"ipv4" json:"s5s8_address"`
+	PAAddress               string         `mapstructure:"pa_address" validate:"ipv4" json:"pa_address"`
+	GtpPeer                 []string       `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
+	GtpEchoInterval         uint32         `mapstructure:"gtp_echo_interval" validate:"min=1" json:"gtp_echo_interval"`
+	QerMapSize              uint32         `mapstructure:"qer_map_size" json:"qer_map_size"`
+	FarMapSize              uint32         `mapstructure:"far_map_size" json:"far_map_size"`
+	UrrMapSize              uint32         `mapstructure:"urr_map_size" json:"urr_map_size"`
+	PdrMapSize              uint32         `mapstructure:"pdr_map_size" json:"pdr_map_size"`
+	MaxSessions             uint32         `mapstructure:"max_sessions" json:"max_sessions"`
+	HeartbeatRetries        uint32         `mapstructure:"heartbeat_retries" json:"heartbeat_retries"`
+	HeartbeatInterval       uint32         `mapstructure:"heartbeat_interval" json:"heartbeat_interval"`
+	HeartbeatTimeout        uint32         `mapstructure:"heartbeat_timeout" json:"heartbeat_timeout"`
+	LoggingLevel            string         `mapstructure:"logging_level" validate:"required" json:"logging_level"`
+	LoggingCaller           bool           `mapstructure:"logging_caller" json:"logging_caller"`
+	UEIPPool                string         `mapstructure:"ueip_pool" validate:"cidr" json:"ueip_pool"`
+	FTEIDPool               uint32         `mapstructure:"teid_pool" json:"teid_pool"`
+	FeatureUEIP             bool           `mapstructure:"feature_ueip" json:"feature_ueip"`
+	FeatureFTUP             bool           `mapstructure:"feature_ftup" json:"feature_ftup"`
+	Qci2DscpMapping         map[string]int `mapstructure:"qci_dscp_mapping" json:"qci_dscp_mapping"`
+	AllowedApns             string         `mapstructure:"allowed_apns" json:"allowed_apns"`
+	DeniedApns              string         `mapstructure:"denied_apns" json:"denied_apns"`
+	HuaweiSupport           bool           `mapstructure:"huawei_support" json:"huawei_support"`
+	TraceAssociation        bool           `mapstructure:"trace_association" json:"trace_association"`
+	TraceHeartbeat          bool           `mapstructure:"trace_heartbeat" json:"trace_heartbeat"`
+	TraceIn                 bool           `mapstructure:"trace_in" json:"trace_in"`
+	TraceOut                bool           `mapstructure:"trace_out" json:"trace_out"`
+	TraceBlocked            bool           `mapstructure:"trace_blocked" json:"trace_blocked"`
+	TraceMaxDumpFiles       int            `mapstructure:"trace_files" json:"trace_files"`
+	TraceMaxDumpSize        int            `mapstructure:"trace_max_size" json:"trace_max_size"`
+	TraceMaxDumpPackets     int            `mapstructure:"trace_max_packets" json:"trace_max_packets"`
+	IP6RaSupport            bool           `mapstructure:"ip6_ra_support" json:"ip6_ra_support"`
+	Ip6RaPrefix             string         `mapstructure:"ip6_ra_prefix" validate:"cidrv6" json:"ip6_ra_prefix"`
 
-	n3AdvertisedAddressExt map[netip.Prefix]net.IP
+	n3AdvertisedAddress5G net.IP
 }
 
 func initialize() {
@@ -141,8 +140,8 @@ func defineFlags() {
 	pflag.String("n3addr", "127.0.0.1", "Address for communication over N3 interface")
 	pflag.String("n9addr", "n3addr", "Address for communication over N9 interface")
 	pflag.String("n3advaddr", "n3addr", "Advertised address for communication over N3 interface")
+	pflag.String("n3advaddr5g", "n3addr5g", "Advertised address for communication over N3 interface for 5G")
 	pflag.String("n9advaddr", "n9addr", "Advertised address for communication over N9 interface")
-	pflag.StringToString("n3advaddrext", map[string]string{}, "Extended advertise configuration for N3 interface")
 	pflag.String("s1uaddr", "127.0.0.1", "Address for communication over S1-U interface")
 	pflag.String("s5s8addr", "127.0.0.1", "Address for communication over S5/S8 interface")
 	pflag.String("paaddr", "127.0.0.1", "Address for communication over PA interface")
@@ -230,8 +229,8 @@ func initCommonConfig() {
 	_ = commonConfigV.BindPFlag("n3_address", pflag.Lookup("n3addr"))
 	_ = commonConfigV.BindPFlag("n9_address", pflag.Lookup("n9addr"))
 	_ = commonConfigV.BindPFlag("n3_adv_address", pflag.Lookup("n3advaddr"))
+	_ = commonConfigV.BindPFlag("n3_adv_address_5g", pflag.Lookup("n3advaddr5g"))
 	_ = commonConfigV.BindPFlag("n9_adv_address", pflag.Lookup("n9advaddr"))
-	_ = commonConfigV.BindPFlag("n3_adv_address_extended", pflag.Lookup("n3advaddrext"))
 	_ = commonConfigV.BindPFlag("s1u_address", pflag.Lookup("s1uaddr"))
 	_ = commonConfigV.BindPFlag("s5s8_address", pflag.Lookup("s5s8addr"))
 	_ = commonConfigV.BindPFlag("pa_address", pflag.Lookup("paaddr"))
@@ -268,6 +267,7 @@ func initCommonConfig() {
 
 	commonConfigV.SetDefault("n9_address", commonConfigV.GetString("n3_address"))
 	commonConfigV.SetDefault("n3_adv_address", commonConfigV.GetString("n3_address"))
+	commonConfigV.SetDefault("n3_adv_address_5g", commonConfigV.GetString("n3_address"))
 	commonConfigV.SetDefault("n9_adv_address", commonConfigV.GetString("n9_address"))
 
 	commonConfigV.SetConfigFile(configPath)
@@ -293,15 +293,8 @@ func (c *UpfConfig) GetDscpMarkByQci(qci uint8) uint8 {
 	return uint8(dscp)
 }
 
-func (c *UpfConfig) GetN3AdvertisedAddress(ueIPAddress net.IP) net.IP {
-	if ueIPAddress != nil {
-		for ueIPMask, n3AdvertiseAddress := range c.n3AdvertisedAddressExt {
-			if ueIPMask.Contains(netip.AddrFrom4([4]byte(ueIPAddress.To4()))) {
-				return n3AdvertiseAddress
-			}
-		}
-	}
-	return nil
+func (c *UpfConfig) GetN3AdvertisedAddress5G() net.IP {
+	return c.n3AdvertisedAddress5G
 }
 
 func (c *UpfConfig) Validate() error {
@@ -330,13 +323,11 @@ func (c *UpfConfig) Validate() error {
 		c.UrrMapSize = c.MaxSessions * 3
 	}
 
-	for ueIPMaskString, n3AdvertisedAddressString := range c.N3AdvertisedAddressExt {
-		if prefix, err := netip.ParsePrefix(ueIPMaskString); err == nil {
-			if n3AdvertisedAddress := net.ParseIP(n3AdvertisedAddressString); n3AdvertisedAddress != nil {
-				c.n3AdvertisedAddressExt[prefix] = n3AdvertisedAddress
-			}
-		}
+	n3AdvertisedAddress5G := net.ParseIP(c.N3AdvertisedAddress5G)
+	if n3AdvertisedAddress5G == nil {
+		return fmt.Errorf("failed to parse N3 IP address for 5G: %s", c.N3AdvertisedAddress5G)
 	}
+	c.n3AdvertisedAddress5G = n3AdvertisedAddress5G
 
 	return nil
 }
