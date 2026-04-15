@@ -78,7 +78,7 @@ type UpfConfig struct {
 	N3Address               string         `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
 	N9Address               string         `mapstructure:"n9_address" validate:"ipv4" json:"n9_address"`
 	N3AdvertisedAddress     string         `mapstructure:"n3_adv_address" validate:"ipv4" json:"n3_adv_address"`
-	N3AdvertisedAddress5G   string         `mapstructure:"n3_adv_address" validate:"ipv4" json:"n3_adv_address_5g"`
+	N3AdvertisedAddress5G   string         `mapstructure:"n3_adv_address_5g" validate:"ipv4" json:"n3_adv_address_5g"`
 	N9AdvertisedAddress     string         `mapstructure:"n9_adv_address" validate:"ipv4" json:"n9_adv_address"`
 	S1UAddress              string         `mapstructure:"s1u_address" validate:"ipv4" json:"s1u_address"`
 	S5S8Address             string         `mapstructure:"s5s8_address" validate:"ipv4" json:"s5s8_address"`
