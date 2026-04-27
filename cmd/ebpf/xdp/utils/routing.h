@@ -128,8 +128,8 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
     switch (rc) {
         case BPF_FIB_LKUP_RET_SUCCESS:
             upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: nexthop: %pI4", &ip4->saddr, &ip4->daddr, &fib_params.ipv4_dst);
-            upf_printk("upf: bpf_fib_lookup2 %pI4 -> %pI4: h_vlan_TCI: %d", &ip4->saddr, &ip4->daddr, &fib_params.h_vlan_TCI);
-            upf_printk("upf: bpf_fib_lookup3 %pI4 -> %pI4: h_vlan_proto: %d", &ip4->saddr, &ip4->daddr, &fib_params.h_vlan_proto);
+            upf_printk("upf: bpf_fib_lookup2 %pI4 -> %pI4: h_vlan_TCI: %d", &ip4->saddr, &ip4->daddr, fib_params.h_vlan_TCI11);
+            upf_printk("upf: bpf_fib_lookup3 %pI4 -> %pI4: h_vlan_proto: %d", &ip4->saddr, &ip4->daddr, fib_params.h_vlan_proto);
             statistic->fib_lookup_ip4_ok += 1;
 
 #ifdef ENABLE_ROUTE_CACHE
