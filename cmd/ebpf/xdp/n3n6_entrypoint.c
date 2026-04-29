@@ -434,7 +434,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
             return XDP_ABORTED;
             //return handle_gtp_packet(ctx);
         }
-    } else if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4) {
+    } else if (pdr->outer_header_removal == OHR_GTP_U_UDP_IPv4 || pdr->outer_header_removal == OHR_GTP_U_UDP_IP) {
         long result = remove_gtp_header(ctx);
         if (result) {
             upf_printk("upf: [n3] handle_gtp_packet: can't remove gtp header: %d", result);
