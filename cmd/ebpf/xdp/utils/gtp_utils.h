@@ -190,17 +190,31 @@ static __always_inline void fill_gtp_ext_header_psc(struct gtp_hdr_ext_pdu_sessi
     gtp_ext->next_ext = 0;
 }
 
-static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx, int saddr, int daddr, __u8 tos, __u8 qfi, int teid) {
+static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx, int saddr, int daddr, __u8 tos, __u8 qfi, int teid, __u8 use_gtp_ext) {
 
-//#define NO_GTP_EXTENTION
-#ifdef NO_GTP_EXTENTION 
-    static const size_t gtp_full_hdr_size = sizeof(struct gtpuhdr);
-    static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_size;
-#else
+    static const size_t gtp_full_hdr_base_size = sizeof(struct gtpuhdr);
+    static const size_t gtp_encap_base_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_base_size;
+
     static const size_t gtp_ext_hdr_size = sizeof(struct gtp_hdr_ext) + sizeof(struct gtp_hdr_ext_pdu_session_container);
-    static const size_t gtp_full_hdr_size = sizeof(struct gtpuhdr) + gtp_ext_hdr_size;
-    static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_size;
-#endif
+    static const size_t gtp_full_hdr_ext_size = sizeof(struct gtpuhdr) + gtp_ext_hdr_size;
+    static const size_t gtp_encap_ext_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_ext_size;
+
+    size_t gtp_encap_size = gtp_encap_base_size;
+    size_t gtp_full_hdr_size = gtp_full_hdr_base_size;
+
+    if(use_gtp_ext) {
+        gtp_encap_size = gtp_encap_ext_size;
+        gtp_full_hdr_size = gtp_full_hdr_ext_size;
+    }
+
+// #ifdef NO_GTP_EXTENTION 
+//     static const size_t gtp_full_hdr_size = sizeof(struct gtpuhdr);
+//     static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_size;
+// #else
+    
+//     static const size_t gtp_full_hdr_size = sizeof(struct gtpuhdr) + gtp_ext_hdr_size;
+//     static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_size;
+// #endif
 
     // int ip_packet_len = (ctx->xdp_ctx->data_end - ctx->xdp_ctx->data) - sizeof(*eth);
     int ip_packet_len = 0;
@@ -245,25 +259,26 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
     if ((const char *)(gtp + 1) > data_end)
         return -1;
 
-#ifdef NO_GTP_EXTENTION 
-    fill_gtp_header(gtp, 0, teid, ip_packet_len);
-#else
-    fill_gtp_header(gtp, 1, teid, gtp_ext_hdr_size + ip_packet_len);
+    if(use_gtp_ext)
+    {
+        fill_gtp_header(gtp, 1, teid, gtp_ext_hdr_size + ip_packet_len);
 
-    /* Add the GTP ext header */
-    struct gtp_hdr_ext *gtp_ext = (struct gtp_hdr_ext *)(gtp + 1);
-    if ((const char *)(gtp_ext + 1) > data_end)
-        return -1;
+        /* Add the GTP ext header */
+        struct gtp_hdr_ext *gtp_ext = (struct gtp_hdr_ext *)(gtp + 1);
+        if ((const char *)(gtp_ext + 1) > data_end)
+            return -1;
 
-    fill_gtp_ext_header(gtp_ext);
+        fill_gtp_ext_header(gtp_ext);
 
-    /* Add the GTP PDU session container header */
-    struct gtp_hdr_ext_pdu_session_container *gtp_psc = (struct gtp_hdr_ext_pdu_session_container *)(gtp_ext + 1);
-    if ((const char *)(gtp_psc + 1) > data_end)
-        return -1;
+        /* Add the GTP PDU session container header */
+        struct gtp_hdr_ext_pdu_session_container *gtp_psc = (struct gtp_hdr_ext_pdu_session_container *)(gtp_ext + 1);
+        if ((const char *)(gtp_psc + 1) > data_end)
+            return -1;
 
-    fill_gtp_ext_header_psc(gtp_psc, qfi, PDU_SESSION_CONTAINER_PDU_TYPE_DL_PSU);
-#endif
+        fill_gtp_ext_header_psc(gtp_psc, qfi, PDU_SESSION_CONTAINER_PDU_TYPE_DL_PSU);
+    } else {
+        fill_gtp_header(gtp, 0, teid, ip_packet_len);
+    }
 
     ip->check = ipv4_csum(ip, sizeof(*ip));
 

@@ -1054,7 +1054,7 @@ func createPDRs(
 		pdrCopy := pdr
 		spdrInfo := SPDRInfo{
 			PdrID:   uint32(pdrID),
-			PdrInfo: ebpf.PdrInfo{TraceFlag: isTraced},
+			PdrInfo: ebpf.PdrInfo{TraceFlag: isTraced, NRFlag: session.Is5G},
 		}
 
 		operationPool.Add(Operation{

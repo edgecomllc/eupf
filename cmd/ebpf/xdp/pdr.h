@@ -56,6 +56,7 @@ struct sdf_rule {
 struct pdr_info {
     __u8 trace_flag;
     __u8 sdf_mode; // 0 - no sdf, 1 - sdf only, 2 - sdf + default
+    __u8 nr_flag;
     struct pdr default_pdr;
     struct sdf_rule dedicated_pdrs[SDF_LIST_SIZE];
 };

@@ -23,6 +23,7 @@ type PdrInfo struct {
 	SdfFilter          []SdfFilter
 	TraceFlag          bool
 	NotifyFlag         bool
+	NRFlag             bool
 }
 
 type SdfFilter struct {
@@ -390,6 +391,7 @@ func CombinePdrWithSdf(defaultPdr *IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntryp
 		pdrToStore.DefaultPdr.QerId = defaultPdr.DefaultPdr.QerId
 		pdrToStore.DefaultPdr.UrrId = defaultPdr.DefaultPdr.UrrId
 		pdrToStore.TraceFlag = defaultPdr.TraceFlag
+		pdrToStore.NrFlag = defaultPdr.NrFlag
 		pdrToStore.SdfMode = 2
 
 	} else {
@@ -398,6 +400,13 @@ func CombinePdrWithSdf(defaultPdr *IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntryp
 		} else {
 			pdrToStore.TraceFlag = 0
 		}
+
+		if sdfPdr.NRFlag {
+			pdrToStore.NrFlag = 1
+		} else {
+			pdrToStore.NrFlag = 0
+		}
+
 		pdrToStore.SdfMode = 1
 	}
 
@@ -445,6 +454,13 @@ func ToIpEntrypointPdrInfo(defaultPdr PdrInfo) IpEntrypointPdrInfo {
 	} else {
 		pdrToStore.TraceFlag = 0
 	}
+
+	if defaultPdr.NRFlag {
+		pdrToStore.NrFlag = 1
+	} else {
+		pdrToStore.NrFlag = 0
+	}
+
 	return pdrToStore
 }
 

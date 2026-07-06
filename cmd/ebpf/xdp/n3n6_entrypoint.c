@@ -79,8 +79,8 @@ static __always_inline int is_local_ip(__u32 ip)
 
 static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *ctx);
 
-static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, __u8 qfi, int teid) {
-    if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, qfi, teid))
+static __always_inline enum xdp_action send_to_gtp_tunnel(struct packet_context *ctx, int srcip, int dstip, __u8 tos, __u8 qfi, int teid, __u8 use_gtp_ext) {
+    if (-1 == add_gtp_over_ip4_headers(ctx, srcip, dstip, tos, qfi, teid, use_gtp_ext))
         return XDP_ABORTED;
 
     if(is_local_ip(ctx->ip4->daddr)) {
@@ -270,7 +270,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     }
 
     upf_printk("upf: [n6] use mapping %pI4 -> teid:%u", &ip4->daddr, far->teid);
-    return send_to_gtp_tunnel(ctx, global_config.n3_ipv4_address, far->remoteip, tos, qer->qfi, far->teid);
+    return send_to_gtp_tunnel(ctx, global_config.n3_ipv4_address, far->remoteip, tos, qer->qfi, far->teid, session->nr_flag);
 }
 
 static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_context *ctx) {
@@ -339,7 +339,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv6(struct packet_conte
     }
 
     upf_printk("upf: [n6] use mapping %pI6c -> teid:%u", &ip6->daddr, far->teid);
-    return send_to_gtp_tunnel(ctx, global_config.n3_ipv4_address, far->remoteip, tos, qer->qfi, far->teid);
+    return send_to_gtp_tunnel(ctx, global_config.n3_ipv4_address, far->remoteip, tos, qer->qfi, far->teid, session->nr_flag);
 }
 
 
