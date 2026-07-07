@@ -49,6 +49,10 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	session := NewSession(localSEID, remoteSEID.SEID, imsi, msisdn, isTraced)
 	printSessionEstablishmentRequest(req)
 
+	if req.SNSSAI != nil {
+		session.Is5G = true
+	}
+
 	logger := log.With().
 		Str("LocalSEID", strconv.Itoa(int(session.LocalSEID))).
 		Str("RemoteSEID", strconv.Itoa(int(session.RemoteSEID))).
@@ -83,10 +87,6 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 		newIeNodeID(conn.nodeId),
 		ie.NewCause(ie.CauseRequestAccepted),
 		ie.NewFSEID(localSEID, cloneIP(conn.nodeAddrV4.Addr().AsSlice()), nil),
-	}
-
-	if req.SNSSAI != nil {
-		session.Is5G = true
 	}
 
 	defaultN3Address := conn.n3Address
