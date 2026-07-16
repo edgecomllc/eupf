@@ -620,9 +620,9 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     }
 
     // Calculate how short the packet is compared to a physical 64-byte frame
-    int current_len = (void *)(long)ctx->data_end - (void *)(long)ctx->data;
+    __u32 current_len = (void *)(long)ctx->data_end - (void *)(long)ctx->data;
     if (current_len < 60) {
-        const int padding_needed = 60 - current_len;
+        const __u32 padding_needed = 60 - current_len;
         
         // Expand the packet tail dynamically
         if (bpf_xdp_adjust_tail(ctx, padding_needed) == 0) {
