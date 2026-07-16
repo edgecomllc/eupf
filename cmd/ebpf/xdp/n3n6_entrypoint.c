@@ -623,25 +623,8 @@ int upf_ip_entrypoint_func(struct xdp_md *ctx) {
     __u32 current_len = (void *)(long)ctx->data_end - (void *)(long)ctx->data;
     if (current_len < 60) {
         const __u32 padding_needed = 60 - current_len;
-        
         // Expand the packet tail dynamically
-        if (bpf_xdp_adjust_tail(ctx, padding_needed) == 0) {
-            // Refresh pointers for the verifier after modifying layout
-            void *data = (void *)(long)ctx->data;
-            void *data_end = (void *)(long)ctx->data_end;
-            
-            // Calculate where the old packet ended / where padding starts
-            unsigned char *tail = (unsigned char *)data + current_len;
-            if ((void *)(tail + padding_needed) <= data_end) {
-                // Safely zero out the memory without an explicit loop
-                switch(padding_needed) {
-                    case 1: __builtin_memset(tail, 0, 1); break;
-                    case 2: __builtin_memset(tail, 0, 2); break;
-                    case 3: __builtin_memset(tail, 0, 3); break;
-                    case 4: __builtin_memset(tail, 0, 4); break;
-                }
-            }
-        }
+        bpf_xdp_adjust_tail(ctx, padding_needed);
     }
 
     /* These keep track of the packet pointers and statistic */
