@@ -323,6 +323,12 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 }
 
 func displayPdr(sb *strings.Builder, pdr *ie.IE) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warn().Msgf("recovered from panic while formatting PDR for logging: %v", r)
+		}
+	}()
+
 	pdrId, _ := pdr.PDRID()
 	sb.WriteString(fmt.Sprintf("PDR ID: %d \n", pdrId))
 
