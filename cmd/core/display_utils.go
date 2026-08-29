@@ -54,7 +54,7 @@ func GetFSEID(CPFSEID *ie.IE) uint64 {
 	return 0
 }
 
-func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) {
+func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest, profile PfcpProfile) {
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), GetFSEID(req.CPFSEID)), 0)
@@ -66,7 +66,7 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 
 	for _, far := range req.CreateFAR {
 		sb.WriteString("  Create")
-		displayFar(&sb, far)
+		displayFar(&sb, far, profile)
 	}
 
 	for _, qer := range req.CreateQER {
@@ -126,7 +126,7 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest) 
 }
 
 // IE Contents of Create/Update/Remove are mostly the same
-func printSessionModificationRequest(req *message.SessionModificationRequest) {
+func printSessionModificationRequest(req *message.SessionModificationRequest, profile PfcpProfile) {
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeLineTabbed(&sb, fmt.Sprintf("%s( SEID: %#016x, F-SEID: %#016x ):", req.MessageTypeName(), req.SEID(), GetFSEID(req.CPFSEID)), 0)
@@ -137,7 +137,7 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 
 	for _, far := range req.CreateFAR {
 		sb.WriteString("  Create")
-		displayFar(&sb, far)
+		displayFar(&sb, far, profile)
 	}
 
 	for _, qer := range req.CreateQER {
@@ -162,7 +162,7 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 
 	for _, far := range req.UpdateFAR {
 		sb.WriteString("  Update")
-		displayFar(&sb, far)
+		displayFar(&sb, far, profile)
 	}
 
 	for _, qer := range req.UpdateQER {
@@ -203,7 +203,7 @@ func printSessionModificationRequest(req *message.SessionModificationRequest) {
 
 	for _, far := range req.RemoveFAR {
 		sb.WriteString("  Remove")
-		displayFar(&sb, far)
+		displayFar(&sb, far, profile)
 	}
 
 	for _, qer := range req.RemoveQER {
@@ -304,7 +304,7 @@ func displayQer(sb *strings.Builder, qer *ie.IE) {
 	}
 }
 
-func displayFar(sb *strings.Builder, far *ie.IE) {
+func displayFar(sb *strings.Builder, far *ie.IE, profile PfcpProfile) {
 	farId, _ := far.FARID()
 	sb.WriteString(fmt.Sprintf("FAR ID: %d \n", farId))
 
@@ -320,9 +320,9 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 				writeLineTabbed(sb, fmt.Sprintf("Network Instance: %s ", networkInstance), 3)
 			}
 			//outerHeaderCreation, err := forwardingParameter.OuterHeaderCreation()
-			outerHeaderCreation, err := HuaweiOuterHeaderCreation(forwardingParameter)
+			fields, err := profile.ParseOuterHeaderCreation(forwardingParameter)
 			if err == nil {
-				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation: %+v ", outerHeaderCreation), 3)
+				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation: description=%d teid=%d ipv4=%v ipv6=%v port=%d ctag=%d stag=%d ", fields.Description, fields.Teid, fields.IPv4Address, fields.IPv6Address, fields.PortNumber, fields.CTag, fields.STag), 3)
 			}
 			redirectInformation, err := forwardingParameter.RedirectInformation()
 			if err == nil {
@@ -343,15 +343,16 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 			}
 
 			//outerHeaderCreation, err := updateForwardingParameter.OuterHeaderCreation()
-			if outerHeaderCreation, err := HuaweiOuterHeaderCreation(updateForwardingParameter); err == nil {
+			fields, err := profile.ParseOuterHeaderCreation(updateForwardingParameter)
+			if err == nil {
 				writeLineTabbed(sb, "Outer Header Creation:", 3)
-				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation Description: %+v ", outerHeaderCreation.OuterHeaderCreationDescription), 4)
-				writeLineTabbed(sb, fmt.Sprintf("TEID: %+v ", outerHeaderCreation.TEID), 4)
-				writeLineTabbed(sb, fmt.Sprintf("IPv4Address: %+v ", outerHeaderCreation.IPv4Address), 4)
-				writeLineTabbed(sb, fmt.Sprintf("IPv6Address: %+v ", outerHeaderCreation.IPv6Address), 4)
-				writeLineTabbed(sb, fmt.Sprintf("PortNumber: %+v ", outerHeaderCreation.PortNumber), 4)
-				writeLineTabbed(sb, fmt.Sprintf("CTag: %+v ", outerHeaderCreation.CTag), 4)
-				writeLineTabbed(sb, fmt.Sprintf("STag: %+v ", outerHeaderCreation.STag), 4)
+				writeLineTabbed(sb, fmt.Sprintf("Outer Header Creation Description: %+v ", fields.Description), 4)
+				writeLineTabbed(sb, fmt.Sprintf("TEID: %+v ", fields.Teid), 4)
+				writeLineTabbed(sb, fmt.Sprintf("IPv4Address: %+v ", fields.IPv4Address), 4)
+				writeLineTabbed(sb, fmt.Sprintf("IPv6Address: %+v ", fields.IPv6Address), 4)
+				writeLineTabbed(sb, fmt.Sprintf("PortNumber: %+v ", fields.PortNumber), 4)
+				writeLineTabbed(sb, fmt.Sprintf("CTag: %+v ", fields.CTag), 4)
+				writeLineTabbed(sb, fmt.Sprintf("STag: %+v ", fields.STag), 4)
 			}
 
 			if redirectInformation, err := updateForwardingParameter.RedirectInformation(); err == nil {

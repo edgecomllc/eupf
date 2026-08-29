@@ -47,7 +47,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 
 	localSEID := association.NewLocalSEID()
 	session := NewSession(localSEID, remoteSEID.SEID, imsi, msisdn, isTraced)
-	printSessionEstablishmentRequest(req)
+	printSessionEstablishmentRequest(req, conn.profile)
 
 	if req.SNSSAI != nil {
 		session.Is5G = true
@@ -212,7 +212,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 
 	traced := session.IsSessionTraced()
 
-	printSessionModificationRequest(req)
+	printSessionModificationRequest(req, conn.profile)
 
 	createdPDRs := make([]SPDRInfo, 0, len(req.CreatePDR))
 	removedURRs := make([]*ie.IE, 0, len(req.RemoveURR))
@@ -437,7 +437,7 @@ func cloneIP(ip net.IP) net.IP {
 	return dup
 }
 
-func composeFarInfo(far *ie.IE, farInfo ebpf.FarInfo) (ebpf.FarInfo, error) {
+func composeFarInfo(far *ie.IE, farInfo ebpf.FarInfo, profile PfcpProfile) (ebpf.FarInfo, error) {
 	if applyAction, err := far.ApplyAction(); err == nil {
 		farInfo.Action = applyAction[0]
 	}
@@ -457,54 +457,21 @@ func composeFarInfo(far *ie.IE, farInfo ebpf.FarInfo) (ebpf.FarInfo, error) {
 		if outerHeaderCreationIndex == -1 {
 			log.Debug().Msg("No OuterHeaderCreation")
 		} else {
-
-			if config.Conf.HuaweiSupport {
-				huaweiOuterHeaderCreation, err := HuaweiOuterHeaderCreation(forward[outerHeaderCreationIndex]) //Huawei
-				if err != nil {
-					log.Error().Msgf("Error creating OuterHeaderCreation: %s", err.Error())
-					return ebpf.FarInfo{}, err
-				}
-
-				farInfo.OuterHeaderCreation = uint8(1 << huaweiOuterHeaderCreation.OuterHeaderCreationDescription) //Huawei
-				farInfo.Teid = huaweiOuterHeaderCreation.TEID
-				if huaweiOuterHeaderCreation.HasIPv4() {
-					farInfo.RemoteIP = binary.LittleEndian.Uint32(huaweiOuterHeaderCreation.IPv4Address)
-				}
-				if huaweiOuterHeaderCreation.HasIPv6() {
-					log.Warn().Msg("IPv6 not supported yet, ignoring")
-					return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
-				}
-			} else {
-				outerHeaderCreation, err := forward[outerHeaderCreationIndex].OuterHeaderCreation()
-				if err != nil {
-					log.Error().Msgf("Error creating OuterHeaderCreation: %s", err.Error())
-
-					return ebpf.FarInfo{}, err
-				}
-
-				farInfo.OuterHeaderCreation = uint8(outerHeaderCreation.OuterHeaderCreationDescription >> 8)
-				farInfo.Teid = outerHeaderCreation.TEID
-				if outerHeaderCreation.HasIPv4() {
-					farInfo.RemoteIP = binary.LittleEndian.Uint32(outerHeaderCreation.IPv4Address)
-				}
-				if outerHeaderCreation.HasIPv6() {
-					log.Warn().Msg("IPv6 not supported yet, ignoring")
-					return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
-				}
+			fields, err := profile.ParseOuterHeaderCreation(forward[outerHeaderCreationIndex])
+			if err != nil {
+				log.Error().Msgf("Error creating OuterHeaderCreation: %s", err.Error())
+				return ebpf.FarInfo{}, err
 			}
 
-			// destInterfaceIndex := findIEindex(forward, 42) // IE Destination Interface
-			// if destInterfaceIndex == -1 {
-			// 	log.Warn().Msg("No Destination Interface IE")
-			// } else {
-			// 	destInterface, _ := forward[destInterfaceIndex].DestinationInterface()
-			// 	// OuterHeaderCreation == GTP-U/UDP/IPv4 && DestinationInterface == Core:
-			// 	if (farInfo.OuterHeaderCreation&0x01) == 0x01 && (destInterface == 0x01) {
-			// 		farInfo.LocalIP = binary.LittleEndian.Uint32(localN9Ip)
-			// 	} else {
-			// 		farInfo.LocalIP = binary.LittleEndian.Uint32(localN3Ip)
-			// 	}
-			// }
+			farInfo.OuterHeaderCreation = fields.OuterHeaderCreation
+			farInfo.Teid = fields.Teid
+			if fields.IPv4Address != nil {
+				farInfo.RemoteIP = binary.LittleEndian.Uint32(fields.IPv4Address)
+			}
+			if fields.IPv6Address != nil {
+				log.Warn().Msg("IPv6 not supported yet, ignoring")
+				return ebpf.FarInfo{}, fmt.Errorf("IPv6 not supported yet")
+			}
 		}
 	}
 
@@ -607,7 +574,7 @@ func processEstablishmentRequestRules(
 ) error {
 	mapOperations := conn.mapOperations
 
-	err := createFARs(req.CreateFAR, mapOperations, session, operationPool, logger)
+	err := createFARs(req.CreateFAR, mapOperations, session, operationPool, logger, conn.profile)
 	if err != nil {
 		return err
 	}
@@ -792,11 +759,11 @@ func processModificationRequestRules(
 ) error {
 	mapOperations := conn.mapOperations
 
-	err := createFARs(req.CreateFAR, mapOperations, session, operationPool, logger)
+	err := createFARs(req.CreateFAR, mapOperations, session, operationPool, logger, conn.profile)
 	if err != nil {
 		return err
 	}
-	err = updateFARs(req.UpdateFAR, mapOperations, session, operationPool, logger)
+	err = updateFARs(req.UpdateFAR, mapOperations, session, operationPool, logger, conn.profile)
 	if err != nil {
 		return err
 	}
@@ -857,9 +824,10 @@ func createFARs(
 	session *Session,
 	operationPool *OperationPool,
 	logger zerolog.Logger,
+	profile PfcpProfile,
 ) error {
 	for _, far := range FARs {
-		farInfo, err := composeFarInfo(far, ebpf.FarInfo{})
+		farInfo, err := composeFarInfo(far, ebpf.FarInfo{}, profile)
 		if err != nil {
 			logger.Warn().Msgf("Error extracting FAR info: %s", err.Error())
 			continue
@@ -1113,6 +1081,7 @@ func updateFARs(
 	session *Session,
 	operationPool *OperationPool,
 	logger zerolog.Logger,
+	profile PfcpProfile,
 ) error {
 	for _, far := range FARs {
 		farID, err := far.FARID()
@@ -1121,7 +1090,7 @@ func updateFARs(
 		}
 		oldFar := session.GetFar(farID)
 
-		newFarInfo, err := composeFarInfo(far, oldFar.FarInfo)
+		newFarInfo, err := composeFarInfo(far, oldFar.FarInfo, profile)
 		if err != nil {
 			logger.Info().Msgf("Error extracting FAR info: %s", err.Error())
 			continue

@@ -10,10 +10,17 @@ import (
 // Creation IE. Profiles project their dialect-specific representation into
 // this struct so that the downstream code can map it to ebpf.FarInfo uniformly.
 type FarHeaderFields struct {
+	// OuterHeaderCreation is the pre-computed ebpf.FarInfo.OuterHeaderCreation
+	// value (profile-specific bit transformation of Description).
 	OuterHeaderCreation uint8
-	Teid                uint32
-	IPv4Address         net.IP
-	IPv6Address         net.IP
+	// Description is the raw OuterHeaderCreationDescription for display.
+	Description uint16
+	Teid        uint32
+	IPv4Address net.IP
+	IPv6Address net.IP
+	PortNumber  uint16
+	CTag        uint32
+	STag        uint32
 }
 
 // PfcpProfile encapsulates the dialect of PFCP interaction with a particular
@@ -72,9 +79,13 @@ func (DefaultProfile) ParseOuterHeaderCreation(i *ie.IE) (FarHeaderFields, error
 	}
 	return FarHeaderFields{
 		OuterHeaderCreation: uint8(oc.OuterHeaderCreationDescription >> 8),
+		Description:         oc.OuterHeaderCreationDescription,
 		Teid:                oc.TEID,
 		IPv4Address:         oc.IPv4Address,
 		IPv6Address:         oc.IPv6Address,
+		PortNumber:          oc.PortNumber,
+		CTag:                oc.CTag,
+		STag:                oc.STag,
 	}, nil
 }
 
@@ -127,9 +138,13 @@ func (h HuaweiProfile) ParseOuterHeaderCreation(i *ie.IE) (FarHeaderFields, erro
 	}
 	return FarHeaderFields{
 		OuterHeaderCreation: uint8(1 << oc.OuterHeaderCreationDescription),
+		Description:         oc.OuterHeaderCreationDescription,
 		Teid:                oc.TEID,
 		IPv4Address:         oc.IPv4Address,
 		IPv6Address:         oc.IPv6Address,
+		PortNumber:          oc.PortNumber,
+		CTag:                oc.CTag,
+		STag:                oc.STag,
 	}, nil
 }
 
