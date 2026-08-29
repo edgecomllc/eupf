@@ -818,8 +818,7 @@ func SendAssociationUpdate(
 	sequenceID := assoc.NextSequenceID
 
 	additionalIEs := []*ie.IE{
-		newIeNodeID(conn.nodeId), // its Node ID;
-		//newIeNodeIDHuawei(conn.nodeId),
+		conn.profile.NodeID(conn.nodeId), // its Node ID;
 	}
 
 	if release {
@@ -939,7 +938,7 @@ func (connector *DefaultAssociationConnector) sendAssociationSetupRequest(connec
 
 	associationAddr := connector.getAddress()
 	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
-		newIeNodeID(connection.nodeId),
+		connection.profile.NodeID(connection.nodeId),
 		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
 		ie.NewUPFunctionFeatures(connection.featuresOctets[:]...),
 	)
@@ -1009,7 +1008,7 @@ func (connector *SxaAssociationConnector) sendAssociationSetupRequest(connection
 
 	associationAddr := connector.getAddress()
 	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
-		newIeNodeIDHuawei(connection.nodeId),
+		connection.profile.NodeID(connection.nodeId),
 		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
 		ie.NewUPFunctionFeatures(featuresOctets[:]...),
 		//CHOICE
@@ -1128,7 +1127,7 @@ func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection
 
 	associationAddr := connector.getAddress()
 	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
-		newIeNodeIDHuawei(connection.nodeId),
+		connection.profile.NodeID(connection.nodeId),
 		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
 		//ie.NewUPFunctionFeatures(connection.featuresOctets[:]...),
 		ie.NewUPFunctionFeatures(featuresOctets[:]...),

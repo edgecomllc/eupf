@@ -184,7 +184,7 @@ func HandlePfcpAssociationSetupRequest(conn *PfcpConnection, msg message.Message
 	// shall send a PFCP Association Setup Response including:
 	asres := message.NewAssociationSetupResponse(asreq.SequenceNumber,
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
-		newIeNodeID(conn.nodeId),             // its Node ID;
+		conn.profile.NodeID(conn.nodeId),     // its Node ID;
 		ie.NewRecoveryTimeStamp(conn.RecoveryTimestamp),
 		ie.NewUPFunctionFeatures(conn.featuresOctets[:]...),
 	)
@@ -300,8 +300,7 @@ func HandlePfcpAssociationUpdateRequest(conn *PfcpConnection, msg message.Messag
 
 	// shall send a PFCP Association Update Response including:
 	asres := message.NewAssociationUpdateResponse(asreq.SequenceNumber,
-		newIeNodeID(conn.nodeId), // its Node ID;
-		//newIeNodeIDHuawei(conn.nodeId),
+		conn.profile.NodeID(conn.nodeId),     // its Node ID;
 		ie.NewCause(ie.CauseRequestAccepted), // a successful cause
 	)
 
