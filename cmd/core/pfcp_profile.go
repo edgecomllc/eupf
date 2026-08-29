@@ -85,6 +85,12 @@ type PfcpProfile interface {
 	// HuaweiProfile returns Huawei enterprise IEs (enterprise-id 2011);
 	// DefaultProfile returns nil.
 	UsageReportADCVendorIEs(sdfFilter string) []*ie.IE
+
+	// SessionReportReleaseVendorIE returns the vendor-specific grouped IE
+	// for Session Report Release (pdr-id-list), or nil. HuaweiProfile
+	// returns ie.NewVendorSpecificGroupedIE(32799, 2011, pdrListIE...);
+	// DefaultProfile returns nil.
+	SessionReportReleaseVendorIE(pdrList []uint16) *ie.IE
 }
 
 // DefaultProfile implements the standard 3GPP PFCP dialect using the go-pfcp
@@ -154,6 +160,10 @@ func (DefaultProfile) UsageReportSessionReportVendorIEs() []*ie.IE {
 }
 
 func (DefaultProfile) UsageReportADCVendorIEs(sdfFilter string) []*ie.IE {
+	return nil
+}
+
+func (DefaultProfile) SessionReportReleaseVendorIE(pdrList []uint16) *ie.IE {
 	return nil
 }
 
@@ -310,4 +320,20 @@ func (h HuaweiProfile) UsageReportADCVendorIEs(sdfFilter string) []*ie.IE {
 		ies = append(ies, ie.NewVendorSpecificIE(36017, 2011, unknownValue))
 	}
 	return ies
+}
+
+func (h HuaweiProfile) SessionReportReleaseVendorIE(pdrList []uint16) *ie.IE {
+	pdrListIE := []*ie.IE{}
+	for _, pdrID := range pdrList {
+		pdrListIE = append(pdrListIE, ie.NewPDRID(pdrID))
+	}
+	// CHOICE
+	// delete-report-type
+	// enterprise-id --- 0x7db(2011)
+	// pdr-id-list
+	// 	CHOICE
+	// 	pdr-id --- 0x4(4)
+	// 	CHOICE
+	// 	pdr-id --- 0x5(5)
+	return ie.NewVendorSpecificGroupedIE(32799, 2011, pdrListIE...)
 }

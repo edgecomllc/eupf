@@ -345,3 +345,35 @@ func TestHuaweiProfileUsageReportADCVendorIEsWithSdfFilter(t *testing.T) {
 		t.Errorf("IE[3]: expected type 36017, got %d", ies[3].Type)
 	}
 }
+
+func TestDefaultProfileSessionReportReleaseVendorIE(t *testing.T) {
+	p := DefaultProfile{}
+	if ie := p.SessionReportReleaseVendorIE([]uint16{1, 2}); ie != nil {
+		t.Errorf("DefaultProfile should return nil, got non-nil IE")
+	}
+}
+
+func TestHuaweiProfileSessionReportReleaseVendorIE(t *testing.T) {
+	p := HuaweiProfile{}
+	vendorIE := p.SessionReportReleaseVendorIE([]uint16{4, 5})
+	if vendorIE == nil {
+		t.Fatal("HuaweiProfile should return non-nil IE")
+	}
+	if vendorIE.Type != 32799 {
+		t.Errorf("expected type 32799, got %d", vendorIE.Type)
+	}
+	if vendorIE.EnterpriseID != 2011 {
+		t.Errorf("expected enterprise-id 2011, got %d", vendorIE.EnterpriseID)
+	}
+}
+
+func TestHuaweiProfileSessionReportReleaseVendorIEEmptyPdrList(t *testing.T) {
+	p := HuaweiProfile{}
+	vendorIE := p.SessionReportReleaseVendorIE([]uint16{})
+	if vendorIE == nil {
+		t.Fatal("HuaweiProfile should return non-nil IE even for empty pdrList")
+	}
+	if vendorIE.Type != 32799 {
+		t.Errorf("expected type 32799, got %d", vendorIE.Type)
+	}
+}
