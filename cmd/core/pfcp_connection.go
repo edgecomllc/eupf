@@ -710,17 +710,17 @@ func SendSessionReportUsage(conn *PfcpConnection, seid uint64, sequenceID uint32
 	traced bool) {
 	additionalIEs := []*ie.IE{
 		ie.NewReportType(0, 0, 1, 0),
-		ie.NewUsageReportWithinSessionReportRequest(
-			ie.NewURRID(urrid),
-			conn.profile.URSEQN(sessionSeq, reportSeq),
-			ie.NewUsageReportTrigger(1<<1, 0, 0), //Volume Threshold
-			ie.NewEndTime(time.Now()),
-			ie.NewVolumeMeasurement(0x6, 0, uplink, downlink, 0, 0, 0),
-			ie.NewTimeOfFirstPacket(time.Now()),
-			ie.NewTimeOfLastPacket(time.Now()),
-			conn.profile.UsageReportSessionReportVendorIEs()...,
-		),
 	}
+	usageReportIEs := append([]*ie.IE{
+		ie.NewURRID(urrid),
+		conn.profile.URSEQN(sessionSeq, reportSeq),
+		ie.NewUsageReportTrigger(1<<1, 0, 0), //Volume Threshold
+		ie.NewEndTime(time.Now()),
+		ie.NewVolumeMeasurement(0x6, 0, uplink, downlink, 0, 0, 0),
+		ie.NewTimeOfFirstPacket(time.Now()),
+		ie.NewTimeOfLastPacket(time.Now()),
+	}, conn.profile.UsageReportSessionReportVendorIEs()...)
+	additionalIEs = append(additionalIEs, ie.NewUsageReportWithinSessionReportRequest(usageReportIEs...))
 
 	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
 	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)
@@ -743,12 +743,12 @@ func SendSessionReportADC(conn *PfcpConnection, seid uint64, sequenceID uint32, 
 
 	additionalIEs := []*ie.IE{
 		ie.NewReportType(0, 0, 1, 0),
-		ie.NewUsageReportWithinSessionReportRequest(
-			ie.NewURRID(urrid),
-			conn.profile.URSEQN(sessionSeq, reportSeq),
-			conn.profile.UsageReportADCVendorIEs(sdfFilter)...,
-		),
 	}
+	adcReportIEs := append([]*ie.IE{
+		ie.NewURRID(urrid),
+		conn.profile.URSEQN(sessionSeq, reportSeq),
+	}, conn.profile.UsageReportADCVendorIEs(sdfFilter)...)
+	additionalIEs = append(additionalIEs, ie.NewUsageReportWithinSessionReportRequest(adcReportIEs...))
 
 	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
 	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)

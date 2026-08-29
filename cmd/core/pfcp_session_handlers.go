@@ -671,14 +671,14 @@ func processDeletionRequestRules(
 					uplink := data.UplinkVolume - urr.UrrInfo.UplinkVolume
 					downlink := data.DownlinkVolume - urr.UrrInfo.DownlinkVolume
 
-					report := ie.NewUsageReportWithinSessionDeletionResponse(
+					deletionReportIEs := append([]*ie.IE{
 						ie.NewURRID(urrID),
 						conn.profile.URSEQN(session.URRSequence, urr.ReportSeqNumber),
 						ie.NewUsageReportTrigger(0, 1<<3, 0),
 						ie.NewEndTime(time.Now()),
 						ie.NewVolumeMeasurement(0x7, uplink+downlink, uplink, downlink, 0, 0, 0),
-						conn.profile.UsageReportDeletionVendorIEs()...,
-					)
+					}, conn.profile.UsageReportDeletionVendorIEs()...)
+					report := ie.NewUsageReportWithinSessionDeletionResponse(deletionReportIEs...)
 
 					*deletedURRs = append(*deletedURRs, report)
 
