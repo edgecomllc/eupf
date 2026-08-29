@@ -102,8 +102,8 @@ func TestHandlePfcpSessionEstablishmentResponseSecondFSEID(t *testing.T) {
 
 func TestSendHeartbeatRequestProfileMetricIE(t *testing.T) {
 	// HeartbeatRequestAdditionalIEs is tested at the profile level (TestProfileHeartbeatRequestAdditionalIEs).
-	// This test verifies that SendHeartbeatRequest does not panic with either profile
-	// and that the profile method is actually invoked (not nil).
+	// This test verifies that SendHeartbeatRequest sends a packet with either profile
+	// without panicking (profile method invoked, udpConn available, valid address).
 	tests := []struct {
 		name    string
 		profile PfcpProfile
@@ -113,14 +113,21 @@ func TestSendHeartbeatRequestProfileMetricIE(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pfcpConn := PfcpConnection{
-				profile:           tt.profile,
-				RecoveryTimestamp: time.Now(),
+			ebpfMock := &MapOperationsMock{}
+			pfcpConn, smfIP := PreparePfcpConnectionWithMockAndProfile(t, ebpfMock, config.UpfConfig{}, tt.profile)
+			pfcpConn.RecoveryTimestamp = time.Now()
+
+			// PreparePfcpConnectionWithMockAndProfile does not set udpConn. Create a real
+			// UDP socket so connection.Send (WriteTo) does not panic on nil udpConn.
+			// Packets sent to 127.0.0.1:8805 go nowhere (no listener), which is fine.
+			udpConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
+			if err != nil {
+				t.Fatalf("failed to create udp socket: %s", err)
 			}
-			// SendHeartbeatRequest will fail to resolve the UDP address (no listener),
-			// but it should not panic on conn.profile.HeartbeatRequestAdditionalIEs().
-			// The function logs warnings on failure, so no error to check.
-			SendHeartbeatRequest(&pfcpConn, 0, "127.0.0.1:99999")
+			defer udpConn.Close()
+			pfcpConn.udpConn = udpConn
+
+			SendHeartbeatRequest(pfcpConn, 0, smfIP)
 		})
 	}
 }
