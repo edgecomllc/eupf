@@ -69,10 +69,10 @@ type UpfConfig struct {
 	PfcpRemoteNode          []string       `mapstructure:"pfcp_remote_node" validate:"omitempty,dive,hostname|ip" json:"pfcp_node"`
 	SxaRemoteNode           []string       `mapstructure:"sxa_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxa_node"`
 	SxbRemoteNode           []string       `mapstructure:"sxb_remote_node" validate:"omitempty,dive,hostname|ip" json:"sxb_node"`
-	SxaLocalAddress         string         `mapstructure:"sxa_address" validate:"hostname_port" json:"sxa_address"`
-	SxbLocalAddress         string         `mapstructure:"sxb_address" validate:"hostname_port" json:"sxb_address"`
-	SxaLocalNodeId          string         `mapstructure:"sxa_node_id" validate:"hostname|ip" json:"sxa_node_id"`
-	SxbLocalNodeId          string         `mapstructure:"sxb_node_id" validate:"hostname|ip" json:"sxb_node_id"`
+	SxaLocalAddress         string         `mapstructure:"sxa_address" validate:"omitempty,hostname_port" json:"sxa_address"`
+	SxbLocalAddress         string         `mapstructure:"sxb_address" validate:"omitempty,hostname_port" json:"sxb_address"`
+	SxaLocalNodeId          string         `mapstructure:"sxa_node_id" validate:"omitempty,hostname|ip" json:"sxa_node_id"`
+	SxbLocalNodeId          string         `mapstructure:"sxb_node_id" validate:"omitempty,hostname|ip" json:"sxb_node_id"`
 	AssociationSetupTimeout uint32         `mapstructure:"association_setup_timeout" json:"association_setup_timeout"`
 	MetricsAddress          string         `mapstructure:"metrics_address" validate:"hostname_port" json:"metrics_address"`
 	N3Address               string         `mapstructure:"n3_address" validate:"ipv4" json:"n3_address"`
@@ -80,9 +80,9 @@ type UpfConfig struct {
 	N3AdvertisedAddress     string         `mapstructure:"n3_adv_address" validate:"ipv4" json:"n3_adv_address"`
 	N3AdvertisedAddress5G   string         `mapstructure:"n3_adv_address_5g" validate:"ipv4" json:"n3_adv_address_5g"`
 	N9AdvertisedAddress     string         `mapstructure:"n9_adv_address" validate:"ipv4" json:"n9_adv_address"`
-	S1UAddress              string         `mapstructure:"s1u_address" validate:"ipv4" json:"s1u_address"`
-	S5S8Address             string         `mapstructure:"s5s8_address" validate:"ipv4" json:"s5s8_address"`
-	PAAddress               string         `mapstructure:"pa_address" validate:"ipv4" json:"pa_address"`
+	S1UAddress              string         `mapstructure:"s1u_address" validate:"omitempty,ipv4" json:"s1u_address"`
+	S5S8Address             string         `mapstructure:"s5s8_address" validate:"omitempty,ipv4" json:"s5s8_address"`
+	PAAddress               string         `mapstructure:"pa_address" validate:"omitempty,ipv4" json:"pa_address"`
 	GtpPeer                 []string       `mapstructure:"gtp_peer" validate:"omitempty,dive,hostname_port" json:"gtp_peer"`
 	GtpEchoInterval         uint32         `mapstructure:"gtp_echo_interval" validate:"min=1" json:"gtp_echo_interval"`
 	QerMapSize              uint32         `mapstructure:"qer_map_size" json:"qer_map_size"`

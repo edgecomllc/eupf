@@ -43,6 +43,9 @@ func waitForAllAssocReleases(ctx context.Context, conns ...*core.PfcpConnection)
 		case <-tick.C:
 			totalAssocs := 0
 			for _, conn := range conns {
+				if conn == nil {
+					continue
+				}
 				totalAssocs += len(conn.NodeAssociations)
 			}
 
@@ -52,6 +55,17 @@ func waitForAllAssocReleases(ctx context.Context, conns ...*core.PfcpConnection)
 			}
 		}
 	}
+}
+
+// safeReleaseConn sends an association release request and deletes all
+// associations on the connection. It is a no-op when conn is nil, which
+// happens when the corresponding Sxa/Sxb connection was not configured.
+func safeReleaseConn(conn *core.PfcpConnection) {
+	if conn == nil {
+		return
+	}
+	conn.SendAssociationReleaseRequest()
+	conn.DeleteAllAssociations()
 }
 
 func main() {
@@ -230,31 +244,43 @@ func main() {
 	})
 	defer pfcpConn.Close()
 
-	// Create Sxa connection
-	sxaConn := startConn(connSpec{
-		label:       "Sxa",
-		address:     config.Conf.SxaLocalAddress,
-		nodeId:      config.Conf.SxaLocalNodeId,
-		n3Ip:        config.Conf.S1UAddress,
-		n9Ip:        config.Conf.S5S8Address,
-		sdfNotifyC:  nil,
-		remoteNodes: config.Conf.SxaRemoteNode,
-		connectorFn: profile.SxaConnector,
-	})
-	defer sxaConn.Close()
+	// Create Sxa connection (optional — only when sxa_address is configured).
+	// Without an Sxa peer the S1U/S5S8 interfaces are unused, so we skip the
+	// connection entirely rather than binding a UDP socket to an empty address.
+	var sxaConn *core.PfcpConnection
+	if config.Conf.SxaLocalAddress != "" {
+		sxaConn = startConn(connSpec{
+			label:       "Sxa",
+			address:     config.Conf.SxaLocalAddress,
+			nodeId:      config.Conf.SxaLocalNodeId,
+			n3Ip:        config.Conf.S1UAddress,
+			n9Ip:        config.Conf.S5S8Address,
+			sdfNotifyC:  nil,
+			remoteNodes: config.Conf.SxaRemoteNode,
+			connectorFn: profile.SxaConnector,
+		})
+		defer sxaConn.Close()
+	} else {
+		log.Info().Msg("Sxa connection skipped (sxa_address not configured)")
+	}
 
-	// Create Sxb connection
-	sxbConn := startConn(connSpec{
-		label:       "Sxb",
-		address:     config.Conf.SxbLocalAddress,
-		nodeId:      config.Conf.SxbLocalNodeId,
-		n3Ip:        config.Conf.PAAddress,
-		n9Ip:        config.Conf.PAAddress,
-		sdfNotifyC:  sdfNotifier.GetNotificationChannel(),
-		remoteNodes: config.Conf.SxbRemoteNode,
-		connectorFn: profile.SxbConnector,
-	})
-	defer sxbConn.Close()
+	// Create Sxb connection (optional — only when sxb_address is configured).
+	var sxbConn *core.PfcpConnection
+	if config.Conf.SxbLocalAddress != "" {
+		sxbConn = startConn(connSpec{
+			label:       "Sxb",
+			address:     config.Conf.SxbLocalAddress,
+			nodeId:      config.Conf.SxbLocalNodeId,
+			n3Ip:        config.Conf.PAAddress,
+			n9Ip:        config.Conf.PAAddress,
+			sdfNotifyC:  sdfNotifier.GetNotificationChannel(),
+			remoteNodes: config.Conf.SxbRemoteNode,
+			connectorFn: profile.SxbConnector,
+		})
+		defer sxbConn.Close()
+	} else {
+		log.Info().Msg("Sxb connection skipped (sxb_address not configured)")
+	}
 
 	gtpPathManager := core.NewGtpPathManager(config.Conf.N3Address+core.GTPPortStr, time.Duration(config.Conf.GtpEchoInterval)*time.Second)
 	for _, peer := range config.Conf.GtpPeer {
@@ -267,13 +293,23 @@ func main() {
 		BpfObjects: bpfObjects,
 	}
 
+	// Build the PFCP connection map exposed to the API. Sxa/Sxb entries are
+	// only present when the corresponding connection was actually created; the
+	// REST handlers in cmd/api/rest/config.go already guard with `exists`, so
+	// omitting a key is the signal that the connection is unavailable.
+	pfcpMap := map[string]*core.PfcpConnection{
+		core.N4PFCPKeyName: pfcpConn,
+	}
+	if sxaConn != nil {
+		pfcpMap[core.SxaPFCPKeyName] = sxaConn
+	}
+	if sxbConn != nil {
+		pfcpMap[core.SxbPFCPKeyName] = sxbConn
+	}
+
 	h := rest.NewApiHandler(
 		bpfObjects,
-		map[string]*core.PfcpConnection{
-			core.N4PFCPKeyName:  pfcpConn,
-			core.SxaPFCPKeyName: sxaConn,
-			core.SxbPFCPKeyName: sxbConn,
-		},
+		pfcpMap,
 		&ForwardPlaneStats,
 		&config.Conf,
 		&links,
@@ -309,15 +345,15 @@ func main() {
 	defer cancel()
 
 	assocReleaseFunc := func() {
-		pfcpConn.SendAssociationReleaseRequest()
-		sxaConn.SendAssociationReleaseRequest()
-		sxbConn.SendAssociationReleaseRequest()
+		// Request release and clear associations. safeReleaseConn is a no-op
+		// for Sxa/Sxb connections that were never created (nil).
+		safeReleaseConn(pfcpConn)
+		safeReleaseConn(sxaConn)
+		safeReleaseConn(sxbConn)
 
+		// Wait until every existing connection reports zero associations.
+		// waitForAllAssocReleases skips nil entries internally.
 		waitForAllAssocReleases(ctx, pfcpConn, sxaConn, sxbConn)
-
-		pfcpConn.DeleteAllAssociations()
-		sxaConn.DeleteAllAssociations()
-		sxbConn.DeleteAllAssociations()
 	}
 
 	for {
