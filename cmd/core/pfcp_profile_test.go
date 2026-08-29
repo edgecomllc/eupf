@@ -249,3 +249,25 @@ func TestHuaweiProfileHeartbeatRequestAdditionalIEs(t *testing.T) {
 		t.Errorf("expected Metric IE (type %d), got type %d", ie.Metric, ies[0].Type)
 	}
 }
+
+func TestDefaultProfileSessionEstablishmentResponseAdditionalIEs(t *testing.T) {
+	p := DefaultProfile{}
+	ies := p.SessionEstablishmentResponseAdditionalIEs(42, nil)
+	if ies != nil {
+		t.Errorf("DefaultProfile should return nil, got %d IEs", len(ies))
+	}
+}
+
+func TestHuaweiProfileSessionEstablishmentResponseAdditionalIEs(t *testing.T) {
+	p := HuaweiProfile{}
+	ies := p.SessionEstablishmentResponseAdditionalIEs(42, nil)
+	if len(ies) != 1 {
+		t.Fatalf("HuaweiProfile should return 1 IE, got %d", len(ies))
+	}
+	if ies[0] == nil {
+		t.Fatal("expected non-nil IE")
+	}
+	if ies[0].Type != ie.FSEID {
+		t.Errorf("expected FSEID IE, got type %d", ies[0].Type)
+	}
+}

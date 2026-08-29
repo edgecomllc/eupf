@@ -60,6 +60,12 @@ type PfcpProfile interface {
 	// Heartbeat Request messages, or nil if none. HuaweiProfile adds
 	// ie.NewMetric(25); DefaultProfile adds none.
 	HeartbeatRequestAdditionalIEs() []*ie.IE
+
+	// SessionEstablishmentResponseAdditionalIEs returns extra IEs to append
+	// to the Session Establishment Response after the standard IEs, or nil.
+	// HuaweiProfile adds a second FSEID with a profile-specific IP;
+	// DefaultProfile adds none.
+	SessionEstablishmentResponseAdditionalIEs(localSEID uint64, nodeAddrV4 net.IP) []*ie.IE
 }
 
 // DefaultProfile implements the standard 3GPP PFCP dialect using the go-pfcp
@@ -113,6 +119,10 @@ func (DefaultProfile) URSEQN(sessionSeq, reportSeq uint32) *ie.IE {
 }
 
 func (DefaultProfile) HeartbeatRequestAdditionalIEs() []*ie.IE {
+	return nil
+}
+
+func (DefaultProfile) SessionEstablishmentResponseAdditionalIEs(localSEID uint64, nodeAddrV4 net.IP) []*ie.IE {
 	return nil
 }
 
@@ -183,4 +193,8 @@ func (h HuaweiProfile) URSEQN(sessionSeq, reportSeq uint32) *ie.IE {
 
 func (h HuaweiProfile) HeartbeatRequestAdditionalIEs() []*ie.IE {
 	return []*ie.IE{ie.NewMetric(25)}
+}
+
+func (h HuaweiProfile) SessionEstablishmentResponseAdditionalIEs(localSEID uint64, nodeAddrV4 net.IP) []*ie.IE {
+	return []*ie.IE{ie.NewFSEID(localSEID, net.IPv4(10, 169, 26, 130), nil)}
 }
