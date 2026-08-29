@@ -227,3 +227,25 @@ func TestProfileInterfaceCompliance(t *testing.T) {
 	var _ PfcpProfile = DefaultProfile{}
 	var _ PfcpProfile = HuaweiProfile{}
 }
+
+func TestDefaultProfileHeartbeatRequestAdditionalIEs(t *testing.T) {
+	p := DefaultProfile{}
+	ies := p.HeartbeatRequestAdditionalIEs()
+	if ies != nil {
+		t.Errorf("DefaultProfile should return nil additional IEs, got %d", len(ies))
+	}
+}
+
+func TestHuaweiProfileHeartbeatRequestAdditionalIEs(t *testing.T) {
+	p := HuaweiProfile{}
+	ies := p.HeartbeatRequestAdditionalIEs()
+	if len(ies) != 1 {
+		t.Fatalf("HuaweiProfile should return 1 additional IE, got %d", len(ies))
+	}
+	if ies[0] == nil {
+		t.Fatal("expected non-nil IE")
+	}
+	if ies[0].Type != ie.Metric {
+		t.Errorf("expected Metric IE (type %d), got type %d", ie.Metric, ies[0].Type)
+	}
+}

@@ -55,6 +55,11 @@ type PfcpProfile interface {
 	// to use the session-level sequence (Huawei) or the per-URR report sequence
 	// (standard 3GPP).
 	URSEQN(sessionSeq, reportSeq uint32) *ie.IE
+
+	// HeartbeatRequestAdditionalIEs returns extra IEs to append to PFCP
+	// Heartbeat Request messages, or nil if none. HuaweiProfile adds
+	// ie.NewMetric(25); DefaultProfile adds none.
+	HeartbeatRequestAdditionalIEs() []*ie.IE
 }
 
 // DefaultProfile implements the standard 3GPP PFCP dialect using the go-pfcp
@@ -105,6 +110,10 @@ func (DefaultProfile) NodeID(nodeID string) *ie.IE {
 
 func (DefaultProfile) URSEQN(sessionSeq, reportSeq uint32) *ie.IE {
 	return ie.NewURSEQN(reportSeq)
+}
+
+func (DefaultProfile) HeartbeatRequestAdditionalIEs() []*ie.IE {
+	return nil
 }
 
 // HuaweiProfile implements the Huawei SPGW-C PFCP dialect. It uses Huawei's
@@ -170,4 +179,8 @@ func (h HuaweiProfile) NodeID(nodeID string) *ie.IE {
 
 func (h HuaweiProfile) URSEQN(sessionSeq, reportSeq uint32) *ie.IE {
 	return ie.NewURSEQN(sessionSeq)
+}
+
+func (h HuaweiProfile) HeartbeatRequestAdditionalIEs() []*ie.IE {
+	return []*ie.IE{ie.NewMetric(25)}
 }
