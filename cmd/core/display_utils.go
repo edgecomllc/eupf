@@ -71,7 +71,7 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest, 
 
 	for _, qer := range req.CreateQER {
 		sb.WriteString("  Create")
-		displayQer(&sb, qer)
+		displayQer(&sb, qer, profile)
 	}
 
 	for _, urr := range req.CreateURR {
@@ -84,14 +84,13 @@ func printSessionEstablishmentRequest(req *message.SessionEstablishmentRequest, 
 		displayBar(&sb, req.CreateBAR)
 	}
 
-	if imsiId := findEnterpriseSpecificIEindex(req.IEs, 32769, 2011); imsiId != -1 { // IE Huawei IMSI
-		imsiEncoded := req.IEs[imsiId].Payload
-		writeLineTabbed(&sb, fmt.Sprintf("IMSI: %s ", DecodeDigitsFromBytes(imsiEncoded)), 1)
-	}
-
-	if msisdnId := findEnterpriseSpecificIEindex(req.IEs, 32770, 2011); msisdnId != -1 { // IE Huawei MSISDN
-		msisdnEncoded := req.IEs[msisdnId].Payload
-		writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", DecodeDigitsFromBytes(msisdnEncoded)), 1)
+	if imsi, msisdn := profile.ParseSubscriberData(req.IEs); imsi != "" || msisdn != "" {
+		if imsi != "" {
+			writeLineTabbed(&sb, fmt.Sprintf("IMSI: %s ", imsi), 1)
+		}
+		if msisdn != "" {
+			writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", msisdn), 1)
+		}
 	}
 
 	if req.UserID != nil {
@@ -142,7 +141,7 @@ func printSessionModificationRequest(req *message.SessionModificationRequest, pr
 
 	for _, qer := range req.CreateQER {
 		sb.WriteString("  Create")
-		displayQer(&sb, qer)
+		displayQer(&sb, qer, profile)
 	}
 
 	for _, urr := range req.CreateURR {
@@ -167,7 +166,7 @@ func printSessionModificationRequest(req *message.SessionModificationRequest, pr
 
 	for _, qer := range req.UpdateQER {
 		sb.WriteString("  Update")
-		displayQer(&sb, qer)
+		displayQer(&sb, qer, profile)
 	}
 
 	for _, urr := range req.UpdateURR {
@@ -208,7 +207,7 @@ func printSessionModificationRequest(req *message.SessionModificationRequest, pr
 
 	for _, qer := range req.RemoveQER {
 		sb.WriteString("  Remove")
-		displayQer(&sb, qer)
+		displayQer(&sb, qer, profile)
 	}
 
 	for _, urr := range req.RemoveURR {
@@ -224,14 +223,13 @@ func printSessionModificationRequest(req *message.SessionModificationRequest, pr
 		}
 	}
 
-	if imsiId := findEnterpriseSpecificIEindex(req.IEs, 32769, 2011); imsiId != -1 { // IE Huawei IMSI
-		imsiEncoded := req.IEs[imsiId].Payload
-		writeLineTabbed(&sb, fmt.Sprintf("IMSI: %s ", DecodeDigitsFromBytes(imsiEncoded)), 1)
-	}
-
-	if msisdnId := findEnterpriseSpecificIEindex(req.IEs, 32770, 2011); msisdnId != -1 { // IE Huawei MSISDN
-		msisdnEncoded := req.IEs[msisdnId].Payload
-		writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", DecodeDigitsFromBytes(msisdnEncoded)), 1)
+	if imsi, msisdn := profile.ParseSubscriberData(req.IEs); imsi != "" || msisdn != "" {
+		if imsi != "" {
+			writeLineTabbed(&sb, fmt.Sprintf("IMSI: %s ", imsi), 1)
+		}
+		if msisdn != "" {
+			writeLineTabbed(&sb, fmt.Sprintf("MSISDN: %s ", msisdn), 1)
+		}
 	}
 
 	log.Debug().Msg(sb.String())
@@ -280,7 +278,7 @@ func displayUrr(sb *strings.Builder, urr *ie.IE) {
 	}
 }
 
-func displayQer(sb *strings.Builder, qer *ie.IE) {
+func displayQer(sb *strings.Builder, qer *ie.IE, profile PfcpProfile) {
 	qerId, _ := qer.QERID()
 	sb.WriteString(fmt.Sprintf("QER ID: %d \n", qerId))
 
@@ -296,11 +294,8 @@ func displayQer(sb *strings.Builder, qer *ie.IE) {
 	if maxBitrateUL, err := qer.MBRUL(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Max Bitrate UL: %d ", uint32(maxBitrateUL)), 2)
 	}
-	if qfi, err := qer.QFI(); err == nil {
+	if qfi, ok := profile.ParseQFI(qer); ok {
 		writeLineTabbed(sb, fmt.Sprintf("QFI: %d ", qfi), 2)
-	} else if qciId := findEnterpriseSpecificIEindex(qer.ChildIEs, 32785, 2011); qciId != -1 { // IE Huawei QCI
-		qfi := qer.ChildIEs[qciId].Payload[0]
-		writeLineTabbed(sb, fmt.Sprintf("Huawei QFI: %d ", qfi), 2)
 	}
 }
 

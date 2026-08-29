@@ -28,7 +28,7 @@ func HandlePfcpSessionEstablishmentRequest(conn *PfcpConnection, msg message.Mes
 	req := msg.(*message.SessionEstablishmentRequest)
 	log.Debug().Msgf("Got Session Establishment Request from: %s.", addr)
 
-	imsi, msisdn := getSubscriberData(req.IEs)
+	imsi, msisdn := conn.profile.ParseSubscriberData(req.IEs)
 	isTraced := conn.NeedSessionTrace(imsi, msisdn)
 
 	remoteSEID, err := validateRequest(req.NodeID, req.CPFSEID)
@@ -481,7 +481,7 @@ func composeFarInfo(far *ie.IE, farInfo ebpf.FarInfo, profile PfcpProfile) (ebpf
 	return farInfo, nil
 }
 
-func updateQer(qerInfo *ebpf.QerInfo, qer *ie.IE) {
+func updateQer(qerInfo *ebpf.QerInfo, qer *ie.IE, profile PfcpProfile) {
 
 	gateStatusDL, err := qer.GateStatusDL()
 	if err == nil {
@@ -499,10 +499,7 @@ func updateQer(qerInfo *ebpf.QerInfo, qer *ie.IE) {
 	if err == nil {
 		qerInfo.MaxBitrateUL = maxBitrateUL * 1000
 	}
-	if qfi, err := qer.QFI(); err == nil {
-		qerInfo.Qfi = qfi
-	} else if qfiId := findEnterpriseSpecificIEindex(qer.ChildIEs, 32785, 2011); qfiId != -1 { // IE Huawei QCI
-		qfi := qer.ChildIEs[qfiId].Payload[0]
+	if qfi, ok := profile.ParseQFI(qer); ok {
 		qerInfo.Qfi = qfi
 	}
 
@@ -536,24 +533,6 @@ func updateUrr(urrInfo *ebpf.UrrInfo, urr *ie.IE) {
 
 }
 
-func getSubscriberData(ieArr []*ie.IE) (string, string) {
-	var imsi, msisdn string
-
-	imsiIdx := findEnterpriseSpecificIEindex(ieArr, 32769, 2011) // IE Huawei IMSI
-	if imsiIdx != -1 {
-		imsiEncoded := ieArr[imsiIdx].Payload
-		imsi = DecodeDigitsFromBytes(imsiEncoded)
-	}
-
-	msisdnIdx := findEnterpriseSpecificIEindex(ieArr, 32770, 2011) // IE Huawei MSISDN
-	if msisdnIdx != -1 {
-		msisdnEncoded := ieArr[msisdnIdx].Payload
-		msisdn = DecodeDigitsFromBytes(msisdnEncoded)
-	}
-
-	return imsi, msisdn
-}
-
 func HandlePfcpSessionReportResponse(conn *PfcpConnection, msg message.Message, addr string) (message.Message, bool, error) {
 	srr := msg.(*message.SessionReportResponse)
 	log.Debug().Msgf("Got Session Report Response from: %s.", addr)
@@ -578,7 +557,7 @@ func processEstablishmentRequestRules(
 	if err != nil {
 		return err
 	}
-	err = createQERs(req.CreateQER, mapOperations, session, operationPool, logger)
+	err = createQERs(req.CreateQER, mapOperations, session, operationPool, logger, conn.profile)
 	if err != nil {
 		return err
 	}
@@ -587,7 +566,7 @@ func processEstablishmentRequestRules(
 		return err
 	}
 
-	imsi, msisdn := getSubscriberData(req.IEs)
+	imsi, msisdn := conn.profile.ParseSubscriberData(req.IEs)
 	isTraced := conn.NeedSessionTrace(imsi, msisdn)
 
 	err = createPDRs(req.CreatePDR, session, operationPool, logger, isTraced, conn, pdrContext, createdPDRs)
@@ -770,11 +749,11 @@ func processModificationRequestRules(
 		return err
 	}
 
-	err = createQERs(req.CreateQER, mapOperations, session, operationPool, logger)
+	err = createQERs(req.CreateQER, mapOperations, session, operationPool, logger, conn.profile)
 	if err != nil {
 		return err
 	}
-	err = updateQERs(req.UpdateQER, mapOperations, session, operationPool, logger)
+	err = updateQERs(req.UpdateQER, mapOperations, session, operationPool, logger, conn.profile)
 	if err != nil {
 		return err
 	}
@@ -797,7 +776,7 @@ func processModificationRequestRules(
 	}
 
 	// obtain tracing flag from storage by IMSI or MSISDN
-	imsi, msisdn := getSubscriberData(req.IEs)
+	imsi, msisdn := conn.profile.ParseSubscriberData(req.IEs)
 	isTraced := conn.NeedSessionTrace(imsi, msisdn)
 
 	err = createPDRs(req.CreatePDR, session, operationPool, logger, isTraced, conn, pdrContext, createdPDRs)
@@ -877,6 +856,7 @@ func createQERs(
 	session *Session,
 	operationPool *OperationPool,
 	logger zerolog.Logger,
+	profile PfcpProfile,
 ) error {
 	for _, qer := range QERs {
 		qerID, err := qer.QERID()
@@ -885,7 +865,7 @@ func createQERs(
 		}
 
 		qerInfo := ebpf.QerInfo{}
-		updateQer(&qerInfo, qer)
+		updateQer(&qerInfo, qer, profile)
 
 		var created bool
 		operationPool.Add(Operation{
@@ -1123,6 +1103,7 @@ func updateQERs(
 	session *Session,
 	operationPool *OperationPool,
 	logger zerolog.Logger,
+	profile PfcpProfile,
 ) error {
 	for _, qer := range QERs {
 		qerID, err := qer.QERID()
@@ -1134,7 +1115,7 @@ func updateQERs(
 		oldQer := session.GetQer(qerID)
 
 		newQer := oldQer
-		updateQer(&newQer.QerInfo, qer)
+		updateQer(&newQer.QerInfo, qer, profile)
 
 		operationPool.Add(Operation{
 			Apply: func() func() error {
