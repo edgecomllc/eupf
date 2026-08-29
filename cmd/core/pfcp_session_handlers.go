@@ -1367,7 +1367,7 @@ func removeURRs(
 
 				report := ie.NewUsageReportWithinSessionModificationResponse(
 					ie.NewURRID(urrID),
-					profile.URSEQN(session.URRSequence, oldUrr.ReportSeqNumber+1),
+					conn.profile.URSEQN(session.URRSequence, oldUrr.ReportSeqNumber+1),
 					ie.NewUsageReportTrigger([]uint8{0, 1 << 3, 0}...),
 					ie.NewEndTime(time.Now()),
 					ie.NewVolumeMeasurement(0x7,
