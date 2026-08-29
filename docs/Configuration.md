@@ -30,7 +30,7 @@ UE IP Pool `Optional`                         | Pool of IP addresses, needed to 
 TEID Pool `Optional`                          | Pool of TEIDs, needed to allocate TEID when the FTUP option is enabled                                                                                                                                                                      | `teid_pool`                 | `UPF_TEID_POOL`                 | `--teidpool`          | `65535`
 PFCP peers `Optional`                         | List of PFCP peers (SMF hostnames or IP addresses) which UPF will try to connect                                                                                                                                                            | `pfcp_node`                 | `UPF_PFCP_NODE`                 | `--pfcprnode`         | `-`
 Association Setup timeout `Optional`          | Timeout between Association Setup Requests initiated by UPF                                                                                                                                                                                 | `association_setup_timeout` | `UPF_ASSOCIATION_SETUP_TIMEOUT` | `--astimeout`         | `5`
-Support Huawei proprietary options `Optional` | Enable or disable huawei support                                                                                                                                                                                                            | `huawei_support`            | `UPF_HUAWEI_SUPPORT`            | `--huasupp`           | `true`
+PFCP profile `Optional` | PFCP dialect: "default" (standard 3GPP) or "huawei" (Huawei SPGW-C) | `pfcp_profile` | `UPF_PFCP_PROFILE` | `--pfcp_profile` | `default` |
 S1-U address `Optional`                       | Address for communication over S1-U interface                                                                                                                                                                                               | `s1u_address`               | UPF_S1U_ADDRESS                 | --s1uaddr string      | 127.0.0.1
 S5/S8 address `Optional`                      | Address for communication over S5/S8 interface                                                                                                                                                                                              | `s5s8_address`              | UPF_S5S8_ADDRESS                | --s5s8addr string     | 127.0.0.1
 PA address `Optional`                         | Address for communication over PA interface                                                                                                                                                                                                 | `pa_address`                | UPF_PA_ADDRESS                  | --paaddr string       | 127.0.0.1
@@ -82,7 +82,7 @@ ip_pool: 10.60.0.0/16
 teid_pool: 65535
 pfcp_node: 
 association_setup_timeout: 5
-huawei_support: true
+pfcp_profile: default
 s1u_address: 127.0.0.1
 s5s8_address: 127.0.0.1
 sxa_address: 127.0.0.2:8805

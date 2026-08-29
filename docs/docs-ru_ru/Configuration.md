@@ -24,7 +24,7 @@
 | TEID Pool <br>`Дополнительный`       | Пул TEID, необходимый для выделения TEID, когда опция FTUP включена                                                                                                                                                                                                                                                                          | `teid_pool`       | `UPF_TEID_POOL`       | `--teid_pool`          | `65536`        |
 | Пиры PFCP <br>`Дополнительный` | Список пиров PFCP (имена хостов SMF или IP-адреса), к которым UPF попытается подключиться | `pfcp_node` | `UPF_PFCP_NODE` | `--pfcprnode` | |
 | Тайм-аут настройки ассоциации <br>`Дополнительный` | Тайм-аут между запросами на настройку ассоциации, инициированными UPF | `association_setup_timeout` | `UPF_ASSOCIATION_SETUP_TIMEOUT` | `--astimeout` | `5` |
-|Поддержка фирменных опций Huawei <br>`Дополнительный`|Включить или отключить поддержку huawei|`huawei_support`|`UPF_HUAWEI_SUPPORT`|`--huasupp`|`true`|
+|Профиль PFCP <br>`Дополнительный`|Диалект PFCP: "default" (стандарт 3GPP) или "huawei" (Huawei SPGW-C)|`pfcp_profile`|`UPF_PFCP_PROFILE`|`--pfcp_profile`|`default`|
 | <br>`Дополнительный` | Адрес для связи через интерфейс S1-U | s1u_address | UPF_S1U_ADDRESS | --s1uaddr string | 127.0.0.1 |
 | <br>`Дополнительный` | Адрес для связи через интерфейс S5/S8 | s5s8_address | UPF_S5S8_ADDRESS | --s5s8addr string | 127.0.0.1 |
 | <br>`Дополнительный` | Адрес Sxa для привязки сервера PFCP к | sxa_address | UPF_SXA_ADDRESS | --sxaaddr string | 127.0.0.2:8805 |
