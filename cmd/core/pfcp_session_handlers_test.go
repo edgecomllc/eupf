@@ -26,6 +26,7 @@ func TestHeartbeat(t *testing.T) {
 		NodeAssociations: map[string]*NodeAssociation{
 			addr: NewNodeAssociation("test-node", ""),
 		},
+		profile: DefaultProfile{},
 	}
 	hbReq := message.NewHeartbeatRequest(0,
 		ie.NewRecoveryTimeStamp(time.Now()),
@@ -51,6 +52,7 @@ func TestAssociationSetup(t *testing.T) {
 		NodeAssociations: make(map[string]*NodeAssociation),
 		nodeId:           "test-node",
 		associationMutex: &sync.Mutex{},
+		profile:          DefaultProfile{},
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
@@ -119,6 +121,7 @@ func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneCo
 		associationMutex: &sync.Mutex{},
 		featuresOctets:   featuresOctets,
 		neValidator:      validator,
+		profile:          DefaultProfile{},
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),

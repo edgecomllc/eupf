@@ -110,6 +110,7 @@ func TestSessionOverwrite(t *testing.T) {
 		n3Address:        net.ParseIP("127.0.0.1"),
 		nodeAddrV4:       netip.MustParseAddrPort("127.0.0.1:8085"),
 		associationMutex: &sync.Mutex{},
+		profile:          DefaultProfile{},
 	}
 	asReq := message.NewAssociationSetupRequest(0,
 		ie.NewNodeID("", "", "test"),
