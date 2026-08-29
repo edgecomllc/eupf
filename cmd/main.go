@@ -187,91 +187,73 @@ func main() {
 		profile = core.DefaultProfile{}
 	}
 
-	// Create PFCP connection
-	pfcpConn, err := core.NewPfcpConnection(
-		config.Conf.PfcpAddress,
-		config.Conf.PfcpNodeId,
-		config.Conf.N3AdvertisedAddress,
-		config.Conf.N9AdvertisedAddress,
-		bpfObjects,
-		resourceManager,
-		dumper,
-		nil,
-		profile,
-	)
+	type connSpec struct {
+		label       string
+		address     string
+		nodeId      string
+		n3Ip        string
+		n9Ip        string
+		sdfNotifyC  <-chan ebpf.SdfFlowNotification
+		remoteNodes []string
+		connectorFn func(string) (core.AssociationConnector, error)
+	}
 
-	if err != nil {
-		log.Fatal().Msgf("Could not create PFCP connection: %s", err.Error())
-	}
-	remoteNodes := []core.AssociationConnector{}
-	for _, remoteNode := range config.Conf.PfcpRemoteNode {
-		connector, err := core.NewDefaultAssociationConnector(remoteNode)
+	startConn := func(s connSpec) *core.PfcpConnection {
+		conn, err := core.NewPfcpConnection(s.address, s.nodeId, s.n3Ip, s.n9Ip, bpfObjects, resourceManager, dumper, s.sdfNotifyC, profile)
 		if err != nil {
-			log.Warn().Msgf("failed to create default association connector: %v", err)
-			continue
+			log.Fatal().Msgf("Could not create %s connection: %s", s.label, err)
 		}
-		remoteNodes = append(remoteNodes, connector)
+		connectors := make([]core.AssociationConnector, 0, len(s.remoteNodes))
+		for _, rn := range s.remoteNodes {
+			c, err := s.connectorFn(rn)
+			if err != nil {
+				log.Warn().Msgf("failed to create %s association connector: %v", s.label, err)
+				continue
+			}
+			connectors = append(connectors, c)
+		}
+		conn.SetRemoteNodes(connectors)
+		go conn.Run()
+		return conn
 	}
-	pfcpConn.SetRemoteNodes(remoteNodes)
-	go pfcpConn.Run()
+
+	// Create PFCP (N4) connection
+	pfcpConn := startConn(connSpec{
+		label:       "PFCP",
+		address:     config.Conf.PfcpAddress,
+		nodeId:      config.Conf.PfcpNodeId,
+		n3Ip:        config.Conf.N3AdvertisedAddress,
+		n9Ip:        config.Conf.N9AdvertisedAddress,
+		sdfNotifyC:  nil,
+		remoteNodes: config.Conf.PfcpRemoteNode,
+		connectorFn: profile.N4Connector,
+	})
 	defer pfcpConn.Close()
 
 	// Create Sxa connection
-	sxaConn, err := core.NewPfcpConnection(
-		config.Conf.SxaLocalAddress,
-		config.Conf.SxaLocalNodeId,
-		config.Conf.S1UAddress,
-		config.Conf.S5S8Address,
-		bpfObjects,
-		resourceManager,
-		dumper,
-		nil,
-		profile,
-	)
-
-	if err != nil {
-		log.Fatal().Msgf("Could not create Sxa connection: %s", err.Error())
-	}
-	sxaRemoteNodes := []core.AssociationConnector{}
-	for _, remoteNode := range config.Conf.SxaRemoteNode {
-		connector, err := profile.SxaConnector(remoteNode)
-		if err != nil {
-			log.Warn().Msgf("failed to create sxa association connector: %v", err)
-			continue
-		}
-		sxaRemoteNodes = append(sxaRemoteNodes, connector)
-	}
-	sxaConn.SetRemoteNodes(sxaRemoteNodes)
-	go sxaConn.Run()
+	sxaConn := startConn(connSpec{
+		label:       "Sxa",
+		address:     config.Conf.SxaLocalAddress,
+		nodeId:      config.Conf.SxaLocalNodeId,
+		n3Ip:        config.Conf.S1UAddress,
+		n9Ip:        config.Conf.S5S8Address,
+		sdfNotifyC:  nil,
+		remoteNodes: config.Conf.SxaRemoteNode,
+		connectorFn: profile.SxaConnector,
+	})
 	defer sxaConn.Close()
 
 	// Create Sxb connection
-	sxbConn, err := core.NewPfcpConnection(
-		config.Conf.SxbLocalAddress,
-		config.Conf.SxbLocalNodeId,
-		config.Conf.PAAddress,
-		config.Conf.PAAddress,
-		bpfObjects,
-		resourceManager,
-		dumper,
-		sdfNotifier.GetNotificationChannel(),
-		profile,
-	)
-
-	if err != nil {
-		log.Fatal().Msgf("Could not create Sxb connection: %s", err.Error())
-	}
-	sxbRemoteNodes := []core.AssociationConnector{}
-	for _, remoteNode := range config.Conf.SxbRemoteNode {
-		connector, err := profile.SxbConnector(remoteNode)
-		if err != nil {
-			log.Warn().Msgf("failed to create sxb association connector: %v", err)
-			continue
-		}
-		sxbRemoteNodes = append(sxbRemoteNodes, connector)
-	}
-	sxbConn.SetRemoteNodes(sxbRemoteNodes)
-	go sxbConn.Run()
+	sxbConn := startConn(connSpec{
+		label:       "Sxb",
+		address:     config.Conf.SxbLocalAddress,
+		nodeId:      config.Conf.SxbLocalNodeId,
+		n3Ip:        config.Conf.PAAddress,
+		n9Ip:        config.Conf.PAAddress,
+		sdfNotifyC:  sdfNotifier.GetNotificationChannel(),
+		remoteNodes: config.Conf.SxbRemoteNode,
+		connectorFn: profile.SxbConnector,
+	})
 	defer sxbConn.Close()
 
 	gtpPathManager := core.NewGtpPathManager(config.Conf.N3Address+core.GTPPortStr, time.Duration(config.Conf.GtpEchoInterval)*time.Second)

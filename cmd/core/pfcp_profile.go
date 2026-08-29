@@ -35,6 +35,11 @@ type PfcpProfile interface {
 	SxaConnector(remoteNode string) (AssociationConnector, error)
 	// SxbConnector builds the AssociationConnector for an Sxb (PA) peer.
 	SxbConnector(remoteNode string) (AssociationConnector, error)
+	// N4Connector builds the AssociationConnector for an N4 (5G SMF) peer.
+	// Both profiles use NewDefaultAssociationConnector (N4 is always
+	// standard 3GPP), but the method exists for symmetry with
+	// SxaConnector/SxbConnector.
+	N4Connector(remoteNode string) (AssociationConnector, error)
 
 	// ParseOuterHeaderCreation extracts FarHeaderFields from an Outer Header
 	// Creation IE (or a wrapping ForwardingParameters/UpdateForwardingParameters
@@ -103,6 +108,10 @@ func (DefaultProfile) SxaConnector(remoteNode string) (AssociationConnector, err
 }
 
 func (DefaultProfile) SxbConnector(remoteNode string) (AssociationConnector, error) {
+	return NewDefaultAssociationConnector(remoteNode)
+}
+
+func (DefaultProfile) N4Connector(remoteNode string) (AssociationConnector, error) {
 	return NewDefaultAssociationConnector(remoteNode)
 }
 
@@ -183,6 +192,10 @@ func (h HuaweiProfile) SxaConnector(remoteNode string) (AssociationConnector, er
 
 func (h HuaweiProfile) SxbConnector(remoteNode string) (AssociationConnector, error) {
 	return NewSxbAssociationConnector(remoteNode, h.PAAddress)
+}
+
+func (h HuaweiProfile) N4Connector(remoteNode string) (AssociationConnector, error) {
+	return NewDefaultAssociationConnector(remoteNode)
 }
 
 func (h HuaweiProfile) ParseOuterHeaderCreation(i *ie.IE) (FarHeaderFields, error) {

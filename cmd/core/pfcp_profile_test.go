@@ -1,10 +1,10 @@
 package core
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/wmnsk/go-pfcp/ie"
-	"github.com/wmnsk/go-pfcp/message"
 )
 
 func TestDefaultProfileSxaConnector(t *testing.T) {
@@ -29,6 +29,22 @@ func TestDefaultProfileSxbConnector(t *testing.T) {
 	}
 	if connector == nil {
 		t.Fatal("expected non-nil connector")
+	}
+}
+
+func TestDefaultProfileN4Connector(t *testing.T) {
+	p := DefaultProfile{}
+	connector, err := p.N4Connector("127.0.0.1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if connector == nil {
+		t.Fatal("expected non-nil connector")
+	}
+	switch connector.(type) {
+	case *DefaultAssociationConnector:
+	default:
+		t.Errorf("DefaultProfile.N4Connector should return *DefaultAssociationConnector, got %T", connector)
 	}
 }
 
@@ -106,6 +122,42 @@ func TestHuaweiProfileSxbConnector(t *testing.T) {
 	}
 	if connector == nil {
 		t.Fatal("expected non-nil connector")
+	}
+}
+
+func TestHuaweiProfileN4Connector(t *testing.T) {
+	p := HuaweiProfile{S1UAddress: "127.0.0.1", S5S8Address: "127.0.0.2", PAAddress: "127.0.0.3"}
+	connector, err := p.N4Connector("127.0.0.10")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if connector == nil {
+		t.Fatal("expected non-nil connector")
+	}
+	switch connector.(type) {
+	case *DefaultAssociationConnector:
+	default:
+		t.Errorf("HuaweiProfile.N4Connector should return *DefaultAssociationConnector, got %T", connector)
+	}
+}
+
+func TestProfileN4ConnectorEquivalence(t *testing.T) {
+	dp := DefaultProfile{}
+	hp := HuaweiProfile{S1UAddress: "127.0.0.1", S5S8Address: "127.0.0.2", PAAddress: "127.0.0.3"}
+
+	defaultConn, err := dp.N4Connector("127.0.0.10")
+	if err != nil {
+		t.Fatalf("DefaultProfile.N4Connector error: %v", err)
+	}
+	huaweiConn, err := hp.N4Connector("127.0.0.10")
+	if err != nil {
+		t.Fatalf("HuaweiProfile.N4Connector error: %v", err)
+	}
+
+	defaultType := fmt.Sprintf("%T", defaultConn)
+	huaweiType := fmt.Sprintf("%T", huaweiConn)
+	if defaultType != huaweiType {
+		t.Errorf("N4Connector should return same connector type for both profiles: default=%s huawei=%s", defaultType, huaweiType)
 	}
 }
 

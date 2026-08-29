@@ -176,7 +176,7 @@ func UpdatePFCPConnections(
 	case N4PFCPKeyName:
 		remotePFCPNodes := make([]AssociationConnector, 0, len(remoteNodes))
 		for _, remoteNode := range remoteNodes {
-			connector, err := NewDefaultAssociationConnector(remoteNode)
+			connector, err := conn.profile.N4Connector(remoteNode)
 			if err != nil {
 				return fmt.Errorf("failed to create default association connector: %w", err)
 			}
