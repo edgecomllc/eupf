@@ -9,6 +9,7 @@ import (
 )
 
 const flagPresentIPv4 = 2
+const flagPresentIPv6 = 4
 
 func applyPDR(spdrInfo SPDRInfo, mapOperations ebpf.ForwardingPlaneController) {
 	if spdrInfo.PCCInfo != nil {
@@ -49,7 +50,7 @@ func processCreatedPDRs(createdPDRs []SPDRInfo, defaultN3AdvAddress net.IP, defa
 				if pdr.Ipv4 != nil {
 					additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewUEIPAddress(flagPresentIPv4, pdr.Ipv4.String(), "", 0, 0)))
 				} else if pdr.Ipv6 != nil {
-
+					additionalIEs = append(additionalIEs, ie.NewCreatedPDR(ie.NewPDRID(uint16(pdr.PdrID)), ie.NewUEIPAddress(flagPresentIPv6, "", pdr.Ipv6.String(), 0, 0)))
 				}
 			}
 		}
