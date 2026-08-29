@@ -86,7 +86,7 @@ func (bpfObjects *BpfObjects) Load() error {
 		"far_map":              bpfObjects.farMapSize,
 		"pdr_map_downlink_ip4": bpfObjects.pdrMapSize,
 		"pdr_map_downlink_ip6": bpfObjects.pdrMapSize,
-		"pdr_map_uplink_ip4":   bpfObjects.pdrMapSize,
+		"pdr_map_teid_ip4":   bpfObjects.pdrMapSize,
 		"urr_map":              bpfObjects.urrMapSize,
 	}
 
@@ -251,7 +251,7 @@ func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32
 		log.Info().Msgf("Failed to resize PDR map: %s", err)
 		return err
 	}
-	if err := ResizeEbpfMap(&bpfObjects.PdrMapUplinkIp4, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
+	if err := ResizeEbpfMap(&bpfObjects.PdrMapTeidIp4, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
 		log.Info().Msgf("Failed to resize PDR map: %s", err)
 		return err
 	}
