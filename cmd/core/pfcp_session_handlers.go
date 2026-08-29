@@ -770,7 +770,7 @@ func processModificationRequestRules(
 	if err != nil {
 		return err
 	}
-	err = removeURRs(req.RemoveURR, mapOperations, session, operationPool, logger, removedURRs)
+	err = removeURRs(req.RemoveURR, mapOperations, session, operationPool, logger, removedURRs, conn.profile)
 	if err != nil {
 		return err
 	}
@@ -1346,6 +1346,7 @@ func removeURRs(
 	operationPool *OperationPool,
 	logger zerolog.Logger,
 	removedURRs *[]*ie.IE,
+	profile PfcpProfile,
 ) error {
 	for _, urr := range URRs {
 		urrID, _ := urr.URRID()
@@ -1367,7 +1368,7 @@ func removeURRs(
 
 				report := ie.NewUsageReportWithinSessionModificationResponse(
 					ie.NewURRID(urrID),
-					conn.profile.URSEQN(session.URRSequence, oldUrr.ReportSeqNumber+1),
+					profile.URSEQN(session.URRSequence, oldUrr.ReportSeqNumber+1),
 					ie.NewUsageReportTrigger([]uint8{0, 1 << 3, 0}...),
 					ie.NewEndTime(time.Now()),
 					ie.NewVolumeMeasurement(0x7,
