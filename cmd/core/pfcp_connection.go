@@ -708,19 +708,7 @@ func SendSessionReportUsage(conn *PfcpConnection, seid uint64, sequenceID uint32
 	uplink uint64,
 	downlink uint64,
 	traced bool) {
-	additionalIEs := []*ie.IE{
-		ie.NewReportType(0, 0, 1, 0),
-	}
-	usageReportIEs := append([]*ie.IE{
-		ie.NewURRID(urrid),
-		conn.profile.URSEQN(sessionSeq, reportSeq),
-		ie.NewUsageReportTrigger(1<<1, 0, 0), //Volume Threshold
-		ie.NewEndTime(time.Now()),
-		ie.NewVolumeMeasurement(0x6, 0, uplink, downlink, 0, 0, 0),
-		ie.NewTimeOfFirstPacket(time.Now()),
-		ie.NewTimeOfLastPacket(time.Now()),
-	}, conn.profile.UsageReportSessionReportVendorIEs()...)
-	additionalIEs = append(additionalIEs, ie.NewUsageReportWithinSessionReportRequest(usageReportIEs...))
+	additionalIEs := buildSessionReportUsageIEs(conn.profile, urrid, sessionSeq, reportSeq, uplink, downlink)
 
 	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
 	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)
@@ -740,15 +728,7 @@ func SendSessionReportADC(conn *PfcpConnection, seid uint64, sequenceID uint32, 
 	reportSeq uint32,
 	sdfFilter string,
 	traced bool) {
-
-	additionalIEs := []*ie.IE{
-		ie.NewReportType(0, 0, 1, 0),
-	}
-	adcReportIEs := append([]*ie.IE{
-		ie.NewURRID(urrid),
-		conn.profile.URSEQN(sessionSeq, reportSeq),
-	}, conn.profile.UsageReportADCVendorIEs(sdfFilter)...)
-	additionalIEs = append(additionalIEs, ie.NewUsageReportWithinSessionReportRequest(adcReportIEs...))
+	additionalIEs := buildSessionReportADCIEs(conn.profile, urrid, sessionSeq, reportSeq, sdfFilter)
 
 	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
 	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)
@@ -825,13 +805,7 @@ func SendDownlinkNotificationReport(
 }
 
 func SendSessionReportSessionRelease(conn *PfcpConnection, seid uint64, sequenceID uint32, associationAddr string, traced bool, pdrList []uint16) {
-	additionalIEs := []*ie.IE{
-		ie.NewReportType(0, 0, 0, 0),
-	}
-
-	if vendorIE := conn.profile.SessionReportReleaseVendorIE(pdrList); vendorIE != nil {
-		additionalIEs = append(additionalIEs, vendorIE)
-	}
+	additionalIEs := buildSessionReportReleaseIEs(conn.profile, pdrList)
 
 	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
 	log.Debug().Msgf("Sent Session Report Request to: %s", associationAddr)
