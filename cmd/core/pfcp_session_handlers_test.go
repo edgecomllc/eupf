@@ -26,7 +26,7 @@ func TestHeartbeat(t *testing.T) {
 		NodeAssociations: map[string]*NodeAssociation{
 			addr: NewNodeAssociation("test-node", ""),
 		},
-		profile: DefaultProfile{},
+		profile: profile,
 	}
 	hbReq := message.NewHeartbeatRequest(0,
 		ie.NewRecoveryTimeStamp(time.Now()),
@@ -86,14 +86,18 @@ func TestAssociationSetup(t *testing.T) {
 
 func PreparePfcpConnection(t *testing.T) (*PfcpConnection, string) {
 	config := config.UpfConfig{}
-	return PreparePfcpConnectionWithMock(t, &MapOperationsMock{}, config)
+	return PreparePfcpConnectionWithMockAndProfile(t, &MapOperationsMock{}, config, DefaultProfile{})
 }
 
 func PreparePfcpConnectionWithConfig(t *testing.T, config config.UpfConfig) (*PfcpConnection, string) {
-	return PreparePfcpConnectionWithMock(t, &MapOperationsMock{}, config)
+	return PreparePfcpConnectionWithMockAndProfile(t, &MapOperationsMock{}, config, DefaultProfile{})
 }
 
 func PreparePfcpConnectionWithMock(t *testing.T, ebpfMock ebpf.ForwardingPlaneController, config config.UpfConfig) (*PfcpConnection, string) {
+	return PreparePfcpConnectionWithMockAndProfile(t, ebpfMock, config, DefaultProfile{})
+}
+
+func PreparePfcpConnectionWithMockAndProfile(t *testing.T, ebpfMock ebpf.ForwardingPlaneController, config config.UpfConfig, profile PfcpProfile) (*PfcpConnection, string) {
 
 	var pfcpHandlers = PfcpHandlerMap{
 		message.MsgTypeHeartbeatRequest:            HandlePfcpHeartbeatRequest,
