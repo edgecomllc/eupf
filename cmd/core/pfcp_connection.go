@@ -492,11 +492,11 @@ func (connection *PfcpConnection) SendReports() {
 				if uplink+downlink > 0 { //we have usage increment
 					if urr.UrrInfo.VolumeThreshold > 0 && urr.UrrInfo.VolumeThreshold <= uplink+downlink {
 						urr.ReportSeqNumber += 1
-						session.URRSequence += 1 //Huawei !!!
+						session.URRSequence += 1
 						SendSessionReportUsage(connection, session.RemoteSEID, assocaition.NewSequenceID(), assocaition.Addr,
 							urrid,
-							//urr.ReportSeqNumber,
-							session.URRSequence, //Huawei
+							session.URRSequence,
+							urr.ReportSeqNumber,
 							uplink,
 							downlink,
 							session.IsSessionTraced(),
@@ -567,11 +567,11 @@ func (connection *PfcpConnection) SendReportsSDF(referenceID uint32, sdfFilter s
 				}
 
 				urr.ReportSeqNumber += 1
-				session.URRSequence += 1 //Huawei !!!
+				session.URRSequence += 1
 				SendSessionReportADC(connection, session.RemoteSEID, assocaition.NewSequenceID(), assocaition.Addr,
 					urrid,
-					//urr.ReportSeqNumber,
-					session.URRSequence, //Huawei
+					session.URRSequence,
+					urr.ReportSeqNumber,
 					sdfFilter,
 					session.IsSessionTraced())
 
@@ -703,7 +703,8 @@ func (connection *PfcpConnection) DisableTracingByMsisdn(msisdn string) (tracing
 
 func SendSessionReportUsage(conn *PfcpConnection, seid uint64, sequenceID uint32, associationAddr string,
 	urrid uint32,
-	urSeq uint32,
+	sessionSeq uint32,
+	reportSeq uint32,
 	uplink uint64,
 	downlink uint64,
 	traced bool) {
@@ -711,7 +712,7 @@ func SendSessionReportUsage(conn *PfcpConnection, seid uint64, sequenceID uint32
 		ie.NewReportType(0, 0, 1, 0),
 		ie.NewUsageReportWithinSessionReportRequest(
 			ie.NewURRID(urrid),
-			ie.NewURSEQN(urSeq),
+			conn.profile.URSEQN(sessionSeq, reportSeq),
 			ie.NewUsageReportTrigger(1<<1, 0, 0), //Volume Threshold
 			ie.NewEndTime(time.Now()),
 			ie.NewVolumeMeasurement(0x6, 0, uplink, downlink, 0, 0, 0),
@@ -761,7 +762,8 @@ func SendSessionReportUsage(conn *PfcpConnection, seid uint64, sequenceID uint32
 
 func SendSessionReportADC(conn *PfcpConnection, seid uint64, sequenceID uint32, associationAddr string,
 	urrid uint32,
-	urSeq uint32,
+	sessionSeq uint32,
+	reportSeq uint32,
 	sdfFilter string,
 	traced bool) {
 
@@ -769,7 +771,7 @@ func SendSessionReportADC(conn *PfcpConnection, seid uint64, sequenceID uint32, 
 		ie.NewReportType(0, 0, 1, 0),
 		ie.NewUsageReportWithinSessionReportRequest(
 			ie.NewURRID(urrid),
-			ie.NewURSEQN(urSeq),
+			conn.profile.URSEQN(sessionSeq, reportSeq),
 			// CHOICE
 			// urr-type
 			//    enterprise-id: ---- 0x7db(2011)

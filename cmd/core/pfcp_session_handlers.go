@@ -689,14 +689,12 @@ func processDeletionRequestRules(
 						ReportSeqNumber: urr.ReportSeqNumber + 1,
 					}
 
-					//urr.ReportSeqNumber += 1 //Huawei
 					uplink := data.UplinkVolume - urr.UrrInfo.UplinkVolume
 					downlink := data.DownlinkVolume - urr.UrrInfo.DownlinkVolume
 
 					report := ie.NewUsageReportWithinSessionDeletionResponse(
 						ie.NewURRID(urrID),
-						//ie.NewURSEQN(urr.ReportSeqNumber),
-						ie.NewURSEQN(session.URRSequence), //Huawei
+						conn.profile.URSEQN(session.URRSequence, urr.ReportSeqNumber),
 						ie.NewUsageReportTrigger(0, 1<<3, 0),
 						ie.NewEndTime(time.Now()),
 						ie.NewVolumeMeasurement(0x7, uplink+downlink, uplink, downlink, 0, 0, 0),
@@ -789,7 +787,7 @@ func processModificationRequestRules(
 	if err != nil {
 		return err
 	}
-	err = updateURRs(req.UpdateURR, mapOperations, session, operationPool, logger)
+	err = updateURRs(req.UpdateURR, mapOperations, session, operationPool, logger, conn.profile)
 	if err != nil {
 		return err
 	}
@@ -1163,6 +1161,7 @@ func updateURRs(
 	session *Session,
 	operationPool *OperationPool,
 	logger zerolog.Logger,
+	profile PfcpProfile,
 ) error {
 	for _, urr := range URRs {
 		urrID, err := urr.URRID()
@@ -1387,7 +1386,7 @@ func removeURRs(
 
 				report := ie.NewUsageReportWithinSessionModificationResponse(
 					ie.NewURRID(urrID),
-					ie.NewURSEQN(oldUrr.ReportSeqNumber+1),
+					profile.URSEQN(session.URRSequence, oldUrr.ReportSeqNumber+1),
 					ie.NewUsageReportTrigger([]uint8{0, 1 << 3, 0}...),
 					ie.NewEndTime(time.Now()),
 					ie.NewVolumeMeasurement(0x7,

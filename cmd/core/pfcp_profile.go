@@ -51,12 +51,10 @@ type PfcpProfile interface {
 	// (Association Setup/Update, Session Establishment Response, etc.).
 	NodeID(nodeID string) *ie.IE
 
-	// URSEQN builds a URSEQN IE for usage reports according to the profile's
-	// sequence numbering scheme.
-	URSEQN(session *Session, urr *SUrrInfo) *ie.IE
-	// UsageReportVendorIE returns a vendor-specific IE to embed in usage
-	// reports, or nil if the profile does not add one.
-	UsageReportVendorIE() *ie.IE
+	// URSEQN builds a URSEQN IE for usage reports. The profile decides whether
+	// to use the session-level sequence (Huawei) or the per-URR report sequence
+	// (standard 3GPP).
+	URSEQN(sessionSeq, reportSeq uint32) *ie.IE
 }
 
 // DefaultProfile implements the standard 3GPP PFCP dialect using the go-pfcp
@@ -105,12 +103,8 @@ func (DefaultProfile) NodeID(nodeID string) *ie.IE {
 	return newIeNodeID(nodeID)
 }
 
-func (DefaultProfile) URSEQN(session *Session, urr *SUrrInfo) *ie.IE {
-	return ie.NewURSEQN(urr.ReportSeqNumber)
-}
-
-func (DefaultProfile) UsageReportVendorIE() *ie.IE {
-	return nil
+func (DefaultProfile) URSEQN(sessionSeq, reportSeq uint32) *ie.IE {
+	return ie.NewURSEQN(reportSeq)
 }
 
 // HuaweiProfile implements the Huawei SPGW-C PFCP dialect. It uses Huawei's
@@ -174,10 +168,6 @@ func (h HuaweiProfile) NodeID(nodeID string) *ie.IE {
 	return newIeNodeIDHuawei(nodeID)
 }
 
-func (h HuaweiProfile) URSEQN(session *Session, urr *SUrrInfo) *ie.IE {
-	return ie.NewURSEQN(session.URRSequence)
-}
-
-func (h HuaweiProfile) UsageReportVendorIE() *ie.IE {
-	return ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03})
+func (h HuaweiProfile) URSEQN(sessionSeq, reportSeq uint32) *ie.IE {
+	return ie.NewURSEQN(sessionSeq)
 }
