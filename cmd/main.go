@@ -174,6 +174,19 @@ func main() {
 		log.Error().Msgf("failed to create ResourceManager - err: %v", err)
 	}
 
+	// Select PFCP profile based on the huawei_support flag.
+	// This will be replaced by a string pfcp_profile config key in a subsequent commit.
+	var profile core.PfcpProfile
+	if config.Conf.HuaweiSupport {
+		profile = core.HuaweiProfile{
+			S1UAddress:  config.Conf.S1UAddress,
+			S5S8Address: config.Conf.S5S8Address,
+			PAAddress:   config.Conf.PAAddress,
+		}
+	} else {
+		profile = core.DefaultProfile{}
+	}
+
 	// Create PFCP connection
 	pfcpConn, err := core.NewPfcpConnection(
 		config.Conf.PfcpAddress,
@@ -184,7 +197,7 @@ func main() {
 		resourceManager,
 		dumper,
 		nil,
-		core.DefaultProfile{},
+		profile,
 	)
 
 	if err != nil {
@@ -213,7 +226,7 @@ func main() {
 		resourceManager,
 		dumper,
 		nil,
-		core.DefaultProfile{},
+		profile,
 	)
 
 	if err != nil {
@@ -221,21 +234,12 @@ func main() {
 	}
 	sxaRemoteNodes := []core.AssociationConnector{}
 	for _, remoteNode := range config.Conf.SxaRemoteNode {
-		if config.Conf.HuaweiSupport {
-			connector, err := core.NewSxaAssociationConnector(remoteNode, config.Conf.S1UAddress, config.Conf.S5S8Address)
-			if err != nil {
-				log.Warn().Msgf("failed to create sxa association connector: %v", err)
-				continue
-			}
-			sxaRemoteNodes = append(sxaRemoteNodes, connector)
-		} else {
-			connector, err := core.NewDefaultAssociationConnector(remoteNode)
-			if err != nil {
-				log.Warn().Msgf("failed to create sxa association connector: %v", err)
-				continue
-			}
-			sxaRemoteNodes = append(sxaRemoteNodes, connector)
+		connector, err := profile.SxaConnector(remoteNode)
+		if err != nil {
+			log.Warn().Msgf("failed to create sxa association connector: %v", err)
+			continue
 		}
+		sxaRemoteNodes = append(sxaRemoteNodes, connector)
 	}
 	sxaConn.SetRemoteNodes(sxaRemoteNodes)
 	go sxaConn.Run()
@@ -251,7 +255,7 @@ func main() {
 		resourceManager,
 		dumper,
 		sdfNotifier.GetNotificationChannel(),
-		core.DefaultProfile{},
+		profile,
 	)
 
 	if err != nil {
@@ -259,21 +263,12 @@ func main() {
 	}
 	sxbRemoteNodes := []core.AssociationConnector{}
 	for _, remoteNode := range config.Conf.SxbRemoteNode {
-		if config.Conf.HuaweiSupport {
-			connector, err := core.NewSxbAssociationConnector(remoteNode, config.Conf.PAAddress)
-			if err != nil {
-				log.Warn().Msgf("failed to create sxb association connector: %v", err)
-				continue
-			}
-			sxbRemoteNodes = append(sxbRemoteNodes, connector)
-		} else {
-			connector, err := core.NewDefaultAssociationConnector(remoteNode)
-			if err != nil {
-				log.Warn().Msgf("failed to create sxb association connector: %v", err)
-				continue
-			}
-			sxbRemoteNodes = append(sxbRemoteNodes, connector)
+		connector, err := profile.SxbConnector(remoteNode)
+		if err != nil {
+			log.Warn().Msgf("failed to create sxb association connector: %v", err)
+			continue
 		}
+		sxbRemoteNodes = append(sxbRemoteNodes, connector)
 	}
 	sxbConn.SetRemoteNodes(sxbRemoteNodes)
 	go sxbConn.Run()

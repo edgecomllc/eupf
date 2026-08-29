@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf/link"
-	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 	"github.com/rs/zerolog/log"
 
@@ -188,7 +187,7 @@ func UpdatePFCPConnections(
 	case SxaPFCPKeyName:
 		remotePFCPNodes := make([]AssociationConnector, 0, len(remoteNodes))
 		for _, remoteNode := range remoteNodes {
-			connector, err := NewSxaAssociationConnector(remoteNode, config.Conf.S1UAddress, config.Conf.S5S8Address)
+			connector, err := conn.profile.SxaConnector(remoteNode)
 			if err != nil {
 				return fmt.Errorf("failed to create sxa association connector: %w", err)
 			}
@@ -199,7 +198,7 @@ func UpdatePFCPConnections(
 	case SxbPFCPKeyName:
 		remotePFCPNodes := make([]AssociationConnector, 0, len(remoteNodes))
 		for _, remoteNode := range remoteNodes {
-			connector, err := NewSxbAssociationConnector(remoteNode, config.Conf.PAAddress)
+			connector, err := conn.profile.SxbConnector(remoteNode)
 			if err != nil {
 				return fmt.Errorf("failed to create sxb association connector: %w", err)
 			}
