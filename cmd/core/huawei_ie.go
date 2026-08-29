@@ -4,42 +4,9 @@ import (
 	"encoding/binary"
 	"io"
 	"net"
-	"strings"
 
 	"github.com/wmnsk/go-pfcp/ie"
 )
-
-func has8thBit(f uint8) bool {
-	return (f&0x80)>>7 == 1
-}
-
-func has7thBit(f uint8) bool {
-	return (f&0x40)>>6 == 1
-}
-
-func has6thBit(f uint8) bool {
-	return (f&0x20)>>5 == 1
-}
-
-func has5thBit(f uint8) bool {
-	return (f&0x010)>>4 == 1
-}
-
-func has4thBit(f uint8) bool {
-	return (f&0x08)>>3 == 1
-}
-
-func has3rdBit(f uint8) bool {
-	return (f&0x04)>>2 == 1
-}
-
-func has2ndBit(f uint8) bool {
-	return (f&0x02)>>1 == 1
-}
-
-func has1stBit(f uint8) bool {
-	return (f & 0x01) == 1
-}
 
 // OuterHeaderCreationFields represents a fields contained in OuterHeaderCreation IE.
 type OuterHeaderCreationFields struct {
@@ -289,36 +256,8 @@ func ParseOuterHeaderCreationFields(b []byte) (*OuterHeaderCreationFields, error
 	return f, nil
 }
 
-// ..................forwarding-parameters
-// ....................CHOICE
-// ......................destination-interface
-// 294>   00   0000****   ........................spare --- 0x0(0)
-// ****0000   ........................interface-value --- access(0)
-// ....................CHOICE
-// ......................outer-header-creation
-// 299>   00   00000000   ........................outer-header-creation --- gtpu-udp-ipv4(0)
-// 300>   02   00000010
-// 301>   44   01000100
-// 302>   09   00001001
-// 303>   C0   11000000   ........................teid --- 0x24409c0(38013376)
-// ........................ipv4-address
-// 304>   0A   00001010   ..........................uladdr1 --- 0xa(10)
-// 305>   A9   10101001   ..........................uladdr2 --- 0xa9(169)
-// 306>   70   01110000   ..........................uladdr3 --- 0x70(112)
-// 307>   91   10010001   ..........................uladdr4 --- 0x91(145)
-
-// update-forwarding-parameters
-// CHOICE
-//    outer-header-creation
-// 	  length: ---- 0x9(9)
-// 	  outer-header-creation-old-version: ---- gtpu-udp-ipv4(0)
-// 	  teid: ---- 0xca632b5(212218549)
-// 	  ipv4-address
-// 		 uladdr1: ---- 0xa(10)
-// 		 uladdr2: ---- 0xa9(169)
-// 		 uladdr3: ---- 0xfa(250)
-// 		 uladdr4: ---- 0x2e(46)
-
+// HuaweiOuterHeaderCreation extracts OuterHeaderCreationFields from the given IE
+// using the Huawei SPGW-C dialect of Outer Header Creation encoding.
 func HuaweiOuterHeaderCreation(i *ie.IE) (*OuterHeaderCreationFields, error) {
 	switch i.Type {
 	case ie.OuterHeaderCreation:
@@ -385,45 +324,6 @@ func HuaweiOuterHeaderCreation(i *ie.IE) (*OuterHeaderCreationFields, error) {
 	default:
 		return nil, &ie.InvalidTypeError{Type: i.Type}
 	}
-}
-
-//-----
-
-func DecodeDigitsFromBytes(buffer []byte) string {
-	decoded := make([]byte, len(buffer)*2)
-	for i, b := range buffer {
-		decoded[2*i], decoded[2*i+1] = hexDigit(b&0x0F), hexDigit((b&0xF0)>>4)
-	}
-
-	digits := string(decoded)
-	if digits[len(digits)-1] == 'f' {
-		return digits[:len(digits)-1]
-	}
-	return digits
-}
-
-func hexDigit(nibble byte) byte {
-	if nibble < 10 {
-		return '0' + nibble
-	}
-	return 'a' + (nibble - 10)
-}
-
-// ------
-// EncodeFQDN encodes the given string as the Name Syntax defined
-// in RFC 2181, RFC 1035 and RFC 1123.
-func EncodeFQDN(fqdn string) []byte {
-	b := make([]byte, len(fqdn)+1)
-
-	var offset = 0
-	for _, label := range strings.Split(fqdn, ".") {
-		l := len(label)
-		b[offset] = uint8(l)
-		copy(b[offset+1:], label)
-		offset += l + 1
-	}
-
-	return b
 }
 
 func EncodeFQDNHuawei(fqdn string) []byte {
