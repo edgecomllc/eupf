@@ -77,6 +77,11 @@ func TestHandlePfcpSessionEstablishmentResponseSecondFSEID(t *testing.T) {
 
 			estResp := response.(*message.SessionEstablishmentResponse)
 			fseidCount := 0
+			// NewSessionEstablishmentResponse distributes known IEs into fields
+			// (UPFSEID for FSEID), so check both the UPFSEID field and the IEs slice.
+			if estResp.UPFSEID != nil && estResp.UPFSEID.Type == ie.FSEID {
+				fseidCount++
+			}
 			for _, item := range estResp.IEs {
 				if item.Type == ie.FSEID {
 					fseidCount++

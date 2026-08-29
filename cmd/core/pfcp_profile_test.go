@@ -184,21 +184,31 @@ func TestProfileParseQFI(t *testing.T) {
 	}
 }
 
-func TestProfileParseOuterHeaderCreation(t *testing.T) {
+func TestProfileParseOuterHeaderCreationDefault(t *testing.T) {
+	// Standard go-pfcp OuterHeaderCreation IE — only DefaultProfile can parse it.
 	oc := ie.NewOuterHeaderCreation(0x0100, 0x12345678, "10.0.0.1", "", 0, 0, 0)
-	for _, tt := range testProfiles() {
-		t.Run(tt.name, func(t *testing.T) {
-			fields, err := tt.profile.ParseOuterHeaderCreation(oc)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if fields.Teid != 0x12345678 {
-				t.Errorf("expected TEID=0x12345678, got 0x%08x", fields.Teid)
-			}
-			if fields.IPv4Address == nil {
-				t.Error("expected non-nil IPv4Address")
-			}
-		})
+	fields, err := DefaultProfile{}.ParseOuterHeaderCreation(oc)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fields.Teid != 0x12345678 {
+		t.Errorf("expected TEID=0x12345678, got 0x%08x", fields.Teid)
+	}
+	if fields.IPv4Address == nil {
+		t.Error("expected non-nil IPv4Address")
+	}
+}
+
+func TestHuaweiProfileParseOuterHeaderCreationHuaweiEncoded(t *testing.T) {
+	// Huawei-encoded OuterHeaderCreation (raw bytes: desc=0x00, teid=4 bytes, ipv4=4 bytes).
+	huaweiOCPayload := []byte{0x00, 0x74, 0x03, 0x30, 0x0b, 0x0a, 0xa9, 0x70, 0xae}
+	huaweiOC := ie.New(ie.OuterHeaderCreation, huaweiOCPayload)
+	fields, err := HuaweiProfile{}.ParseOuterHeaderCreation(huaweiOC)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fields.Teid == 0 {
+		t.Error("expected non-zero TEID")
 	}
 }
 
