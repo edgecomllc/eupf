@@ -66,6 +66,25 @@ type PfcpProfile interface {
 	// HuaweiProfile adds a second FSEID with a profile-specific IP;
 	// DefaultProfile adds none.
 	SessionEstablishmentResponseAdditionalIEs(localSEID uint64, nodeAddrV4 net.IP) []*ie.IE
+
+	// UsageReportDeletionVendorIEs returns vendor-specific IEs for the
+	// Usage Report within Session Deletion Response, or nil.
+	// HuaweiProfile returns Huawei enterprise IEs (enterprise-id 2011);
+	// DefaultProfile returns nil.
+	UsageReportDeletionVendorIEs() []*ie.IE
+
+	// UsageReportSessionReportVendorIEs returns vendor-specific IEs for
+	// SendSessionReportUsage (volume threshold report), or nil.
+	// HuaweiProfile returns Huawei enterprise IEs (enterprise-id 2011);
+	// DefaultProfile returns nil.
+	UsageReportSessionReportVendorIEs() []*ie.IE
+
+	// UsageReportADCVendorIEs returns vendor-specific IEs for
+	// SendSessionReportADC, or nil. sdfFilter is passed for the
+	// conditional 36017 IE.
+	// HuaweiProfile returns Huawei enterprise IEs (enterprise-id 2011);
+	// DefaultProfile returns nil.
+	UsageReportADCVendorIEs(sdfFilter string) []*ie.IE
 }
 
 // DefaultProfile implements the standard 3GPP PFCP dialect using the go-pfcp
@@ -123,6 +142,18 @@ func (DefaultProfile) HeartbeatRequestAdditionalIEs() []*ie.IE {
 }
 
 func (DefaultProfile) SessionEstablishmentResponseAdditionalIEs(localSEID uint64, nodeAddrV4 net.IP) []*ie.IE {
+	return nil
+}
+
+func (DefaultProfile) UsageReportDeletionVendorIEs() []*ie.IE {
+	return nil
+}
+
+func (DefaultProfile) UsageReportSessionReportVendorIEs() []*ie.IE {
+	return nil
+}
+
+func (DefaultProfile) UsageReportADCVendorIEs(sdfFilter string) []*ie.IE {
 	return nil
 }
 
@@ -197,4 +228,86 @@ func (h HuaweiProfile) HeartbeatRequestAdditionalIEs() []*ie.IE {
 
 func (h HuaweiProfile) SessionEstablishmentResponseAdditionalIEs(localSEID uint64, nodeAddrV4 net.IP) []*ie.IE {
 	return []*ie.IE{ie.NewFSEID(localSEID, net.IPv4(10, 169, 26, 130), nil)}
+}
+
+func (h HuaweiProfile) UsageReportDeletionVendorIEs() []*ie.IE {
+	return []*ie.IE{
+		// CHOICE
+		// urr-type
+		//    enterprise-id: ---- 0x7db(2011)
+		//    urr-level-type: ---- bearer(2)
+		//    urr-function-type: ---- charging(1)
+		//    urr-charging-type: ---- offlinepgw(3)
+		ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03}),
+		// CHOICE
+		// bearer-sequence
+		//    enterprise-id: ---- 0x7db(2011)
+		//    bearer-sequence-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32843, 2011, []byte{1}),
+		// CHOICE
+		// private-stop-time
+		//    enterprise-id: ---- 0x7db(2011)
+		//    private-stop-time-value: ---- 0x000001917EEC1EEC
+		ie.NewVendorSpecificIE(34010, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
+	}
+}
+
+func (h HuaweiProfile) UsageReportSessionReportVendorIEs() []*ie.IE {
+	return []*ie.IE{
+		// CHOICE
+		// urr-type
+		//    enterprise-id: ---- 0x7db(2011)
+		//    urr-level-type: ---- bearer(2)
+		//    urr-function-type: ---- charging(1)
+		//    urr-charging-type: ---- offlinepgw(3)
+		ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03}),
+		// CHOICE
+		// bearer-sequence
+		//    enterprise-id: ---- 0x7db(2011)
+		//    bearer-sequence-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32843, 2011, []byte{1}),
+		// CHOICE
+		// private-stop-time
+		//    enterprise-id: ---- 0x7db(2011)
+		//    private-stop-time-value: ---- 0x000001917EEC1EEC
+		ie.NewVendorSpecificIE(34010, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
+		// CHOICE
+		// private-time-of-first-packet
+		//    enterprise-id: ---- 0x7db(2011)
+		//    time-of-first-packet-value: ---- 0x000001917EEC1BE9
+		ie.NewVendorSpecificIE(34011, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x20, 0xad}),
+		// CHOICE
+		// private-time-of-last-packet
+		//    enterprise-id: ---- 0x7db(2011)
+		//    time-of-last-packet-value: ---- 0x000001917EEC1EEC
+		ie.NewVendorSpecificIE(34012, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
+	}
+}
+
+func (h HuaweiProfile) UsageReportADCVendorIEs(sdfFilter string) []*ie.IE {
+	ies := []*ie.IE{
+		// CHOICE
+		// urr-type
+		//    enterprise-id: ---- 0x7db(2011)
+		//    urr-level-type: ---- charging(1)
+		//    urr-function-type: ---- charging(3)
+		//    urr-charging-type: ---- onlinepgw(6)
+		ie.NewVendorSpecificIE(34000, 2011, []byte{0x01, 0x03, 0x06}),
+		// CHOICE
+		// bearer-sequence
+		//    enterprise-id: ---- 0x7db(2011)
+		//    bearer-sequence-value: ---- 0x1(1)
+		ie.NewVendorSpecificIE(32843, 2011, []byte{1}),
+		// CHOICE
+		// ???
+		ie.NewVendorSpecificIE(36001, 2011, []byte{0x04}),
+	}
+	if len(sdfFilter) > 0 {
+		// "ff2f00003e7065726d697420696e20362066726f6d203130302e38392e322e312f333220343531323820746f2031302e3136392e32302e3137382f33322031303635300001ff0040000001000000054101010000000000000000000000000000000000"
+		unknownValue := []byte{0xff, 0x2f, 00, 00, (byte)(len(sdfFilter))}
+		unknownValue = append(unknownValue, []byte(sdfFilter)...)
+		unknownValue = append(unknownValue, []byte{0x0, 0x1, 0xff, 0x0, 0x40, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x5, 0x41, 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}...)
+		ies = append(ies, ie.NewVendorSpecificIE(36017, 2011, unknownValue))
+	}
+	return ies
 }

@@ -271,3 +271,77 @@ func TestHuaweiProfileSessionEstablishmentResponseAdditionalIEs(t *testing.T) {
 		t.Errorf("expected FSEID IE, got type %d", ies[0].Type)
 	}
 }
+
+func TestDefaultProfileUsageReportDeletionVendorIEs(t *testing.T) {
+	p := DefaultProfile{}
+	if ies := p.UsageReportDeletionVendorIEs(); ies != nil {
+		t.Errorf("DefaultProfile should return nil, got %d IEs", len(ies))
+	}
+}
+
+func TestDefaultProfileUsageReportSessionReportVendorIEs(t *testing.T) {
+	p := DefaultProfile{}
+	if ies := p.UsageReportSessionReportVendorIEs(); ies != nil {
+		t.Errorf("DefaultProfile should return nil, got %d IEs", len(ies))
+	}
+}
+
+func TestDefaultProfileUsageReportADCVendorIEs(t *testing.T) {
+	p := DefaultProfile{}
+	if ies := p.UsageReportADCVendorIEs("filter"); ies != nil {
+		t.Errorf("DefaultProfile should return nil, got %d IEs", len(ies))
+	}
+}
+
+func TestHuaweiProfileUsageReportDeletionVendorIEs(t *testing.T) {
+	p := HuaweiProfile{}
+	ies := p.UsageReportDeletionVendorIEs()
+	if len(ies) != 3 {
+		t.Fatalf("HuaweiProfile should return 3 IEs, got %d", len(ies))
+	}
+	expectedTypes := []uint16{34000, 32843, 34010}
+	for i, et := range expectedTypes {
+		if ies[i].Type != et {
+			t.Errorf("IE[%d]: expected type %d, got %d", i, et, ies[i].Type)
+		}
+	}
+}
+
+func TestHuaweiProfileUsageReportSessionReportVendorIEs(t *testing.T) {
+	p := HuaweiProfile{}
+	ies := p.UsageReportSessionReportVendorIEs()
+	if len(ies) != 5 {
+		t.Fatalf("HuaweiProfile should return 5 IEs, got %d", len(ies))
+	}
+	expectedTypes := []uint16{34000, 32843, 34010, 34011, 34012}
+	for i, et := range expectedTypes {
+		if ies[i].Type != et {
+			t.Errorf("IE[%d]: expected type %d, got %d", i, et, ies[i].Type)
+		}
+	}
+}
+
+func TestHuaweiProfileUsageReportADCVendorIEsWithoutSdfFilter(t *testing.T) {
+	p := HuaweiProfile{}
+	ies := p.UsageReportADCVendorIEs("")
+	if len(ies) != 3 {
+		t.Fatalf("HuaweiProfile should return 3 IEs without sdfFilter, got %d", len(ies))
+	}
+	expectedTypes := []uint16{34000, 32843, 36001}
+	for i, et := range expectedTypes {
+		if ies[i].Type != et {
+			t.Errorf("IE[%d]: expected type %d, got %d", i, et, ies[i].Type)
+		}
+	}
+}
+
+func TestHuaweiProfileUsageReportADCVendorIEsWithSdfFilter(t *testing.T) {
+	p := HuaweiProfile{}
+	ies := p.UsageReportADCVendorIEs("permit in 6 from 100.89.2.1/32 45128 to 10.169.20.178/32 10650")
+	if len(ies) != 4 {
+		t.Fatalf("HuaweiProfile should return 4 IEs with sdfFilter, got %d", len(ies))
+	}
+	if ies[3].Type != 36017 {
+		t.Errorf("IE[3]: expected type 36017, got %d", ies[3].Type)
+	}
+}

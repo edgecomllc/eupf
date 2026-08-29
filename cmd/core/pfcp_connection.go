@@ -718,33 +718,7 @@ func SendSessionReportUsage(conn *PfcpConnection, seid uint64, sequenceID uint32
 			ie.NewVolumeMeasurement(0x6, 0, uplink, downlink, 0, 0, 0),
 			ie.NewTimeOfFirstPacket(time.Now()),
 			ie.NewTimeOfLastPacket(time.Now()),
-			// CHOICE
-			// urr-type
-			//    enterprise-id: ---- 0x7db(2011)
-			//    urr-level-type: ---- bearer(2)
-			//    urr-function-type: ---- charging(1)
-			//    urr-charging-type: ---- offlinepgw(3)
-			ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03}),
-			// CHOICE
-			// bearer-sequence
-			//    enterprise-id: ---- 0x7db(2011)
-			//    bearer-sequence-value: ---- 0x1(1)
-			ie.NewVendorSpecificIE(32843, 2011, []byte{1}),
-			// CHOICE
-			// private-stop-time
-			//    enterprise-id: ---- 0x7db(2011)
-			//    private-stop-time-value: ---- 0x000001917EEC1EEC
-			ie.NewVendorSpecificIE(34010, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
-			// CHOICE
-			// private-time-of-first-packet
-			//    enterprise-id: ---- 0x7db(2011)
-			//    time-of-first-packet-value: ---- 0x000001917EEC1BE9
-			ie.NewVendorSpecificIE(34011, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x20, 0xad}),
-			// CHOICE
-			// private-time-of-last-packet
-			//    enterprise-id: ---- 0x7db(2011)
-			//    time-of-last-packet-value: ---- 0x000001917EEC1EEC
-			ie.NewVendorSpecificIE(34012, 2011, []byte{0x00, 0x00, 0x01, 0x92, 0x1d, 0xca, 0x24, 0x8c}),
+			conn.profile.UsageReportSessionReportVendorIEs()...,
 		),
 	}
 
@@ -772,31 +746,8 @@ func SendSessionReportADC(conn *PfcpConnection, seid uint64, sequenceID uint32, 
 		ie.NewUsageReportWithinSessionReportRequest(
 			ie.NewURRID(urrid),
 			conn.profile.URSEQN(sessionSeq, reportSeq),
-			// CHOICE
-			// urr-type
-			//    enterprise-id: ---- 0x7db(2011)
-			//    urr-level-type: ---- bearer(2)
-			//    urr-function-type: ---- charging(1)
-			//    urr-charging-type: ---- offlinepgw(3)
-			//ie.NewVendorSpecificIE(34000, 2011, []byte{0x02, 0x01, 0x03}),
-			ie.NewVendorSpecificIE(34000, 2011, []byte{0x01, 0x03, 0x06}),
-			// CHOICE
-			// bearer-sequence
-			//    enterprise-id: ---- 0x7db(2011)
-			//    bearer-sequence-value: ---- 0x1(1)
-			ie.NewVendorSpecificIE(32843, 2011, []byte{1}),
-			// CHOICE
-			// ???
-			ie.NewVendorSpecificIE(36001, 2011, []byte{0x04}),
+			conn.profile.UsageReportADCVendorIEs(sdfFilter)...,
 		),
-	}
-
-	if len(sdfFilter) > 0 {
-		//"ff2f00003e7065726d697420696e20362066726f6d203130302e38392e322e312f333220343531323820746f2031302e3136392e32302e3137382f33322031303635300001ff0040000001000000054101010000000000000000000000000000000000"
-		unknownValue := []byte{0xff, 0x2f, 00, 00, (byte)(len(sdfFilter))}
-		unknownValue = append(unknownValue, []byte(sdfFilter)...)
-		unknownValue = append(unknownValue, []byte{0x0, 0x1, 0xff, 0x0, 0x40, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x5, 0x41, 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}...)
-		additionalIEs = append(additionalIEs, ie.NewVendorSpecificIE(36017, 2011, unknownValue))
 	}
 
 	sessionReport := message.NewSessionReportRequest(0, 0, seid, sequenceID, 0, additionalIEs...)
