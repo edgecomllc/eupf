@@ -103,6 +103,23 @@ func TestPDRCreationContext_extractPDR(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:   "UpdatePDR with UEIPAddress",
+			fields: fields{},
+			args: args{
+				pdr: ie.NewUpdatePDR(
+					ie.NewPDRID(2),
+					ie.NewPrecedence(255),
+					ie.NewPDI(
+						ie.NewSourceInterface(ie.SrcInterfaceCore),
+						ie.NewNetworkInstance("a00"),
+						ie.NewUEIPAddress(0x06, "10.128.0.1", "", 0, 0),
+					),
+				),
+				spdrInfo: &SPDRInfo{},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
