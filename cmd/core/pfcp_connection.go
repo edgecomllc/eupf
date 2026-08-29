@@ -60,6 +60,7 @@ type PfcpConnection struct {
 	AssociationSetupTicker *time.Ticker
 	PCCRules               map[string]PCCInfo
 	PCCRulesNameLinkURRID  map[uint32][]string
+	profile                PfcpProfile
 }
 
 func NewPfcpConnection(
@@ -71,6 +72,7 @@ func NewPfcpConnection(
 	resourceManager *service.ResourceManager,
 	dumper utils.Dumper,
 	sdfNotifyC <-chan ebpf.SdfFlowNotification,
+	profile PfcpProfile,
 ) (*PfcpConnection, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
@@ -132,6 +134,7 @@ func NewPfcpConnection(
 		dumper:                dumper,
 		PCCRules:              pccRule,
 		PCCRulesNameLinkURRID: pccRulesNameLinkURRID,
+		profile:               profile,
 	}, nil
 }
 

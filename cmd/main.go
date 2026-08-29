@@ -184,6 +184,7 @@ func main() {
 		resourceManager,
 		dumper,
 		nil,
+		core.DefaultProfile{},
 	)
 
 	if err != nil {
@@ -212,6 +213,7 @@ func main() {
 		resourceManager,
 		dumper,
 		nil,
+		core.DefaultProfile{},
 	)
 
 	if err != nil {
@@ -249,6 +251,7 @@ func main() {
 		resourceManager,
 		dumper,
 		sdfNotifier.GetNotificationChannel(),
+		core.DefaultProfile{},
 	)
 
 	if err != nil {
