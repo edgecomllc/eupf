@@ -55,7 +55,7 @@ type UpfConfig struct {
 	Qci2DscpMapping         map[string]int `json:"qci_dscp_mapping"`
 	AllowedApns             string         `json:"allowed_apns"`
 	DeniedApns              string         `json:"denied_apns"`
-	HuaweiSupport           bool           `json:"huawei_support"`
+	PfcpProfile             string         `json:"pfcp_profile"`
 	TraceAssociation        bool           `json:"trace_association"`
 	TraceHeartbeat          bool           `json:"trace_heartbeat"`
 	TraceBlocked            bool           `json:"trace_blocked"`

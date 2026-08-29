@@ -102,7 +102,7 @@ type UpfConfig struct {
 	Qci2DscpMapping         map[string]int `mapstructure:"qci_dscp_mapping" json:"qci_dscp_mapping"`
 	AllowedApns             string         `mapstructure:"allowed_apns" json:"allowed_apns"`
 	DeniedApns              string         `mapstructure:"denied_apns" json:"denied_apns"`
-	HuaweiSupport           bool           `mapstructure:"huawei_support" json:"huawei_support"`
+	PfcpProfile             string         `mapstructure:"pfcp_profile" json:"pfcp_profile"`
 	TraceAssociation        bool           `mapstructure:"trace_association" json:"trace_association"`
 	TraceHeartbeat          bool           `mapstructure:"trace_heartbeat" json:"trace_heartbeat"`
 	TraceIn                 bool           `mapstructure:"trace_in" json:"trace_in"`
@@ -172,7 +172,7 @@ func defineFlags() {
 	pflag.StringToInt("qdmap", map[string]int{}, "QCI to DSCP binding")
 	pflag.String("aapns", ".*", "Allowed APNs mask")
 	pflag.String("dapns", "", "Denied APNs mask")
-	pflag.Bool("huasupp", true, "Enable or disable huawei support")
+	pflag.String("pfcp_profile", "default", "PFCP profile: \"default\" (standard 3GPP) or \"huawei\" (Huawei SPGW-C dialect)")
 	pflag.Bool("traceassoc", true, "Trace PFCP Association messages (Establish/Modify/Release)")
 	pflag.Bool("tracehb", false, "Trace PFCP Heartbeat messages")
 	pflag.Bool("tracein", true, "Trace incomming dataplane packets")
@@ -253,7 +253,7 @@ func initCommonConfig() {
 	_ = commonConfigV.BindPFlag("qci_dscp_mapping", pflag.Lookup("qdmap"))
 	_ = commonConfigV.BindPFlag("allowed_apns", pflag.Lookup("aapns"))
 	_ = commonConfigV.BindPFlag("denied_apns", pflag.Lookup("dapns"))
-	_ = commonConfigV.BindPFlag("huawei_support", pflag.Lookup("huasupp"))
+	_ = commonConfigV.BindPFlag("pfcp_profile", pflag.Lookup("pfcp_profile"))
 	_ = commonConfigV.BindPFlag("trace_association", pflag.Lookup("traceassoc"))
 	_ = commonConfigV.BindPFlag("trace_heartbeat", pflag.Lookup("tracehb"))
 	_ = commonConfigV.BindPFlag("trace_in", pflag.Lookup("tracein"))

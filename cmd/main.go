@@ -174,16 +174,16 @@ func main() {
 		log.Error().Msgf("failed to create ResourceManager - err: %v", err)
 	}
 
-	// Select PFCP profile based on the huawei_support flag.
-	// This will be replaced by a string pfcp_profile config key in a subsequent commit.
+	// Select PFCP profile based on the pfcp_profile config key.
 	var profile core.PfcpProfile
-	if config.Conf.HuaweiSupport {
+	switch config.Conf.PfcpProfile {
+	case "huawei":
 		profile = core.HuaweiProfile{
 			S1UAddress:  config.Conf.S1UAddress,
 			S5S8Address: config.Conf.S5S8Address,
 			PAAddress:   config.Conf.PAAddress,
 		}
-	} else {
+	default:
 		profile = core.DefaultProfile{}
 	}
 
