@@ -353,7 +353,7 @@ static __always_inline enum xdp_action handle_gtp_packet(struct packet_context *
      *   Step 1: search for PDR and apply PDR instructions
      */
     __u32 teid = bpf_htonl(ctx->gtp->teid);
-    struct pdr_info *session = bpf_map_lookup_elem(&pdr_map_uplink_ip4, &teid);
+    struct pdr_info *session = bpf_map_lookup_elem(&pdr_map_teid_ip4, &teid);
     if (!session) {
         upf_printk("upf: [n3] no session for teid:%u", teid);
         return DEFAULT_XDP_ACTION;
@@ -549,6 +549,7 @@ static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
             break;
         case IPPROTO_TCP:
             increment_counter(ctx->counters, rx_tcp);
+            parse_tcp(ctx);
             break;
         default:
             increment_counter(ctx->counters, rx_other);
@@ -576,6 +577,7 @@ static __always_inline enum xdp_action handle_ip6(struct packet_context *ctx) {
             break;
         case IPPROTO_TCP:
             increment_counter(ctx->counters, rx_tcp);
+            parse_tcp(ctx);
             break;
         default:
             increment_counter(ctx->counters, rx_other);

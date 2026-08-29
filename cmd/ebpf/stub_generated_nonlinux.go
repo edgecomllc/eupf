@@ -15,7 +15,7 @@ type IpEntrypointObjects struct {
 	UrrMap               *ebpf.Map
 	PdrMapDownlinkIp4    *ebpf.Map
 	PdrMapDownlinkIp6    *ebpf.Map
-	PdrMapUplinkIp4      *ebpf.Map
+	PdrMapTeidIp4        *ebpf.Map
 	UpfExtStat           *ebpf.Map
 	UpfRouteStat         *ebpf.Map
 }
