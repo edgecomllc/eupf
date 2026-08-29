@@ -839,13 +839,9 @@ func (connector *DefaultAssociationConnector) getAddress() string {
 }
 
 func (connector *DefaultAssociationConnector) sendAssociationSetupRequest(connection *PfcpConnection) {
-
 	associationAddr := connector.getAddress()
-	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
-		connection.profile.NodeID(connection.nodeId),
-		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
-		ie.NewUPFunctionFeatures(connection.featuresOctets[:]...),
-	)
+	ies := buildDefaultSetupRequestIEs(connection.profile, connection.nodeId, connection.RecoveryTimestamp, connection.featuresOctets[:])
+	AssociationSetupRequest := message.NewAssociationSetupRequest(0, ies...)
 	log.Info().Msgf("Sent Default Association Setup Request to: %s", associationAddr)
 
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
@@ -882,99 +878,13 @@ func (connector *SxaAssociationConnector) getAddress() string {
 }
 
 func (connector *SxaAssociationConnector) sendAssociationSetupRequest(connection *PfcpConnection) {
-
-	featuresOctets := []uint8{0, 0}
-	featuresOctets[0] = setBit(featuresOctets[0], 1)
-	featuresOctets[0] = setBit(featuresOctets[0], 2)
-	featuresOctets[0] = setBit(featuresOctets[0], 6)
-	featuresOctets[0] = setBit(featuresOctets[0], 7)
-
-	s1uIP := net.ParseIP(connector.s1uAddress)
-	if s1uIP == nil {
-		log.Error().Msgf("failed to parse S1-U IP address ID: %s", connector.s1uAddress)
-		return
-	}
-
-	s5s8IP := net.ParseIP(connector.s5s8Address)
-	if s5s8IP == nil {
-		log.Error().Msgf("failed to parse S1/S8 IP address ID: %s", connector.s5s8Address)
-		return
-	}
-
-	ipSuiteName := "0001" + connection.nodeId
-	ipsuitInfo := make([]byte, 0)
-	ipsuitInfo = append(ipsuitInfo, 0xA8, 0x00)
-	ipsuitInfo = append(ipsuitInfo, (byte)(len(ipSuiteName)))
-	ipsuitInfo = append(ipsuitInfo, ipSuiteName...)
-	ipsuitInfo = append(ipsuitInfo, s1uIP.To4()...)
-	ipsuitInfo = append(ipsuitInfo, s5s8IP.To4()...)
-	ipsuitInfo = append(ipsuitInfo, s1uIP.To4()...)
-
 	associationAddr := connector.getAddress()
-	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
-		connection.profile.NodeID(connection.nodeId),
-		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
-		ie.NewUPFunctionFeatures(featuresOctets[:]...),
-		//CHOICE
-		// 	ipsuit-info
-		// 	enterprise-id: ---- 0x7db(2011)
-		// 	s11uIpv4Valid: ---- 0x1(1)
-		// 	s11uIpv6Valid: ---- 0x0(0)
-		// 	s1uIpv4Valid: ---- 0x1(1)
-		// 	s1uIpv6Valid: ---- 0x0(0)
-		// 	s5S8Ipv4Valid: ---- 0x1(1)
-		// 	s5S8Ipv6Valid: ---- 0x0(0)
-		// 	paIpv4Valid: ---- 0x0(0)
-		// 	paIpv6Valid: ---- 0x0(0)
-		// 	lock-flag: ---- 0x0(0)
-		// 	ipsuit-name: ---- 0001dgw1
-		// 	s1u-ip-address
-		// 		ipv4-address
-		// 			uladdr1: ---- 0xa(10)
-		// 			uladdr2: ---- 0xa9(169)
-		// 			uladdr3: ---- 0x70(112)
-		// 			uladdr4: ---- 0x80(128)
-		// 	s5s8s-ip-address
-		// 		ipv4-address
-		// 			uladdr1: ---- 0xa(10)
-		// 			uladdr2: ---- 0xa9(169)
-		// 			uladdr3: ---- 0x70(112)
-		// 			uladdr4: ---- 0x91(145)
-		// 	s11u-ip-address
-		// 		ipv4-address
-		// 			uladdr1: ---- 0xa(10)
-		// 			uladdr2: ---- 0xa9(169)
-		// 			uladdr3: ---- 0x70(112)
-		// 			uladdr4: ---- 0x8a(138)
-		ie.NewVendorSpecificIE(32787, 2011, ipsuitInfo),
-		//CHOICE
-		//	user-plane-element-weight
-		//		enterprise-id: ---- 0x7db(2011)
-		//		weight-value: ---- 0x1(1)
-		ie.NewVendorSpecificIE(32803, 2011, []byte{1}),
-		//CHOICE
-		//	lock-information
-		//		enterprise-id: ---- 0x7db(2011)
-		//		lock-information-value: ---- 0x0(0)
-		ie.NewVendorSpecificIE(32806, 2011, []byte{0}),
-		//CHOICE
-		//	apn-support-mode
-		//		enterprise-id: ---- 0x7db(2011)
-		//		apn-support-mode-value: ---- 0x0(0)
-		ie.NewVendorSpecificIE(32857, 2011, []byte{0}),
-		//CHOICE
-		//	sx-uf-flag
-		//		enterprise-id: ---- 0x7db(2011)
-		//		spare: ---- 0x0(0)
-		//		nb-iot-value: ---- 0x1(1)
-		//		dual-connectivity-with-nr-value: ---- 0x1(1)
-		ie.NewVendorSpecificIE(32900, 2011, []byte{3}),
-		//CHOICE
-		//	high-bandwidth
-		//		enterprise-id: ---- 0x7db(2011)
-		//		high-bandwidth-value: ---- 0x1(1)
-		ie.NewVendorSpecificIE(32901, 2011, []byte{1}),
-	)
+	ies, err := buildSxaSetupRequestIEs(connection.profile, connection.nodeId, connection.RecoveryTimestamp, connector.s1uAddress, connector.s5s8Address)
+	if err != nil {
+		log.Error().Msgf("failed to build Sxa setup request IEs: %v", err)
+		return
+	}
+	AssociationSetupRequest := message.NewAssociationSetupRequest(0, ies...)
 	log.Info().Msgf("Sent Sxa Association Setup Request to: %s", associationAddr)
 
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")
@@ -1009,80 +919,13 @@ func (connector *SxbAssociationConnector) getAddress() string {
 }
 
 func (connector *SxbAssociationConnector) sendAssociationSetupRequest(connection *PfcpConnection) {
-
-	featuresOctets := []uint8{0, 0}
-	featuresOctets[0] = setBit(featuresOctets[0], 1)
-	featuresOctets[0] = setBit(featuresOctets[0], 2)
-	featuresOctets[0] = setBit(featuresOctets[0], 6)
-	featuresOctets[0] = setBit(featuresOctets[0], 7)
-
-	paIP := net.ParseIP(connector.paAddress)
-	if paIP == nil {
-		log.Error().Msgf("failed to parse PA IP address ID: %s", connector.paAddress)
+	associationAddr := connector.getAddress()
+	ies, err := buildSxbSetupRequestIEs(connection.profile, connection.nodeId, connection.RecoveryTimestamp, connector.paAddress)
+	if err != nil {
+		log.Error().Msgf("failed to build Sxb setup request IEs: %v", err)
 		return
 	}
-
-	ipSuiteName := "0001" + connection.nodeId
-	ipsuitInfo := make([]byte, 0)
-	ipsuitInfo = append(ipsuitInfo, 0x02, 0x00)
-	ipsuitInfo = append(ipsuitInfo, (byte)(len(ipSuiteName)))
-	ipsuitInfo = append(ipsuitInfo, ipSuiteName...)
-	ipsuitInfo = append(ipsuitInfo, paIP.To4()...)
-
-	associationAddr := connector.getAddress()
-	AssociationSetupRequest := message.NewAssociationSetupRequest(0,
-		connection.profile.NodeID(connection.nodeId),
-		ie.NewRecoveryTimeStamp(connection.RecoveryTimestamp),
-		//ie.NewUPFunctionFeatures(connection.featuresOctets[:]...),
-		ie.NewUPFunctionFeatures(featuresOctets[:]...),
-		//CHOICE
-		//	ipsuit-info
-		//	enterprise-id: ---- 0x7db(2011)
-		//	s11uIpv4Valid: ---- 0x0(0)
-		//	s11uIpv6Valid: ---- 0x0(0)
-		//	s1uIpv4Valid: ---- 0x0(0)
-		//	s1uIpv6Valid: ---- 0x0(0)
-		//	s5S8Ipv4Valid: ---- 0x0(0)
-		//	s5S8Ipv6Valid: ---- 0x0(0)
-		//	paIpv4Valid: ---- 0x1(1)
-		//	paIpv6Valid: ---- 0x0(0)
-		//	lock-flag: ---- 0x0(0)
-		//	ipsuit-name: ---- 0001dgw1
-		//	pa-ip-address
-		//		ipv4-address
-		//			uladdr1: ---- 0xa(10)
-		//			uladdr2: ---- 0xa9(169)
-		//			uladdr3: ---- 0x70(112)
-		//			uladdr4: ---- 0x83(131)
-		ie.NewVendorSpecificIE(32787, 2011, ipsuitInfo),
-		//CHOICE
-		//	user-plane-element-weight
-		//		enterprise-id: ---- 0x7db(2011)
-		//		weight-value: ---- 0x1(1)
-		ie.NewVendorSpecificIE(32803, 2011, []byte{1}),
-		//CHOICE
-		//	lock-information
-		//		enterprise-id: ---- 0x7db(2011)
-		//		lock-information-value: ---- 0x0(0)
-		ie.NewVendorSpecificIE(32806, 2011, []byte{0}),
-		//CHOICE
-		//	apn-support-mode
-		//		enterprise-id: ---- 0x7db(2011)
-		//		apn-support-mode-value: ---- 0x0(0)
-		ie.NewVendorSpecificIE(32857, 2011, []byte{0}),
-		//CHOICE
-		//	sx-uf-flag
-		//		enterprise-id: ---- 0x7db(2011)
-		//		spare: ---- 0x0(0)
-		//		nb-iot-value: ---- 0x1(1)
-		//		dual-connectivity-with-nr-value: ---- 0x1(1)
-		ie.NewVendorSpecificIE(32900, 2011, []byte{3}),
-		//CHOICE
-		//	high-bandwidth
-		//		enterprise-id: ---- 0x7db(2011)
-		//		high-bandwidth-value: ---- 0x1(1)
-		ie.NewVendorSpecificIE(32901, 2011, []byte{1}),
-	)
+	AssociationSetupRequest := message.NewAssociationSetupRequest(0, ies...)
 	log.Info().Msgf("Sent Sxb Association Setup Request to: %s", associationAddr)
 
 	udpAddr, err := net.ResolveUDPAddr("udp", associationAddr+":8805")

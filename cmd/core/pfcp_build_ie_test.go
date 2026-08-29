@@ -2,6 +2,7 @@ package core
 
 import (
 	"testing"
+	"time"
 
 	"github.com/wmnsk/go-pfcp/ie"
 )
@@ -121,5 +122,132 @@ func TestBuildSessionReportReleaseIEs(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestBuildDefaultSetupRequestIEs(t *testing.T) {
+	tests := []struct {
+		name    string
+		profile PfcpProfile
+	}{
+		{"Default", DefaultProfile{}},
+		{"Huawei", testHuaweiProfile},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ies := buildDefaultSetupRequestIEs(tt.profile, "10.0.0.1", time.Now(), []uint8{0, 0, 0})
+			if len(ies) != 3 {
+				t.Fatalf("expected 3 IEs, got %d", len(ies))
+			}
+			if ies[0].Type != ie.NodeID {
+				t.Errorf("expected NodeID, got %d", ies[0].Type)
+			}
+			if ies[1].Type != ie.RecoveryTimeStamp {
+				t.Errorf("expected RecoveryTimeStamp, got %d", ies[1].Type)
+			}
+			if ies[2].Type != ie.UPFunctionFeatures {
+				t.Errorf("expected UPFunctionFeatures, got %d", ies[2].Type)
+			}
+			for _, item := range ies {
+				if item.EnterpriseID == 2011 {
+					t.Errorf("Default setup should have no vendor IEs, found type %d with enterprise-id 2011", item.Type)
+				}
+			}
+		})
+	}
+}
+
+func TestBuildSxaSetupRequestIEs(t *testing.T) {
+	tests := []struct {
+		name          string
+		profile       PfcpProfile
+		wantVendorIEs int
+	}{
+		{"Default", DefaultProfile{}, 6},
+		{"Huawei", testHuaweiProfile, 6},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ies, err := buildSxaSetupRequestIEs(tt.profile, "10.0.0.1", time.Now(), "127.0.0.1", "127.0.0.2")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(ies) != 9 {
+				t.Fatalf("expected 9 IEs (NodeID+TS+Features+6 vendor), got %d", len(ies))
+			}
+			if ies[0].Type != ie.NodeID {
+				t.Errorf("expected NodeID, got %d", ies[0].Type)
+			}
+			vendorTypes := []uint16{32787, 32803, 32806, 32857, 32900, 32901}
+			vendorCount := 0
+			for _, item := range ies {
+				if item.EnterpriseID == 2011 {
+					vendorCount++
+				}
+			}
+			if vendorCount != tt.wantVendorIEs {
+				t.Errorf("expected %d vendor IEs, got %d", tt.wantVendorIEs, vendorCount)
+			}
+			for i, vt := range vendorTypes {
+				found := false
+				for _, item := range ies {
+					if item.Type == vt && item.EnterpriseID == 2011 {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("expected vendor IE type %d not found (index %d)", vt, i)
+				}
+			}
+		})
+	}
+}
+
+func TestBuildSxbSetupRequestIEs(t *testing.T) {
+	tests := []struct {
+		name          string
+		profile       PfcpProfile
+		wantVendorIEs int
+	}{
+		{"Default", DefaultProfile{}, 6},
+		{"Huawei", testHuaweiProfile, 6},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ies, err := buildSxbSetupRequestIEs(tt.profile, "10.0.0.1", time.Now(), "127.0.0.3")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(ies) != 9 {
+				t.Fatalf("expected 9 IEs, got %d", len(ies))
+			}
+			if ies[0].Type != ie.NodeID {
+				t.Errorf("expected NodeID, got %d", ies[0].Type)
+			}
+			vendorCount := 0
+			for _, item := range ies {
+				if item.EnterpriseID == 2011 {
+					vendorCount++
+				}
+			}
+			if vendorCount != tt.wantVendorIEs {
+				t.Errorf("expected %d vendor IEs, got %d", tt.wantVendorIEs, vendorCount)
+			}
+		})
+	}
+}
+
+func TestBuildSxaSetupRequestIEsInvalidIP(t *testing.T) {
+	_, err := buildSxaSetupRequestIEs(testHuaweiProfile, "10.0.0.1", time.Now(), "invalid", "127.0.0.2")
+	if err == nil {
+		t.Error("expected error for invalid s1u address, got nil")
+	}
+}
+
+func TestBuildSxbSetupRequestIEsInvalidIP(t *testing.T) {
+	_, err := buildSxbSetupRequestIEs(testHuaweiProfile, "10.0.0.1", time.Now(), "invalid")
+	if err == nil {
+		t.Error("expected error for invalid pa address, got nil")
 	}
 }
