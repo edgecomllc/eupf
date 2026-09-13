@@ -67,6 +67,9 @@ struct dataplane_config {
     __u8   trace_in;
     __u8   trace_out;
     __u8   trace_blocked;
+    __u32  rebalance_ip;
+    __u32  ue_subnet_prefix;
+    __u32  ue_subnet_prefix_mask;
     __u8   ip6_ra_support;
     __u128 ip6_ra_prefix;
     __u16  ip6_ra_prefix_length;
@@ -207,6 +210,11 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     struct pdr_info *session = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
     if (!session) {
         upf_printk("upf: [n6] no downlink session for ip:%pI4", &ip4->daddr);
+
+        if(global_config.rebalance_ip 
+            && (ctx->ip4->daddr & global_config.ue_subnet_prefix_mask) != global_config.ue_subnet_prefix) {
+            return route_ipv4_to(ctx->xdp_ctx, ctx->eth, ctx->ip4, global_config.rebalance_ip);
+        }
         return DEFAULT_XDP_ACTION;
     }
 

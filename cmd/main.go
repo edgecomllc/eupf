@@ -143,6 +143,14 @@ func main() {
 		entrypointConfig.Ip6RaPrefixLength = uint16(ip6PrefixLength)
 	}
 
+	if config.Conf.DLRebalanceAddress != "" {
+		entrypointConfig.RebalanceIp = binary.LittleEndian.Uint32(net.ParseIP(config.Conf.DLRebalanceAddress).To4())
+
+		ip4Prefix, ip4Net, _ := net.ParseCIDR(config.Conf.Ip4UEPrefix)
+		entrypointConfig.UeSubnetPrefix = binary.LittleEndian.Uint32(ip4Prefix.To4())
+		entrypointConfig.UeSubnetPrefixMask = binary.LittleEndian.Uint32(ip4Net.Mask)
+	}
+
 	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
 		log.Fatal().Err(err).Msgf("can't set dataplane global config")
 	}
