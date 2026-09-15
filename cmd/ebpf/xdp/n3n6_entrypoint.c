@@ -206,11 +206,11 @@ static __always_inline const struct pdr* check_sdf_filters_gtp(struct packet_con
     return 0;
 }
 
-static __always_inline __u32 encap_ip_packet(struct packet_context *ctx, int saddr, int daddr) {
+static __always_inline __u32 encap_ip_packet(struct packet_context *ctx, __u32 saddr, __u32 daddr) {
 
-    static const size_t ip_encap_size = sizeof(struct iphdr);
-    int ip_packet_len = 0;
-    __u16 ip_proto = 0;
+    //static const size_t ip_encap_size = sizeof(struct iphdr);
+    size_t ip_packet_len = 0;
+    __u8 ip_proto = 0;
     if (ctx->ip4) {
         ip_packet_len = bpf_ntohs(ctx->ip4->tot_len);
         ip_proto = 4;
@@ -222,14 +222,14 @@ static __always_inline __u32 encap_ip_packet(struct packet_context *ctx, int sad
     else
         return -1;
 
-    int result = bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-ip_encap_size);
+    int result = bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32) - sizeof(struct iphdr));
     if (result)
         return -1;
 
     char *data = (char *)(long)ctx->xdp_ctx->data;
     const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
 
-    struct ethhdr *orig_eth = (struct ethhdr *)(data + ip_encap_size);
+    struct ethhdr *orig_eth = (struct ethhdr *)(data + sizeof(struct iphdr));
     if ((const char *)(orig_eth + 1) > data_end)
         return -1;
 
@@ -245,7 +245,7 @@ static __always_inline __u32 encap_ip_packet(struct packet_context *ctx, int sad
     ip->version = 4;
     ip->ihl = 5; /* No options */
     ip->tos = 0;
-    ip->tot_len = bpf_htons(ip_packet_len + ip_encap_size);
+    ip->tot_len = bpf_htons(ip_packet_len + sizeof(struct iphdr));
     ip->id = 0;            /* No fragmentation */
     ip->frag_off = 0x0040; /* Don't fragment; Fragment offset = 0 */
     ip->ttl = 64;
