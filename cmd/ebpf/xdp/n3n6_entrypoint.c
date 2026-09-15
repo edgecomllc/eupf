@@ -229,11 +229,14 @@ static __always_inline __u32 encap_ip_packet(struct packet_context *ctx, __u32 s
     char *data = (char *)(long)ctx->xdp_ctx->data;
     const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
 
+    struct ethhdr *eth = (struct ethhdr *)data;
+    if ((const char *)(eth + 1) > data_end)
+        return -1;
+
     struct ethhdr *orig_eth = (struct ethhdr *)(data + sizeof(struct iphdr));
     if ((const char *)(orig_eth + 1) > data_end)
         return -1;
-
-    struct ethhdr *eth = (struct ethhdr *)data;
+    
     __builtin_memcpy(eth, orig_eth, sizeof(*eth));
     eth->h_proto = bpf_htons(ETH_P_IP);
 
