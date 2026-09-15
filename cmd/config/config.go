@@ -115,6 +115,7 @@ type UpfConfig struct {
 	Ip6RaPrefix             string         `mapstructure:"ip6_ra_prefix" validate:"cidrv6" json:"ip6_ra_prefix"`
 	Ip4UEPrefix             string         `mapstructure:"ip4_ue_prefix" validate:"cidrv4" json:"ip4_ue_prefix"`
 	DLRebalanceAddress      string         `mapstructure:"rebalance_address" validate:"omitempty,ipv4" json:"rebalance_address"`
+	DLRebalanceLocalAddress string         `mapstructure:"rebalance_local_address" validate:"omitempty,ipv4" json:"rebalance_local_address"`
 
 	n3AdvertisedAddress5G net.IP
 }
@@ -187,6 +188,7 @@ func defineFlags() {
 	pflag.String("ip6rapref", "2a03:d000:29a0:509::/64", "Subscriber IPv6 prefix")
 	pflag.String("ip4pref", "", "Subscriber IPv4 prefix")
 	pflag.String("rbaddr", "", "Downlink rebalace address")
+	pflag.String("rbladdr", "", "Downlink rebalace local address")
 
 	pflag.Parse()
 }
@@ -270,6 +272,7 @@ func initCommonConfig() {
 	_ = commonConfigV.BindPFlag("ip6_ra_prefix", pflag.Lookup("ip6rapref"))
 	_ = commonConfigV.BindPFlag("ip4_ue_prefix", pflag.Lookup("ip4pref"))
 	_ = commonConfigV.BindPFlag("rebalance_address", pflag.Lookup("rbaddr"))
+	_ = commonConfigV.BindPFlag("rebalance_local_address", pflag.Lookup("rbladdr"))
 
 	commonConfigV.SetDefault("n9_address", commonConfigV.GetString("n3_address"))
 	commonConfigV.SetDefault("n3_adv_address", commonConfigV.GetString("n3_address"))

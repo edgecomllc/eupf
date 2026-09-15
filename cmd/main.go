@@ -146,6 +146,10 @@ func main() {
 	if config.Conf.DLRebalanceAddress != "" {
 		entrypointConfig.RebalanceIp = binary.LittleEndian.Uint32(net.ParseIP(config.Conf.DLRebalanceAddress).To4())
 
+		if config.Conf.DLRebalanceLocalAddress != "" {
+			entrypointConfig.RebalanceLocalIp = binary.LittleEndian.Uint32(net.ParseIP(config.Conf.DLRebalanceLocalAddress).To4())
+		}
+
 		ip4Prefix, ip4Net, _ := net.ParseCIDR(config.Conf.Ip4UEPrefix)
 		entrypointConfig.UeSubnetPrefix = binary.LittleEndian.Uint32(ip4Prefix.To4())
 		entrypointConfig.UeSubnetPrefixMask = binary.LittleEndian.Uint32(ip4Net.Mask)

@@ -67,6 +67,7 @@ struct dataplane_config {
     __u8   trace_in;
     __u8   trace_out;
     __u8   trace_blocked;
+    __u32  rebalance_local_ip;
     __u32  rebalance_ip;
     __u32  ue_subnet_prefix;
     __u32  ue_subnet_prefix_mask;
@@ -205,6 +206,61 @@ static __always_inline const struct pdr* check_sdf_filters_gtp(struct packet_con
     return 0;
 }
 
+static __always_inline __u32 encap_ip_packet(struct packet_context *ctx, int saddr, int daddr) {
+
+    static const size_t ip_encap_size = sizeof(struct iphdr);
+    int ip_packet_len = 0;
+    __u16 ip_proto = 0;
+    if (ctx->ip4) {
+        ip_packet_len = bpf_ntohs(ctx->ip4->tot_len);
+        ip_proto = 4;
+    }
+    else if (ctx->ip6) {
+        ip_packet_len = bpf_ntohs(ctx->ip6->payload_len) + sizeof(struct ipv6hdr);
+        ip_proto = 41;
+    }
+    else
+        return -1;
+
+    int result = bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-ip_encap_size);
+    if (result)
+        return -1;
+
+    char *data = (char *)(long)ctx->xdp_ctx->data;
+    const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
+
+    struct ethhdr *orig_eth = (struct ethhdr *)(data + ip_encap_size);
+    if ((const char *)(orig_eth + 1) > data_end)
+        return -1;
+
+    struct ethhdr *eth = (struct ethhdr *)data;
+    __builtin_memcpy(eth, orig_eth, sizeof(*eth));
+    eth->h_proto = bpf_htons(ETH_P_IP);
+
+    struct iphdr *ip = (struct iphdr *)(eth + 1);
+    if ((const char *)(ip + 1) > data_end)
+        return -1;
+
+    /* Add the outer IP header */
+    ip->version = 4;
+    ip->ihl = 5; /* No options */
+    ip->tos = 0;
+    ip->tot_len = bpf_htons(ip_packet_len + ip_encap_size);
+    ip->id = 0;            /* No fragmentation */
+    ip->frag_off = 0x0040; /* Don't fragment; Fragment offset = 0 */
+    ip->ttl = 64;
+    ip->protocol = ip_proto;
+    ip->check = 0;
+    ip->saddr = saddr;
+    ip->daddr = daddr;
+    
+    ip->check = ipv4_csum(ip, sizeof(*ip));
+
+    /* Update packet pointers */
+    context_set_ip4(ctx, (char *)(long)ctx->xdp_ctx->data, (const char *)(long)ctx->xdp_ctx->data_end, eth, ip, 0, 0);
+    return 0;
+}
+
 static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_context *ctx) {
     const struct iphdr *ip4 = ctx->ip4;
     struct pdr_info *session = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
@@ -213,7 +269,10 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
 
         if(global_config.rebalance_ip 
             && (ctx->ip4->daddr & global_config.ue_subnet_prefix_mask) == global_config.ue_subnet_prefix) {
-            return route_ipv4_to(ctx->xdp_ctx, ctx->eth, ctx->ip4, global_config.rebalance_ip);
+            if(global_config.rebalance_local_ip && 0 == encap_ip_packet(ctx, global_config.rebalance_local_ip, global_config.rebalance_ip))
+                return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+            else
+                return route_ipv4_to(ctx->xdp_ctx, ctx->eth, ctx->ip4, global_config.rebalance_ip);
         }
         return DEFAULT_XDP_ACTION;
     }
