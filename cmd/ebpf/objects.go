@@ -86,7 +86,7 @@ func (bpfObjects *BpfObjects) Load() error {
 		"far_map":              bpfObjects.farMapSize,
 		"pdr_map_downlink_ip4": bpfObjects.pdrMapSize,
 		"pdr_map_downlink_ip6": bpfObjects.pdrMapSize,
-		"pdr_map_teid_ip4":   bpfObjects.pdrMapSize,
+		"pdr_map_teid_ip4":     bpfObjects.pdrMapSize,
 		"urr_map":              bpfObjects.urrMapSize,
 	}
 
@@ -125,6 +125,15 @@ func (bpfObjects *BpfObjects) Load() error {
 	if err := spec.LoadAndAssign(&bpfObjects.IpEntrypointObjects, &collectionOptions); err != nil {
 		for _, m := range replacements {
 			m.Close()
+		}
+
+		var ve *ebpf.VerifierError
+		if errors.As(err, &ve) {
+			for i, line := range ve.Log {
+				if line != "" {
+					log.Info().Msgf("[%03d] %s", i, line)
+				}
+			}
 		}
 
 		log.Warn().Msgf("Failed to load objects: %s", err)

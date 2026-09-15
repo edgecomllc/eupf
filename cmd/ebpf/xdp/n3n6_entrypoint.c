@@ -272,8 +272,10 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
 
         if(global_config.rebalance_ip 
             && (ctx->ip4->daddr & global_config.ue_subnet_prefix_mask) == global_config.ue_subnet_prefix) {
-            if(global_config.rebalance_local_ip && 0 == encap_ip_packet(ctx, global_config.rebalance_local_ip, global_config.rebalance_ip))
-                return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+            if(global_config.rebalance_local_ip) {
+                if(0 == encap_ip_packet(ctx, global_config.rebalance_local_ip, global_config.rebalance_ip))
+                    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+            }
             else
                 return route_ipv4_to(ctx->xdp_ctx, ctx->eth, ctx->ip4, global_config.rebalance_ip);
         }
