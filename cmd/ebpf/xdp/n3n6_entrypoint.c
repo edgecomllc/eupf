@@ -212,7 +212,7 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
         upf_printk("upf: [n6] no downlink session for ip:%pI4", &ip4->daddr);
 
         if(global_config.rebalance_ip 
-            && (ctx->ip4->daddr & global_config.ue_subnet_prefix_mask) != global_config.ue_subnet_prefix) {
+            && (ctx->ip4->daddr & global_config.ue_subnet_prefix_mask) == global_config.ue_subnet_prefix) {
             return route_ipv4_to(ctx->xdp_ctx, ctx->eth, ctx->ip4, global_config.rebalance_ip);
         }
         return DEFAULT_XDP_ACTION;
