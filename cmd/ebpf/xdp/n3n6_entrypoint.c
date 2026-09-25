@@ -270,7 +270,8 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     if (!session) {
         upf_printk("upf: [n6] no downlink session for ip:%pI4", &ip4->daddr);
 
-        if(global_config.rebalance_ip 
+        if(!ctx->redirected 
+            && global_config.rebalance_ip 
             && (ctx->ip4->daddr & global_config.ue_subnet_prefix_mask) == global_config.ue_subnet_prefix) {
             if(global_config.rebalance_local_ip) {
                 if(0 == encap_ip_packet(ctx, global_config.rebalance_local_ip, global_config.rebalance_ip))
@@ -604,6 +605,10 @@ static __always_inline enum xdp_action handle_gtpu(struct packet_context *ctx) {
 
 static __always_inline enum xdp_action handle_ip4(struct packet_context *ctx) {
     int l4_protocol = parse_ip4(ctx);
+    if(l4_protocol == IPPROTO_IPIP) {
+        l4_protocol = parse_ip4(ctx);
+        ctx->redirected = 1;
+    }
     switch (l4_protocol) {
         case IPPROTO_ICMP: {
             increment_counter(ctx->counters, rx_icmp);
