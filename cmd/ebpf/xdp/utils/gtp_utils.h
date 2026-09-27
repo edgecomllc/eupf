@@ -207,6 +207,9 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
         gtp_full_hdr_size = gtp_full_hdr_ext_size;
     }
 
+    __u8 ipip_overhead = ctx->redirected ? sizeof(struct iphdr) : 0;
+    size_t adjust_size = gtp_encap_size - ipip_overhead;
+
 // #ifdef NO_GTP_EXTENTION 
 //     static const size_t gtp_full_hdr_size = sizeof(struct gtpuhdr);
 //     static const size_t gtp_encap_size = sizeof(struct iphdr) + sizeof(struct udphdr) + gtp_full_hdr_size;
@@ -225,14 +228,14 @@ static __always_inline __u32 add_gtp_over_ip4_headers(struct packet_context *ctx
     else
         return -1;
 
-    int result = bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-gtp_encap_size);
+    int result = bpf_xdp_adjust_head(ctx->xdp_ctx, (__s32)-adjust_size);
     if (result)
         return -1;
 
     char *data = (char *)(long)ctx->xdp_ctx->data;
     const char *data_end = (const char *)(long)ctx->xdp_ctx->data_end;
 
-    struct ethhdr *orig_eth = (struct ethhdr *)(data + gtp_encap_size);
+    struct ethhdr *orig_eth = (struct ethhdr *)(data + adjust_size);
     if ((const char *)(orig_eth + 1) > data_end)
         return -1;
 
