@@ -144,13 +144,24 @@ func main() {
 	}
 
 	if config.Conf.DLRebalanceAddress != "" {
-		entrypointConfig.RebalanceIp = binary.LittleEndian.Uint32(net.ParseIP(config.Conf.DLRebalanceAddress).To4())
+		rebalanceIP := net.ParseIP(config.Conf.DLRebalanceAddress).To4()
+		if rebalanceIP == nil {
+			log.Fatal().Msgf("invalid rebalance_address: %s", config.Conf.DLRebalanceAddress)
+		}
+		entrypointConfig.RebalanceIp = binary.LittleEndian.Uint32(rebalanceIP)
 
 		if config.Conf.DLRebalanceLocalAddress != "" {
-			entrypointConfig.RebalanceLocalIp = binary.LittleEndian.Uint32(net.ParseIP(config.Conf.DLRebalanceLocalAddress).To4())
+			rebalanceLocalIP := net.ParseIP(config.Conf.DLRebalanceLocalAddress).To4()
+			if rebalanceLocalIP == nil {
+				log.Fatal().Msgf("invalid rebalance_local_address: %s", config.Conf.DLRebalanceLocalAddress)
+			}
+			entrypointConfig.RebalanceLocalIp = binary.LittleEndian.Uint32(rebalanceLocalIP)
 		}
 
-		ip4Prefix, ip4Net, _ := net.ParseCIDR(config.Conf.Ip4UEPrefix)
+		ip4Prefix, ip4Net, err := net.ParseCIDR(config.Conf.Ip4UEPrefix)
+		if err != nil {
+			log.Fatal().Err(err).Msgf("invalid ip4_ue_prefix: %s", config.Conf.Ip4UEPrefix)
+		}
 		entrypointConfig.UeSubnetPrefix = binary.LittleEndian.Uint32(ip4Prefix.To4())
 		entrypointConfig.UeSubnetPrefixMask = binary.LittleEndian.Uint32(ip4Net.Mask)
 	}
