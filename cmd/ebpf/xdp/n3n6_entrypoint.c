@@ -215,10 +215,10 @@ static __always_inline __u32 encap_ip_packet(struct packet_context *ctx, __u32 s
         ip_packet_len = bpf_ntohs(ctx->ip4->tot_len);
         ip_proto = 4;
     }
-    else if (ctx->ip6) {
-        ip_packet_len = bpf_ntohs(ctx->ip6->payload_len) + sizeof(struct ipv6hdr);
-        ip_proto = 41;
-    }
+    // else if (ctx->ip6) {
+    //     ip_packet_len = bpf_ntohs(ctx->ip6->payload_len) + sizeof(struct ipv6hdr);
+    //     ip_proto = 41;
+    // }
     else
         return -1;
 
