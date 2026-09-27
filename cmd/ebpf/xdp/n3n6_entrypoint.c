@@ -270,8 +270,12 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     if (!session) {
         upf_printk("upf: [n6] no downlink session for ip:%pI4", &ip4->daddr);
 
-        if(!ctx->redirected 
-            && global_config.rebalance_ip 
+        if(ctx->redirected) {
+            upf_printk("upf: [n6] drop redirected packet: no session for ip:%pI4", &ip4->daddr);
+            return XDP_DROP;
+        }
+
+        if(global_config.rebalance_ip 
             && (ctx->ip4->daddr & global_config.ue_subnet_prefix_mask) == global_config.ue_subnet_prefix) {
             if(global_config.rebalance_local_ip) {
                 if(0 == encap_ip_packet(ctx, global_config.rebalance_local_ip, global_config.rebalance_ip))
