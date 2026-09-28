@@ -264,6 +264,19 @@ static __always_inline __u32 encap_ip_packet(struct packet_context *ctx, __u32 s
     return 0;
 }
 
+static __always_inline int try_rebalance(struct packet_context *ctx) {
+    if(!global_config.rebalance_ip
+        || (ctx->ip4->daddr & global_config.ue_subnet_prefix_mask) != global_config.ue_subnet_prefix)
+        return -1;
+
+    if(global_config.rebalance_local_ip) {
+        if(0 == encap_ip_packet(ctx, global_config.rebalance_local_ip, global_config.rebalance_ip))
+            return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
+        return -1;
+    }
+    return route_ipv4_to(ctx->xdp_ctx, ctx->eth, ctx->ip4, global_config.rebalance_ip);
+}
+
 static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_context *ctx) {
     const struct iphdr *ip4 = ctx->ip4;
     struct pdr_info *session = bpf_map_lookup_elem(&pdr_map_downlink_ip4, &ip4->daddr);
@@ -275,15 +288,9 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
             return XDP_DROP;
         }
 
-        if(global_config.rebalance_ip 
-            && (ctx->ip4->daddr & global_config.ue_subnet_prefix_mask) == global_config.ue_subnet_prefix) {
-            if(global_config.rebalance_local_ip) {
-                if(0 == encap_ip_packet(ctx, global_config.rebalance_local_ip, global_config.rebalance_ip))
-                    return route_ipv4(ctx->xdp_ctx, ctx->eth, ctx->ip4);
-            }
-            else
-                return route_ipv4_to(ctx->xdp_ctx, ctx->eth, ctx->ip4, global_config.rebalance_ip);
-        }
+        int rebalance_action = try_rebalance(ctx);
+        if(rebalance_action != -1)
+            return rebalance_action;
         return DEFAULT_XDP_ACTION;
     }
 
@@ -316,8 +323,16 @@ static __always_inline enum xdp_action handle_n6_packet_ipv4(struct packet_conte
     }
 
     // Only forwarding action is supported at the moment
-    if (!(far->action & FAR_FORW))
+    if (!(far->action & FAR_FORW)) {
+        if(ctx->redirected) {
+            upf_printk("upf: [n6] drop redirected: non-forward session ip:%pI4", &ip4->daddr);
+            return XDP_DROP;
+        }
+        int rebalance_action = try_rebalance(ctx);
+        if(rebalance_action != -1)
+            return rebalance_action;
         return XDP_DROP;
+    }
 
     // Only outer header GTP/UDP/IPv4 is supported at the moment
     if (!(far->outer_header_creation & OHC_GTP_U_UDP_IPv4))
