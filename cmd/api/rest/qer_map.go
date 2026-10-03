@@ -1,15 +1,17 @@
 package rest
 
 import (
-	"github.com/edgecomllc/eupf/cmd/ebpf"
-	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
 	"unsafe"
+
+	"github.com/edgecomllc/eupf/cmd/ebpf"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // ListQerMapContent godoc
+//
 //	@Summary		List QER map content
 //	@Description	List QER map content
 //	@Tags			QER
@@ -26,6 +28,7 @@ func (h *ApiHandler) listQerMapContent(c *gin.Context) {
 }
 
 // GetQerValue godoc
+//
 //	@Summary		List QER map content
 //	@Description	List QER map content
 //	@Tags			QER
@@ -34,7 +37,7 @@ func (h *ApiHandler) listQerMapContent(c *gin.Context) {
 //	@Success		200	{object}	[]ebpf.QerMapElement
 //	@Router			/qer_map/{id} [get]
 func (h *ApiHandler) getQerValue(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		log.Info().Msgf("Error converting id to int: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

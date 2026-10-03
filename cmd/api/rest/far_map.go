@@ -20,7 +20,7 @@ type FarMapElement struct {
 }
 
 func (h *ApiHandler) getFarValue(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		log.Printf("Not an integer id: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
