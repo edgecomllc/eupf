@@ -45,11 +45,27 @@
 
 {{- define "helpers.pod.envs" -}}
 
-{{- range $name, $value := .Values.env }}
+{{- $env := deepCopy (.Values.env | default dict) }}
+{{- if not .Values.config.enabled }}
+{{- $env = merge $env (deepCopy (.Values.defaultEnv | default dict)) }}
+{{- end }}
+{{- range $name, $value := $env }}
 - name: {{ $name }}
   value: {{ $value | quote }}
 {{- end }}
 
+{{- end -}}
+
+{{/*
+Container args: user-provided args, prefixed with `--config <config.path>`
+when the ConfigMap-based configuration mode is enabled.
+*/}}
+{{- define "helpers.pod.args" -}}
+{{- $args := .Values.args | default list }}
+{{- if .Values.config.enabled }}
+{{- $args = prepend (prepend $args .Values.config.path) "--config" }}
+{{- end }}
+{{- include "helpers.common.tplvalues.render" (dict "value" $args "context" $) }}
 {{- end -}}
 
 {{- define "helpers.pod.probes" -}}
@@ -71,7 +87,12 @@ startupProbe:
 
 {{- define "helpers.pod.volumes" -}}
 
-{{- with .Values.volumes }}
+{{- $volumes := .Values.volumes | default list }}
+{{- if .Values.config.enabled }}
+{{- $configVolume := dict "name" "config" "configMap" (dict "name" (printf "%s-config" (include "eupf.fullname" .))) }}
+{{- $volumes = append $volumes $configVolume }}
+{{- end }}
+{{- with $volumes }}
 volumes:
   {{- toYaml . | nindent 2 }}
 {{- end }}
@@ -80,7 +101,12 @@ volumes:
 
 {{- define "helpers.pod.volumeMounts" -}}
 
-{{- with .Values.volumeMounts }}
+{{- $mounts := .Values.volumeMounts | default list }}
+{{- if .Values.config.enabled }}
+{{- $configMount := dict "name" "config" "mountPath" .Values.config.mountPath }}
+{{- $mounts = append $mounts $configMount }}
+{{- end }}
+{{- with $mounts }}
 volumeMounts:
   {{- toYaml . | nindent 2 }}
 {{- end }}
