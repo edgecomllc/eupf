@@ -172,13 +172,13 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		}
 	}
 	for _, farInfo := range session.FARs {
-		if err := mapOperations.DeleteFar(farInfo.GlobalId); err != nil {
+		if err := mapOperations.DeleteFar(farInfo.GlobalId); err != nil && !isDataplaneKeyAbsent(err) {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
 	}
 	for _, qerInfo := range session.QERs {
-		if err := mapOperations.DeleteQer(qerInfo.GlobalId); err != nil {
+		if err := mapOperations.DeleteQer(qerInfo.GlobalId); err != nil && !isDataplaneKeyAbsent(err) {
 			PfcpMessageRxErrors.WithLabelValues(msg.MessageTypeName(), causeToString(ie.CauseRuleCreationModificationFailure)).Inc()
 			return message.NewSessionDeletionResponse(0, 0, 0, req.Sequence(), 0, ie.NewCause(ie.CauseRuleCreationModificationFailure)), err
 		}
