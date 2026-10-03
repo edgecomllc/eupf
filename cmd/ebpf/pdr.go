@@ -241,18 +241,18 @@ func (bpfObjects *BpfObjects) UpdateUrr(internalId uint32, urrInfo UrrInfo) erro
 	return bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&urrInfo), ebpf.UpdateExist)
 }
 
-func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) (error, UrrInfo) {
+func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) (UrrInfo, error) {
 	log.Debug().Msgf("EBPF: Delete URR: internalId=%d", internalId)
 	urrInfo := UrrInfo{}
 	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrInfo)); err != nil {
-		return err, UrrInfo{}
+		return UrrInfo{}, err
 	}
 	bpfObjects.ReleaseURR(internalId)
 	if err := bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&UrrInfo{}), ebpf.UpdateExist); err != nil {
-		return err, UrrInfo{}
+		return UrrInfo{}, err
 	}
 
-	return nil, urrInfo
+	return urrInfo, nil
 }
 
 type ForwardingPlaneController interface {
@@ -273,7 +273,7 @@ type ForwardingPlaneController interface {
 	DeleteQer(internalId uint32) error
 	NewUrr(urrInfo UrrInfo) (uint32, error)
 	UpdateUrr(internalId uint32, urrInfo UrrInfo) error
-	DeleteUrr(internalId uint32) (error, UrrInfo)
+	DeleteUrr(internalId uint32) (UrrInfo, error)
 }
 
 func CombinePdrWithSdf(defaultPdr *IpEntrypointPdrInfo, sdfPdr PdrInfo) IpEntrypointPdrInfo {

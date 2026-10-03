@@ -186,7 +186,7 @@ func printSessionDeleteRequest(req *message.SessionDeletionRequest) {
 
 func displayBar(sb *strings.Builder, bar *ie.IE) {
 	barId, _ := bar.BARID()
-	sb.WriteString(fmt.Sprintf("BAR ID: %d\n", barId))
+	fmt.Fprintf(sb, "BAR ID: %d\n", barId)
 
 	downlink, err := bar.DownlinkDataNotificationDelay()
 	if err == nil {
@@ -204,7 +204,7 @@ func displayBar(sb *strings.Builder, bar *ie.IE) {
 
 func displayUrr(sb *strings.Builder, urr *ie.IE) {
 	urrId, _ := urr.URRID()
-	sb.WriteString(fmt.Sprintf("URR ID: %d \n", urrId))
+	fmt.Fprintf(sb, "URR ID: %d \n", urrId)
 
 	measurementMethod, err := urr.MeasurementMethod()
 	if err == nil {
@@ -226,7 +226,7 @@ func displayUrr(sb *strings.Builder, urr *ie.IE) {
 
 func displayQer(sb *strings.Builder, qer *ie.IE) {
 	qerId, _ := qer.QERID()
-	sb.WriteString(fmt.Sprintf("QER ID: %d \n", qerId))
+	fmt.Fprintf(sb, "QER ID: %d \n", qerId)
 
 	gateStatusDL, err := qer.GateStatusDL()
 	if err == nil {
@@ -252,7 +252,7 @@ func displayQer(sb *strings.Builder, qer *ie.IE) {
 
 func displayFar(sb *strings.Builder, far *ie.IE) {
 	farId, _ := far.FARID()
-	sb.WriteString(fmt.Sprintf("FAR ID: %d \n", farId))
+	fmt.Fprintf(sb, "FAR ID: %d \n", farId)
 
 	applyAction, err := far.ApplyAction()
 	if err == nil {
@@ -324,7 +324,7 @@ func displayFar(sb *strings.Builder, far *ie.IE) {
 
 func displayPdr(sb *strings.Builder, pdr *ie.IE) {
 	pdrId, _ := pdr.PDRID()
-	sb.WriteString(fmt.Sprintf("PDR ID: %d \n", pdrId))
+	fmt.Fprintf(sb, "PDR ID: %d \n", pdrId)
 
 	if outerHeaderRemoval, err := pdr.OuterHeaderRemovalDescription(); err == nil {
 		writeLineTabbed(sb, fmt.Sprintf("Outer Header Removal: %d ", outerHeaderRemoval), 2)

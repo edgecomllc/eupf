@@ -17,7 +17,7 @@ import (
 //	@Success		200	{object}	[]ebpf.QerMapElement
 //	@Router			/qer_map [get]
 func (h *ApiHandler) listQerMapContent(c *gin.Context) {
-	if elements, err := ebpf.ListQerMapContents(h.BpfObjects.IpEntrypointObjects.QerMap); err != nil {
+	if elements, err := ebpf.ListQerMapContents(h.BpfObjects.QerMap); err != nil {
 		log.Info().Msgf("Error reading map: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	} else {
@@ -43,7 +43,7 @@ func (h *ApiHandler) getQerValue(c *gin.Context) {
 
 	var value ebpf.QerInfo
 
-	if err = h.BpfObjects.IpEntrypointObjects.QerMap.Lookup(uint32(id), unsafe.Pointer(&value)); err != nil {
+	if err = h.BpfObjects.QerMap.Lookup(uint32(id), unsafe.Pointer(&value)); err != nil {
 		log.Printf("Error reading map: %s", err.Error())
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -77,7 +77,7 @@ func (h *ApiHandler) setQerValue(c *gin.Context) {
 		StartDL:      0,
 	}
 
-	if err := h.BpfObjects.IpEntrypointObjects.QerMap.Put(uint32(qerElement.Id), unsafe.Pointer(&value)); err != nil {
+	if err := h.BpfObjects.QerMap.Put(uint32(qerElement.Id), unsafe.Pointer(&value)); err != nil {
 		log.Printf("Error writting map: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

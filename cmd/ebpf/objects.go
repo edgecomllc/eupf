@@ -123,7 +123,7 @@ func (bpfObjects *BpfObjects) Load() error {
 
 	if err := spec.LoadAndAssign(&bpfObjects.IpEntrypointObjects, &collectionOptions); err != nil {
 		for _, m := range replacements {
-			m.Close()
+			_ = m.Close()
 		}
 
 		log.Warn().Msgf("Failed to load objects: %s", err)
