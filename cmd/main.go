@@ -58,7 +58,7 @@ func main() {
 		log.Fatal().Err(err).Msgf("can't set dataplane global config")
 	}
 
-	defer bpfObjects.Close()
+	defer func() { _ = bpfObjects.Close() }()
 
 	for _, ifaceName := range config.Conf.InterfaceName {
 		iface, err := net.InterfaceByName(ifaceName)
@@ -75,7 +75,7 @@ func main() {
 		if err != nil {
 			log.Fatal().Msgf("Could not attach XDP program: %s", err.Error())
 		}
-		defer l.Close()
+		defer func() { _ = l.Close() }()
 
 		log.Info().Msgf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	}
@@ -101,7 +101,7 @@ func main() {
 	}
 	pfcpConn.SetRemoteNodes(remoteNodes)
 	go pfcpConn.Run()
-	defer pfcpConn.Close()
+	defer func() { _ = pfcpConn.Close() }()
 
 	ForwardPlaneStats := ebpf.UpfXdpActionStatistic{
 		BpfObjects: bpfObjects,

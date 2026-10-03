@@ -1,14 +1,16 @@
 package rest
 
 import (
-	"github.com/edgecomllc/eupf/cmd/core"
-	"github.com/gin-gonic/gin"
 	"net"
 	"net/http"
 	"strconv"
+
+	"github.com/edgecomllc/eupf/cmd/core"
+	"github.com/gin-gonic/gin"
 )
 
 // ListPfcpSessionsFiltered godoc
+//
 //	@Summary	If no parameters are given, list all PFCP sessions. If ip or teid is given, single session will be returned. If both ip and teid are given, it is possible to return two sessions.
 //	@Tags		PFCP
 //	@Produce	json
@@ -37,7 +39,7 @@ func (h *ApiHandler) listPfcpSessionsFiltered(c *gin.Context) {
 	}
 
 	if sTeid != "" {
-		if teid, err := strconv.Atoi(sTeid); err == nil {
+		if teid, err := strconv.ParseUint(sTeid, 10, 32); err == nil {
 			if session := FilterSessionsByTeid(&h.PfcpSrv.NodeAssociations, uint32(teid)); session != nil {
 				sessions = append(sessions, *session) // Append session by TEID match
 			}

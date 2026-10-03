@@ -564,7 +564,7 @@ func TestEntrypoint(t *testing.T) {
 		t.Fatalf("Loading bpf objects failed: %s", err.Error())
 	}
 
-	defer bpfObjects.Close()
+	defer func() { _ = bpfObjects.Close() }()
 
 	entrypointConfig := IpEntrypointDataplaneConfig{
 		N3Ipv4Address: binary.LittleEndian.Uint32(n3IP.To4()),
@@ -624,7 +624,7 @@ func TestEntrypointBenchmark(t *testing.T) {
 		t.Fatalf("Loading bpf objects failed: %s", err.Error())
 	}
 
-	defer bpfObjects.Close()
+	defer func() { _ = bpfObjects.Close() }()
 
 	t.Run("Arp (x1)) benchmark", func(t *testing.T) {
 		duration, err := testArpBenchmark(bpfObjects, 1)
