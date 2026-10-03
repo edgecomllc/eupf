@@ -27,16 +27,26 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 		// TODO: Trim port as a workaround for NAT changing the port. Explore proper solutions.
 		stringIpAddr := addr.IP.String()
 		outgoingMsg, err := handler(conn, incomingMsg, stringIpAddr)
-		if err != nil {
-			log.Warn().Msgf("Error handling PFCP message: %s", err.Error())
-			return err
-		}
 		duration := time.Since(startTime)
 		UpfMessageRxLatency.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
+		// Always transmit the handler's response, even when the handler returns an
+		// error. Previously this function returned early on err and silently
+		// dropped outgoingMsg — e.g. a Session Deletion Response was never sent
+		// when the datapath cleanup hit "key does not exist", so the CP function
+		// (e.g. open5gs SMF) saw no response and timed out its PFCP transaction.
 		// Now assumption that all handlers will return a message to send is not true.
 		if outgoingMsg != nil {
 			PfcpMessageTx.WithLabelValues(outgoingMsg.MessageTypeName()).Inc()
-			return conn.SendMessage(outgoingMsg, addr)
+			if sendErr := conn.SendMessage(outgoingMsg, addr); sendErr != nil {
+				log.Warn().Msgf("Error sending PFCP message: %s", sendErr.Error())
+				if err == nil {
+					err = sendErr
+				}
+			}
+		}
+		if err != nil {
+			log.Warn().Msgf("Error handling PFCP message: %s", err.Error())
+			return err
 		}
 		return nil
 	} else {
