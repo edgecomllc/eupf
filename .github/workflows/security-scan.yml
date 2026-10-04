@@ -1,0 +1,122 @@
+name: Security scan
+
+on:
+  # Manual run on a PR branch before merging (required check scan-result
+  # stays "expected" until this is run on the latest head SHA).
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+  schedule:
+    - cron: '0 0 * * 1'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-image:
+    name: build-image
+    runs-on: self-hosted
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.19.0
+
+      - name: Build image without publishing
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: eupf:security-scan
+
+      - name: Export image
+        run: docker save eupf:security-scan | gzip > eupf-security-scan.tar.gz
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eupf-security-scan-image
+          path: eupf-security-scan.tar.gz
+          retention-days: 3
+
+  scan-fs:
+    name: scan-fs
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner in fs mode
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          trivyignores: .trivyignore
+          trivy-config: trivy.yaml
+
+  scan-config:
+    name: scan-config
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner in config mode
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          trivyignores: .trivyignore
+          trivy-config: trivy.yaml
+
+  scan-image:
+    name: scan-image
+    runs-on: self-hosted
+    timeout-minutes: 30
+    needs: [build-image]
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: eupf-security-scan-image
+
+      - name: Load image
+        run: docker load < eupf-security-scan.tar.gz
+
+      - name: Run Trivy vulnerability scanner in image mode
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'image'
+          image-ref: 'eupf:security-scan'
+          trivyignores: .trivyignore
+          trivy-config: trivy.yaml
+
+  # Aggregated result to be marked as the required check in branch
+  # protection: fails if any of the scans above failed or were skipped.
+  scan-result:
+    name: scan-result
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs: [build-image, scan-fs, scan-config, scan-image]
+    steps:
+      - name: Report scan result
+        run: |
+          failed=0
+          if [ "${{ needs.result.build-image }}" != "success" ]; then echo "build-image: ${{ needs.result.build-image }}"; failed=1; fi
+          if [ "${{ needs.result.scan-fs }}" != "success" ]; then echo "scan-fs: ${{ needs.result.scan-fs }}"; failed=1; fi
+          if [ "${{ needs.result.scan-config }}" != "success" ]; then echo "scan-config: ${{ needs.result.scan-config }}"; failed=1; fi
+          if [ "${{ needs.result.scan-image }}" != "success" ]; then echo "scan-image: ${{ needs.result.scan-image }}"; failed=1; fi
+          exit $failed
