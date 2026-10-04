@@ -14,13 +14,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege for the workflow GITHUB_TOKEN: checkout needs read
+# access only; scan-image and scan-result narrow it further to none.
+permissions:
+  contents: read
+
 jobs:
   build-image:
     name: build-image
     runs-on: self-hosted
     timeout-minutes: 30
-    permissions:
-      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -86,6 +89,9 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     needs: [build-image]
+    # No GITHUB_TOKEN usage: same-run artifact download uses the
+    # ACTIONS_RUNTIME_TOKEN, docker load and trivy are local operations.
+    permissions: {}
     steps:
       - name: Download image artifact
         uses: actions/download-artifact@v4
@@ -111,6 +117,8 @@ jobs:
     timeout-minutes: 5
     if: always()
     needs: [build-image, scan-fs, scan-config, scan-image]
+    # Pure shell job, no GITHUB_TOKEN usage at all.
+    permissions: {}
     steps:
       - name: Report scan result
         run: |
