@@ -126,8 +126,8 @@ jobs:
       - name: Report scan result
         run: |
           failed=0
-          if [ "${{ needs.result.build-image }}" != "success" ]; then echo "build-image: ${{ needs.result.build-image }}"; failed=1; fi
-          if [ "${{ needs.result.scan-fs }}" != "success" ]; then echo "scan-fs: ${{ needs.result.scan-fs }}"; failed=1; fi
-          if [ "${{ needs.result.scan-config }}" != "success" ]; then echo "scan-config: ${{ needs.result.scan-config }}"; failed=1; fi
-          if [ "${{ needs.result.scan-image }}" != "success" ]; then echo "scan-image: ${{ needs.result.scan-image }}"; failed=1; fi
+          if [ "${{ needs.result['build-image'] }}" != "success" ]; then echo "build-image: ${{ needs.result['build-image'] }}"; failed=1; fi
+          if [ "${{ needs.result['scan-fs'] }}" != "success" ]; then echo "scan-fs: ${{ needs.result['scan-fs'] }}"; failed=1; fi
+          if [ "${{ needs.result['scan-config'] }}" != "success" ]; then echo "scan-config: ${{ needs.result['scan-config'] }}"; failed=1; fi
+          if [ "${{ needs.result['scan-image'] }}" != "success" ]; then echo "scan-image: ${{ needs.result['scan-image'] }}"; failed=1; fi
           exit $failed
