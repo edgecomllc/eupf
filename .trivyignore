@@ -15,3 +15,8 @@ AVD-KSV-0026
 AVD-KSV-0030
 AVD-KSV-0106
 AVD-KSV-0117
+
+# eUPF data plane requires a privileged (root) container to load eBPF
+# programs, mount bpffs/debugfs and raise RLIMIT_MEMLOCK - running with
+# a restricted security context is not supported by design.
+AVD-KSV-0118
