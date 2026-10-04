@@ -1,9 +1,12 @@
 name: Security scan
 
 on:
-  # Manual run on a PR branch before merging (required check scan-result
-  # stays "expected" until this is run on the latest head SHA).
+  # Keep workflow_dispatch for manual re-runs; PRs are scanned
+  # automatically (concurrency + cancel-in-progress keeps intermediate
+  # pushes from piling up: a new commit cancels the previous run).
   workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
   push:
     branches:
       - "main"
