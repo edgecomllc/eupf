@@ -174,7 +174,7 @@ func (stat *UpfXdpActionStatistic) GetUpfRouteStat() IpEntrypointRouteStat {
 
 	err := stat.BpfObjects.UpfRouteStat.Lookup(uint32(0), &statistics)
 	if err != nil {
-		log.Warn().Msgf("failed to get upf_route_stat: %s" + err.Error())
+		log.Warn().Msgf("failed to get upf_route_stat: %s", err.Error())
 		return counters
 	}
 
@@ -192,7 +192,7 @@ func (stat *UpfXdpActionStatistic) GetUpfRouteStatDelta() IpEntrypointRouteStat 
 
 	err := stat.BpfObjects.UpfRouteStat.Lookup(uint32(0), &statistics)
 	if err != nil {
-		log.Warn().Msgf("failed to get upf_route_stat: %s" + err.Error())
+		log.Warn().Msgf("failed to get upf_route_stat: %s", err.Error())
 		return counters
 	}
 
