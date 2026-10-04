@@ -1,0 +1,39 @@
+name: Run Scenario-0 robot test
+
+on:
+  workflow_call:
+    inputs:
+      kube_context:
+        required: true
+        type: string
+      environment_name:
+        required: true
+        type: string
+    secrets:
+      kube_config:
+        required: true
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install robotframework libraries
+        run: pip install robotframework robotframework-kubelibrary
+
+      - name: run tests
+        run: |
+          robot -d results -v KUBE_CONTEXT:${{ inputs.kube_context }} -v ENVIRONMENT_NAME:${{ inputs.environment_name }} ./robot/Scenario-0.robot
+
+      - name: Upload robot test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-scenario0-results
+          path: results/
+          if-no-files-found: ignore

@@ -96,7 +96,7 @@ func (h *ApiHandler) listPfcpSessionsFiltered(c *gin.Context) {
 	}
 
 	if sTeid != "" {
-		if teid, err := strconv.Atoi(sTeid); err == nil {
+		if teid, err := strconv.ParseUint(sTeid, 10, 32); err == nil {
 			for _, c := range h.GetPFCPSrv() {
 				if session := FilterSessionsByTeid(&c.NodeAssociations, uint32(teid)); session != nil {
 					sessions = append(sessions, *session) // Append session by TEID match
