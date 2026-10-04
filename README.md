@@ -262,7 +262,7 @@ This project is licensed under the [Apache-2.0 Creative Commons License](https:/
 [build-img]: https://github.com/edgecomllc/eupf/actions/workflows/build.yml/badge.svg
 [test]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml
 [test-img]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml/badge.svg
-[security-test]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml
-[security-test-img]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml/badge.svg
+[security-test]: https://github.com/edgecomllc/eupf/actions/workflows/security-scan.yml
+[security-test-img]: https://github.com/edgecomllc/eupf/actions/workflows/security-scan.yml/badge.svg
 [license]: https://github.com/edgecomllc/eupf/blob/main/LICENSE
 [license-img]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
