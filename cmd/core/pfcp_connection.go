@@ -138,8 +138,8 @@ func (connection *PfcpConnection) Run() {
 	}
 }
 
-func (connection *PfcpConnection) Close() {
-	connection.udpConn.Close()
+func (connection *PfcpConnection) Close() error {
+	return connection.udpConn.Close()
 }
 
 func (connection *PfcpConnection) Receive(b []byte) (n int, addr *net.UDPAddr, err error) {

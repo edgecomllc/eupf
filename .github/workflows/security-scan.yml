@@ -1,0 +1,133 @@
+name: Security scan
+
+on:
+  # Keep workflow_dispatch for manual re-runs; PRs are scanned
+  # automatically (concurrency + cancel-in-progress keeps intermediate
+  # pushes from piling up: a new commit cancels the previous run).
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - "main"
+  schedule:
+    - cron: '0 0 * * 1'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege for the workflow GITHUB_TOKEN: checkout needs read
+# access only; scan-image and scan-result narrow it further to none.
+permissions:
+  contents: read
+
+jobs:
+  build-image:
+    name: build-image
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.19.0
+
+      - name: Build image without publishing
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: eupf:security-scan
+
+      - name: Export image
+        run: docker save eupf:security-scan | gzip > eupf-security-scan.tar.gz
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eupf-security-scan-image
+          path: eupf-security-scan.tar.gz
+          retention-days: 3
+
+  scan-fs:
+    name: scan-fs
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner in fs mode
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          trivyignores: .trivyignore
+          trivy-config: trivy.yaml
+
+  scan-config:
+    name: scan-config
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner in config mode
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          trivyignores: .trivyignore
+          trivy-config: trivy.yaml
+
+  scan-image:
+    name: scan-image
+    runs-on: self-hosted
+    timeout-minutes: 30
+    needs: [build-image]
+    # No GITHUB_TOKEN usage: same-run artifact download uses the
+    # ACTIONS_RUNTIME_TOKEN, docker load and trivy are local operations.
+    permissions: {}
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: eupf-security-scan-image
+
+      - name: Load image
+        run: docker load < eupf-security-scan.tar.gz
+
+      - name: Run Trivy vulnerability scanner in image mode
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'image'
+          image-ref: 'eupf:security-scan'
+          trivyignores: .trivyignore
+          trivy-config: trivy.yaml
+
+  # Aggregated result to be marked as the required check in branch
+  # protection: fails if any of the scans above failed or were skipped.
+  scan-result:
+    name: scan-result
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs: [build-image, scan-fs, scan-config, scan-image]
+    # Pure shell job, no GITHUB_TOKEN usage at all.
+    permissions: {}
+    steps:
+      - name: Report scan result
+        run: |
+          failed=0
+          if [ "${{ needs['build-image'].result }}" != "success" ]; then echo "build-image: ${{ needs['build-image'].result }}"; failed=1; fi
+          if [ "${{ needs['scan-fs'].result }}" != "success" ]; then echo "scan-fs: ${{ needs['scan-fs'].result }}"; failed=1; fi
+          if [ "${{ needs['scan-config'].result }}" != "success" ]; then echo "scan-config: ${{ needs['scan-config'].result }}"; failed=1; fi
+          if [ "${{ needs['scan-image'].result }}" != "success" ]; then echo "scan-image: ${{ needs['scan-image'].result }}"; failed=1; fi
+          exit $failed

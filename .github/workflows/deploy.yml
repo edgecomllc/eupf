@@ -30,7 +30,7 @@ jobs:
       name: ${{ inputs.environment_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set Kubernetes Context
         uses: azure/k8s-set-context@v3
@@ -40,7 +40,7 @@ jobs:
           kubeconfig: ${{ secrets.kube_config }}
 
       - name: Install helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
           version: "v3.11.1"
 

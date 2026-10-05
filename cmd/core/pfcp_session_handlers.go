@@ -184,7 +184,7 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		}
 	}
 	for id, urr := range session.URRs {
-		err, urrInfo := mapOperations.DeleteUrr(urr.GlobalId)
+		urrInfo, err := mapOperations.DeleteUrr(urr.GlobalId)
 		if err != nil {
 			log.Error().Msgf("WARN: mapOperations failed to delete URR: %d, %s", id, err.Error())
 			continue
@@ -387,7 +387,7 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			log.Info().Msgf("Removing URR ID: %d", urrId)
 			sUrrInfo := session.RemoveUrr(urrId)
 
-			err, urrInfo := mapOperations.DeleteUrr(sUrrInfo.GlobalId)
+			urrInfo, err := mapOperations.DeleteUrr(sUrrInfo.GlobalId)
 			if err != nil {
 				log.Error().Err(err).Msg("Can't remove URR")
 				return err
@@ -571,11 +571,12 @@ func composeFarInfo(far *ie.IE, farInfo ebpf.FarInfo) (ebpf.FarInfo, error) {
 	}
 	var forward []*ie.IE
 	var err error
-	if far.Type == ie.CreateFAR {
+	switch far.Type {
+	case ie.CreateFAR:
 		forward, err = far.ForwardingParameters()
-	} else if far.Type == ie.UpdateFAR {
+	case ie.UpdateFAR:
 		forward, err = far.UpdateForwardingParameters()
-	} else {
+	default:
 		return ebpf.FarInfo{}, fmt.Errorf("unsupported IE type")
 	}
 	if err == nil {

@@ -161,7 +161,7 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 
 -	Ubuntu 22.04 LTS or higher
 -	Git 2.34
--	Golang 1.20.3
+-	Golang 1.26.8
 -	Clang 14.0.0
 -	LLVM 14.0
 -	Gcc 11.4.0
@@ -175,13 +175,13 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 ```bash
 sudo apt install wget git clang llvm gcc-multilib libbpf-dev
 ```
-#### Golang 1.20.3
-ℹ Please skip this step if you have golang 1.20.3 already installed.
+#### Golang 1.26.8
+ℹ Please skip this step if you have golang 1.26.8 already installed.
 
 ```bash
 sudo rm -rf /usr/local/go
-wget https://go.dev/dl/go1.20.3.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.20.3.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.26.8.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.26.8.linux-amd64.tar.gz
 export PATH="/usr/local/go/bin:${PATH}"
 ```
 
@@ -262,7 +262,7 @@ This project is licensed under the [Apache-2.0 Creative Commons License](https:/
 [build-img]: https://github.com/edgecomllc/eupf/actions/workflows/build.yml/badge.svg
 [test]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml
 [test-img]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml/badge.svg
-[security-test]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml
-[security-test-img]: https://github.com/edgecomllc/eupf/actions/workflows/trivy.yml/badge.svg
+[security-test]: https://github.com/edgecomllc/eupf/actions/workflows/security-scan.yml
+[security-test-img]: https://github.com/edgecomllc/eupf/actions/workflows/security-scan.yml/badge.svg
 [license]: https://github.com/edgecomllc/eupf/blob/main/LICENSE
 [license-img]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
