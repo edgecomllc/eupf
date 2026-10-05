@@ -20,3 +20,8 @@ AVD-KSV-0117
 # programs, mount bpffs/debugfs and raise RLIMIT_MEMLOCK - running with
 # a restricted security context is not supported by design.
 AVD-KSV-0118
+
+# The eUPF data plane needs a read-only /sys hostPath mount: the image
+# entrypoint mounts bpffs and debugfs under /sys to load the eBPF
+# programs. A "disallowed volume type" (hostPath) is by design here.
+AVD-KSV-0121
