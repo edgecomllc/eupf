@@ -20,7 +20,7 @@ spec:
       containers:
         - name: xdp-programm-install
           image: "{{ include "helpers.pod.containerImage" . }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.ImagePullPolicy }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.imagePullPolicy }}
           securityContext:
             {{- toYaml .Values.xdpProgrammInstall.securityContext | nindent 12 }}
           resources:

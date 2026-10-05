@@ -1,3 +1,16 @@
+{{- if .Values.config.enabled }}
+{{- if .Values.config.data }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "eupf.fullname" . }}-config
+  labels:
+    {{- include "eupf.labels" . | nindent 4 }}
+data:
+  {{- include "helpers.common.tplvalues.render" ( dict "value" .Values.config.data "context" $ ) | nindent 2 }}
+{{- end }}
+{{- end }}
 {{- $all := . -}}
 {{- range $k, $v := .Values.configMaps }}
 ---
