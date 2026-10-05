@@ -1,0 +1,119 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eupf-route-sa
+  namespace: open5gs
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: eupf-route-reader
+  namespace: open5gs
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get","list","watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: eupf-route-reader-binding
+  namespace: open5gs
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: eupf-route-reader
+subjects:
+  - kind: ServiceAccount
+    name: eupf-route-sa
+    namespace: open5gs
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eupf-route-updater
+  namespace: open5gs
+  labels:
+    app: eupf-route-updater
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eupf-route-updater
+  template:
+    metadata:
+      labels:
+        app: eupf-route-updater
+    spec:
+      serviceAccountName: eupf-route-sa
+      hostNetwork: true
+      containers:
+        - name: route-updater
+          image: leodotcloud/swiss-army-knife:latest
+          securityContext:
+            privileged: true
+          env:
+            - name: KUBERNETES_SERVICE_HOST
+              value: "62.109.23.215"
+            - name: KUBERNETES_SERVICE_PORT
+              value: "6443"
+            - name: CHECK_INTERVAL
+              value: "10"
+            - name: TARGET_NAMESPACE
+              value: "open5gs"
+            - name: POD_LABEL_SELECTOR
+              value: "app.kubernetes.io/instance=eupf"
+            - name: TARGET_CIDR
+              value: "10.11.0.0/16"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              if ! command -v ip >/dev/null 2>&1; then
+                apt-get update -y && apt-get install -y iproute2 procps iptables iputils-ping >/dev/null
+              fi
+
+              sleep 2
+
+              IFACE=$(ip route show default 2>/dev/null | awk '{print $5}' | head -n1)
+              [ -z "$IFACE" ] && IFACE="eth0"
+              echo "Using default interface: ${IFACE}"
+
+              while true; do
+                POD_IP=$(kubectl -n "${TARGET_NAMESPACE}" get pods -l "${POD_LABEL_SELECTOR}" \
+                  -o jsonpath='{.items[0].status.podIP}' 2>/dev/null || true)
+
+                if [ -n "$POD_IP" ]; then
+                  CURRENT=$(ip route show ${TARGET_CIDR} 2>/dev/null | awk '{print $3}')
+                  if [ "$CURRENT" != "$POD_IP" ]; then
+                    echo ">>> Updating route: ${TARGET_CIDR} via ${POD_IP} (iface=${IFACE})"
+                    ip route del ${TARGET_CIDR} 2>/dev/null || true
+                    ip route add ${TARGET_CIDR} via ${POD_IP} || ip route replace ${TARGET_CIDR} via ${POD_IP}
+
+                    if ! iptables -t nat -C POSTROUTING -s ${TARGET_CIDR} -o ${IFACE} -j MASQUERADE 2>/dev/null; then
+                      echo ">>> Adding MASQUERADE rule for ${TARGET_CIDR} on ${IFACE}"
+                      iptables -t nat -A POSTROUTING -s ${TARGET_CIDR} -o ${IFACE} -j MASQUERADE
+                    fi
+
+                    echo "--- Current routes:"
+                    ip route show ${TARGET_CIDR} || true
+                    echo "--- Current NAT rules:"
+                    iptables -t nat -S POSTROUTING | grep ${TARGET_CIDR} || true
+                  fi
+                else
+                  echo "EUPF pod IP not found yet (namespace=${TARGET_NAMESPACE}, selector=${POD_LABEL_SELECTOR})"
+                fi
+                sleep "${CHECK_INTERVAL}"
+              done
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: eupf
+              topologyKey: "kubernetes.io/hostname"

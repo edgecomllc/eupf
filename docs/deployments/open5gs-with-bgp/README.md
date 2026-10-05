@@ -16,9 +16,21 @@
 
     `make upf`
 
-2. configure calico BGP settings. Here, we configure Calico BGP peer, create Calico IP Pool (for NAT) and configure Felix for save external routes (recevied by BGP from eUPF BIRD)
+2. 
+   Option A: configure calico BGP settings. Here, we configure Calico BGP peer, create Calico IP Pool (for NAT) and configure Felix for save external routes (recevied by BGP from eUPF BIRD)
 
     `make calico`
+
+   or Option B: with any CNI, like Cilium create route and NAT at the host node:
+     edit file .\manifests\eupf-route-updater.yaml to set your kubeapi ip address:
+     
+            - name: KUBERNETES_SERVICE_HOST
+              value: "<kubeapi-ip>"
+            - name: KUBERNETES_SERVICE_PORT
+              value: "6443"
+
+
+     `kubectl apply -f .\manifests\eupf-route-updater.yaml`
 
 3. install open5gs
 
