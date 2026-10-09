@@ -69,8 +69,12 @@ func (mapOps *MapOperationsMock) UpdateUrr(internalId uint32, urrInfo ebpf.UrrIn
 	return nil
 }
 
-func (mapOps *MapOperationsMock) DeleteUrr(internalId uint32) (ebpf.UrrInfo, error) {
+func (mapOps *MapOperationsMock) ReadUrr(internalId uint32) (ebpf.UrrInfo, error) {
 	return mapOps.urr, nil
+}
+
+func (mapOps *MapOperationsMock) DeleteUrr(internalId uint32) error {
+	return nil
 }
 
 func TestSessionOverwrite(t *testing.T) {
