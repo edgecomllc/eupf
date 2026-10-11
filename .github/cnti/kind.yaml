@@ -1,0 +1,17 @@
+# kind cluster for the CNTi essential tests: a control plane and two workers,
+# so node_drain has somewhere to move eUPF. The chart sets the unsafe sysctl
+# net.ipv4.ip_forward, which every kubelet has to allow, or the pod is
+# rejected at admission (see the chart README).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches: &allow-ip-forward
+      - |
+        kind: KubeletConfiguration
+        allowedUnsafeSysctls:
+          - "net.ipv4.ip_forward"
+  - role: worker
+    kubeadmConfigPatches: *allow-ip-forward
+  - role: worker
+    kubeadmConfigPatches: *allow-ip-forward
