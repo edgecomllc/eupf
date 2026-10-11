@@ -19,7 +19,8 @@ image:
   name: eupf
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
-  pullPolicy: IfNotPresent
+  # Empty by default: falls back to global.imagePullPolicy.
+  pullPolicy: ""
 
 # Override default container command
 command: []
@@ -48,9 +49,39 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-# Additional environment variables
+# Default UPF_* environment variables. Injected only when config.enabled=false
+# (ENV mode). Individual entries can be overridden via `env` below or your own
+# values file; eUPF also falls back to built-in defaults for anything unset.
+defaultEnv:
+  UPF_INTERFACE_NAME: eth0
+  UPF_API_ADDRESS: ":8080"
+  UPF_PFCP_ADDRESS: ":8805"
+  UPF_METRICS_ADDRESS: ":9090"
+  UPF_PFCP_NODE_ID: $(MY_POD_IP)
+  UPF_N3_ADDRESS: $(MY_POD_IP)
+
+# Additional environment variables (merged on top of defaultEnv).
 env: {}
-  # foo: bar
+  # UPF_INTERFACE_NAME: eth0,n6
+  # UPF_LOGGING_LEVEL: debug
+
+# eUPF configuration source.
+# enabled=false (default): configure via UPF_* environment variables
+# (the chart injects a working default set, see helpers/_pod.tpl).
+# enabled=true: create a ConfigMap from config.data, mount it at config.mountPath
+# and run the container with `--config <config.path>`. In this mode the default
+# UPF_* env injection is disabled because environment variables take precedence
+# over the config file in eUPF.
+config:
+  enabled: false
+  path: /app/conf/config.yml
+  mountPath: /app/conf
+  data: {}
+    # config.yml: |
+    #   interface_name: eth0
+    #   api_address: :8080
+    #   pfcp_address: :8805
+    #   metrics_address: :9090
 
 # create config maps
 configMaps: {}
@@ -63,16 +94,19 @@ configMaps: {}
   #     config.yml: |
   #       foo: bar
 
-# volumes
-volumes: {}
-  # - name: config
-  #   configMap:
-  #     name: eupf-config
+# volumes.
+# The /sys hostPath volume is required: the container entrypoint mounts
+# bpffs and debugfs under /sys to load the eBPF data plane.
+volumes:
+  - name: sys
+    hostPath:
+      path: /sys
 
 # volume mounts
-volumeMounts: {}
-  # - name: config
-  #   mountPath: /app/conf
+volumeMounts:
+  - name: sys
+    mountPath: /sys
+    readOnly: true
 
 hostNetwork: false
 
@@ -182,30 +216,35 @@ metrics:
 
 podAnnotations: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext:
+  # net.ipv4.ip_forward is an unsafe sysctl: nodes must allow it via
+  # kubelet --allowed-unsafe-sysctls=net.ipv4.ip_forward
+  sysctls:
+    - name: net.ipv4.ip_forward
+      value: "1"
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+# eUPF loads eBPF programs, mounts bpffs/debugfs and raises RLIMIT_MEMLOCK,
+# which requires elevated privileges. If your environment allows it, a more
+# fine-grained alternative is:
+#   capabilities:
+#     add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE, BPF, PERFMON]
+securityContext:
+  privileged: true
 
-extraContainerPorts: []
-  # - name: metrics
-  #   containerPort: 9090
-  #   protocol: TCP
+extraContainerPorts:
+  - name: metrics
+    containerPort: 9090
+    protocol: TCP
 
 service:
   type: ClusterIP
-  port: 80
-  extraPorts: []
-    # - port: 9090
-    #   targetPort: metrics
-    #   protocol: TCP
-    #   name: metrics
+  # Must match the eUPF API address (UPF_API_ADDRESS / api_address), default :8080.
+  port: 8080
+  extraPorts:
+    - port: 9090
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
 
 ingress:
   enabled: false
@@ -223,32 +262,25 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
 
-livenessProbe: {}
-  # We usually recommend to specify probes, read https://habr.com/ru/company/nixys/blog/544288/
-  # tcpSocket:
-  #   port: http
-  # initialDelaySeconds: 5
-  # periodSeconds: 10
+livenessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
 
-readinessProbe: {}
-  # We usually recommend to specify probes, read https://habr.com/ru/company/nixys/blog/544288/
-  # httpGet:
-  #   path: /healthz
-  #   port: http
-  # initialDelaySeconds: 5
-  # periodSeconds: 10
+readinessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
 
 startupProbe: {}
   # We usually recommend to specify probes, read https://habr.com/ru/company/nixys/blog/544288/

@@ -40,14 +40,14 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ include "helpers.pod.containerImage" . }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.ImagePullPolicy }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.imagePullPolicy }}
           {{- if .Values.command }}
           command: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.command "context" $) | nindent 12 }}
           {{- end }}
-          {{- if .Values.args }}
-          args: {{- include "helpers.common.tplvalues.render" (dict "value" .Values.args "context" $) | nindent 12 }}
+          {{- if or .Values.args .Values.config.enabled }}
+          args: {{- include "helpers.pod.args" . | nindent 12 }}
           {{- end }}
-          {{- if .Values.env }}
+          {{- if or .Values.env (not .Values.config.enabled) }}
           env:
             - name: MY_POD_IP
               valueFrom:
