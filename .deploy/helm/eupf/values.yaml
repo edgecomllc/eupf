@@ -223,18 +223,13 @@ podSecurityContext:
     - name: net.ipv4.ip_forward
       value: "1"
 
-# eUPF loads eBPF programs (BPF, PERFMON), attaches XDP and sets routes
-# (NET_ADMIN), raises RLIMIT_MEMLOCK (SYS_RESOURCE) and mounts bpffs/debugfs
-# from the image entrypoint (SYS_ADMIN). These capabilities are all it needs;
-# the container keeps the device cgroup, the masked /proc and /sys paths and
-# the runtime's seccomp and AppArmor profiles. Where the mounts are denied
-# anyway (an AppArmor profile that forbids mount, a seccomp profile that
-# blocks mount or bpf, a runtime that does not know CAP_BPF on a kernel
-# before 5.8), fall back to a privileged container:
-#   privileged: true
+# eUPF loads eBPF programs, mounts bpffs/debugfs and raises RLIMIT_MEMLOCK,
+# which requires elevated privileges. If your environment allows it, a more
+# fine-grained alternative is:
+#   capabilities:
+#     add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE, BPF, PERFMON]
 securityContext:
-  capabilities:
-    add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE, BPF, PERFMON]
+  privileged: true
 
 extraContainerPorts:
   - name: metrics

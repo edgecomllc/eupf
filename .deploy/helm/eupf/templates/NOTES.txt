@@ -24,7 +24,6 @@ eUPF is configured via a ConfigMap (config.enabled=true), mounted at
 Notes:
 - Nodes must allow the unsafe sysctl net.ipv4.ip_forward
   (kubelet --allowed-unsafe-sysctls='net.ipv4.ip_forward').
-- The container runs with the capabilities the eBPF data plane needs
-  (NET_ADMIN, SYS_ADMIN, SYS_RESOURCE, BPF, PERFMON), not privileged; see the
-  chart README for the environments that need the privileged fallback.
+- The container runs privileged by default (eBPF data plane requires it);
+  see the chart README for a capabilities-based alternative.
 - The REST API is served on port {{ .Values.service.port }} (service port "http").

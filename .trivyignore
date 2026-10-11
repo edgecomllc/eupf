@@ -22,11 +22,14 @@ AVD-KSV-0117
 # not supported by design.
 AVD-KSV-0118
 
+<<<<<<< HEAD
 # SYS_ADMIN is what the image entrypoint mounts bpffs and debugfs with; the
 # other capabilities are a smaller grant than the privileged container the
 # chart ran before, which had every capability and no runtime profile.
 AVD-KSV-0005
 
+=======
+>>>>>>> 7465720 (fix(helm): make default values produce a startable pod (#645) (#649))
 # The eUPF data plane needs a read-only /sys hostPath mount: the image
 # entrypoint mounts bpffs and debugfs under /sys to load the eBPF
 # programs. A "disallowed volume type" (hostPath) is by design here.
