@@ -19,12 +19,19 @@ The default values produce a working pod: eUPF is configured via `UPF_*` environ
   kubelet --allowed-unsafe-sysctls 'net.ipv4.ip_forward'
   ```
 
-- **Privileges**: eUPF loads eBPF programs, mounts bpffs/debugfs (via the image entrypoint) and raises `RLIMIT_MEMLOCK`. By default the chart runs the container as `privileged: true`. If your environment allows a finer-grained setup, override `securityContext`, e.g.:
+- **Privileges**: eUPF loads eBPF programs, mounts bpffs/debugfs (via the image entrypoint) and raises `RLIMIT_MEMLOCK`. By default the chart gives the container the capabilities this takes and nothing more:
 
   ```yaml
   securityContext:
     capabilities:
       add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE, BPF, PERFMON]
+  ```
+
+  The container keeps the device cgroup, the masked `/proc` and `/sys` paths and the runtime's seccomp and AppArmor profiles. Some environments deny the entrypoint's mounts even with `SYS_ADMIN`: nodes whose AppArmor profile forbids `mount` (the runtime's default profile on Ubuntu and Debian does), a custom seccomp profile that blocks `mount` or `bpf`, or a runtime that rejects `BPF` and `PERFMON` on a kernel before 5.8. There, either allow the mounts (for AppArmor: `securityContext.appArmorProfile: {type: Unconfined}` on Kubernetes 1.30+, the `container.apparmor.security.beta.kubernetes.io/eupf: unconfined` pod annotation before) or fall back to a privileged container:
+
+  ```yaml
+  securityContext:
+    privileged: true
   ```
 
 - The `/sys` hostPath is mounted read-only into the pod (required by the entrypoint to mount bpffs/debugfs).
