@@ -1,0 +1,72 @@
+# Installs the eUPF chart with its defaults on a kind cluster every night,
+# runs the CNTi Test Suite's essential tests against it and publishes the
+# result as the badge in the README. https://github.com/lfn-cnti/testsuite-action
+#
+# For problems with the action or the test suite, open an issue at
+# https://github.com/lfn-cnti/testsuite-action/issues
+name: CNTi essential
+
+on:
+  schedule:
+    # Off the full hour: GitHub delays or drops scheduled runs under load,
+    # which peaks at the start of each hour.
+    - cron: "37 3 * * *"
+  # By hand, and on pull requests that change the job or its configuration.
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/cnti.yml
+      - .github/cnti/**
+
+permissions:
+  contents: read
+
+jobs:
+  # The nightly run and manual runs on main: the only runs that publish the
+  # badge, and the only ones with a write token. Forks that enable scheduled
+  # workflows do not run either job.
+  essential:
+    if: github.repository == 'edgecomllc/eupf' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      # Publishes the badge to the orphan branch `badges`.
+      contents: write
+    steps: &essential-steps
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The suite doesn't need the job's write token; the action passes it
+          # to the badge publisher on its own.
+          persist-credentials: false
+
+      - uses: lfn-cnti/testsuite-action@70536fda55fcb11f4f7463175fe9d57c86b85574 # v1.2.0
+        with:
+          # A released suite version, bumped on purpose after reading the
+          # release notes.
+          version: v2.2.0
+          cnf_config: .github/cnti/cnti-testsuite.yaml
+          kind_config: .github/cnti/kind.yaml
+          tests: cert
+          badge_branch: badges
+
+      # Why did eUPF not come up? Pod state, events and logs from the kind
+      # cluster the action created; it lives until the job ends.
+      - name: Diagnostics
+        if: failure()
+        run: |
+          set +e
+          kubectl get pods -A -o wide
+          kubectl describe pods -n eupf | tail -80
+          kubectl logs -n eupf --all-containers --tail=60 -l app.kubernetes.io/name=eupf
+          kubectl get events -n eupf --sort-by=.lastTimestamp | tail -40
+
+  # Pull requests that change the job or its configuration, and manual runs on
+  # other branches: the same steps with a read-only token. The action publishes
+  # the badge only from the default branch, so nothing is published here.
+  essential-pr:
+    if: github.repository == 'edgecomllc/eupf' && (github.event_name == 'pull_request' || github.ref != 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps: *essential-steps
