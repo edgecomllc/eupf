@@ -15,4 +15,19 @@ AVD-KSV-0026
 AVD-KSV-0030
 AVD-KSV-0106
 AVD-KSV-0117
+
+# The eUPF data plane runs as root with the capabilities it needs (NET_ADMIN,
+# SYS_ADMIN, SYS_RESOURCE, BPF, PERFMON) to load eBPF programs, mount
+# bpffs/debugfs and raise RLIMIT_MEMLOCK - a restricted security context is
+# not supported by design.
 AVD-KSV-0118
+
+# SYS_ADMIN is what the image entrypoint mounts bpffs and debugfs with; the
+# other capabilities are a smaller grant than the privileged container the
+# chart ran before, which had every capability and no runtime profile.
+AVD-KSV-0005
+
+# The eUPF data plane needs a read-only /sys hostPath mount: the image
+# entrypoint mounts bpffs and debugfs under /sys to load the eBPF
+# programs. A "disallowed volume type" (hostPath) is by design here.
+AVD-KSV-0121
