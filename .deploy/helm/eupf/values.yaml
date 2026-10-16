@@ -54,6 +54,11 @@ fullnameOverride: ""
 # values file; eUPF also falls back to built-in defaults for anything unset.
 defaultEnv:
   UPF_INTERFACE_NAME: eth0
+  # The eBPF maps are sized from max_sessions (two PDR, FAR and URR entries
+  # and one QER entry per session). eUPF's own default is 65535 sessions, whose
+  # maps need more memory than the chart's default limit below; 1024 keeps the
+  # maps at the size the limit was set for. Raise both together for production.
+  UPF_MAX_SESSIONS: "1024"
   UPF_API_ADDRESS: ":8080"
   UPF_PFCP_ADDRESS: ":8805"
   UPF_METRICS_ADDRESS: ":9090"
