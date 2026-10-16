@@ -95,19 +95,18 @@ configMaps: {}
   #       foo: bar
 
 # volumes.
-# The /sys hostPath volume is required: as root, the container entrypoint
-# mounts bpffs and debugfs under /sys to load the eBPF data plane; as a
-# non-root user (see securityContext) eUPF uses the node's bpffs through it.
+# The node's BPF filesystem, where eUPF pins its maps. Only bpffs is needed
+# as a non-root user; a root container that mounts bpffs and debugfs itself
+# (the entrypoint does, when root) needs /sys instead.
 volumes:
   - name: sys
     hostPath:
-      path: /sys
+      path: /sys/fs/bpf
 
 # volume mounts
 volumeMounts:
   - name: sys
-    mountPath: /sys
-    readOnly: true
+    mountPath: /sys/fs/bpf
 
 hostNetwork: false
 
@@ -246,8 +245,11 @@ podSecurityContext:
 #   capabilities:
 #     add: [NET_ADMIN, SYS_RESOURCE, BPF, PERFMON, DAC_OVERRIDE]
 securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
   capabilities:
-    add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE, BPF, PERFMON]
+    add: [NET_ADMIN, SYS_RESOURCE, BPF, PERFMON, DAC_OVERRIDE]
 
 extraContainerPorts:
   - name: metrics
