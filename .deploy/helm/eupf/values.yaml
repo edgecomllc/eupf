@@ -95,18 +95,18 @@ configMaps: {}
   #       foo: bar
 
 # volumes.
-# The /sys hostPath volume is required: the container entrypoint mounts
-# bpffs and debugfs under /sys to load the eBPF data plane.
+# The node's BPF filesystem, where eUPF pins its maps. Only bpffs is needed
+# as a non-root user; a root container that mounts bpffs and debugfs itself
+# (the entrypoint does, when root) needs /sys instead.
 volumes:
   - name: sys
     hostPath:
-      path: /sys
+      path: /sys/fs/bpf
 
 # volume mounts
 volumeMounts:
   - name: sys
-    mountPath: /sys
-    readOnly: true
+    mountPath: /sys/fs/bpf
 
 hostNetwork: false
 
@@ -232,9 +232,24 @@ podSecurityContext:
 # blocks mount or bpf, a runtime that does not know CAP_BPF on a kernel
 # before 5.8), fall back to a privileged container:
 #   privileged: true
+# The image carries NET_ADMIN, SYS_RESOURCE, BPF and PERFMON as file
+# capabilities on the eupf binary, plus DAC_OVERRIDE to create its map pin
+# directory under /sys/fs/bpf, so the container can run as a non-root user
+# wherever the node has bpffs mounted at /sys/fs/bpf (systemd hosts do; the
+# README covers kind). Grant exactly that set: with one missing, exec fails
+# with EPERM. SYS_ADMIN is not needed without root (no mounts, CAP_BPF on the
+# kernels the chart supports):
+#   runAsUser: 1000
+#   runAsGroup: 1000
+#   runAsNonRoot: true
+#   capabilities:
+#     add: [NET_ADMIN, SYS_RESOURCE, BPF, PERFMON, DAC_OVERRIDE]
 securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
   capabilities:
-    add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE, BPF, PERFMON]
+    add: [NET_ADMIN, SYS_RESOURCE, BPF, PERFMON, DAC_OVERRIDE]
 
 extraContainerPorts:
   - name: metrics
