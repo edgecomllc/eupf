@@ -184,8 +184,12 @@ func HandlePfcpSessionDeletionRequest(conn *PfcpConnection, msg message.Message,
 		}
 	}
 	for id, urr := range session.URRs {
-		urrInfo, err := mapOperations.DeleteUrr(urr.GlobalId)
+		urrInfo, err := mapOperations.ReadUrr(urr.GlobalId)
 		if err != nil {
+			log.Error().Msgf("WARN: mapOperations failed to read URR: %d, %s", id, err.Error())
+			continue
+		}
+		if err := mapOperations.DeleteUrr(urr.GlobalId); err != nil {
 			log.Error().Msgf("WARN: mapOperations failed to delete URR: %d, %s", id, err.Error())
 			continue
 		}
@@ -387,8 +391,12 @@ func HandlePfcpSessionModificationRequest(conn *PfcpConnection, msg message.Mess
 			log.Info().Msgf("Removing URR ID: %d", urrId)
 			sUrrInfo := session.RemoveUrr(urrId)
 
-			urrInfo, err := mapOperations.DeleteUrr(sUrrInfo.GlobalId)
+			urrInfo, err := mapOperations.ReadUrr(sUrrInfo.GlobalId)
 			if err != nil {
+				log.Error().Err(err).Msg("Can't read URR")
+				return err
+			}
+			if err := mapOperations.DeleteUrr(sUrrInfo.GlobalId); err != nil {
 				log.Error().Err(err).Msg("Can't remove URR")
 				return err
 			}
