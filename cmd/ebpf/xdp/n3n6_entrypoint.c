@@ -31,6 +31,7 @@
 #include "xdp/qer.h"
 #include "xdp/urr.h"
 #include "xdp/pdr.h"
+#include "xdp/rebalance.h"
 #include "xdp/sdf_filter.h"
 
 #include "xdp/utils/common.h"
@@ -69,8 +70,6 @@ struct dataplane_config {
     __u8   trace_blocked;
     __u32  rebalance_local_ip;
     __u32  rebalance_ip;
-    __u32  ue_subnet_prefix;
-    __u32  ue_subnet_prefix_mask;
     __u8   ip6_ra_support;
     __u128 ip6_ra_prefix;
     __u16  ip6_ra_prefix_length;
@@ -265,8 +264,14 @@ static __always_inline __u32 encap_ip_packet(struct packet_context *ctx, __u32 s
 }
 
 static __always_inline int try_rebalance(struct packet_context *ctx) {
-    if(!global_config.rebalance_ip
-        || (ctx->ip4->daddr & global_config.ue_subnet_prefix_mask) != global_config.ue_subnet_prefix)
+    if(!global_config.rebalance_ip || !ctx->ip4)
+        return -1;
+
+    struct ue_rebalance_lpm_key key = {
+        .prefix_len = 32,
+    };
+    __builtin_memcpy(key.data, &ctx->ip4->daddr, sizeof(key.data));
+    if(!bpf_map_lookup_elem(&ue_rebalance_lpm_map, &key))
         return -1;
 
     if(global_config.rebalance_local_ip) {

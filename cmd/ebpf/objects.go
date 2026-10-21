@@ -88,6 +88,7 @@ func (bpfObjects *BpfObjects) Load() error {
 		"pdr_map_downlink_ip6": bpfObjects.pdrMapSize,
 		"pdr_map_teid_ip4":     bpfObjects.pdrMapSize,
 		"urr_map":              bpfObjects.urrMapSize,
+		"ue_rebalance_lpm_map": 16,
 	}
 
 	replacements := make(map[string]*ebpf.Map)

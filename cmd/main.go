@@ -158,12 +158,14 @@ func main() {
 			entrypointConfig.RebalanceLocalIp = binary.LittleEndian.Uint32(rebalanceLocalIP)
 		}
 
-		ip4Prefix, ip4Net, err := net.ParseCIDR(config.Conf.Ip4UEPrefix)
-		if err != nil {
-			log.Fatal().Err(err).Msgf("invalid ip4_ue_prefix: %s", config.Conf.Ip4UEPrefix)
+		if len(config.Conf.Ip4UEPrefixes) == 0 {
+			log.Fatal().Msgf("rebalance_address is set but no ip4_ue_prefixes configured")
 		}
-		entrypointConfig.UeSubnetPrefix = binary.LittleEndian.Uint32(ip4Prefix.To4())
-		entrypointConfig.UeSubnetPrefixMask = binary.LittleEndian.Uint32(ip4Net.Mask)
+		for _, prefix := range config.Conf.Ip4UEPrefixes {
+			if err := ebpf.PutUeRebalancePrefix(bpfObjects.UeRebalanceLpmMap, prefix); err != nil {
+				log.Fatal().Err(err).Msgf("invalid ip4_ue_prefixes entry: %s", prefix)
+			}
+		}
 	}
 
 	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
