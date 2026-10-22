@@ -143,6 +143,31 @@ func main() {
 		entrypointConfig.Ip6RaPrefixLength = uint16(ip6PrefixLength)
 	}
 
+	if config.Conf.DLRebalanceAddress != "" {
+		rebalanceIP := net.ParseIP(config.Conf.DLRebalanceAddress).To4()
+		if rebalanceIP == nil {
+			log.Fatal().Msgf("invalid rebalance_address: %s", config.Conf.DLRebalanceAddress)
+		}
+		entrypointConfig.RebalanceIp = binary.LittleEndian.Uint32(rebalanceIP)
+
+		if config.Conf.DLRebalanceLocalAddress != "" {
+			rebalanceLocalIP := net.ParseIP(config.Conf.DLRebalanceLocalAddress).To4()
+			if rebalanceLocalIP == nil {
+				log.Fatal().Msgf("invalid rebalance_local_address: %s", config.Conf.DLRebalanceLocalAddress)
+			}
+			entrypointConfig.RebalanceLocalIp = binary.LittleEndian.Uint32(rebalanceLocalIP)
+		}
+
+		if len(config.Conf.Ip4UEPrefixes) == 0 {
+			log.Fatal().Msgf("rebalance_address is set but no ip4_ue_prefixes configured")
+		}
+		for _, prefix := range config.Conf.Ip4UEPrefixes {
+			if err := ebpf.PutUeRebalancePrefix(bpfObjects.UeRebalanceLpmMap, prefix); err != nil {
+				log.Fatal().Err(err).Msgf("invalid ip4_ue_prefixes entry: %s", prefix)
+			}
+		}
+	}
+
 	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
 		log.Fatal().Err(err).Msgf("can't set dataplane global config")
 	}

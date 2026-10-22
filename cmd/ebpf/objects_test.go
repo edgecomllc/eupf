@@ -1134,6 +1134,113 @@ func TestEntrypoint(t *testing.T) {
 
 }
 
+var (
+	rebalanceIP      = net.ParseIP("10.99.0.2")
+	rebalanceLocalIP = net.ParseIP("10.99.0.1")
+)
+
+func testDownlinkRebalancePacket(bpfObjects *BpfObjects, dstIP net.IP) (int, []byte, error) {
+	packet := gopacket.NewSerializeBuffer()
+	if err := gopacket.SerializeLayers(packet, gopacket.SerializeOptions{},
+		&layers.Ethernet{
+			SrcMAC:       n9MAC,
+			DstMAC:       n3MAC,
+			EthernetType: layers.EthernetTypeIPv4,
+		},
+		&layers.IPv4{
+			Version:  4,
+			DstIP:    dstIP,
+			SrcIP:    net.IP{1, 1, 1, 1},
+			Protocol: layers.IPProtocolICMPv4,
+			IHL:      5,
+			TTL:      64,
+		},
+		&layers.ICMPv4{
+			TypeCode: layers.ICMPv4TypeEchoRequest,
+		},
+	); err != nil {
+		return 0, nil, fmt.Errorf("serializing input packet failed: %v", err)
+	}
+
+	return bpfObjects.UpfIpEntrypointFunc.Test(append(packet.Bytes(), 0x00, 0x00, 0x00, 0x00))
+}
+
+func TestDownlinkRebalance(t *testing.T) {
+
+	if err := IncreaseResourceLimits(); err != nil {
+		t.Fatalf("Can't increase resource limits: %s", err.Error())
+	}
+
+	bpfObjects := NewBpfObjects()
+
+	if err := bpfObjects.Load(); err != nil {
+		t.Fatalf("Loading bpf objects failed: %s", err.Error())
+	}
+
+	defer bpfObjects.Close()
+
+	entrypointConfig := IpEntrypointDataplaneConfig{
+		N3Ipv4Address:    binary.LittleEndian.Uint32(n3IP.To4()),
+		N9Ipv4Address:    binary.LittleEndian.Uint32(n9IP.To4()),
+		RebalanceIp:      binary.LittleEndian.Uint32(rebalanceIP.To4()),
+		RebalanceLocalIp: binary.LittleEndian.Uint32(rebalanceLocalIP.To4()),
+	}
+
+	if err := bpfObjects.GlobalConfig.Set(entrypointConfig); err != nil {
+		t.Fatalf("can't set dataplane global config: %s", err.Error())
+	}
+
+	prefixes := []string{"10.60.0.0/24", "10.61.0.0/16"}
+	for _, prefix := range prefixes {
+		if err := PutUeRebalancePrefix(bpfObjects.UeRebalanceLpmMap, prefix); err != nil {
+			t.Fatalf("can't put rebalance prefix %s: %s", prefix, err.Error())
+		}
+	}
+
+	inPrefix := []net.IP{
+		net.IP{10, 60, 0, 1},
+		net.IP{10, 60, 0, 254},
+		net.IP{10, 61, 128, 7},
+	}
+	for _, dstIP := range inPrefix {
+		bpfRet, bufOut, err := testDownlinkRebalancePacket(bpfObjects, dstIP)
+		if err != nil {
+			t.Fatalf("ebpf run failed: %v", err)
+		}
+		if bpfRet != 4 { // XDP_REDIRECT
+			t.Fatalf("unexpected return value for %s: %d", dstIP, bpfRet)
+		}
+
+		response := gopacket.NewPacket(bufOut, layers.LayerTypeEthernet, gopacket.Default)
+		ipLayer := response.Layer(layers.LayerTypeIPv4)
+		if ipLayer == nil {
+			t.Fatalf("no ipv4 layer in output packet for %s", dstIP)
+		}
+		outerIP, _ := ipLayer.(*layers.IPv4)
+		if !outerIP.DstIP.Equal(rebalanceIP) || !outerIP.SrcIP.Equal(rebalanceLocalIP) {
+			t.Fatalf("unexpected outer ipip header: %s -> %s", outerIP.SrcIP, outerIP.DstIP)
+		}
+		if outerIP.Protocol != layers.IPProtocolIPv4 {
+			t.Fatalf("unexpected outer protocol: %d", outerIP.Protocol)
+		}
+	}
+
+	outOfPrefix := []net.IP{
+		net.IP{10, 60, 1, 1},
+		net.IP{10, 62, 0, 1},
+		net.IP{8, 8, 8, 8},
+	}
+	for _, dstIP := range outOfPrefix {
+		bpfRet, _, err := testDownlinkRebalancePacket(bpfObjects, dstIP)
+		if err != nil {
+			t.Fatalf("ebpf run failed: %v", err)
+		}
+		if bpfRet != 2 { // XDP_PASS
+			t.Fatalf("unexpected return value for %s: %d", dstIP, bpfRet)
+		}
+	}
+}
+
 func TestEntrypointBenchmark(t *testing.T) {
 
 	if err := IncreaseResourceLimits(); err != nil {

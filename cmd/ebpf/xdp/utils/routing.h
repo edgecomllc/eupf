@@ -87,8 +87,15 @@ static __always_inline void update_route_cache_ipv4(const struct bpf_fib_lookup 
 }
 #endif
 
-static __always_inline enum xdp_action do_route(struct xdp_md *ctx, struct ethhdr *eth, int ifindex, __u8 (*smac)[6], __u8 (*dmac)[6]) {
-    //_decr_ttl(ether_proto, l3hdr);
+static __always_inline int decrease_ip_ttl(struct iphdr *iph)
+{
+    __u32 check = (__u32)iph->check;
+    check += (__u32)bpf_htons(0x0100);
+    iph->check = (__sum16)(check + (check >= 0xFFFF));
+    return --iph->ttl;
+}
+
+static __always_inline enum xdp_action forward(struct xdp_md *ctx, struct ethhdr *eth, int ifindex, __u8 (*smac)[6], __u8 (*dmac)[6]) {
     __builtin_memcpy(eth->h_source, smac, ETH_ALEN);
     __builtin_memcpy(eth->h_dest, dmac, ETH_ALEN);
 
@@ -97,7 +104,7 @@ static __always_inline enum xdp_action do_route(struct xdp_md *ctx, struct ethhd
     return bpf_redirect(ifindex, 0);
 }
 
-static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, const struct iphdr *ip4) {
+static __always_inline enum xdp_action route_ipv4_to(struct xdp_md *ctx, struct ethhdr *eth, struct iphdr *ip4, __u32 daddr) {
     const __u32 key = 0;
     struct route_stat *statistic = bpf_map_lookup_elem(&upf_route_stat, &key);
     if (!statistic) {
@@ -105,11 +112,11 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
     }
 
 #ifdef ENABLE_ROUTE_CACHE
-    struct route_record *cache = bpf_map_lookup_elem(&upf_route_cache_ip4, &ip4->daddr);
+    struct route_record *cache = bpf_map_lookup_elem(&upf_route_cache_ip4, &daddr);
     if (cache) {
-        upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: cached ifindex: %d", &ip4->saddr, &ip4->daddr, cache->ifindex);
+        upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: cached ifindex: %d", &ip4->saddr, &daddr, cache->ifindex);
         statistic->fib_lookup_ip4_cache += 1;
-        return do_route_ipv4(ctx, eth, cache->ifindex, &cache->smac, &cache->dmac);
+        return forward(ctx, eth, cache->ifindex, &cache->smac, &cache->dmac);
     }
 #endif
 
@@ -121,26 +128,25 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
     fib_params.dport = 0;
     fib_params.tot_len = bpf_ntohs(ip4->tot_len);
     fib_params.ipv4_src = ip4->saddr;
-    fib_params.ipv4_dst = ip4->daddr;
+    fib_params.ipv4_dst = daddr;
     fib_params.ifindex = ctx->ingress_ifindex;
 
     int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), 0 /*BPF_FIB_LOOKUP_OUTPUT*/);
     switch (rc) {
         case BPF_FIB_LKUP_RET_SUCCESS:
-            upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: nexthop: %pI4", &ip4->saddr, &ip4->daddr, &fib_params.ipv4_dst);
-            upf_printk("upf: bpf_fib_lookup2 %pI4 -> %pI4: h_vlan_TCI: %d", &ip4->saddr, &ip4->daddr, fib_params.h_vlan_TCI);
-            upf_printk("upf: bpf_fib_lookup3 %pI4 -> %pI4: h_vlan_proto: %d", &ip4->saddr, &ip4->daddr, fib_params.h_vlan_proto);
+            upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: nexthop: %pI4", &ip4->saddr, &daddr, &fib_params.ipv4_dst);
             statistic->fib_lookup_ip4_ok += 1;
 
 #ifdef ENABLE_ROUTE_CACHE
-            update_route_cache_ipv4(&fib_params, ip4->daddr);
+            update_route_cache_ipv4(&fib_params, daddr);
 #endif
-            return do_route(ctx, eth, fib_params.ifindex, &fib_params.smac, &fib_params.dmac);
+            decrease_ip_ttl(ip4);
+            return forward(ctx, eth, fib_params.ifindex, &fib_params.smac, &fib_params.dmac);
 
         case BPF_FIB_LKUP_RET_BLACKHOLE:
         case BPF_FIB_LKUP_RET_UNREACHABLE:
         case BPF_FIB_LKUP_RET_PROHIBIT:
-            upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
+            upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &daddr, rc);
             statistic->fib_lookup_ip4_error_drop += 1;
             return XDP_DROP;
         case BPF_FIB_LKUP_RET_NOT_FWDED:
@@ -149,13 +155,13 @@ static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct eth
         case BPF_FIB_LKUP_RET_NO_NEIGH:
         case BPF_FIB_LKUP_RET_FRAG_NEEDED:
         default:
-            upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &ip4->daddr, rc);
+            upf_printk("upf: bpf_fib_lookup %pI4 -> %pI4: %d", &ip4->saddr, &daddr, rc);
             statistic->fib_lookup_ip4_error_pass += 1;
             return XDP_PASS; /* Let's kernel takes care */
     }
 }
 
-static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct ethhdr *eth, const struct ipv6hdr *ip6) {
+static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct ethhdr *eth, struct ipv6hdr *ip6) {
     const __u32 key = 0;
     struct route_stat *statistic = bpf_map_lookup_elem(&upf_route_stat, &key);
     if (!statistic) {
@@ -179,7 +185,8 @@ static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct eth
             upf_printk("upf: bpf_fib_lookup %pI6c -> %pI6c: nexthop: %pI6c", &ip6->saddr, &ip6->daddr, &fib_params.ipv6_dst);
             statistic->fib_lookup_ip6_ok += 1;
 
-            return do_route(ctx, eth, fib_params.ifindex, &fib_params.smac, &fib_params.dmac);
+            ip6->hop_limit--;
+            return forward(ctx, eth, fib_params.ifindex, &fib_params.smac, &fib_params.dmac);
         case BPF_FIB_LKUP_RET_BLACKHOLE:
         case BPF_FIB_LKUP_RET_UNREACHABLE:
         case BPF_FIB_LKUP_RET_PROHIBIT:
@@ -196,4 +203,8 @@ static __always_inline enum xdp_action route_ipv6(struct xdp_md *ctx, struct eth
             statistic->fib_lookup_ip6_error_pass += 1;
             return XDP_PASS; /* Let's kernel takes care */
     }
+}
+
+static __always_inline enum xdp_action route_ipv4(struct xdp_md *ctx, struct ethhdr *eth, struct iphdr *ip4) {
+    return route_ipv4_to(ctx, eth, ip4, ip4->daddr);
 }
