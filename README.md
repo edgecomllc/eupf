@@ -6,6 +6,7 @@
 [![Build][build-img]][build]
 [![Test][test-img]][test]
 [![Security][security-test-img]][security-test]
+[![CNTi essential][cnti-img]][cnti]
 [![License: Apache-2.0][license-img]][license]
 
 </div>
@@ -264,5 +265,7 @@ This project is licensed under the [Apache-2.0 Creative Commons License](https:/
 [test-img]: https://github.com/edgecomllc/eupf/actions/workflows/test.yml/badge.svg
 [security-test]: https://github.com/edgecomllc/eupf/actions/workflows/security-scan.yml
 [security-test-img]: https://github.com/edgecomllc/eupf/actions/workflows/security-scan.yml/badge.svg
+[cnti]: https://github.com/edgecomllc/eupf/actions/workflows/cnti.yml
+[cnti-img]: https://github.com/edgecomllc/eupf/raw/badges/cnti-badge.svg
 [license]: https://github.com/edgecomllc/eupf/blob/main/LICENSE
 [license-img]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
