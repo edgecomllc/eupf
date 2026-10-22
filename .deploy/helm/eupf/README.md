@@ -47,6 +47,10 @@ env:
 
 List-valued parameters (e.g. `UPF_INTERFACE_NAME`) are comma-separated strings.
 
+### Sessions and memory
+
+eUPF sizes its eBPF maps from `max_sessions`: two PDR, FAR and URR entries and one QER entry per session, allocated at startup and charged to the pod's memory. eUPF's own default is 65535 sessions, whose maps need about 115 MiB (a working set of about 140 MiB with the process, measured on a kind cluster); the chart's default memory limit is 128 Mi, so `defaultEnv` sets `UPF_MAX_SESSIONS: "1024"`, a working set of about 30 MiB. For production, raise `max_sessions` and `resources.limits.memory` together: about 1.8 MiB per 1024 sessions on top of the process's ~30 MiB, plus headroom; in ConfigMap mode set `max_sessions` in `config.data`, because the default `UPF_*` variables are not injected there.
+
 ### ConfigMap mode (`config.enabled: true`)
 
 ```yaml
