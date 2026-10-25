@@ -1,4 +1,4 @@
-FROM golang:1.26.9-bookworm AS builder
+FROM golang:1.26.10-bookworm AS builder
 
 WORKDIR /app
 
@@ -27,6 +27,18 @@ COPY --from=builder /app/bin/ /app/bin/
 COPY --from=builder /app/cmd/docs/swagger.* /app/
 COPY --from=builder /app/cmd/ebpf/zeroentrypoint_bpf.o /app/
 COPY ./entrypoint.sh /app/bin/entrypoint.sh
+
+# File capabilities, so eupf gets what it needs without running as root:
+# BPF and PERFMON load the eBPF programs (kernel 5.8+, the chart requires
+# 5.15), NET_ADMIN attaches XDP and sets routes, SYS_RESOURCE raises
+# RLIMIT_MEMLOCK, and DAC_OVERRIDE creates the pin directory under
+# /sys/fs/bpf, which is owned by root. Whoever runs the image, as root or
+# not, must grant all of them (the chart does; docker needs --privileged or
+# --cap-add): exec of a binary with the effective bit set fails with EPERM
+# when one is missing from the bounding set.
+RUN apk add --no-cache libcap \
+    && setcap cap_net_admin,cap_sys_resource,cap_bpf,cap_perfmon,cap_dac_override=ep /app/bin/eupf \
+    && apk del libcap
 
 # CMD is overridden if arguments are passed.
 ENTRYPOINT [ "sh", "/app/bin/entrypoint.sh" ]

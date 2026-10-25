@@ -34,7 +34,20 @@ The default values produce a working pod: eUPF is configured via `UPF_*` environ
     privileged: true
   ```
 
-- The `/sys` hostPath is mounted read-only into the pod (required by the entrypoint to mount bpffs/debugfs).
+- **Non-root** (optional): the image carries `NET_ADMIN`, `SYS_RESOURCE`, `BPF` and `PERFMON` as file capabilities on the `eupf` binary, plus `DAC_OVERRIDE` so it can create its map pin directory under `/sys/fs/bpf`, which root owns. With them the container runs as a non-root user, with less privilege than root plus capabilities: `SYS_ADMIN` is not needed, since a non-root entrypoint mounts nothing and the kernels the chart supports have `CAP_BPF`:
+
+  ```yaml
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    runAsNonRoot: true
+    capabilities:
+      add: [NET_ADMIN, SYS_RESOURCE, BPF, PERFMON, DAC_OVERRIDE]
+  ```
+
+  Grant exactly that set, as root or not: a binary with file capabilities fails to exec (`Operation not permitted`) when one of them is missing from the container's bounding set. The chart's defaults do; `docker run` needs `--privileged` or `--cap-add` for each. Leave `allowPrivilegeEscalation` unset: file capabilities need it. A non-root process cannot mount bpffs itself, so the **node must have bpffs mounted at `/sys/fs/bpf`**, as systemd hosts do (`sys-fs-bpf.mount`). kind nodes don't; bind the host's in with `extraMounts: [{hostPath: /sys/fs/bpf, containerPath: /sys/fs/bpf}]` on every node.
+
+- The `/sys` hostPath is mounted read-only into the pod: as root the entrypoint mounts bpffs/debugfs under it, as non-root eUPF reaches the node's bpffs through it.
 
 ## Configuration
 
@@ -53,6 +66,10 @@ env:
 ```
 
 List-valued parameters (e.g. `UPF_INTERFACE_NAME`) are comma-separated strings.
+
+### Sessions and memory
+
+eUPF sizes its eBPF maps from `max_sessions`: two PDR, FAR and URR entries and one QER entry per session, allocated at startup and charged to the pod's memory. eUPF's own default is 65535 sessions, whose maps need about 115 MiB (a working set of about 140 MiB with the process, measured on a kind cluster); the chart's default memory limit is 128 Mi, so `defaultEnv` sets `UPF_MAX_SESSIONS: "1024"`, a working set of about 30 MiB. For production, raise `max_sessions` and `resources.limits.memory` together: about 1.8 MiB per 1024 sessions on top of the process's ~30 MiB, plus headroom; in ConfigMap mode set `max_sessions` in `config.data`, because the default `UPF_*` variables are not injected there.
 
 ### ConfigMap mode (`config.enabled: true`)
 
