@@ -32,4 +32,5 @@ struct
     __type(key, struct ue_rebalance_lpm_key);
     __type(value, __u8);
     __uint(max_entries, 16);
+    __uint(map_flags, BPF_F_NO_PREALLOC);
 } ue_rebalance_lpm_map SEC(".maps");
