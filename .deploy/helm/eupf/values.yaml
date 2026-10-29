@@ -54,6 +54,11 @@ fullnameOverride: ""
 # values file; eUPF also falls back to built-in defaults for anything unset.
 defaultEnv:
   UPF_INTERFACE_NAME: eth0
+  # The eBPF maps are sized from max_sessions (two PDR, FAR and URR entries
+  # and one QER entry per session). eUPF's own default is 65535 sessions, whose
+  # maps need more memory than the chart's default limit below; 1024 keeps the
+  # maps at the size the limit was set for. Raise both together for production.
+  UPF_MAX_SESSIONS: "1024"
   UPF_API_ADDRESS: ":8080"
   UPF_PFCP_ADDRESS: ":8805"
   UPF_METRICS_ADDRESS: ":9090"
@@ -95,18 +100,18 @@ configMaps: {}
   #       foo: bar
 
 # volumes.
-# The /sys hostPath volume is required: the container entrypoint mounts
-# bpffs and debugfs under /sys to load the eBPF data plane.
+# The node's BPF filesystem, where eUPF pins its maps. Only bpffs is needed
+# as a non-root user; a root container that mounts bpffs and debugfs itself
+# (the entrypoint does, when root) needs /sys instead.
 volumes:
   - name: sys
     hostPath:
-      path: /sys
+      path: /sys/fs/bpf
 
 # volume mounts
 volumeMounts:
   - name: sys
-    mountPath: /sys
-    readOnly: true
+    mountPath: /sys/fs/bpf
 
 hostNetwork: false
 
@@ -223,13 +228,33 @@ podSecurityContext:
     - name: net.ipv4.ip_forward
       value: "1"
 
-# eUPF loads eBPF programs, mounts bpffs/debugfs and raises RLIMIT_MEMLOCK,
-# which requires elevated privileges. If your environment allows it, a more
-# fine-grained alternative is:
+# eUPF loads eBPF programs (BPF, PERFMON), attaches XDP and sets routes
+# (NET_ADMIN), raises RLIMIT_MEMLOCK (SYS_RESOURCE) and mounts bpffs/debugfs
+# from the image entrypoint (SYS_ADMIN). These capabilities are all it needs;
+# the container keeps the device cgroup, the masked /proc and /sys paths and
+# the runtime's seccomp and AppArmor profiles. Where the mounts are denied
+# anyway (an AppArmor profile that forbids mount, a seccomp profile that
+# blocks mount or bpf, a runtime that does not know CAP_BPF on a kernel
+# before 5.8), fall back to a privileged container:
+#   privileged: true
+# The image carries NET_ADMIN, SYS_RESOURCE, BPF and PERFMON as file
+# capabilities on the eupf binary, plus DAC_OVERRIDE to create its map pin
+# directory under /sys/fs/bpf, so the container can run as a non-root user
+# wherever the node has bpffs mounted at /sys/fs/bpf (systemd hosts do; the
+# README covers kind). Grant exactly that set: with one missing, exec fails
+# with EPERM. SYS_ADMIN is not needed without root (no mounts, CAP_BPF on the
+# kernels the chart supports):
+#   runAsUser: 1000
+#   runAsGroup: 1000
+#   runAsNonRoot: true
 #   capabilities:
-#     add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE, BPF, PERFMON]
+#     add: [NET_ADMIN, SYS_RESOURCE, BPF, PERFMON, DAC_OVERRIDE]
 securityContext:
-  privileged: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  capabilities:
+    add: [NET_ADMIN, SYS_RESOURCE, BPF, PERFMON, DAC_OVERRIDE]
 
 extraContainerPorts:
   - name: metrics
