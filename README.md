@@ -27,6 +27,7 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 Super fast & simple way is to download and run our docker image. It will start standalone eUPF with the default configuration:
 ```bash
 sudo docker run -d --rm \
+  --cap-add=NET_ADMIN --cap-add=SYS_RESOURCE --cap-add=BPF --cap-add=PERFMON \
   -v /sys/fs/bpf:/sys/fs/bpf \
   -v /sys/kernel/debug:/sys/kernel/debug:ro \
   -p 8080:8080 -p 9090:9090 --name your-eupf-def \
@@ -36,7 +37,7 @@ sudo docker run -d --rm \
 - 📝 *Linux Kernel **5.15.0-25-generic** is the minimum release version it has been tested on. Previous versions are not supported.*
 - ℹ The eBPF filesystem must be mounted in the host filesystem allowing the eUPF to persist eBPF resources across restarts so that the datapath can continue to operate while the eUPF is subsequently restarted or upgraded.
 Use following command to mount it: `sudo mount bpffs /sys/fs/bpf -t bpf`
-- ℹ The eUPF container does not require root or `--privileged`: the required capabilities (NET_ADMIN & SYS_ADMIN) are granted to the eupf binary via file capabilities
+- ℹ The eUPF container does not require root or `--privileged`: the required capabilities (NET_ADMIN & SYS_ADMIN) are granted to the eupf binary via file capabilities. The container's bounding set must still include them: add `--cap-add=NET_ADMIN --cap-add=SYS_RESOURCE --cap-add=BPF --cap-add=PERFMON` to `docker run` (the Helm chart sets this for you). Without them, exec of the binary fails with `Operation not permitted`
 - ℹ During startup eupf sets rlimits, so corresponding privileges are required (ulimit)
 
 <details><summary><i>See startup parameters you might want to change</i></summary>
@@ -63,6 +64,7 @@ In a real-world scenario, you would likely need to replace the interface names a
 
 ```bash
 sudo docker run -d --rm \
+  --cap-add=NET_ADMIN --cap-add=SYS_RESOURCE --cap-add=BPF --cap-add=PERFMON \
   -v /sys/fs/bpf:/sys/fs/bpf \
   -v /sys/kernel/debug:/sys/kernel/debug:ro \
   -p 8081 -p 9091 --name your-eupf-custom \
