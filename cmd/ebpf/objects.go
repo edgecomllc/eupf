@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2023-2026 Edgecom LLC
+
 package ebpf
 
 import (
