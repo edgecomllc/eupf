@@ -26,18 +26,19 @@ User plane function (UPF) is the "decapsulating and routing" function that extra
 
 Super fast & simple way is to download and run our docker image. It will start standalone eUPF with the default configuration:
 ```bash
-sudo docker run -d --rm --privileged \
+sudo docker run -d --rm \
+  --cap-add=NET_ADMIN --cap-add=SYS_RESOURCE --cap-add=BPF --cap-add=PERFMON \
   -v /sys/fs/bpf:/sys/fs/bpf \
   -v /sys/kernel/debug:/sys/kernel/debug:ro \
-  -p 8080 -p 9090 --name your-eupf-def \
+  -p 8080:8080 -p 9090:9090 --name your-eupf-def \
    ghcr.io/edgecomllc/eupf:main
 ```
 ### Notes
 - 📝 *Linux Kernel **5.15.0-25-generic** is the minimum release version it has been tested on. Previous versions are not supported.*
 - ℹ The eBPF filesystem must be mounted in the host filesystem allowing the eUPF to persist eBPF resources across restarts so that the datapath can continue to operate while the eUPF is subsequently restarted or upgraded.
 Use following command to mount it: `sudo mount bpffs /sys/fs/bpf -t bpf`
-- ℹ In order to perform low-level operations like loading ebpf objects some additional privileges are required(NET_ADMIN & SYS_ADMIN)
-- ℹ During startup eupf sets rlimits, so corresponding priviledges are required (ulimit)
+- ℹ The eUPF container does not require root or `--privileged`: the required capabilities (NET_ADMIN & SYS_ADMIN) are granted to the eupf binary via file capabilities. The container's bounding set must still include them: add `--cap-add=NET_ADMIN --cap-add=SYS_RESOURCE --cap-add=BPF --cap-add=PERFMON` to `docker run` (the Helm chart sets this for you). Without them, exec of the binary fails with `Operation not permitted`
+- ℹ During startup eupf sets rlimits, so corresponding privileges are required (ulimit)
 
 <details><summary><i>See startup parameters you might want to change</i></summary>
 <p>
@@ -49,15 +50,21 @@ Use following command to mount it: `sudo mount bpffs /sys/fs/bpf -t bpf`
    - UPF_API_ADDRESS=:8080    *Local host:port for serving [REST API](api.md) server*
    - UPF_PFCP_ADDRESS=:8805   *Local host:port that PFCP server will listen to*
    - UPF_PFCP_NODE_ID=127.0.0.1  *Local NodeID for PFCP protocol. Format is IPv4 address*
-   - UPF_METRICS_ADDRESS=:9090   *Local host:port for serving Prometheus mertrics endpoint*
+   - UPF_METRICS_ADDRESS=:9090   *Local host:port for serving Prometheus metrics endpoint*
+   - UPF_MAX_SESSIONS=65535      *Maximum number of sessions. Automatically sizes the eBPF maps when individual map sizes are not set*
+   - UPF_PDR_MAP_SIZE=0          *Size of the PDR eBPF map. Overrides the value derived from max_sessions when set (non-zero). See also QER/FAR/URR_MAP_SIZE*
+   - UPF_FEATURE_FTUP=false      *Enable F-TEID allocation / release in the UP function*
+   - UPF_FEATURE_UEIP=false      *Enable UE IP address allocation*
+   - UPF_UEIP_POOL=10.60.0.0/24  *IP pool for the UEIP feature*
+   - UPF_TEID_POOL=65535         *TEID pool size for the FTUP feature*
 </p>
 </details>
-</p>
 
 In a real-world scenario, you would likely need to replace the interface names and IP addresses with values that are applicable to your environment. You can do so with the `-e` option, for example:
 
 ```bash
-sudo docker run -d --rm -v --privileged \
+sudo docker run -d --rm \
+  --cap-add=NET_ADMIN --cap-add=SYS_RESOURCE --cap-add=BPF --cap-add=PERFMON \
   -v /sys/fs/bpf:/sys/fs/bpf \
   -v /sys/kernel/debug:/sys/kernel/debug:ro \
   -p 8081 -p 9091 --name your-eupf-custom \
@@ -67,11 +74,21 @@ sudo docker run -d --rm -v --privileged \
   -e UPF_N3_ADDRESS=10.100.50.233 \
   ghcr.io/edgecomllc/eupf:main
 ```
-
 ## What's next?
+
 Read **[eUPF configuration guide](./docs/Configuration.md)** for more info about how to configure eUPF.
 
 To go further, see the **[eUPF installation guide](./docs/install.md)** to learn how to run eUPF in different environments with different 5G core implementations using docker-compose or Kubernetes cluster.
+
+## Deploy to Kubernetes
+
+eUPF ships with a Helm chart. Deploy it with:
+
+```bash
+helm install eupf .deploy/helm/eupf
+```
+
+See the **[Helm chart documentation](./.deploy/helm/eupf/README.md)** for the full list of values and deployment options.
 
 For statistics you can gather, see the **[eUPF metrics and monitoring guide](./docs/metrics.md)**.
 
@@ -137,11 +154,13 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 - [x]  Static IP routing
 - [x]  Basic QoS support with per-session rate limiting
 - [x]  I-UPF/A-UPF ULCL/Branching (N9 interface)
+- [x]  Configurable eBPF map sizing via `max_sessions`
 
 #### Management plane
 - [x]  Free5gc compatibility
 - [x]  Open5gs compatibility
 - [x]  Integration with Prometheus for exporting PFCP and data plane-level metrics
+- [x]  REST API for inspecting and managing PFCP associations, sessions and eBPF maps
 - [ ]  Monitoring/Debugging capabilities using tcpdump and cli
 
 #### 3GPP specs compatibility
@@ -161,7 +180,7 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 
 -	Ubuntu 22.04 LTS or higher
 -	Git 2.34
--	Golang 1.26.9
+-	Golang 1.26+
 -	Clang 14.0.0
 -	LLVM 14.0
 -	Gcc 11.4.0
@@ -175,13 +194,13 @@ eUPF supports sending GTP Echo requests towards neighbour GTP nodes. Every neigh
 ```bash
 sudo apt install wget git clang llvm gcc-multilib libbpf-dev
 ```
-#### Golang 1.26.9
-ℹ Please skip this step if you have golang 1.26.9 already installed.
+#### Golang
+ℹ Please skip this step if you have golang 1.26 or newer already installed.
 
 ```bash
 sudo rm -rf /usr/local/go
-wget https://go.dev/dl/go1.26.9.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.26.9.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.26.10.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.26.10.linux-amd64.tar.gz
 export PATH="/usr/local/go/bin:${PATH}"
 ```
 
@@ -241,7 +260,7 @@ You can also define several build arguments to configure eUPF image: `docker bui
 
 ### Hardware requirements
 
-- CPU: any popular CPU is supported, incl. x86, x86_64, x86, ppc64le, armhf, armv7, aarch64, ppc64le, s390x
+- CPU: any popular CPU is supported, incl. x86, x86_64, armhf, armv7, aarch64, ppc64le, s390x
 - CPU_cores: 1 core is enough to run eUPF
 - RAM: you need up to 70MB to run eUPF and up to 512MB to run Linux kernel
 - HDD: 50MB of free space is required to install eUPF. Different types of storage can be used: HDD, SSD, SD-card, USB-stick
@@ -252,7 +271,7 @@ You can also define several build arguments to configure eUPF image: `docker bui
 Please create an issue to report a bug or share an idea. See our [Contributing Guide](./CONTRIBUTING.md) for details.
 
 ## License
-This project is licensed under the [Apache-2.0 Creative Commons License](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details
+This project is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) - see the [LICENSE file](./LICENSE) for details
 
 ---
 
