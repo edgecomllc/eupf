@@ -1,0 +1,24 @@
+# kind cluster for the CNTi essential tests: a control plane and two workers,
+# so node_drain has somewhere to move eUPF. As the chart README asks, every
+# kubelet allows the unsafe sysctl net.ipv4.ip_forward the chart sets (or the
+# pod is rejected at admission), and every node has the host's BPF filesystem
+# at /sys/fs/bpf: eUPF runs as a non-root user and pins its maps there, which
+# systemd hosts mount and kind nodes don't.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches: &allow-ip-forward
+      - |
+        kind: KubeletConfiguration
+        allowedUnsafeSysctls:
+          - "net.ipv4.ip_forward"
+    extraMounts: &bpffs
+      - hostPath: /sys/fs/bpf
+        containerPath: /sys/fs/bpf
+  - role: worker
+    kubeadmConfigPatches: *allow-ip-forward
+    extraMounts: *bpffs
+  - role: worker
+    kubeadmConfigPatches: *allow-ip-forward
+    extraMounts: *bpffs
