@@ -26,7 +26,7 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           working-directory: ./cmd
-          version: v2.6.2
+          version: v2.14.0
 
       - name: Run tests
         run: sudo go test -v ./cmd/...
