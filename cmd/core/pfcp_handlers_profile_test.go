@@ -124,7 +124,7 @@ func TestSendHeartbeatRequestProfileMetricIE(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create udp socket: %s", err)
 			}
-			defer udpConn.Close()
+			defer func() { _ = udpConn.Close() }()
 			pfcpConn.udpConn = udpConn
 
 			SendHeartbeatRequest(pfcpConn, 0, smfIP)

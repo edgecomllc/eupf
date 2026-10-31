@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2023-2026 Edgecom LLC
+
 package ebpf
 
 import (
@@ -86,7 +89,7 @@ func (bpfObjects *BpfObjects) Load() error {
 		"far_map":              bpfObjects.farMapSize,
 		"pdr_map_downlink_ip4": bpfObjects.pdrMapSize,
 		"pdr_map_downlink_ip6": bpfObjects.pdrMapSize,
-		"pdr_map_uplink_ip4":   bpfObjects.pdrMapSize,
+		"pdr_map_teid_ip4":   bpfObjects.pdrMapSize,
 		"urr_map":              bpfObjects.urrMapSize,
 	}
 
@@ -124,7 +127,7 @@ func (bpfObjects *BpfObjects) Load() error {
 
 	if err := spec.LoadAndAssign(&bpfObjects.IpEntrypointObjects, &collectionOptions); err != nil {
 		for _, m := range replacements {
-			m.Close()
+			_ = m.Close()
 		}
 
 		log.Warn().Msgf("Failed to load objects: %s", err)
@@ -251,7 +254,7 @@ func (bpfObjects *BpfObjects) ResizeAllMaps(qerMapSize uint32, farMapSize uint32
 		log.Info().Msgf("Failed to resize PDR map: %s", err)
 		return err
 	}
-	if err := ResizeEbpfMap(&bpfObjects.PdrMapUplinkIp4, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
+	if err := ResizeEbpfMap(&bpfObjects.PdrMapTeidIp4, bpfObjects.UpfIpEntrypointFunc, pdrMapSize); err != nil {
 		log.Info().Msgf("Failed to resize PDR map: %s", err)
 		return err
 	}

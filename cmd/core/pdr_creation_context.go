@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2023-2026 Edgecom LLC
+
 package core
 
 import (
@@ -136,40 +139,43 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 		}
 	}
 
-	if teidPdiId := findIEindex(pdi, 21); teidPdiId != -1 { // IE Type F-TEID
-		if fteid, err := pdi[teidPdiId].FTEID(); err == nil {
-			var teid = fteid.TEID
-			if fteid.HasCh() {
-				var allocate = true
-				if fteid.HasChID() {
-					if teidFromCache, ok := pdrContext.hasTEIDCache(fteid.ChooseID); ok {
-						allocate = false
-						teid = teidFromCache
-						spdrInfo.Allocated = true
-					}
-				}
-				if allocate {
-					allocatedTeid, err := pdrContext.getFTEID(pdrContext.Session.RemoteSEID, spdrInfo.PdrID)
-					if err != nil {
-						log.Error().Msgf("AllocateTEID err: %v", err)
-						return fmt.Errorf("can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
-					}
-					teid = allocatedTeid
-					spdrInfo.Allocated = true
-					if fteid.HasChID() {
-						pdrContext.setTEIDCache(fteid.ChooseID, teid)
-					}
-				}
-			}
-			spdrInfo.Teid = teid
-		}
-
-		if spdrInfo.Teid == 0 {
+	if teidPdiId := findIEindex(pdi, ie.FTEID); teidPdiId != -1 { // IE Type F-TEID
+		fteid, err := pdi[teidPdiId].FTEID()
+		if err != nil {
 			return fmt.Errorf("F-TEID IE is missing")
 		}
+		var teid = fteid.TEID
+		if fteid.HasCh() {
+			var allocate = true
+			if fteid.HasChID() {
+				if teidFromCache, ok := pdrContext.hasTEIDCache(fteid.ChooseID); ok {
+					allocate = false
+					teid = teidFromCache
+					spdrInfo.Allocated = true
+				}
+			}
+			if allocate {
+				allocatedTeid, err := pdrContext.getFTEID(pdrContext.Session.RemoteSEID, spdrInfo.PdrID)
+				if err != nil {
+					log.Error().Msgf("AllocateTEID err: %v", err)
+					return fmt.Errorf("can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
+				}
+				teid = allocatedTeid
+				spdrInfo.Allocated = true
+				if fteid.HasChID() {
+					pdrContext.setTEIDCache(fteid.ChooseID, teid)
+				}
+			}
+		}
+		spdrInfo.Teid = teid
+		return nil
 	}
 
-	if ueIP, err := pdr.UEIPAddress(); err == nil {
+	if ueipPdiId := findIEindex(pdi, ie.UEIPAddress); ueipPdiId != -1 {
+		ueIP, err := pdi[ueipPdiId].UEIPAddress()
+		if err != nil {
+			return fmt.Errorf("UE IP Address IE is missing")
+		}
 		if config.Conf.FeatureUEIP && hasCHV4(ueIP.Flags) {
 			if ip, err := pdrContext.getIP(); err == nil {
 				ueIP.IPv4Address = cloneIP(ip)
@@ -189,11 +195,12 @@ func (pdrContext *PDRCreationContext) extractPDR(pdr *ie.IE, spdrInfo *SPDRInfo)
 		if ueIP.IPv6Address != nil {
 			spdrInfo.Ipv6 = cloneIP(ueIP.IPv6Address)
 		}
+		return nil
 	}
 
 	if spdrInfo.Teid == 0 && spdrInfo.Ipv4 == nil && spdrInfo.Ipv6 == nil {
 		log.Warn().Msg("Both F-TEID IE and UE IP Address IE are missing")
-		return err
+		return fmt.Errorf("both F-TEID IE and UE IP Address IE are missing")
 	}
 
 	return nil
@@ -260,7 +267,7 @@ func (pdrContext *PDRCreationContext) getFTEID(seID uint64, pdrID uint32) (uint3
 	allocatedTeid, err := pdrContext.ResourceManager.FTEIDM.AllocateTEID(seID, pdrID)
 	if err != nil {
 		log.Error().Msgf("AllocateTEID err: %v", err)
-		return 0, fmt.Errorf("Can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
+		return 0, fmt.Errorf("can't allocate TEID: %s", causeToString(ie.CauseNoResourcesAvailable))
 	}
 	return allocatedTeid, nil
 }

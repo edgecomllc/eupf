@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2023-2026 Edgecom LLC
+
 package config
 
 import (
@@ -320,7 +323,7 @@ func (c *UpfConfig) Validate() error {
 		c.QerMapSize = c.MaxSessions
 	}
 	if c.UrrMapSize == 0 {
-		c.UrrMapSize = c.MaxSessions * 3
+		c.UrrMapSize = c.MaxSessions * 2
 	}
 
 	n3AdvertisedAddress5G := net.ParseIP(c.N3AdvertisedAddress5G)

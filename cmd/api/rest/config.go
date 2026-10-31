@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2023-2026 Edgecom LLC
+
 package rest
 
 import (
@@ -364,7 +367,7 @@ func (h *ApiHandler) updateConfigFile(data interface{}) error {
 	cfgs := make(map[string]interface{})
 
 	val := reflect.ValueOf(data)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 

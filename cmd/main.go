@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2023-2026 Edgecom LLC
+
 package main
 
 import (
@@ -96,7 +99,7 @@ func main() {
 		log.Fatal().Msgf("Loading bpf objects failed: %s", err.Error())
 	}
 
-	defer bpfObjects.Close()
+	defer func() { _ = bpfObjects.Close() }()
 
 	var err error
 	dumper, err := utils.NewPacketDumper(

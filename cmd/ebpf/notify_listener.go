@@ -81,7 +81,7 @@ func NewSdfNotifyListener(eventMap *ebpf.Map) (*SdfNotifyListener, error) {
 }
 func (l *SdfNotifyListener) Close() {
 	if l.reader != nil {
-		l.reader.Close()
+		_ = l.reader.Close()
 	}
 
 	close(l.notifyC)

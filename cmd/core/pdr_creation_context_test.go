@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2023-2026 Edgecom LLC
+
 package core
 
 import (
@@ -97,6 +100,23 @@ func TestPDRCreationContext_extractPDR(t *testing.T) {
 						ie.NewSourceInterface(ie.SrcInterfaceCore),
 						ie.NewUEIPAddress(2, "192.168.0.1", "", 0, 0),
 						ie.NewSDFFilter("permit out ip from 10.62.0.1 to 8.8.8.8/32", "", "", "", 0),
+					),
+				),
+				spdrInfo: &SPDRInfo{},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "UpdatePDR with UEIPAddress",
+			fields: fields{},
+			args: args{
+				pdr: ie.NewUpdatePDR(
+					ie.NewPDRID(2),
+					ie.NewPrecedence(255),
+					ie.NewPDI(
+						ie.NewSourceInterface(ie.SrcInterfaceCore),
+						ie.NewNetworkInstance("a00"),
+						ie.NewUEIPAddress(0x06, "10.128.0.1", "", 0, 0),
 					),
 				),
 				spdrInfo: &SPDRInfo{},

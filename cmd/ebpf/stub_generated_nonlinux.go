@@ -15,9 +15,25 @@ type IpEntrypointObjects struct {
 	UrrMap               *ebpf.Map
 	PdrMapDownlinkIp4    *ebpf.Map
 	PdrMapDownlinkIp6    *ebpf.Map
-	PdrMapUplinkIp4      *ebpf.Map
+	PdrMapTeidIp4        *ebpf.Map
+	SdfNotifyMap         *ebpf.Map
+	SdfNotifyStorage     *ebpf.Map
+	TraceMap             *ebpf.Map
 	UpfExtStat           *ebpf.Map
+	UpfPipeline          *ebpf.Map
 	UpfRouteStat         *ebpf.Map
+	GlobalConfig         *ebpf.Variable
+}
+
+type IpEntrypointDataplaneConfig struct {
+	N3Ipv4Address     uint32
+	N9Ipv4Address     uint32
+	TraceIn           uint8
+	TraceOut          uint8
+	TraceBlocked      uint8
+	Ip6RaSupport      uint8
+	Ip6RaPrefix       [16]byte /* uint128 */
+	Ip6RaPrefixLength uint16
 }
 
 func (o *IpEntrypointObjects) Close() error { return nil }

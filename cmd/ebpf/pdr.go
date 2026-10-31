@@ -1,10 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2023-2026 Edgecom LLC
+
 package ebpf
 
 import (
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
+	"syscall"
 	"unsafe"
 
 	"github.com/cilium/ebpf"
@@ -13,6 +18,13 @@ import (
 )
 
 // The BPF_ARRAY map type has no delete operation. The only way to delete an element is to replace it with a new one.
+
+// isKeyAbsent reports whether an eBPF map operation failed because the key
+// does not exist. Delete operations treat that as success: the desired end
+// state — the entry being absent — is already achieved.
+func isKeyAbsent(err error) bool {
+	return err != nil && (errors.Is(err, ebpf.ErrKeyNotExist) || errors.Is(err, syscall.ENOENT))
+}
 
 type PdrInfo struct {
 	OuterHeaderRemoval uint8
@@ -59,13 +71,13 @@ func (bpfObjects *BpfObjects) PutPdrUplink(teid uint32, pdrInfo PdrInfo) error {
 	var pdrToStore IpEntrypointPdrInfo
 	var err error
 	if pdrInfo.SdfFilter != nil {
-		if pdrToStore, err = PreprocessPdrWithSdf(bpfObjects.PdrMapUplinkIp4.Lookup, teid, pdrInfo); err != nil {
+		if pdrToStore, err = PreprocessPdrWithSdf(bpfObjects.PdrMapTeidIp4.Lookup, teid, pdrInfo); err != nil {
 			return err
 		}
 	} else {
 		pdrToStore = ToIpEntrypointPdrInfo(pdrInfo)
 	}
-	return bpfObjects.PdrMapUplinkIp4.Put(teid, unsafe.Pointer(&pdrToStore))
+	return bpfObjects.PdrMapTeidIp4.Put(teid, unsafe.Pointer(&pdrToStore))
 }
 
 func (bpfObjects *BpfObjects) PutPdrDownlink(ip net.IP, pdrInfo PdrInfo) error {
@@ -95,13 +107,13 @@ func (bpfObjects *BpfObjects) UpdatePdrUplink(teid uint32, pdrInfo PdrInfo) erro
 	var pdrToStore IpEntrypointPdrInfo
 	var err error
 	if pdrInfo.SdfFilter != nil {
-		if pdrToStore, err = PreprocessPdrWithSdf(bpfObjects.PdrMapUplinkIp4.Lookup, teid, pdrInfo); err != nil {
+		if pdrToStore, err = PreprocessPdrWithSdf(bpfObjects.PdrMapTeidIp4.Lookup, teid, pdrInfo); err != nil {
 			return err
 		}
 	} else {
 		pdrToStore = ToIpEntrypointPdrInfo(pdrInfo)
 	}
-	return bpfObjects.PdrMapUplinkIp4.Update(teid, unsafe.Pointer(&pdrToStore), ebpf.UpdateExist)
+	return bpfObjects.PdrMapTeidIp4.Update(teid, unsafe.Pointer(&pdrToStore), ebpf.UpdateExist)
 }
 
 func (bpfObjects *BpfObjects) UpdatePdrDownlink(ipv4 net.IP, pdrInfo PdrInfo) error {
@@ -120,12 +132,18 @@ func (bpfObjects *BpfObjects) UpdatePdrDownlink(ipv4 net.IP, pdrInfo PdrInfo) er
 
 func (bpfObjects *BpfObjects) DeletePdrUplink(teid uint32) error {
 	log.Debug().Msgf("EBPF: Delete PDR Uplink: teid=%d", teid)
-	return bpfObjects.PdrMapUplinkIp4.Delete(teid)
+	if err := bpfObjects.PdrMapTeidIp4.Delete(teid); err != nil && !isKeyAbsent(err) {
+		return err
+	}
+	return nil
 }
 
 func (bpfObjects *BpfObjects) DeletePdrDownlink(ipv4 net.IP) error {
 	log.Debug().Msgf("EBPF: Delete PDR Downlink: ipv4=%s", ipv4)
-	return bpfObjects.PdrMapDownlinkIp4.Delete(ipv4)
+	if err := bpfObjects.PdrMapDownlinkIp4.Delete(ipv4); err != nil && !isKeyAbsent(err) {
+		return err
+	}
+	return nil
 }
 
 func (bpfObjects *BpfObjects) PutDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo) error {
@@ -158,7 +176,10 @@ func (bpfObjects *BpfObjects) UpdateDownlinkPdrIp6(ipv6 net.IP, pdrInfo PdrInfo)
 
 func (bpfObjects *BpfObjects) DeleteDownlinkPdrIp6(ipv6 net.IP) error {
 	log.Debug().Msgf("EBPF: Delete PDR Ipv6 Downlink: ipv6=%s", ipv6)
-	return bpfObjects.PdrMapDownlinkIp6.Delete(ipv6)
+	if err := bpfObjects.PdrMapDownlinkIp6.Delete(ipv6); err != nil && !isKeyAbsent(err) {
+		return err
+	}
+	return nil
 }
 
 type FarInfo struct {
@@ -238,7 +259,10 @@ func (bpfObjects *BpfObjects) UpdateFar(internalId uint32, farInfo FarInfo) erro
 func (bpfObjects *BpfObjects) DeleteFar(intenalId uint32) error {
 	log.Debug().Msgf("EBPF: Delete FAR: intenalId=%d", intenalId)
 	bpfObjects.ReleaseFAR(intenalId)
-	return bpfObjects.FarMap.Update(intenalId, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist)
+	if err := bpfObjects.FarMap.Update(intenalId, unsafe.Pointer(&FarInfo{}), ebpf.UpdateExist); err != nil && !isKeyAbsent(err) {
+		return err
+	}
+	return nil
 }
 
 type QerInfo struct {
@@ -289,7 +313,10 @@ func (bpfObjects *BpfObjects) UpdateQer(internalId uint32, qerInfo QerInfo) erro
 func (bpfObjects *BpfObjects) DeleteQer(internalId uint32) error {
 	log.Debug().Msgf("EBPF: Delete QER: internalId=%d", internalId)
 	bpfObjects.ReleaseQER(internalId)
-	return bpfObjects.QerMap.Update(internalId, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist)
+	if err := bpfObjects.QerMap.Update(internalId, unsafe.Pointer(&QerInfo{}), ebpf.UpdateExist); err != nil && !isKeyAbsent(err) {
+		return err
+	}
+	return nil
 }
 
 // TODO: add required fields and implement methods
@@ -345,10 +372,13 @@ func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) (UrrInfo, error) {
 
 	urrToStore := IpEntrypointUrrInfo{}
 	if err := bpfObjects.UrrMap.Lookup(internalId, unsafe.Pointer(&urrToStore)); err != nil {
+		if isKeyAbsent(err) {
+			return UrrInfo{}, nil
+		}
 		return UrrInfo{}, err
 	}
 	bpfObjects.ReleaseURR(internalId)
-	if err := bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&IpEntrypointUrrInfo{}), ebpf.UpdateExist); err != nil {
+	if err := bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&IpEntrypointUrrInfo{}), ebpf.UpdateExist); err != nil && !isKeyAbsent(err) {
 		return UrrInfo{}, err
 	}
 

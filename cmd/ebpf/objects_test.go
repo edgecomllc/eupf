@@ -1,16 +1,5 @@
-// Copyright 2023 Edgecom LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2023-2026 Edgecom LLC
 
 package ebpf
 
@@ -195,7 +184,7 @@ func testGtpWithPDRBenchmark(bpfObjects *BpfObjects, repeat int) (int64, error) 
 	if err := bpfObjects.QerMap.Put(uint32(1), unsafe.Pointer(&qer)); err != nil {
 		return 0, fmt.Errorf("benchmark run failed: %v", err)
 	}
-	if err := bpfObjects.PdrMapUplinkIp4.Put(teid, unsafe.Pointer(&pdr)); err != nil {
+	if err := bpfObjects.PdrMapTeidIp4.Put(teid, unsafe.Pointer(&pdr)); err != nil {
 		return 0, fmt.Errorf("benchmark run failed: %v", err)
 	}
 
@@ -1048,7 +1037,7 @@ func TestEntrypoint(t *testing.T) {
 		t.Fatalf("Loading bpf objects failed: %s", err.Error())
 	}
 
-	defer bpfObjects.Close()
+	defer func() { _ = bpfObjects.Close() }()
 
 	entrypointConfig := IpEntrypointDataplaneConfig{
 		N3Ipv4Address:     binary.LittleEndian.Uint32(n3IP.To4()),
@@ -1146,7 +1135,7 @@ func TestEntrypointBenchmark(t *testing.T) {
 		t.Fatalf("Loading bpf objects failed: %s", err.Error())
 	}
 
-	defer bpfObjects.Close()
+	defer func() { _ = bpfObjects.Close() }()
 
 	t.Run("Arp (x1)) benchmark", func(t *testing.T) {
 		duration, err := testArpBenchmark(bpfObjects, 1)

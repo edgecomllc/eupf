@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2023-2026 Edgecom LLC
+
 package core
 
 import (
@@ -26,10 +29,9 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 		startTime := time.Now()
 		// TODO: Trim port as a workaround for NAT changing the port. Explore proper solutions.
 		stringIpAddr := addr.IP.String()
-		outgoingMsg, trace, err := handler(conn, incomingMsg, stringIpAddr)
-		if err != nil {
-			log.Warn().Msgf("Error handling PFCP message: %s", err.Error())
-			return err
+		outgoingMsg, trace, handlerErr := handler(conn, incomingMsg, stringIpAddr)
+		if handlerErr != nil {
+			log.Warn().Msgf("Error handling PFCP message: %s", handlerErr.Error())
 		}
 		if trace && IsMessageTraceable(incomingMsg.MessageType()) {
 			conn.TraceMessage(buf, addr, true)
@@ -37,10 +39,17 @@ func (handlerMap PfcpHandlerMap) Handle(conn *PfcpConnection, buf []byte, addr *
 		duration := time.Since(startTime)
 		UpfMessageRxLatency.WithLabelValues(incomingMsg.MessageTypeName()).Observe(float64(duration.Microseconds()))
 		// Now assumption that all handlers will return a message to send is not true.
+		// Always transmit the handler's response when non-nil, even if the handler
+		// reported an error: the response may carry the error cause the peer awaits.
 		if outgoingMsg != nil {
-			return conn.SendMessageWithTrace(outgoingMsg, addr, trace)
+			if sendErr := conn.SendMessageWithTrace(outgoingMsg, addr, trace); sendErr != nil {
+				log.Warn().Msgf("Failed to send PFCP response: %s", sendErr.Error())
+				if handlerErr == nil {
+					return sendErr
+				}
+			}
 		}
-		return nil
+		return handlerErr
 	} else {
 		log.Warn().Msgf("Got unexpected message %s: %s, from: %s", incomingMsg.MessageTypeName(), incomingMsg, addr)
 	}

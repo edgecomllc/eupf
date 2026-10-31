@@ -6,3 +6,24 @@ To learn more about the release, try:
 
   $ helm status {{ .Release.Name }}
   $ helm get all {{ .Release.Name }}
+
+Check that the pod is running and passing its probes:
+
+  $ kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+{{- if not .Values.config.enabled }}
+
+eUPF is configured via default UPF_* environment variables (ENV mode).
+To use a config file instead, set config.enabled=true and provide config.data.
+{{- else }}
+
+eUPF is configured via a ConfigMap (config.enabled=true), mounted at
+{{ .Values.config.mountPath }} and passed with --config {{ .Values.config.path }}.
+{{- end }}
+
+Notes:
+- Nodes must allow the unsafe sysctl net.ipv4.ip_forward
+  (kubelet --allowed-unsafe-sysctls='net.ipv4.ip_forward').
+- The container runs privileged by default (eBPF data plane requires it);
+  see the chart README for a capabilities-based alternative.
+- The REST API is served on port {{ .Values.service.port }} (service port "http").
