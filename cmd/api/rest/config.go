@@ -367,7 +367,7 @@ func (h *ApiHandler) updateConfigFile(data interface{}) error {
 	cfgs := make(map[string]interface{})
 
 	val := reflect.ValueOf(data)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 

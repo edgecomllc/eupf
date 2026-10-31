@@ -15,7 +15,7 @@ import (
 	"github.com/edgecomllc/eupf/cmd/config"
 	"github.com/edgecomllc/eupf/cmd/ebpf"
 
-	"golang.org/x/exp/slices"
+	"slices"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
