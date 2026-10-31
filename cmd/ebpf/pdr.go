@@ -389,15 +389,6 @@ func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) (UrrInfo, error) {
 	return urrInfo, nil
 }
 
-func (bpfObjects *BpfObjects) DeleteUrr(internalId uint32) error {
-	log.Debug().Msgf("EBPF: Delete URR: internalId=%d", internalId)
-	bpfObjects.ReleaseURR(internalId)
-	if err := bpfObjects.UrrMap.Update(internalId, unsafe.Pointer(&UrrInfo{}), ebpf.UpdateExist); err != nil && !isKeyAbsent(err) {
-		return err
-	}
-	return nil
-}
-
 type ForwardingPlaneController interface {
 	PutPdrUplink(teid uint32, pdrInfo PdrInfo) error
 	PutPdrDownlink(ipv4 net.IP, pdrInfo PdrInfo) error
