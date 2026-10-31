@@ -99,7 +99,7 @@ func main() {
 		log.Fatal().Msgf("Loading bpf objects failed: %s", err.Error())
 	}
 
-	defer bpfObjects.Close()
+	defer func() { _ = bpfObjects.Close() }()
 
 	var err error
 	dumper, err := utils.NewPacketDumper(

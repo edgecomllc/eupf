@@ -42,7 +42,7 @@ func (h *ApiHandler) getFarValue(c *gin.Context) {
 	}
 
 	var value ebpf.FarInfo
-	if err = h.BpfObjects.IpEntrypointObjects.FarMap.Lookup(uint32(id), unsafe.Pointer(&value)); err != nil {
+	if err = h.BpfObjects.FarMap.Lookup(uint32(id), unsafe.Pointer(&value)); err != nil {
 		log.Printf("Error reading map: %s", err.Error())
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -94,7 +94,7 @@ func (h *ApiHandler) setFarValue(c *gin.Context) {
 		TransportLevelMarking: farElement.TransportLevelMarking,
 	}
 
-	if err := h.BpfObjects.IpEntrypointObjects.FarMap.Put(uint32(id), unsafe.Pointer(&value)); err != nil {
+	if err := h.BpfObjects.FarMap.Put(uint32(id), unsafe.Pointer(&value)); err != nil {
 		log.Printf("Error writting map: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

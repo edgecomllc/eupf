@@ -389,8 +389,7 @@ func TestProfileSessionReportReleaseVendorIE(t *testing.T) {
 			}
 			if vendorIE == nil {
 				t.Fatal("expected non-nil IE")
-			}
-			if vendorIE.Type != tt.wantType {
+			} else if vendorIE.Type != tt.wantType {
 				t.Errorf("expected type %d, got %d", tt.wantType, vendorIE.Type)
 			}
 			if vendorIE.EnterpriseID != tt.wantVendorID {
@@ -405,8 +404,7 @@ func TestHuaweiProfileSessionReportReleaseVendorIEEmptyPdrList(t *testing.T) {
 	vendorIE := p.SessionReportReleaseVendorIE([]uint16{})
 	if vendorIE == nil {
 		t.Fatal("HuaweiProfile should return non-nil IE even for empty pdrList")
-	}
-	if vendorIE.Type != 32799 {
+	} else if vendorIE.Type != 32799 {
 		t.Errorf("expected type 32799, got %d", vendorIE.Type)
 	}
 }

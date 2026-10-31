@@ -51,7 +51,7 @@ func joinErrors(errs []error) error {
 
 func UpdateLogLevel(logLevel string) error {
 	if err := SetLoggerLevel(logLevel); err != nil {
-		return fmt.Errorf("Logger configuring error: %s. Using '%s' level",
+		return fmt.Errorf("logger configuring error: %s. Using '%s' level",
 			err.Error(), zerolog.GlobalLevel().String())
 	}
 
@@ -100,7 +100,7 @@ func BindDataPlaneInterfaces(
 		}
 
 		l, err := link.AttachXDP(link.XDPOptions{
-			Program:   bpfObjects.IpEntrypointObjects.UpfIpEntrypointFunc,
+			Program:   bpfObjects.UpfIpEntrypointFunc,
 			Interface: iface.Index,
 			Flags:     StringToXDPAttachMode(xdpAttachMode),
 		})

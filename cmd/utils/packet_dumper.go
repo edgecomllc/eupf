@@ -77,8 +77,8 @@ func NewPacketDumper(dumpPath string, maxFiles, maxSizeBytes, maxPackets int) (*
 
 func (dumper *PacketDumper) rotate() error {
 	if dumper.f != nil {
-		dumper.w.Flush()
-		dumper.f.Close()
+		_ = dumper.w.Flush()
+		_ = dumper.f.Close()
 	}
 
 	filename := fmt.Sprintf("%strace.pcap", dumper.dumpPath)
@@ -115,34 +115,34 @@ func (dumper *PacketDumper) createDumpFile(filename string) error {
 	}
 	w, err := pcapgo.NewNgWriter(f, layers.LinkTypeEthernet)
 	if err != nil {
-		f.Close()
+		_ = f.Close()
 		return fmt.Errorf("can't create ng writer: %w", err)
 	}
 
 	if _, err = w.AddInterface(makeNgInterface("in", layers.LinkTypeEthernet)); err != nil {
-		f.Close()
+		_ = f.Close()
 		return fmt.Errorf("can't add in ng pcap interface:: %s", err.Error())
 	}
 
 	if _, err = w.AddInterface(makeNgInterface("out", layers.LinkTypeEthernet)); err != nil {
-		f.Close()
+		_ = f.Close()
 		return fmt.Errorf("can't add out ng pcap interface:: %s", err.Error())
 	}
 
 	if _, err = w.AddInterface(makeNgInterface("drop", layers.LinkTypeEthernet)); err != nil {
-		f.Close()
+		_ = f.Close()
 		return fmt.Errorf("can't add drop ng pcap interface:: %s", err.Error())
 	}
 
 	sigIn, err := w.AddInterface(makeNgInterface("sig-in", layers.LinkTypeRaw))
 	if err != nil {
-		f.Close()
+		_ = f.Close()
 		return fmt.Errorf("can't add sig in ng pcap interface:: %s", err.Error())
 	}
 
 	sigOut, err := w.AddInterface(makeNgInterface("sig-out", layers.LinkTypeRaw))
 	if err != nil {
-		f.Close()
+		_ = f.Close()
 		return fmt.Errorf("can't add sig out ng pcap interface:: %s", err.Error())
 	}
 
@@ -161,7 +161,7 @@ func (dumper *PacketDumper) ReadTraceMap(traceMap *ebpf.Map) {
 		log.Error().Msgf(" can't create perf reader: %s", err.Error())
 		return
 	}
-	defer rd.Close()
+	defer func() { _ = rd.Close() }()
 
 	var rec perf.Record
 	//var rec ringbuf.Record
@@ -292,16 +292,16 @@ func (dumper *PacketDumper) GetPacketsWritten() uint64 {
 
 func (dumper *PacketDumper) Close(removeTrace bool) {
 	if dumper.w != nil {
-		dumper.w.Flush()
+		_ = dumper.w.Flush()
 	}
 
 	if dumper.f != nil {
-		dumper.f.Close()
+		_ = dumper.f.Close()
 	}
 
 	close(dumper.writeC)
 
 	if removeTrace {
-		os.Remove(dumper.f.Name())
+		_ = os.Remove(dumper.f.Name())
 	}
 }
