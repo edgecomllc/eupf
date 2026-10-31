@@ -1,5 +1,3 @@
-# eUPF
-
 <div align="center">
 
 [![GitHub Release][release-img]][release]
@@ -11,20 +9,23 @@
 
 </div>
 
-## ⚠️ Branching change: v0.7.2 is now the stable line, `main` moves to 1.0.0
+### ⚠️ **Branching change**: v0.7.2 is now the stable line, `main` moves to 1.0.0
+
+<details><summary><i>Some details</i></summary>
 
 With the upcoming **1.0.0** release the project switches its `main` branch to the new 1.0.0 development line.
 
-- **`release/v0.7.2`** — the stable 0.7.2 line is frozen here. Critical fixes for 0.7.x will be cherry-picked to this branch and released as 0.7.x patch releases.
-- **`main`** — now tracks the 1.0.0 line: profile-based PFCP handling, Sxa/Sxb (4G/EPC) support, tracing and CLI tooling, non-root container by default. See the [1.0.0 release notes](https://github.com/edgecomllc/eupf/releases) for the full list of changes.
+- **`release/v0.7.2`** — the stable 0.7.2 line is frozen here.
+- **`main`** — now tracks the 1.0.0 line. See the [1.0.0 release notes](https://github.com/edgecomllc/eupf/releases) for the full list of changes.
 
-<details><summary><i>What it means for you</i></summary>
-
+What it means for you
 - If you track `main`: pull with `git fetch && git reset --hard origin/main` — the history was rewritten as part of the branch switch.
 - If you need the previous stable line: use the `release/v0.7.2` branch, the `v0.7.2` tag, or the `ghcr.io/edgecomllc/eupf:0.7.2` image.
 - Open PRs based on the previous `main` will be retargeted/rebased onto the new `main`.
-
+  
 </details>
+
+# eUPF
 
 eUPF is the opensource User Plane Function (UPF) project for using inside or "outside" of any 3GPP 5G core. The goal of the project is to provide high-observability and easily-deployed software for a various cases like multi-access edge computing (MEC) and local traffic breakout. eUPF is built with eBPF to provide high observability and performance.
 
