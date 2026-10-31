@@ -323,7 +323,7 @@ func (c *UpfConfig) Validate() error {
 		c.QerMapSize = c.MaxSessions
 	}
 	if c.UrrMapSize == 0 {
-		c.UrrMapSize = c.MaxSessions * 3
+		c.UrrMapSize = c.MaxSessions * 2
 	}
 
 	n3AdvertisedAddress5G := net.ParseIP(c.N3AdvertisedAddress5G)
