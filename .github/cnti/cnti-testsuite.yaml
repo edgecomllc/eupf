@@ -1,0 +1,12 @@
+# CNTi Test Suite configuration for the essential tests run by
+# .github/workflows/cnti.yml. The chart is installed with its defaults; no
+# image tags are configured for the rolling update, downgrade and rollback
+# tests, which are not essential tests: the suite skips them without one,
+# and from its next release takes the image's previous release itself.
+---
+config_version: "v2"
+deployments:
+  helm_dirs:
+    - name: eupf
+      helm_directory: ../../.deploy/helm/eupf
+      namespace: eupf
