@@ -275,6 +275,13 @@ Use this command to build eupf's docker image: `docker build -t local/eupf:lates
 
 You can also define several build arguments to configure eUPF image: `docker build -t local/eupf:latest --build-arg BPF_ENABLE_LOG=1 --build-arg BPF_ENABLE_ROUTE_CACHE=1 .`
 
+The same Dockerfile builds on both amd64 and arm64 hosts: the eBPF compilation step points clang at the arch-specific kernel and libc headers via `BPF_CFLAGS="-I/usr/include/$(gcc -dumpmachine)"`, so no per-architecture Dockerfile is needed. To cross-build the arm64 image from an amd64 host, use buildx with QEMU:
+
+```bash
+docker buildx create --use
+docker buildx build --platform linux/arm64 -t local/eupf:arm64 .
+```
+
 ### Hardware requirements
 
 - CPU: any popular CPU is supported, incl. x86, x86_64, armhf, armv7, aarch64, ppc64le, s390x

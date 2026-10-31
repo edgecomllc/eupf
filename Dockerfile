@@ -2,9 +2,13 @@ FROM golang:1.26.10-bookworm AS builder
 
 WORKDIR /app
 
-# Install dependencies for ebpf compilation
+# Install dependencies for ebpf compilation. gcc-multilib exists only on
+# amd64, where it pulls in the /usr/include/asm symlink the eBPF compilation
+# relies on; on arm64 (and other arches) the BPF_CFLAGS -I flag below points
+# clang at the arch-specific headers instead.
 RUN apt update \
-    && apt install --no-install-recommends -y clang llvm gcc-multilib libbpf-dev \
+    && apt install --no-install-recommends -y clang llvm gcc libbpf-dev linux-libc-dev \
+    && if [ "$(dpkg --print-architecture)" = "amd64" ]; then apt install --no-install-recommends -y gcc-multilib; fi \
     && rm -rf /var/lib/apt/lists/*
 
 RUN go install github.com/swaggo/swag/cmd/swag@v1.8.12
@@ -17,7 +21,7 @@ ARG BPF_ENABLE_ROUTE_CACHE "0"
 RUN BPF_CFLAGS="" \
     && if [ "$BPF_ENABLE_LOG" = "1" ]; then BPF_CFLAGS="$BPF_CFLAGS -DENABLE_LOG"; fi \
     && if [ "$BPF_ENABLE_ROUTE_CACHE" = "1" ]; then BPF_CFLAGS="$BPF_CFLAGS -DENABLE_ROUTE_CACHE"; fi \
-    && BPF_CFLAGS=$BPF_CFLAGS go generate -v ./cmd/...
+    && BPF_CFLAGS="-I/usr/include/$(gcc -dumpmachine) $BPF_CFLAGS" go generate -v ./cmd/...
 RUN CGO_ENABLED=0 go build -v -o bin/eupf ./cmd/
 
 FROM alpine:3.22 AS runtime
