@@ -7,7 +7,7 @@ WORKDIR /app
 # relies on; on arm64 (and other arches) the BPF_CFLAGS -I flag below points
 # clang at the arch-specific headers instead.
 RUN apt update \
-    && apt install --no-install-recommends -y clang llvm gcc libbpf-dev linux-libc-dev \
+    && apt install --no-install-recommends -y clang llvm gcc libbpf-dev \
     && if [ "$(dpkg --print-architecture)" = "amd64" ]; then apt install --no-install-recommends -y gcc-multilib; fi \
     && rm -rf /var/lib/apt/lists/*
 
