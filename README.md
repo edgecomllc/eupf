@@ -285,6 +285,6 @@ This project is licensed under the [Apache License 2.0](https://www.apache.org/l
 [security-test]: https://github.com/edgecomllc/eupf/actions/workflows/security-scan.yml
 [security-test-img]: https://github.com/edgecomllc/eupf/actions/workflows/security-scan.yml/badge.svg
 [cnti]: https://github.com/edgecomllc/eupf/actions/workflows/cnti.yml
-[cnti-img]: https://github.com/edgecomllc/eupf/raw/badges/cnti-badge.svg
+[cnti-img]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/edgecomllc/eupf/badges/cnti-badge.json
 [license]: https://github.com/edgecomllc/eupf/blob/main/LICENSE
 [license-img]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
