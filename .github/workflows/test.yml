@@ -29,7 +29,9 @@ jobs:
           version: v2.14.0
 
       - name: Run tests
-        run: sudo go test -v ./cmd/...
+        run: |
+          go install gotest.tools/gotestsum@v1.13.0
+          sudo -E env "PATH=$PATH" gotestsum --format github-action ./cmd/...
 
       - name: Build
         run: go build -v -o bin/eupf ./cmd
