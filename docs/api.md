@@ -1,14 +1,15 @@
 # eUPF API Documentation
 
-In addition to prometheus metrics the eUPF API provides a set of endpoints for monitoring the User Plane Function (UPF). It includes endpoints for listing UPF pipeline, QER map content, PFCP associations, displaying configuration, and displaying XDP statistics. This API is built with the Gin Web Framework and provides a Swagger API documentation for easy exploration and testing.
+In addition to prometheus metrics (served on a separate `metrics_address` port, see the [metrics guide](metrics.md)) the eUPF API provides a set of endpoints for monitoring and managing the User Plane Function (UPF): health check, XDP/packet/route statistics, configuration display and runtime editing, uplink/downlink PDR maps, QER and FAR maps, PFCP associations and sessions, and subscriber tracing. This API is built with the Gin Web Framework and provides a Swagger API documentation for easy exploration and testing.
 
 ## Endpoints
 
 Method | URL                    | Description                                                            | Example
 ------ | ---------------------- | ---------------------------------------------------------------------- | ----------------------
+`GET`  | `/api/v1/health`       | Health check (liveness probe). Returns `OK`                            | `/api/v1/health`
 `GET`  | `/api/v1/xdp_stats`    | Displays the XDP statistics. Returns an object of `XdpStats`           | `/api/v1/xdp_stats`
 `GET`  | `/api/v1/packet_stats` | Displays the PACKET statistics. Returns an object of `PacketStats`     | `/api/v1/packet_stats`
-`GET`  | `/api/v1/route_stats`  | Display FIB route lookup statistics. Returns an object of `RouteStats` | `/api/v1/route_stats`
+`GET`  | `/api/v1/route_stats`  | Displays FIB route lookup statistics. Returns an object of `RouteStats` | `/api/v1/route_stats`
 
 ### - QER map
 
@@ -168,8 +169,8 @@ Method | URL                           | Description                            
 
 Method | URL                             | Description                                                                  | Example
 ------ | ------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------
-`GET`  | `/api/v1/downlink_pdr_map/{id}` | Get Uplink PDR values by IPv4 or IPv6\. Returns an object of `PdrElement`    | `/api/v1/downlink_pdr_map/2a03:d000:29a0:0509:0001:0000:1f86:9ec4`
-`PUT`  | `/api/v1/downlink_pdr_map/{id}` | Set Uplink PDR values by IPv4 or IPv6\. Returns a new object of `PdrElement` | `/api/v1/downlink_pdr_map/10.45.0.2`
+`GET`  | `/api/v1/downlink_pdr_map/{id}` | Get Downlink PDR values by IPv4 or IPv6\. Returns an object of `PdrElement`    | `/api/v1/downlink_pdr_map/2a03:d000:29a0:0509:0001:0000:1f86:9ec4`
+`PUT`  | `/api/v1/downlink_pdr_map/{id}` | Set Downlink PDR values by IPv4 or IPv6\. Returns a new object of `PdrElement` | `/api/v1/downlink_pdr_map/10.45.0.2`
 
 [PUT] Example request body:
 
@@ -237,6 +238,8 @@ To explore and test the API, you can use the Swagger API documentation. To acces
 
 ```bash
 go install github.com/swaggo/swag/cmd/swag@v1.8.12
-cd {repo_root}/cmd/eupf
-swag init --parseDependency
+cd {repo_root}
+go generate ./cmd/...
 ```
+
+This runs `swag init --parseDependency --parseInternal --parseDepth 1 -g api/rest/handler.go` (see the `go:generate` directive in `cmd/main.go`).
